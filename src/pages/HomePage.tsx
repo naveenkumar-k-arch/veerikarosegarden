@@ -224,6 +224,28 @@ export const HomePage: React.FC<HomePageProps> = ({
         </section>
       )}
 
+      {/* ===== FEATURED PRODUCTS ===== */}
+      <section className="section-container" style={{ padding: '64px 24px 0' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 28 }}>
+          <div>
+            <span className="section-label">Handpicked Selection</span>
+            <div className="divider-green" />
+            <h2 className="section-title" style={{ fontSize: 'clamp(22px, 3.5vw, 36px)', marginTop: 4 }}>
+              Featured <em>Varieties</em>
+            </h2>
+          </div>
+          <button className="btn-outline-green" style={{ fontSize: 12, padding: '9px 18px' }} onClick={() => onNavigate('shop')}>
+            Explore All <ChevronRight style={{ width: 14, height: 14 }} />
+          </button>
+        </div>
+
+        <div className="hp-product-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 20 }}>
+          {(featuredProducts.length > 0 ? featuredProducts : products).slice(0, 8).map(p => (
+            <ProductCard key={p.id} product={p} onAddToCart={onAddToCart} onViewDetails={onViewDetails} onOpenCareGuide={onOpenCareGuide} />
+          ))}
+        </div>
+      </section>
+
       {/* ===== CATEGORIES ===== */}
       {activeCategories.length > 0 && (
         <section className="section-container" style={{ padding: '64px 24px 0' }}>
