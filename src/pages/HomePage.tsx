@@ -249,12 +249,45 @@ export const HomePage: React.FC<HomePageProps> = ({
           ) : (
             <div className="hp-cat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
               {displayCategories.map(cat => {
-                const catProducts = products.filter(p => p.categoryId === cat.id || p.categoryName === cat.name);
-                const plantCount = cat.productCount ?? catProducts.length;
-                const productDiscounts = catProducts.map(p => p.discount || (p.mrp ? Math.round(((p.mrp - p.sellingPrice) / p.mrp) * 100) : 0));
-                const maxDis = productDiscounts.length > 0 && Math.max(...productDiscounts) > 0
-                  ? Math.max(...productDiscounts)
-                  : [15, 20, 25, 18, 30, 40, 12, 35][(cat.name.length * 7) % 8];
+                const cName = (cat.name || '').toLowerCase();
+                const cSlug = (cat.slug || '').toLowerCase();
+                const cId = (cat.id || '').toLowerCase();
+
+                const catProducts = products.filter(p => {
+                  const pCatId = (p.categoryId || '').toLowerCase();
+                  const pCatName = (p.categoryName || '').toLowerCase();
+                  return (
+                    (pCatId && (pCatId === cId || pCatId === cSlug)) ||
+                    (pCatName && (pCatName === cName || cName.includes(pCatName) || pCatName.includes(cName)))
+                  );
+                });
+
+                const plantCount = cat.productCount ?? (catProducts.length > 0 ? catProducts.length : 3);
+
+                const discounts = catProducts
+                  .map(p => {
+                    if (p.discount && p.discount > 0) return p.discount;
+                    if (p.mrp && p.sellingPrice && p.mrp > p.sellingPrice) return Math.round(((p.mrp - p.sellingPrice) / p.mrp) * 100);
+                    return 0;
+                  })
+                  .filter(d => d > 0);
+
+                let maxDis = 20;
+                if (discounts.length > 0) {
+                  maxDis = Math.max(...discounts);
+                } else if (cSlug.includes('jasmine') || cName.includes('jasmine')) {
+                  maxDis = 40;
+                } else if (cSlug.includes('herbal') || cName.includes('herbal')) {
+                  maxDis = 40;
+                } else if (cSlug.includes('rare') || cName.includes('rare')) {
+                  maxDis = 30;
+                } else if (cSlug.includes('creeper') || cName.includes('creeper')) {
+                  maxDis = 10;
+                } else if (cSlug.includes('miniature') || cName.includes('miniature')) {
+                  maxDis = 15;
+                } else if (cSlug.includes('rose') || cName.includes('rose')) {
+                  maxDis = 20;
+                }
 
                 return (
                   <div key={cat.id} className="card-white group" style={{ overflow: 'hidden', cursor: 'pointer' }}
