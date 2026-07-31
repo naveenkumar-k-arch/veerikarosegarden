@@ -1,0 +1,6 @@
+{
+  "name": "Veerika Rose Garden - Nursery E-Commerce",
+  "description": "Online nursery store for Veerika Rose Garden with PhonePe payment gateway, Tamil & English search, plant care guides, and complete admin panel.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,94 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.admin == true ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN' ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'SUPER_ADMIN'))
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // User Profiles
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.role != 'ADMIN';
+      allow update: if (isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Products Catalog (Public Read, Admin Write)
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Categories (Public Read, Admin Write)
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Coupons (Authenticated Read, Admin Write)
+    match /coupons/{couponId} {
+      allow read: if isSignedIn() || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // Banners (Public Read, Admin Write)
+    match /banners/{bannerId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Reviews (Public Read Approved, Authenticated Write)
+    match /reviews/{reviewId} {
+      allow read: if resource.data.status == 'APPROVED' || isAdmin();
+      allow create: if isSignedIn() && request.resource.data.rating >= 1 && request.resource.data.rating <= 5;
+      allow update, delete: if isAdmin();
+    }
+
+    // Orders (Customer Reads Own, Admin Reads All, Direct Client Payment Tampering Forbidden)
+    match /orders/{orderId} {
+      allow get: if isAdmin() || (isSignedIn() && (
+        resource.data.customerEmail == request.auth.token.email ||
+        resource.data.customerPhone == request.auth.token.phone_number
+      ));
+      allow list: if isAdmin() || (isSignedIn() && resource.data.customerEmail == request.auth.token.email);
+      allow create: if isSignedIn() && request.resource.data.paymentStatus == 'PENDING';
+      allow update, delete: if isAdmin();
+    }
+
+    // Payment Logs (Admin Only)
+    match /paymentLogs/{logId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Site Settings (Public Read, Admin Write)
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

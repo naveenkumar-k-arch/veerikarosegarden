@@ -1,0 +1,136 @@
+{
+  "entities": {
+    "users": {
+      "title": "Users",
+      "description": "Customer and Admin user accounts",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["ADMIN", "CUSTOMER"] },
+        "phone": { "type": "string" },
+        "avatarUrl": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["email", "role"]
+    },
+    "products": {
+      "title": "Products",
+      "description": "Nursery plant and garden products",
+      "type": "object",
+      "properties": {
+        "sku": { "type": "string" },
+        "name": { "type": "string" },
+        "englishName": { "type": "string" },
+        "tamilName": { "type": "string" },
+        "scientificName": { "type": "string" },
+        "categoryId": { "type": "string" },
+        "categoryName": { "type": "string" },
+        "description": { "type": "string" },
+        "mrp": { "type": "number" },
+        "sellingPrice": { "type": "number" },
+        "discount": { "type": "number" },
+        "stock": { "type": "number" },
+        "plantHeight": { "type": "string" },
+        "potSize": { "type": "string" },
+        "sunlight": { "type": "string" },
+        "waterRequirement": { "type": "string" },
+        "floweringSeason": { "type": "string" },
+        "featured": { "type": "boolean" },
+        "bestSeller": { "type": "boolean" },
+        "rating": { "type": "number" },
+        "reviewCount": { "type": "number" },
+        "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "ARCHIVED"] }
+      },
+      "required": ["sku", "name", "sellingPrice", "stock", "categoryId"]
+    },
+    "orders": {
+      "title": "Orders",
+      "description": "Customer plant order transactions",
+      "type": "object",
+      "properties": {
+        "merchantTransactionId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "customerEmail": { "type": "string" },
+        "subtotal": { "type": "number" },
+        "shippingCharge": { "type": "number" },
+        "discount": { "type": "number" },
+        "grandTotal": { "type": "number" },
+        "paymentStatus": { "type": "string", "enum": ["PENDING", "SUCCESS", "FAILED", "REFUNDED"] },
+        "orderStatus": { "type": "string", "enum": ["PENDING", "CONFIRMED", "PROCESSING", "PACKED", "DISPATCHED", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED", "REFUNDED"] },
+        "paymentMethod": { "type": "string", "enum": ["PHONEPE", "COD"] }
+      },
+      "required": ["merchantTransactionId", "customerEmail", "grandTotal", "paymentStatus", "orderStatus"]
+    },
+    "categories": {
+      "title": "Categories",
+      "description": "Plant categories",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "tamilName": { "type": "string" },
+        "iconName": { "type": "string" },
+        "image": { "type": "string" },
+        "description": { "type": "string" },
+        "isHidden": { "type": "boolean" },
+        "order": { "type": "number" }
+      },
+      "required": ["name", "order"]
+    },
+    "reviews": {
+      "title": "Reviews",
+      "description": "Customer product reviews",
+      "type": "object",
+      "properties": {
+        "productId": { "type": "string" },
+        "productName": { "type": "string" },
+        "userName": { "type": "string" },
+        "rating": { "type": "number" },
+        "comment": { "type": "string" },
+        "status": { "type": "string", "enum": ["APPROVED", "PENDING", "REJECTED"] }
+      },
+      "required": ["productId", "userName", "rating", "comment"]
+    },
+    "paymentLogs": {
+      "title": "Payment Logs",
+      "description": "Audit trail for PhonePe transaction logs",
+      "type": "object",
+      "properties": {
+        "merchantTransactionId": { "type": "string" },
+        "orderId": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string" },
+        "checksum": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["merchantTransactionId", "amount", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "users",
+      "description": "User profiles collection"
+    },
+    "/products/{productId}": {
+      "schema": "products",
+      "description": "Nursery products catalog"
+    },
+    "/orders/{orderId}": {
+      "schema": "orders",
+      "description": "Ecommerce orders"
+    },
+    "/categories/{categoryId}": {
+      "schema": "categories",
+      "description": "Product categories"
+    },
+    "/reviews/{reviewId}": {
+      "schema": "reviews",
+      "description": "Product reviews"
+    },
+    "/paymentLogs/{logId}": {
+      "schema": "paymentLogs",
+      "description": "Payment logs audit trail"
+    }
+  }
+}
