@@ -764,7 +764,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
       `📦 *Order Reference:* #${o.id}\n` +
       `📢 *Status:* ${statusMsg}\n` +
       `💵 *Payment:* ${o.paymentMethod} (${o.paymentStatus === 'SUCCESS' ? 'PAID ✅' : '₹' + o.grandTotal + ' Pending'})\n\n` +
-      `Track your order live: https://flower-nu-dun.vercel.app/`
+      `Track your order live: ${window.location.origin}/#/order-status/${o.id}`
     );
 
     window.open(`https://wa.me/${targetPhone}?text=${text}`, '_blank');
