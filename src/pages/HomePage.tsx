@@ -203,6 +203,27 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
+      {/* ===== BEST SELLERS ===== */}
+      {bestSellers.length > 0 && (
+        <section className="section-container" style={{ padding: '64px 24px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 28 }}>
+            <div>
+              <span className="section-label">★ Top Rated</span>
+              <div className="divider-green" />
+              <h2 className="section-title" style={{ fontSize: 'clamp(22px, 3.5vw, 36px)', marginTop: 4 }}>
+                Best <em>Sellers</em>
+              </h2>
+            </div>
+            <button className="btn-outline-green" style={{ fontSize: 12, padding: '9px 18px' }} onClick={() => onNavigate('shop')}>
+              Explore All <ChevronRight style={{ width: 14, height: 14 }} />
+            </button>
+          </div>
+          <div className="hp-product-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 20 }}>
+            {bestSellers.map(p => <ProductCard key={p.id} product={p} onAddToCart={onAddToCart} onViewDetails={onViewDetails} onOpenCareGuide={onOpenCareGuide} />)}
+          </div>
+        </section>
+      )}
+
       {/* ===== CATEGORIES ===== */}
       {activeCategories.length > 0 && (
         <section className="section-container" style={{ padding: '64px 24px 0' }}>
@@ -253,81 +274,6 @@ export const HomePage: React.FC<HomePageProps> = ({
               })}
             </div>
           )}
-        </section>
-      )}
-
-      {/* ===== FEATURED PRODUCTS ===== */}
-      <section className="section-container" style={{ padding: '64px 24px 0' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 28 }}>
-          <div>
-            <span className="section-label">Handpicked Selection</span>
-            <div className="divider-green" />
-            <h2 className="section-title" style={{ fontSize: 'clamp(22px, 3.5vw, 36px)', marginTop: 4 }}>
-              Featured <em>Varieties</em>
-            </h2>
-          </div>
-          <button className="btn-outline-green" style={{ fontSize: 12, padding: '9px 18px' }} onClick={() => onNavigate('shop')}>
-            Explore All <ChevronRight style={{ width: 14, height: 14 }} />
-          </button>
-        </div>
-
-        <div className="hp-product-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 20 }}>
-          {(featuredProducts.length > 0 ? featuredProducts : products).slice(0, 8).map(p => (
-            <ProductCard key={p.id} product={p} onAddToCart={onAddToCart} onViewDetails={onViewDetails} onOpenCareGuide={onOpenCareGuide} />
-          ))}
-        </div>
-      </section>
-
-      {/* ===== WHY CHOOSE US ===== */}
-      <section style={{ background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)', marginTop: 72, padding: '0 0 72px' }}>
-        {/* Top wave */}
-        <div style={{ height: 50, background: 'var(--bg-page)', borderRadius: '0 0 50% 50% / 0 0 100% 100%', marginBottom: -1 }} />
-        <div className="section-container" style={{ padding: '56px 24px 0' }}>
-          <div style={{ textAlign: 'center', marginBottom: 44 }}>
-            <span className="section-label">Why Choose Us</span>
-            <div className="divider-green" style={{ margin: '12px auto' }} />
-            <h2 className="section-title">Trusted by <em>10,000+</em> Plant Lovers</h2>
-            <p style={{ fontSize: 15, color: 'var(--text-muted)', marginTop: 10, maxWidth: 480, margin: '10px auto 0' }}>
-              Every plant raised with care and shipped safely to your home.
-            </p>
-          </div>
-          <div className="hp-why-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 18 }}>
-            {[
-              { icon: Sprout, title: '100% Organically Raised', body: 'Nurtured with vermicompost and bio-fertilizers for long-term blooming.', color: '#16a34a', bg: 'white', border: '#bbf7d0' },
-              { icon: Truck, title: '7-Day Root Protection', body: 'Moisture-retaining moss and ventilated boxes guarantee live arrival.', color: '#3b82f6', bg: 'white', border: '#bfdbfe' },
-              { icon: ShieldCheck, title: 'PhonePe Safe Payment', body: 'Encrypted UPI and card gateway with instant confirmation.', color: '#7c3aed', bg: 'white', border: '#ddd6fe' },
-              { icon: HeartHandshake, title: 'Free Gardening Support', body: 'Call or WhatsApp our nursery experts anytime for plant care tips.', color: '#e11d48', bg: 'white', border: '#fecdd3' },
-            ].map(({ icon: Icon, title, body, color, bg, border }) => (
-              <div key={title} style={{ background: bg, border: `1.5px solid ${border}`, borderRadius: 18, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.04)', transition: 'all 0.3s ease' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-4px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 12px 40px rgba(0,0,0,0.08)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 20px rgba(0,0,0,0.04)'; }}
-              >
-                <div style={{ width: 50, height: 50, borderRadius: 14, background: `${color}18`, border: `1.5px solid ${color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
-                  <Icon style={{ width: 24, height: 24, color }} />
-                </div>
-                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 17, color: 'var(--text-dark)', marginBottom: 8 }}>{title}</h3>
-                <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.7 }}>{body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ===== BEST SELLERS ===== */}
-      {bestSellers.length > 0 && (
-        <section className="section-container" style={{ padding: '64px 24px 0' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 28 }}>
-            <div>
-              <span className="section-label">★ Top Rated</span>
-              <div className="divider-green" />
-              <h2 className="section-title" style={{ fontSize: 'clamp(22px, 3.5vw, 36px)', marginTop: 4 }}>
-                Best <em>Sellers</em>
-              </h2>
-            </div>
-          </div>
-          <div className="hp-product-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 20 }}>
-            {bestSellers.map(p => <ProductCard key={p.id} product={p} onAddToCart={onAddToCart} onViewDetails={onViewDetails} onOpenCareGuide={onOpenCareGuide} />)}
-          </div>
         </section>
       )}
 
