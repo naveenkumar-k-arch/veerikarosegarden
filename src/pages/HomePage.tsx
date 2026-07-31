@@ -264,12 +264,12 @@ export const HomePage: React.FC<HomePageProps> = ({
                         style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s ease' }} className="group-hover-scale"
                         onError={e => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=400&q=80'; }} />
                       
-                      {cat.isFeatured && <span className="badge-amber" style={{ position: 'absolute', top: 8, left: 8, fontSize: 9 }}>★ Featured</span>}
+                      {cat.isFeatured && <span className="badge-amber" style={{ position: 'absolute', top: 8, left: 8, fontSize: 9, zIndex: 10 }}>★ Featured</span>}
                       
                       <span style={{
-                        position: 'absolute', top: 8, right: 8, fontSize: 9, fontWeight: 800,
+                        position: 'absolute', top: 8, right: 8, zIndex: 10, fontSize: 9, fontWeight: 800,
                         background: 'linear-gradient(135deg, #e11d48, #be123c)', color: 'white',
-                        padding: '3px 8px', borderRadius: 999, boxShadow: '0 2px 8px rgba(225,29,72,0.3)',
+                        padding: '3px 8px', borderRadius: 999, boxShadow: '0 2px 8px rgba(225,29,72,0.4)',
                         letterSpacing: '0.02em', textTransform: 'uppercase'
                       }}>
                         Up to {maxDis}% OFF
@@ -281,8 +281,13 @@ export const HomePage: React.FC<HomePageProps> = ({
                         <span style={{ fontSize: 9, color: 'var(--color-green)', fontWeight: 700 }}>{plantCount} plants</span>
                       </div>
                       <p style={{ fontFamily: 'var(--font-tamil)', fontSize: 11, color: 'var(--text-muted)', margin: '0 0 8px' }}>{cat.tamilName}</p>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--color-green-dark)', fontSize: 11, fontWeight: 700 }}>
-                        Shop now <ArrowRight style={{ width: 11, height: 11 }} />
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--color-green-dark)', fontSize: 11, fontWeight: 700 }}>
+                          Shop now <ArrowRight style={{ width: 11, height: 11 }} />
+                        </div>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: '#e11d48', background: '#fff1f2', padding: '2px 6px', borderRadius: 6, border: '1px solid #fecdd3' }}>
+                          {maxDis}% OFF
+                        </span>
                       </div>
                     </div>
                   </div>
