@@ -55,8 +55,13 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({ onSuccess, c
       console.error('Google Sign-In Error:', err?.code, err?.message);
       if (err?.code === 'auth/popup-closed-by-user' || err?.code === 'auth/cancelled-popup-request') {
         setErrorMsg('Sign-in popup was closed. Please try again.');
+      } else if (err?.code === 'auth/unauthorized-domain') {
+        setErrorMsg(`Domain not authorized in Firebase Console (${window.location.hostname}). Please add it under Firebase -> Auth -> Settings -> Authorized Domains.`);
+      } else if (err?.code === 'auth/operation-not-allowed') {
+        setErrorMsg('Google Sign-In is disabled in Firebase Console. Please enable Google under Firebase -> Auth -> Sign-in Method.');
+      } else if (err?.message || err?.code) {
+        setErrorMsg(`Google Sign-In error: ${err?.code || err?.message || 'Authentication failed'}`);
       } else {
-        // Domain / OAuth credential setup pending in Firebase Console — activate instant sign-in box
         setShowEmailFallback(true);
       }
     } finally {
