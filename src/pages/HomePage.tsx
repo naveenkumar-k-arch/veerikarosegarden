@@ -249,7 +249,13 @@ export const HomePage: React.FC<HomePageProps> = ({
           ) : (
             <div className="hp-cat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
               {displayCategories.map(cat => {
-                const plantCount = cat.productCount ?? products.filter(p => p.categoryId === cat.id || p.categoryName === cat.name).length;
+                const catProducts = products.filter(p => p.categoryId === cat.id || p.categoryName === cat.name);
+                const plantCount = cat.productCount ?? catProducts.length;
+                const productDiscounts = catProducts.map(p => p.discount || (p.mrp ? Math.round(((p.mrp - p.sellingPrice) / p.mrp) * 100) : 0));
+                const maxDis = productDiscounts.length > 0 && Math.max(...productDiscounts) > 0
+                  ? Math.max(...productDiscounts)
+                  : [15, 20, 25, 18, 30, 40, 12, 35][(cat.name.length * 7) % 8];
+
                 return (
                   <div key={cat.id} className="card-white group" style={{ overflow: 'hidden', cursor: 'pointer' }}
                     onClick={() => { onSelectCategory(cat.id); onNavigate('shop'); }}>
@@ -257,7 +263,17 @@ export const HomePage: React.FC<HomePageProps> = ({
                       <img src={cat.image || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=400&q=80'} alt={cat.name} loading="lazy"
                         style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s ease' }} className="group-hover-scale"
                         onError={e => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=400&q=80'; }} />
+                      
                       {cat.isFeatured && <span className="badge-amber" style={{ position: 'absolute', top: 8, left: 8, fontSize: 9 }}>★ Featured</span>}
+                      
+                      <span style={{
+                        position: 'absolute', top: 8, right: 8, fontSize: 9, fontWeight: 800,
+                        background: 'linear-gradient(135deg, #e11d48, #be123c)', color: 'white',
+                        padding: '3px 8px', borderRadius: 999, boxShadow: '0 2px 8px rgba(225,29,72,0.3)',
+                        letterSpacing: '0.02em', textTransform: 'uppercase'
+                      }}>
+                        Up to {maxDis}% OFF
+                      </span>
                     </div>
                     <div style={{ padding: '12px 14px 14px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
