@@ -1419,10 +1419,16 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                   categories={categories}
                   onSave={async (formData) => {
                     try {
-                      const res = await authFetch('/api/coupons', { method: 'POST', body: JSON.stringify(formData) });
+                      const payload = {
+                        ...formData,
+                        type: formData.discountType === 'FLAT' ? 'FIXED' : 'PERCENT',
+                        value: Number(formData.discountValue),
+                        minOrder: Number(formData.minOrderAmount || 0),
+                        expiryDate: formData.expiryDate || '2027-12-31'
+                      };
+                      const res = await authFetch('/api/coupons', { method: 'POST', body: JSON.stringify(payload) });
                       const data = await res.json();
                       if (data.success) {
-                        // Optimistically add coupon to local state immediately (don't wait for poll)
                         const newCoupon: Coupon = {
                           id: data.coupon?.id || 'local-' + Date.now(),
                           code: formData.code,
@@ -1437,13 +1443,12 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                           ...data.coupon
                         };
                         setCoupons(prev => [newCoupon, ...prev]);
-                        // Also refresh from server after a short delay
                         setTimeout(() => fetchData(), 1500);
                       } else {
                         throw new Error(data.message || 'Failed to create coupon');
                       }
                     } catch (err: any) {
-                      throw err; // CouponForm shows the error
+                      throw err;
                     }
                   }}
                 />

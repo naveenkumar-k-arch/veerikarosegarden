@@ -75,11 +75,14 @@ export const reviewSchema = z.object({
 
 export const couponSchema = z.object({
   code: z.string().min(3).max(20).transform(val => val.toUpperCase()),
-  type: z.enum(['PERCENT', 'FIXED']),
-  value: z.number().positive(),
-  minOrder: z.number().min(0).default(0),
-  maxDiscount: z.number().positive().optional(),
-  expiryDate: z.string().min(1)
+  type: z.enum(['PERCENT', 'FIXED', 'PERCENTAGE', 'FLAT']).optional(),
+  value: z.number().optional(),
+  discountType: z.string().optional(),
+  discountValue: z.number().optional(),
+  minOrder: z.number().optional(),
+  minOrderAmount: z.number().optional(),
+  maxDiscount: z.number().optional(),
+  expiryDate: z.string().optional()
 });
 
 export const updateOrderStatusSchema = z.object({

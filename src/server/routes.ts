@@ -314,14 +314,19 @@ apiRouter.get('/coupons', requireAdmin, async (req: AuthenticatedRequest, res) =
 
 apiRouter.post('/coupons', requireAdmin, validateBody(couponSchema), async (req: AuthenticatedRequest, res) => {
   try {
+    const rawType = req.body.type || (req.body.discountType === 'FLAT' ? 'FIXED' : 'PERCENT');
+    const rawValue = req.body.value ?? req.body.discountValue ?? 10;
+    const rawMinOrder = req.body.minOrder ?? req.body.minOrderAmount ?? 0;
+    const rawExpiry = req.body.expiryDate || '2027-12-31';
+
     const coupon = await db.addCoupon({
       code: req.body.code.toUpperCase(),
-      type: req.body.type as 'PERCENT' | 'FIXED',
-      value: Number(req.body.value),
-      minOrder: Number(req.body.minOrder || 0),
+      type: rawType === 'FLAT' || rawType === 'FIXED' ? 'FIXED' : 'PERCENT',
+      value: Number(rawValue),
+      minOrder: Number(rawMinOrder),
       maxDiscount: req.body.maxDiscount ? Number(req.body.maxDiscount) : undefined,
-      expiryDate: req.body.expiryDate || '2027-12-31',
-      active: true
+      expiryDate: rawExpiry,
+      active: req.body.isActive !== false
     });
     res.status(201).json({ success: true, coupon });
   } catch (error: any) {
