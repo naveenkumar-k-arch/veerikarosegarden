@@ -2229,7 +2229,8 @@ class Store {
             discount: o.discount,
             shippingCharge: o.deliveryFee,
             grandTotal: o.totalAmount,
-            orderStatus: o.status === 'DELIVERED' ? 'DELIVERED' : o.status === 'PAID' || o.status === 'PACKING' || o.status === 'DISPATCHED' ? 'PROCESSING' : o.status === 'CANCELLED' ? 'CANCELLED' : 'PENDING',
+            orderStatus: o.status === 'DELIVERED' ? 'DELIVERED' : o.status === 'DISPATCHED' ? 'DISPATCHED' : o.status === 'PAID' || o.status === 'PACKING' ? 'PROCESSING' : o.status === 'CANCELLED' ? 'CANCELLED' : 'PENDING',
+
             paymentStatus: o.paymentStatus === 'SUCCESS' ? 'SUCCESS' : o.paymentStatus === 'FAILED' ? 'FAILED' : 'PENDING',
             paymentMethod: ((o as any).paymentMethod === 'COD' ? 'COD' : 'PHONEPE') as PaymentMethod,
             merchantTransactionId: o.merchantTransactionId || '',
@@ -2308,7 +2309,8 @@ class Store {
         discount: o.discount,
         shippingCharge: o.deliveryFee,
         grandTotal: o.totalAmount,
-        orderStatus: o.status === 'DELIVERED' ? 'DELIVERED' : o.status === 'PAID' || o.status === 'PACKING' || o.status === 'DISPATCHED' ? 'PROCESSING' : o.status === 'CANCELLED' ? 'CANCELLED' : 'PENDING',
+        orderStatus: o.status === 'DELIVERED' ? 'DELIVERED' : o.status === 'DISPATCHED' ? 'DISPATCHED' : o.status === 'PAID' || o.status === 'PACKING' ? 'PROCESSING' : o.status === 'CANCELLED' ? 'CANCELLED' : 'PENDING',
+
         paymentStatus: o.paymentStatus === 'SUCCESS' ? 'SUCCESS' : o.paymentStatus === 'FAILED' ? 'FAILED' : 'PENDING',
         paymentMethod: ((o as any).paymentMethod === 'COD' ? 'COD' : 'PHONEPE') as PaymentMethod,
         merchantTransactionId: o.merchantTransactionId || '',
@@ -2376,14 +2378,23 @@ class Store {
     try {
       const dbStatus = status === 'DELIVERED' ? 'DELIVERED' : status === 'PROCESSING' ? 'PACKING' : status === 'CANCELLED' ? 'CANCELLED' : status === 'DISPATCHED' ? 'DISPATCHED' : 'PENDING';
       const dbPayment = paymentStatus === 'SUCCESS' ? 'SUCCESS' : paymentStatus === 'FAILED' ? 'FAILED' : undefined;
-      await prisma.order.update({
-        where: { id: orderId },
+      const finalTracking = trackingNumber ? `${courierName ? courierName + ' | ' : ''}${trackingNumber}` : undefined;
+
+      await prisma.order.updateMany({
+        where: {
+          OR: [
+            { id: orderId },
+            { orderNumber: orderId },
+            { merchantTransactionId: orderId }
+          ]
+        },
         data: {
           status: dbStatus as any,
           ...(dbPayment ? { paymentStatus: dbPayment as any } : {}),
-          ...(trackingNumber ? { trackingNumber } : {})
+          ...(finalTracking ? { trackingNumber: finalTracking } : {})
         }
       });
+
 
       return (await this.getOrderById(orderId)) || null;
     } catch (err) {
