@@ -1530,18 +1530,23 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                           <button
                             onClick={async () => {
                               if (!confirm(`Delete coupon "${c.code}"?`)) return;
+                              const targetId = c.id || c.code;
                               setCoupons(prev => prev.filter(item => item.id !== c.id && item.code !== c.code));
                               try {
-                                const res = await authFetch(`/api/coupons/${c.id}`, { method: 'DELETE' });
+                                let res = await authFetch(`/api/coupons/${encodeURIComponent(targetId)}`, { method: 'DELETE' });
+                                if (!res.ok) {
+                                  res = await authFetch(`/api/coupons/${encodeURIComponent(targetId)}/delete`, { method: 'POST' });
+                                }
                                 const data = await res.json();
                                 if (data.success) fetchData();
                               } catch (e) {
-                                console.error(e);
+                                console.error('Delete coupon error:', e);
                               }
                             }}
                             className="p-1.5 bg-rose-50 text-rose-600 rounded-lg border border-rose-200 hover:bg-rose-100"
                             title="Delete Coupon"
                           ><Trash2 className="w-3.5 h-3.5" /></button>
+
 
                         </div>
                       </div>
