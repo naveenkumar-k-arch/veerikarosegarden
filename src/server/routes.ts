@@ -305,7 +305,7 @@ apiRouter.post('/banners', requireAdmin, async (req: AuthenticatedRequest, res) 
   }
 });
 
-// Admin: Seed default banners and sample reviews into DB
+// Admin: Seed default banners and sample coupons into DB
 apiRouter.post('/admin/seed', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const prisma = (db as any).prisma || (await import('./prisma.js')).getPrismaClient();
@@ -324,7 +324,27 @@ apiRouter.post('/admin/seed', requireAdmin, async (req: AuthenticatedRequest, re
       } catch {}
     }
 
-    res.json({ success: true, message: `Seeded ${bannersSeeded} banners` });
+    // Seed coupons
+    const defaultCoupons = [
+      { id: 'coup-welcome10', code: 'WELCOME10', discountType: 'PERCENTAGE', discountValue: 10, minOrderValue: 0, maxDiscount: 100, isActive: true },
+      { id: 'coup-rose20', code: 'ROSE20', discountType: 'PERCENTAGE', discountValue: 20, minOrderValue: 200, maxDiscount: 200, isActive: true },
+      { id: 'coup-flat50', code: 'FLAT50', discountType: 'FIXED', discountValue: 50, minOrderValue: 300, isActive: true },
+      { id: 'coup-veerika15', code: 'VEERIKA15', discountType: 'PERCENTAGE', discountValue: 15, minOrderValue: 150, maxDiscount: 150, isActive: true }
+    ];
+
+    let couponsSeeded = 0;
+    for (const c of defaultCoupons) {
+      try {
+        await prisma.coupon.upsert({
+          where: { code: c.code },
+          update: {},
+          create: c
+        });
+        couponsSeeded++;
+      } catch {}
+    }
+
+    res.json({ success: true, message: `Seeded ${bannersSeeded} banners and ${couponsSeeded} coupons` });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -337,10 +357,11 @@ apiRouter.post('/coupons/apply', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Coupon code and cart amount required' });
     }
 
-    const coupon = await db.getCouponByCode(String(code));
+    const cleanCode = String(code).trim().toUpperCase();
+    const coupon = await db.getCouponByCode(cleanCode);
 
     if (!coupon || !coupon.active) {
-      return res.status(400).json({ success: false, message: 'Invalid or expired coupon code' });
+      return res.status(400).json({ success: false, message: `Invalid or expired coupon code '${cleanCode}'` });
     }
 
     if (cartAmount < coupon.minOrder) {
@@ -364,12 +385,13 @@ apiRouter.post('/coupons/apply', async (req, res) => {
       success: true,
       code: coupon.code,
       discountAmount: Math.round(discountAmount),
-      message: `Coupon '${coupon.code}' applied successfully!`
+      message: `Coupon '${coupon.code}' applied successfully! 🎉`
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
+
 
 apiRouter.get('/coupons', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
