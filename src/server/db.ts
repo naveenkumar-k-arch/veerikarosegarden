@@ -1733,14 +1733,13 @@ class Store {
   // COUPONS
   async getCoupons(): Promise<Coupon[]> {
     const prisma = getPrismaClient();
-    let dbCoupons: Coupon[] = [];
 
     if (prisma) {
       try {
         const items = await prisma.coupon.findMany({
           where: { isActive: true }
         });
-        dbCoupons = items.map(c => ({
+        return items.map(c => ({
           id: c.id,
           code: c.code,
           type: c.discountType === 'FIXED' ? 'FIXED' : 'PERCENT',
@@ -1756,25 +1755,41 @@ class Store {
       }
     }
 
-    const defaultCoupons: Coupon[] = [
-      { id: 'coup-welcome10', code: 'WELCOME10', type: 'PERCENT', value: 10, minOrder: 0, maxDiscount: 100, expiryDate: '2028-12-31T23:59:59.000Z', active: true, usageCount: 0 },
-      { id: 'coup-rose20', code: 'ROSE20', type: 'PERCENT', value: 20, minOrder: 200, maxDiscount: 200, expiryDate: '2028-12-31T23:59:59.000Z', active: true, usageCount: 0 },
-      { id: 'coup-flat50', code: 'FLAT50', type: 'FIXED', value: 50, minOrder: 300, expiryDate: '2028-12-31T23:59:59.000Z', active: true, usageCount: 0 },
-      { id: 'coup-veerika15', code: 'VEERIKA15', type: 'PERCENT', value: 15, minOrder: 150, maxDiscount: 150, expiryDate: '2028-12-31T23:59:59.000Z', active: true, usageCount: 0 }
-    ];
-
-    const codeSet = new Set(dbCoupons.map(c => c.code.toUpperCase()));
-    const missingDefaults = defaultCoupons.filter(c => !codeSet.has(c.code));
-    return [...dbCoupons, ...missingDefaults];
+    return [];
   }
 
   async getCouponByCode(code: string): Promise<Coupon | undefined> {
     const cleanCode = (code || '').trim().toUpperCase();
     if (!cleanCode) return undefined;
 
-    const allCoupons = await this.getCoupons();
-    return allCoupons.find(c => c.code.toUpperCase() === cleanCode && c.active);
+    const prisma = getPrismaClient();
+    if (prisma) {
+      try {
+        const c = await prisma.coupon.findFirst({
+          where: { code: { equals: cleanCode, mode: 'insensitive' }, isActive: true }
+        });
+        if (c) {
+          return {
+            id: c.id,
+            code: c.code,
+            type: c.discountType === 'FIXED' ? 'FIXED' : 'PERCENT',
+            value: c.discountValue,
+            minOrder: c.minOrderValue,
+            maxDiscount: c.maxDiscount || undefined,
+            expiryDate: c.expiresAt ? c.expiresAt.toISOString() : '2028-12-31T23:59:59.000Z',
+            active: c.isActive,
+            usageCount: c.timesUsed
+          };
+        }
+      } catch (err) {
+        console.error('Prisma getCouponByCode error:', err);
+      }
+    }
+
+    const coupons = await this.getCoupons();
+    return coupons.find(c => c.code.toUpperCase() === cleanCode && c.active);
   }
+
 
 
   async addCoupon(coupon: Omit<Coupon, 'id' | 'usageCount'>): Promise<Coupon> {
