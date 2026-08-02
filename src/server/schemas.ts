@@ -32,35 +32,42 @@ export const createOrderSchema = z.object({
 });
 
 export const productSchema = z.object({
-  sku: z.string().min(1),
+  // SKU is optional — auto-generated server-side if not provided
+  sku: z.string().min(1).optional(),
   name: z.string().min(2).max(200),
-  englishName: z.string().min(2).max(200),
+  englishName: z.string().min(2).max(200).optional(),
   tamilName: z.string().min(1).max(200),
-  scientificName: z.string().min(1).max(200),
+  scientificName: z.string().min(1).max(200).optional().default(''),
   categoryId: z.string().min(1),
-  categoryName: z.string().min(1),
-  description: z.string().min(5),
+  categoryName: z.string().min(1).optional().default('Roses'),
+  // Description is optional — admin can leave blank, defaults to plant name
+  description: z.string().optional().default(''),
   mrp: z.number().positive(),
   sellingPrice: z.number().positive(),
-  discount: z.number().min(0).max(100),
+  discount: z.number().min(0).max(100).optional().default(0),
   stock: z.number().int().min(0),
-  plantHeight: z.string().min(1),
-  potSize: z.string().min(1),
-  sunlight: z.string().min(1),
-  waterRequirement: z.string().min(1),
-  floweringSeason: z.string().min(1),
+  plantHeight: z.string().min(1).optional().default('1–2 Feet'),
+  potSize: z.string().min(1).optional().default('8 Inch Bag'),
+  sunlight: z.string().min(1).optional().default('Full Sun'),
+  waterRequirement: z.string().min(1).optional().default('Daily'),
+  floweringSeason: z.string().min(1).optional().default('All Year'),
   careInstructions: z.object({
     watering: z.string(),
     sunlight: z.string(),
     fertilizer: z.string(),
     soil: z.string()
+  }).optional().default({
+    watering: 'Water daily in the morning.',
+    sunlight: 'Requires 5 hours direct sunlight.',
+    fertilizer: 'Apply vermicompost every 15 days.',
+    soil: 'Red soil mixed with coco peat.'
   }),
   // Accept both full URLs (https://...) and local paths (/products/image.jpg)
-  images: z.array(z.string().min(1)).min(1),
+  images: z.array(z.string().min(1)).optional().default([]),
   featured: z.boolean().default(false),
   bestSeller: z.boolean().default(false),
   trending: z.boolean().default(false),
-  tags: z.array(z.string()),
+  tags: z.array(z.string()).optional().default([]),
   status: z.enum(['ACTIVE', 'INACTIVE', 'ARCHIVED']).default('ACTIVE')
 });
 

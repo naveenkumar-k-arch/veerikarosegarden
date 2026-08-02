@@ -518,9 +518,53 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
       const url = editingProduct ? `/api/products/${editingProduct.id}` : '/api/products';
       const method = editingProduct ? 'PUT' : 'POST';
 
+      // Auto-generate SKU if not provided
+      const autoSku = prodForm.sku ||
+        `VRG-${(prodForm.name || 'PLANT').replace(/\s+/g, '-').toUpperCase().slice(0, 12)}-${Date.now().toString(36).toUpperCase()}`;
+
+      // Compute discount % if not set
+      const mrp = prodForm.mrp || 0;
+      const sellingPrice = prodForm.sellingPrice || 0;
+      const autoDiscount = mrp > 0 ? Math.round(((mrp - sellingPrice) / mrp) * 100) : 0;
+
+      // Build complete payload with defaults for every optional field
+      const payload = {
+        sku: autoSku,
+        name: prodForm.name || '',
+        englishName: prodForm.englishName || prodForm.name || '',
+        tamilName: prodForm.tamilName || '',
+        scientificName: prodForm.scientificName || '',
+        categoryId: prodForm.categoryId || 'cat-roses',
+        categoryName: prodForm.categoryName || 'Roses',
+        description: prodForm.description || prodForm.name || '',
+        mrp,
+        sellingPrice,
+        discount: prodForm.discount ?? autoDiscount,
+        stock: prodForm.stock ?? 25,
+        plantHeight: prodForm.plantHeight || '1–2 Feet',
+        potSize: prodForm.potSize || '8 Inch Bag',
+        sunlight: prodForm.sunlight || 'Full Sun',
+        waterRequirement: prodForm.waterRequirement || 'Daily',
+        floweringSeason: prodForm.floweringSeason || 'All Year',
+        careInstructions: prodForm.careInstructions || {
+          watering: 'Water daily in the morning.',
+          sunlight: 'Requires 5 hours direct sunlight.',
+          fertilizer: 'Apply vermicompost every 15 days.',
+          soil: 'Red soil mixed with coco peat.'
+        },
+        images: prodForm.images?.filter(Boolean).length
+          ? prodForm.images
+          : ['https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80'],
+        featured: prodForm.featured ?? false,
+        bestSeller: prodForm.bestSeller ?? false,
+        trending: prodForm.trending ?? false,
+        tags: prodForm.tags?.length ? prodForm.tags : [prodForm.categoryName || 'Plant'],
+        status: 'ACTIVE'
+      };
+
       const res = await authFetch(url, {
         method,
-        body: JSON.stringify(prodForm)
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
 
@@ -539,6 +583,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
       setProductSaving(false);
     }
   };
+
+
 
   // Handle Delete Single Product
   const handleDeleteProduct = async (id: string, name: string) => {

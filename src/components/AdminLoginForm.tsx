@@ -8,8 +8,8 @@ interface AdminLoginFormProps {
 }
 
 export const AdminLoginForm: React.FC<AdminLoginFormProps> = ({ onLoginSuccess, onBackToStore }) => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('admin@veerikarosegarden.com');
+  const [password, setPassword] = useState('admin123');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -54,7 +54,7 @@ export const AdminLoginForm: React.FC<AdminLoginFormProps> = ({ onLoginSuccess, 
       };
       onLoginSuccess(adminUser);
     } else {
-      setError('Invalid Admin Username or Password. Try Username: admin@veerikarosegarden.com, Password: admin123');
+      setError('Invalid Admin Username or Password');
     }
     setLoading(false);
   };
