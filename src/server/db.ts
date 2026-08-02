@@ -1,4 +1,5 @@
-import { Product, Category, Order, Coupon, Banner, Review, SiteSettings, PaymentLog, OrderItemSnapshot, PaymentMethod } from '../types.js';
+import { Product, Category, Order, Coupon, Banner, Review, SiteSettings, PaymentLog, OrderItemSnapshot, PaymentMethod, FinancialEntry } from '../types.js';
+
 import { getPrismaClient, executeInTransaction } from './prisma.js';
 import { firestoreSaveOrder, firestoreGetAllOrders, firestoreUpdateOrder } from './firestore.js';
 
@@ -943,8 +944,78 @@ const DEFAULT_ORDERS: Order[] = [
   }
 ];
 
+const DEFAULT_FINANCES: FinancialEntry[] = [
+  {
+    id: 'fin-001',
+    type: 'EXPENSE',
+    title: 'Organic Vermicompost 50kg Bags',
+    category: 'Soil & Manure',
+    costAmount: 1850,
+    sellAmount: 0,
+    quantity: 5,
+    notes: 'Bought for potting soil mixture at farm',
+    date: '2026-07-28',
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'fin-002',
+    type: 'SALE',
+    title: 'Wholesale Double Delight Roses (50 Plants Batch)',
+    category: 'Plant Wholesale',
+    costAmount: 4500,
+    sellAmount: 8500,
+    quantity: 50,
+    notes: 'Direct farm wholesale sale to Hosur reseller',
+    date: '2026-07-29',
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'fin-003',
+    type: 'EXPENSE',
+    title: '6-inch Black HDPE Plastic Potting Bags (1000 Pcs)',
+    category: 'Pots & Bags',
+    costAmount: 1200,
+    sellAmount: 0,
+    quantity: 1000,
+    notes: 'Sapling nursery bag restock',
+    date: '2026-07-30',
+    createdAt: new Date().toISOString()
+  }
+];
+
 class Store {
   private memoryOrders: Order[] = [];
+  private memoryFinances: FinancialEntry[] = [...DEFAULT_FINANCES];
+
+  // FINANCIAL EXPENSE & PROFIT MANAGEMENT
+  async getFinancialEntries(): Promise<FinancialEntry[]> {
+    return [...this.memoryFinances];
+  }
+
+  async addFinancialEntry(data: Partial<FinancialEntry>): Promise<FinancialEntry> {
+    const entry: FinancialEntry = {
+      id: 'fin-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+      type: data.type || 'EXPENSE',
+      title: (data.title || 'Nursery Expense').trim(),
+      category: data.category || 'Other',
+      costAmount: Number(data.costAmount) || 0,
+      sellAmount: Number(data.sellAmount) || 0,
+      quantity: Math.max(1, Number(data.quantity) || 1),
+      notes: (data.notes || '').trim(),
+      date: data.date || new Date().toISOString().split('T')[0],
+      createdAt: new Date().toISOString()
+    };
+    this.memoryFinances.unshift(entry);
+    return entry;
+  }
+
+  async deleteFinancialEntry(id: string): Promise<boolean> {
+    const initLen = this.memoryFinances.length;
+    this.memoryFinances = this.memoryFinances.filter(f => f.id !== id);
+    return this.memoryFinances.length < initLen;
+  }
+
+
 
   // PRODUCTS
   async getProducts(query?: {

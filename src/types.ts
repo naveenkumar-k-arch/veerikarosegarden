@@ -192,3 +192,17 @@ export interface SiteSettings {
   phonepeEnv: 'SANDBOX' | 'PRODUCTION';
   phonepeHostUrl?: string;
 }
+
+export interface FinancialEntry {
+  id: string;
+  type: 'EXPENSE' | 'SALE';
+  title: string;
+  category: 'Fertilizer' | 'Pots & Bags' | 'Soil & Manure' | 'Labor & Workers' | 'Transport & Freight' | 'Plant Wholesale' | 'Direct Nursery Sale' | 'Other';
+  costAmount: number;
+  sellAmount: number;
+  quantity: number;
+  notes?: string;
+  date: string;
+  createdAt: string;
+}
+

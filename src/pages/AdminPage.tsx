@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Product, Category, Order, Coupon, Banner, Review, SiteSettings, PaymentLog } from '../types';
-import { LayoutDashboard, Package, ShoppingBag, FolderTree, Tag, Image, Star, Settings as SettingsIcon, ShieldCheck, Plus, Edit, Trash2, Check, X, RefreshCw, Printer, AlertTriangle, Search, Lock, ExternalLink, DollarSign } from 'lucide-react';
+import { Product, Category, Order, Coupon, Banner, Review, SiteSettings, PaymentLog, FinancialEntry } from '../types';
+import { LayoutDashboard, Package, ShoppingBag, FolderTree, Tag, Image, Star, Settings as SettingsIcon, ShieldCheck, Plus, Edit, Trash2, Check, X, RefreshCw, Printer, AlertTriangle, Search, Lock, ExternalLink, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
+
 import { INITIAL_PRODUCTS, INITIAL_CATEGORIES } from '../data/catalogData';
 
 // ── Inline Coupon Creation Form ──────────────────────────────────────────────
@@ -101,8 +102,9 @@ interface AdminPageProps {
 }
 
 export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }) => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'categories' | 'orders' | 'inventory' | 'coupons' | 'banners' | 'reviews' | 'settings' | 'audit'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'categories' | 'orders' | 'inventory' | 'coupons' | 'banners' | 'reviews' | 'settings' | 'audit' | 'finances'>('dashboard');
   const [orderFilterStage, setOrderFilterStage] = useState<'all' | 'pending' | 'packing' | 'dispatched' | 'delivered'>('all');
+
 
 
   const getInitialAdminOrders = (): Order[] => {
@@ -342,6 +344,31 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
   const [paymentLogs, setPaymentLogs] = useState<PaymentLog[]>([]);
   const [loading, setLoading] = useState(true);
 
+
+  // Financial P&L Entries state
+  const [finances, setFinances] = useState<FinancialEntry[]>([]);
+  const [showFinanceModal, setShowFinanceModal] = useState(false);
+  const [financeForm, setFinanceForm] = useState<{
+    type: 'EXPENSE' | 'SALE';
+    title: string;
+    category: FinancialEntry['category'];
+    costAmount: number;
+    sellAmount: number;
+    quantity: number;
+    notes: string;
+    date: string;
+  }>({
+    type: 'EXPENSE',
+    title: '',
+    category: 'Fertilizer',
+    costAmount: 0,
+    sellAmount: 0,
+    quantity: 1,
+    notes: '',
+    date: new Date().toISOString().split('T')[0]
+  });
+
+
   // Track recently-edited stock so auto-poll doesn't overwrite user changes
   const pendingStockRef = React.useRef<Map<string, number>>(new Map());
 
@@ -424,7 +451,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [sRes, pRes, cRes, oRes, cpRes, bRes, rRes, stRes, plRes] = await Promise.all([
+      const [sRes, pRes, cRes, oRes, cpRes, bRes, rRes, stRes, plRes, fnRes] = await Promise.all([
         authFetch('/api/admin/dashboard').then((r) => r.json()).catch(() => null),
         authFetch('/api/products').then((r) => r.json()).catch(() => null),
         authFetch('/api/admin/categories').then((r) => r.json()).catch(() => null),
@@ -433,8 +460,12 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
         authFetch('/api/banners').then((r) => r.json()).catch(() => null),
         authFetch('/api/reviews').then((r) => r.json()).catch(() => null),
         authFetch('/api/admin/settings').then((r) => r.json()).catch(() => null),
-        authFetch('/api/admin/payment-logs').then((r) => r.json()).catch(() => null)
+        authFetch('/api/admin/payment-logs').then((r) => r.json()).catch(() => null),
+        authFetch('/api/admin/finances').then((r) => r.json()).catch(() => null)
       ]);
+
+      if (fnRes?.success && Array.isArray(fnRes.entries)) setFinances(fnRes.entries);
+
 
       if (sRes?.success) setStats(sRes.stats);
       if (pRes?.success && Array.isArray(pRes.products) && pRes.products.length > 0) {
@@ -880,7 +911,54 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
     }
   };
 
+  // Handle Save Financial Entry (Expense / Sale)
+
+  const handleSaveFinance = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await authFetch('/api/admin/finances', {
+        method: 'POST',
+        body: JSON.stringify(financeForm)
+      });
+      const data = await res.json();
+      if (data.success && data.entry) {
+        setFinances(prev => [data.entry, ...prev]);
+      } else {
+        const newEntry: FinancialEntry = {
+          id: 'fin-' + Date.now(),
+          ...financeForm,
+          createdAt: new Date().toISOString()
+        };
+        setFinances(prev => [newEntry, ...prev]);
+      }
+      setShowFinanceModal(false);
+      setFinanceForm({
+        type: 'EXPENSE',
+        title: '',
+        category: 'Fertilizer',
+        costAmount: 0,
+        sellAmount: 0,
+        quantity: 1,
+        notes: '',
+        date: new Date().toISOString().split('T')[0]
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteFinance = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this financial log entry?')) return;
+    setFinances(prev => prev.filter(f => f.id !== id));
+    try {
+      await authFetch(`/api/admin/finances/${id}`, { method: 'DELETE' }).catch(() => null);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
+
     <div className="min-h-screen bg-slate-100 text-slate-800 pb-12">
       {/* Top Admin Bar */}
       <div className="bg-slate-900 text-white px-6 py-4 shadow-md flex items-center justify-between">
@@ -913,8 +991,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
             { key: 'categories', icon: <FolderTree className="w-4 h-4" />, label: 'Categories' },
             { key: 'inventory', icon: <AlertTriangle className="w-4 h-4 text-amber-500" />, label: 'Inventory' },
             { key: 'coupons', icon: <Tag className="w-4 h-4" />, label: 'Coupons' },
+            { key: 'finances', icon: <DollarSign className="w-4 h-4 text-emerald-500" />, label: 'Expenses & Profit' },
             { key: 'settings', icon: <SettingsIcon className="w-4 h-4" />, label: 'Settings' },
             { key: 'audit', icon: <ShieldCheck className="w-4 h-4 text-purple-600" />, label: 'Audit Logs' },
+
           ].map(({ key, icon, label }) => (
             <button
               key={key}
@@ -2025,6 +2105,158 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
               </div>
             </div>
           )}
+
+
+
+
+          {/* TAB 7: EXPENSES & PROFIT CALCULATOR */}
+
+          {activeTab === 'finances' && (() => {
+            // Aggregate totals
+            const totalSpending = finances.reduce((sum, f) => sum + (f.costAmount || 0), 0);
+            const totalSales = finances.reduce((sum, f) => sum + (f.type === 'SALE' ? (f.sellAmount || 0) : 0), 0) + orders.reduce((sum, o) => sum + o.grandTotal, 0);
+            const netProfit = totalSales - totalSpending;
+            const isProfit = netProfit >= 0;
+            const margin = totalSales > 0 ? ((netProfit / totalSales) * 100).toFixed(1) : '0';
+
+            return (
+              <div className="space-y-6 text-xs">
+                {/* Header & Action Button */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-5 rounded-3xl border border-slate-200 shadow-2xs">
+                  <div>
+                    <h3 className="font-black text-lg text-slate-900 flex items-center gap-2">
+                      <span>💰 Farm Expenses, Sales & Profit Calculator</span>
+                    </h3>
+                    <p className="text-xs text-slate-500 font-medium mt-0.5">Track extra operational spending, fertilizer costs, wholesale sales, and live profit/loss</p>
+                  </div>
+                  <button
+                    onClick={() => setShowFinanceModal(true)}
+                    className="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>+ Add Spending / Sale Log</span>
+                  </button>
+                </div>
+
+                {/* 4 P&L Analytics Cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-2xs space-y-1">
+                    <span className="text-xs font-bold text-slate-400 uppercase">Total Sales Revenue</span>
+                    <p className="text-2xl font-black text-emerald-800">₹{totalSales}</p>
+                    <p className="text-[10px] text-slate-500 font-medium">Includes {orders.length} store orders + custom sales</p>
+                  </div>
+
+                  <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-2xs space-y-1">
+                    <span className="text-xs font-bold text-slate-400 uppercase">Total Farm Spending</span>
+                    <p className="text-2xl font-black text-rose-700">₹{totalSpending}</p>
+                    <p className="text-[10px] text-slate-500 font-medium">Fertilizer, bags, soil, labor & freight</p>
+                  </div>
+
+                  <div className={`p-5 rounded-3xl border shadow-2xs space-y-1 ${isProfit ? 'bg-emerald-50 border-emerald-300' : 'bg-rose-50 border-rose-300'}`}>
+                    <span className={`text-xs font-bold uppercase ${isProfit ? 'text-emerald-900' : 'text-rose-900'}`}>
+                      {isProfit ? '📈 Net Profit' : '📉 Net Loss'}
+                    </span>
+                    <p className={`text-2xl font-black ${isProfit ? 'text-emerald-800' : 'text-rose-700'}`}>
+                      {isProfit ? `+₹${netProfit}` : `-₹${Math.abs(netProfit)}`}
+                    </p>
+                    <p className={`text-[10px] font-bold ${isProfit ? 'text-emerald-700' : 'text-rose-700'}`}>
+                      {isProfit ? '✅ Profitable Farm Operation' : '⚠️ Expenses Exceed Revenue'}
+                    </p>
+                  </div>
+
+                  <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-2xs space-y-1">
+                    <span className="text-xs font-bold text-slate-400 uppercase">Profit Margin</span>
+                    <p className={`text-2xl font-black ${Number(margin) >= 0 ? 'text-emerald-800' : 'text-rose-600'}`}>{margin}%</p>
+                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden mt-1">
+                      <div className={`h-full ${Number(margin) >= 0 ? 'bg-emerald-600' : 'bg-rose-600'}`} style={{ width: `${Math.min(100, Math.max(0, Number(margin)))}%` }} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Table of Entries */}
+                <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-2xs space-y-4 p-5">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-3">
+                    <h4 className="font-bold text-sm text-slate-900">Nursery Financial Logs & Entry History ({finances.length})</h4>
+                    <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-xl">
+                      Live Calculated Profit/Loss per Line Item
+                    </span>
+                  </div>
+
+                  {finances.length === 0 ? (
+                    <div className="text-center py-10 space-y-2">
+                      <p className="text-4xl">💰</p>
+                      <p className="text-slate-500 font-semibold text-sm">No expenses or sales logged yet</p>
+                      <p className="text-slate-400 text-xs">Click "+ Add Spending / Sale Log" to record farm spending or custom sales</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px]">
+                            <th className="py-3 px-3">Date</th>
+                            <th className="py-3 px-3">Type</th>
+                            <th className="py-3 px-3">Title & Category</th>
+                            <th className="py-3 px-3 text-center">Qty</th>
+                            <th className="py-3 px-3">Spending (Cost)</th>
+                            <th className="py-3 px-3">Selling Price</th>
+                            <th className="py-3 px-3">Profit / Loss</th>
+                            <th className="py-3 px-3 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 font-medium">
+                          {finances.map((f) => {
+                            const itemCost = f.costAmount || 0;
+                            const itemSell = f.type === 'SALE' ? (f.sellAmount || 0) : 0;
+                            const itemDiff = f.type === 'SALE' ? (itemSell - itemCost) : -itemCost;
+                            const isItemProfit = itemDiff >= 0;
+
+                            return (
+                              <tr key={f.id} className="hover:bg-slate-50/80 transition-colors">
+                                <td className="py-3 px-3 font-mono text-slate-600 text-[11px]">{f.date}</td>
+                                <td className="py-3 px-3">
+                                  <span className={`font-bold px-2.5 py-0.5 rounded-full text-[10px] ${f.type === 'SALE' ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : 'bg-rose-100 text-rose-900 border border-rose-300'}`}>
+                                    {f.type === 'SALE' ? '🛍️ Sale' : '💸 Spending'}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-3">
+                                  <p className="font-bold text-slate-900 text-sm">{f.title}</p>
+                                  <p className="text-[11px] text-slate-500 font-medium">{f.category} {f.notes ? `• ${f.notes}` : ''}</p>
+                                </td>
+                                <td className="py-3 px-3 text-center font-bold font-mono">{f.quantity}</td>
+                                <td className="py-3 px-3 font-bold text-rose-700 font-mono">₹{itemCost}</td>
+                                <td className="py-3 px-3 font-bold text-emerald-800 font-mono">{f.type === 'SALE' ? `₹${itemSell}` : '—'}</td>
+                                <td className="py-3 px-3">
+                                  {f.type === 'SALE' ? (
+                                    <span className={`font-black px-2.5 py-1 rounded-xl text-[11px] ${isItemProfit ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : 'bg-rose-100 text-rose-900 border border-rose-300'}`}>
+                                      {isItemProfit ? `+₹${itemDiff} Profit` : `-₹${Math.abs(itemDiff)} Loss`}
+                                    </span>
+                                  ) : (
+                                    <span className="font-bold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-xl border border-rose-200">
+                                      -₹{itemCost} Expense
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="py-3 px-3 text-right">
+                                  <button
+                                    onClick={() => handleDeleteFinance(f.id)}
+                                    className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors border border-rose-200 cursor-pointer"
+                                    title="Delete Entry"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
         </div>
       </div>
 
@@ -2512,6 +2744,153 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
           </div>
         </div>
       )}
+      {/* Add Finance / Spending Entry Modal */}
+      {showFinanceModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 my-8 border border-slate-200 shadow-2xl">
+            <div className="flex justify-between items-center border-b border-slate-200 pb-3">
+              <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
+                <span>💰 Add Farm Expense or Sale Entry</span>
+              </h3>
+              <button onClick={() => setShowFinanceModal(false)} className="p-1 text-slate-400 hover:text-slate-800 cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveFinance} className="space-y-4 text-xs">
+              {/* Type Selector */}
+              <div className="grid grid-cols-2 gap-3 p-1.5 bg-slate-100 rounded-2xl">
+                <button
+                  type="button"
+                  onClick={() => setFinanceForm({ ...financeForm, type: 'EXPENSE' })}
+                  className={`py-2 rounded-xl font-bold transition-all cursor-pointer ${financeForm.type === 'EXPENSE' ? 'bg-rose-600 text-white shadow-xs' : 'text-slate-700 hover:text-slate-900'}`}
+                >
+                  💸 Farm Spending / Cost
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFinanceForm({ ...financeForm, type: 'SALE' })}
+                  className={`py-2 rounded-xl font-bold transition-all cursor-pointer ${financeForm.type === 'SALE' ? 'bg-emerald-700 text-white shadow-xs' : 'text-slate-700 hover:text-slate-900'}`}
+                >
+                  🛍️ Farm / Wholesale Sale
+                </button>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Title / Description *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder={financeForm.type === 'EXPENSE' ? "e.g. Vermicompost 50kg, HDPE Bags, Worker wages" : "e.g. Wholesale Rose Batch to Hosur Reseller"}
+                  value={financeForm.title}
+                  onChange={(e) => setFinanceForm({ ...financeForm, title: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Category</label>
+                  <select
+                    value={financeForm.category}
+                    onChange={(e) => setFinanceForm({ ...financeForm, category: e.target.value as any })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                  >
+                    <option value="Fertilizer">Fertilizer & Manure</option>
+                    <option value="Pots & Bags">Pots & HDPE Bags</option>
+                    <option value="Soil & Manure">Soil & Coco Peat</option>
+                    <option value="Labor & Workers">Labor & Worker Wages</option>
+                    <option value="Transport & Freight">Transport & Freight</option>
+                    <option value="Plant Wholesale">Plant Wholesale</option>
+                    <option value="Direct Nursery Sale">Direct Nursery Sale</option>
+                    <option value="Other">Other Operational Cost</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Quantity</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={financeForm.quantity}
+                    onChange={(e) => setFinanceForm({ ...financeForm, quantity: parseInt(e.target.value) || 1 })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Spending / Cost Incurred (₹) *</label>
+                  <input
+                    type="number"
+                    min={0}
+                    required
+                    value={financeForm.costAmount}
+                    onChange={(e) => setFinanceForm({ ...financeForm, costAmount: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold font-mono text-rose-700"
+                  />
+                </div>
+
+                {financeForm.type === 'SALE' && (
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Selling Price / Revenue (₹) *</label>
+                    <input
+                      type="number"
+                      min={0}
+                      required
+                      value={financeForm.sellAmount}
+                      onChange={(e) => setFinanceForm({ ...financeForm, sellAmount: parseFloat(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold font-mono text-emerald-800"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Live Profit Preview Box */}
+              {financeForm.type === 'SALE' && (
+                <div className={`p-3 rounded-2xl border font-bold flex justify-between items-center ${
+                  (financeForm.sellAmount - financeForm.costAmount) >= 0 ? 'bg-emerald-50 text-emerald-900 border-emerald-300' : 'bg-rose-50 text-rose-900 border-rose-300'
+                }`}>
+                  <span>Calculated Net Profit/Loss:</span>
+                  <span className="font-mono text-sm">
+                    {(financeForm.sellAmount - financeForm.costAmount) >= 0
+                      ? `+₹${financeForm.sellAmount - financeForm.costAmount} PROFIT`
+                      : `-₹${Math.abs(financeForm.sellAmount - financeForm.costAmount)} LOSS`}
+                  </span>
+                </div>
+              )}
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Date & Notes (Optional)</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <input
+                    type="date"
+                    value={financeForm.date}
+                    onChange={(e) => setFinanceForm({ ...financeForm, date: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Notes (e.g. Bill reference)"
+                    value={financeForm.notes}
+                    onChange={(e) => setFinanceForm({ ...financeForm, notes: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-medium"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
+              >
+                Save Financial Log Entry
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+

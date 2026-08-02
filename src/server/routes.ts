@@ -863,6 +863,44 @@ apiRouter.get('/admin/payment-logs', async (req: AuthenticatedRequest, res) => {
   }
 });
 
+// Financial Expense & Profit Logs
+apiRouter.get('/admin/finances', async (req: AuthenticatedRequest, res) => {
+  try {
+    const entries = await db.getFinancialEntries();
+    res.json({ success: true, entries });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+apiRouter.post('/admin/finances', requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const entry = await db.addFinancialEntry(req.body);
+    res.status(201).json({ success: true, entry, message: 'Financial entry recorded successfully!' });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+apiRouter.delete('/admin/finances/:id', requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const deleted = await db.deleteFinancialEntry(req.params.id);
+    res.json({ success: true, deleted, message: 'Financial entry removed successfully' });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+apiRouter.post('/admin/finances/delete', requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const deleted = await db.deleteFinancialEntry(req.body.id);
+    res.json({ success: true, deleted, message: 'Financial entry removed successfully' });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+
 // ================= SITE SETTINGS =================
 apiRouter.get('/settings', async (req, res) => {
   try {
