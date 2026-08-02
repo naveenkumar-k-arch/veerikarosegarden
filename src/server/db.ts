@@ -2396,10 +2396,16 @@ class Store {
       });
 
 
-      return (await this.getOrderById(orderId)) || null;
-    } catch (err) {
-      console.error('Prisma updateOrderStatus error:', err);
+      const updated = await this.getOrderById(orderId);
+      if (updated) {
+        updated.orderStatus = status;
+        if (trackingNumber) (updated as any).trackingNumber = trackingNumber;
+        if (courierName) (updated as any).courierName = courierName;
+        if (paymentStatus) (updated as any).paymentStatus = paymentStatus as any;
+        return updated;
+      }
       return memOrder || null;
+
     } finally {
       // Always sync to Firestore regardless of DB result
       if (memOrder) {
