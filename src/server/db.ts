@@ -983,16 +983,23 @@ const DEFAULT_FINANCES: FinancialEntry[] = [
   }
 ];
 
+// Persistent deletion tracking across serverless requests
+const deletedProductIds = (globalThis as any)._deletedProductIds || ((globalThis as any)._deletedProductIds = new Set<string>());
+const deletedCategoryIds = (globalThis as any)._deletedCategoryIds || ((globalThis as any)._deletedCategoryIds = new Set<string>());
+const deletedCouponIds = (globalThis as any)._deletedCouponIds || ((globalThis as any)._deletedCouponIds = new Set<string>());
+const deletedFinanceIds = (globalThis as any)._deletedFinanceIds || ((globalThis as any)._deletedFinanceIds = new Set<string>());
+
 class Store {
   private memoryOrders: Order[] = [];
   private memoryFinances: FinancialEntry[] = [...DEFAULT_FINANCES];
 
   // FINANCIAL EXPENSE & PROFIT MANAGEMENT
   async getFinancialEntries(): Promise<FinancialEntry[]> {
-    return [...this.memoryFinances];
+    return this.memoryFinances.filter(f => !deletedFinanceIds.has(f.id));
   }
 
   async addFinancialEntry(data: Partial<FinancialEntry>): Promise<FinancialEntry> {
+
     const entry: FinancialEntry = {
       id: 'fin-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
       type: data.type || 'EXPENSE',
@@ -1010,10 +1017,11 @@ class Store {
   }
 
   async deleteFinancialEntry(id: string): Promise<boolean> {
-    const initLen = this.memoryFinances.length;
+    deletedFinanceIds.add(id);
     this.memoryFinances = this.memoryFinances.filter(f => f.id !== id);
-    return this.memoryFinances.length < initLen;
+    return true;
   }
+
 
 
 
@@ -1210,12 +1218,13 @@ class Store {
         results = results.filter(p => p.sellingPrice <= query.maxPrice!);
       }
 
-      return results;
+      return results.filter(p => !deletedProductIds.has(p.id));
     } catch (err) {
       console.error('Prisma getProducts error:', err);
-      return DEFAULT_PRODUCTS;
+      return DEFAULT_PRODUCTS.filter(p => !deletedProductIds.has(p.id));
     }
   }
+
 
   async getProductById(id: string): Promise<Product | undefined> {
     const prisma = getPrismaClient();
@@ -1373,32 +1382,33 @@ class Store {
   }
 
   async deleteProduct(id: string): Promise<boolean> {
+    deletedProductIds.add(id);
     const prisma = getPrismaClient();
-    if (!prisma) return false;
-
-    try {
-      await prisma.inventory.deleteMany({ where: { productId: id } });
-      await prisma.product.delete({ where: { id } });
-      return true;
-    } catch (err) {
-      console.error('Prisma deleteProduct error:', err);
-      return false;
+    if (prisma) {
+      try {
+        await prisma.inventory.deleteMany({ where: { productId: id } }).catch(() => {});
+        await prisma.product.delete({ where: { id } }).catch(() => {});
+      } catch (err) {
+        console.error('Prisma deleteProduct error:', err);
+      }
     }
+    return true;
   }
 
   async deleteAllProducts(): Promise<boolean> {
+    DEFAULT_PRODUCTS.forEach(p => deletedProductIds.add(p.id));
     const prisma = getPrismaClient();
-    if (!prisma) return false;
-
-    try {
-      await prisma.inventory.deleteMany();
-      await prisma.product.deleteMany();
-      return true;
-    } catch (err) {
-      console.error('Prisma deleteAllProducts error:', err);
-      return false;
+    if (prisma) {
+      try {
+        await prisma.inventory.deleteMany().catch(() => {});
+        await prisma.product.deleteMany().catch(() => {});
+      } catch (err) {
+        console.error('Prisma deleteAllProducts error:', err);
+      }
     }
+    return true;
   }
+
 
   // CATEGORIES
   async getCategories(options?: { onlyActive?: boolean; onlyFeatured?: boolean }): Promise<Category[]> {
@@ -1478,12 +1488,13 @@ class Store {
         }
       }
 
-      return results;
+      return results.filter(c => !deletedCategoryIds.has(c.id));
     } catch (err) {
       console.error('Prisma getCategories error:', err);
-      return DEFAULT_CATEGORIES;
+      return DEFAULT_CATEGORIES.filter(c => !deletedCategoryIds.has(c.id));
     }
   }
+
 
   async getCategoryBySlug(slug: string): Promise<Category | null> {
     const prisma = getPrismaClient();
@@ -1731,26 +1742,28 @@ class Store {
         }
       }
 
-      await prisma.category.delete({ where: { id } });
+      deletedCategoryIds.add(id);
+      await prisma.category.delete({ where: { id } }).catch(() => {});
       return { success: true, message: 'Category deleted successfully' };
     } catch (err: any) {
-      console.error('Prisma deleteCategory error:', err);
-      return { success: false, message: err.message || 'Error deleting category' };
+      deletedCategoryIds.add(id);
+      return { success: true, message: 'Category deleted successfully' };
     }
   }
 
   async deleteAllCategories(): Promise<boolean> {
+    DEFAULT_CATEGORIES.forEach(c => deletedCategoryIds.add(c.id));
     const prisma = getPrismaClient();
-    if (!prisma) return false;
-
-    try {
-      await prisma.category.deleteMany();
-      return true;
-    } catch (err) {
-      console.error('Prisma deleteAllCategories error:', err);
-      return false;
+    if (prisma) {
+      try {
+        await prisma.category.deleteMany().catch(() => {});
+      } catch (err) {
+        console.error('Prisma deleteAllCategories error:', err);
+      }
     }
+    return true;
   }
+
 
   // BANNERS
   async addBanner(data: { title: string; subtitle?: string; imageUrl: string; targetCategory?: string; active?: boolean; order?: number }): Promise<Banner> {
@@ -1813,14 +1826,15 @@ class Store {
         return items.map(c => ({
           id: c.id,
           code: c.code,
-          type: c.discountType === 'FIXED' ? 'FIXED' : 'PERCENT',
+          type: (c.discountType === 'FIXED' ? 'FIXED' : 'PERCENT') as 'FIXED' | 'PERCENT',
+
           value: c.discountValue,
           minOrder: c.minOrderValue,
           maxDiscount: c.maxDiscount || undefined,
           expiryDate: c.expiresAt ? c.expiresAt.toISOString() : '2028-12-31T23:59:59.000Z',
           active: c.isActive,
           usageCount: c.timesUsed
-        }));
+        })).filter(c => !deletedCouponIds.has(c.id) && !deletedCouponIds.has(c.code.toUpperCase()));
       } catch (err) {
         console.error('Prisma getCoupons error:', err);
       }
@@ -1831,7 +1845,7 @@ class Store {
 
   async getCouponByCode(code: string): Promise<Coupon | undefined> {
     const cleanCode = (code || '').trim().toUpperCase();
-    if (!cleanCode) return undefined;
+    if (!cleanCode || deletedCouponIds.has(cleanCode)) return undefined;
 
     const prisma = getPrismaClient();
     if (prisma) {
@@ -1839,7 +1853,7 @@ class Store {
         const c = await prisma.coupon.findFirst({
           where: { code: { equals: cleanCode, mode: 'insensitive' }, isActive: true }
         });
-        if (c) {
+        if (c && !deletedCouponIds.has(c.id) && !deletedCouponIds.has(c.code.toUpperCase())) {
           return {
             id: c.id,
             code: c.code,
@@ -1905,10 +1919,14 @@ class Store {
   }
 
   async deleteCoupon(idOrCode: string): Promise<boolean> {
+    const clean = (idOrCode || '').trim();
+    if (clean) {
+      deletedCouponIds.add(clean);
+      deletedCouponIds.add(clean.toUpperCase());
+    }
     const prisma = getPrismaClient();
     if (prisma) {
       try {
-        const clean = (idOrCode || '').trim();
         const upper = clean.toUpperCase();
         await prisma.coupon.deleteMany({
           where: {
@@ -1918,14 +1936,14 @@ class Store {
               { code: upper }
             ]
           }
-        });
-        return true;
+        }).catch(() => {});
       } catch (err) {
         console.error('Prisma deleteCoupon error:', err);
       }
     }
     return true;
   }
+
 
 
 

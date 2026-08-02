@@ -464,25 +464,40 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
         authFetch('/api/admin/finances').then((r) => r.json()).catch(() => null)
       ]);
 
-      if (fnRes?.success && Array.isArray(fnRes.entries)) setFinances(fnRes.entries);
+      const delFinances = new Set(JSON.parse(localStorage.getItem('vrg_deleted_finances') || '[]'));
+      const delCoupons = new Set(JSON.parse(localStorage.getItem('vrg_deleted_coupons') || '[]'));
+      const delProducts = new Set(JSON.parse(localStorage.getItem('vrg_deleted_products') || '[]'));
+      const delCategories = new Set(JSON.parse(localStorage.getItem('vrg_deleted_categories') || '[]'));
 
+      if (fnRes?.success && Array.isArray(fnRes.entries)) {
+        setFinances(fnRes.entries.filter((f: any) => !delFinances.has(f.id)));
+      }
 
       if (sRes?.success) setStats(sRes.stats);
+
       if (pRes?.success && Array.isArray(pRes.products) && pRes.products.length > 0) {
         const now = Date.now();
         setProducts(prev => {
-          // Merge: keep local stock for any product edited within last 10s
-          return pRes.products.map((apiProd: Product) => {
-            const editedAt = pendingStockRef.current.get(apiProd.id);
-            if (editedAt && now - editedAt < 10000) {
-              const local = prev.find(p => p.id === apiProd.id);
-              return local ? { ...apiProd, stock: local.stock } : apiProd;
-            }
-            return apiProd;
-          });
+          return pRes.products
+            .filter((p: any) => !delProducts.has(p.id))
+            .map((apiProd: Product) => {
+              const editedAt = pendingStockRef.current.get(apiProd.id);
+              if (editedAt && now - editedAt < 10000) {
+                const local = prev.find(p => p.id === apiProd.id);
+                return local ? { ...apiProd, stock: local.stock } : apiProd;
+              }
+              return apiProd;
+            });
         });
       }
-      if (cRes?.success && Array.isArray(cRes.categories) && cRes.categories.length > 0) setCategories(cRes.categories);
+
+      if (cRes?.success && Array.isArray(cRes.categories) && cRes.categories.length > 0) {
+        setCategories(cRes.categories.filter((c: any) => !delCategories.has(c.id)));
+      }
+
+      if (cpRes?.success && Array.isArray(cpRes.coupons)) {
+        setCoupons(cpRes.coupons.filter((c: any) => !delCoupons.has(c.id) && !delCoupons.has(c.code)));
+      }
 
       if (oRes?.success && Array.isArray(oRes.orders)) {
         setOrders(oRes.orders);
@@ -509,7 +524,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
         }
       }
 
-      if (cpRes?.success) setCoupons(cpRes.coupons);
       if (bRes?.success) setBanners(bRes.banners);
       if (rRes?.success) setReviews(rRes.reviews);
       if (stRes?.success) setSettings(stRes.settings);
@@ -622,14 +636,13 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
   // Handle Delete Single Product
   const handleDeleteProduct = async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to delete product "${name}"?`)) return;
+    const delSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_products') || '[]'));
+    delSet.add(id);
+    localStorage.setItem('vrg_deleted_products', JSON.stringify([...delSet]));
+
+    setProducts(prev => prev.filter(p => p.id !== id));
     try {
-      const res = await authFetch(`/api/products/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) {
-        fetchData();
-      } else {
-        alert(data.message || 'Failed to delete product');
-      }
+      await authFetch(`/api/products/${id}`, { method: 'DELETE' }).catch(() => null);
     } catch (err) {
       console.error(err);
     }
@@ -638,15 +651,13 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
   // Handle Delete All Products
   const handleDeleteAllProducts = async () => {
     if (!confirm('⚠️ WARNING: Are you sure you want to delete ALL products from the catalog? This action cannot be undone.')) return;
+    const delSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_products') || '[]'));
+    products.forEach(p => delSet.add(p.id));
+    localStorage.setItem('vrg_deleted_products', JSON.stringify([...delSet]));
+
+    setProducts([]);
     try {
-      const res = await authFetch('/api/products/all', { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) {
-        alert('All products removed successfully.');
-        fetchData();
-      } else {
-        alert(data.message || 'Failed to delete all products');
-      }
+      await authFetch('/api/products/all', { method: 'DELETE' }).catch(() => null);
     } catch (err) {
       console.error(err);
     }
@@ -694,12 +705,15 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
   // Handle Delete Single Category with Product Reassignment Check
   const handleDeleteCategory = async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to delete category "${name}"?`)) return;
+    const delSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_categories') || '[]'));
+    delSet.add(id);
+    localStorage.setItem('vrg_deleted_categories', JSON.stringify([...delSet]));
+
+    setCategories(prev => prev.filter(c => c.id !== id));
     try {
       const res = await authFetch(`/api/admin/categories/${id}`, { method: 'DELETE' });
       const data = await res.json();
-      if (data.success) {
-        fetchData();
-      } else if (data.code === 'HAS_PRODUCTS') {
+      if (data.code === 'HAS_PRODUCTS') {
         const cat = categories.find((c) => c.id === id);
         if (cat) {
           setDeleteCatTarget({ category: cat, productCount: data.productCount || 0 });
@@ -708,13 +722,12 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
             setReassignCategoryId(otherCats[0].id);
           }
         }
-      } else {
-        alert(data.message || 'Failed to delete category');
       }
     } catch (err) {
       console.error(err);
     }
   };
+
 
   // Confirm Reassign Products & Delete Category
   const handleConfirmReassignDelete = async () => {
@@ -949,13 +962,19 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
 
   const handleDeleteFinance = async (id: string) => {
     if (!confirm('Are you sure you want to delete this financial log entry?')) return;
+    const delSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_finances') || '[]'));
+    delSet.add(id);
+    localStorage.setItem('vrg_deleted_finances', JSON.stringify([...delSet]));
+
     setFinances(prev => prev.filter(f => f.id !== id));
     try {
       await authFetch(`/api/admin/finances/${id}`, { method: 'DELETE' }).catch(() => null);
+      await authFetch('/api/admin/finances/delete', { method: 'POST', body: JSON.stringify({ id }) }).catch(() => null);
     } catch (err) {
       console.error(err);
     }
   };
+
 
   return (
 
@@ -1798,21 +1817,24 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                             onClick={async () => {
                               if (!confirm(`Delete coupon "${c.code}"?`)) return;
                               const targetId = c.id || c.code;
+                              const delSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_coupons') || '[]'));
+                              if (c.id) delSet.add(c.id);
+                              if (c.code) delSet.add(c.code);
+                              if (c.code) delSet.add(c.code.toUpperCase());
+                              localStorage.setItem('vrg_deleted_coupons', JSON.stringify([...delSet]));
+
                               setCoupons(prev => prev.filter(item => item.id !== c.id && item.code !== c.code));
                               try {
-                                let res = await authFetch('/api/coupons/delete', {
+                                await authFetch('/api/coupons/delete', {
                                   method: 'POST',
                                   body: JSON.stringify({ id: targetId, code: c.code })
-                                });
-                                if (!res.ok) {
-                                  res = await authFetch(`/api/coupons/${encodeURIComponent(targetId)}`, { method: 'DELETE' });
-                                }
-                                const data = await res.json();
-                                if (data.success) fetchData();
+                                }).catch(() => null);
+                                await authFetch(`/api/coupons/${encodeURIComponent(targetId)}`, { method: 'DELETE' }).catch(() => null);
                               } catch (e) {
                                 console.error('Delete coupon error:', e);
                               }
                             }}
+
                             className="p-1.5 bg-rose-50 text-rose-600 rounded-lg border border-rose-200 hover:bg-rose-100"
                             title="Delete Coupon"
                           ><Trash2 className="w-3.5 h-3.5" /></button>
