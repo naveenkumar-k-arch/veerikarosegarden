@@ -424,6 +424,17 @@ apiRouter.post('/coupons', requireAdmin, validateBody(couponSchema), async (req:
   }
 });
 
+apiRouter.delete('/coupons/:id', requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { id } = req.params;
+    await db.deleteCoupon(id);
+    res.json({ success: true, message: 'Coupon deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+
 // ================= REVIEWS =================
 apiRouter.get('/reviews', async (req, res) => {
   try {

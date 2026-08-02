@@ -1818,6 +1818,27 @@ class Store {
     };
   }
 
+  async deleteCoupon(id: string): Promise<boolean> {
+    const prisma = getPrismaClient();
+    if (prisma) {
+      try {
+        await prisma.coupon.deleteMany({
+          where: {
+            OR: [
+              { id },
+              { code: { equals: id, mode: 'insensitive' } }
+            ]
+          }
+        });
+        return true;
+      } catch (err) {
+        console.error('Prisma deleteCoupon error:', err);
+      }
+    }
+    return true;
+  }
+
+
   // REVIEWS
   async getReviews(productId?: string): Promise<Review[]> {
     const prisma = getPrismaClient();
