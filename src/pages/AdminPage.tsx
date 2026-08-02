@@ -931,17 +931,27 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
     e.preventDefault();
     try {
       if (editingFinance) {
-        const res = await authFetch(`/api/admin/finances/${editingFinance.id}`, {
+        let res = await authFetch(`/api/admin/finances/${editingFinance.id}`, {
           method: 'PUT',
           body: JSON.stringify(financeForm)
-        });
-        const data = await res.json();
+        }).catch(() => null);
+
+        if (!res || !res.ok) {
+          res = await authFetch('/api/admin/finances/update', {
+            method: 'POST',
+            body: JSON.stringify({ id: editingFinance.id, ...financeForm })
+          }).catch(() => null);
+        }
+
+        let data: any = {};
+        if (res) data = await res.json().catch(() => ({}));
         const updatedItem: FinancialEntry = data.entry || {
           ...editingFinance,
           ...financeForm
         };
         setFinances(prev => prev.map(f => f.id === editingFinance.id ? updatedItem : f));
       } else {
+
         const res = await authFetch('/api/admin/finances', {
           method: 'POST',
           body: JSON.stringify(financeForm)

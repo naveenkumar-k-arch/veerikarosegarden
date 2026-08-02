@@ -891,9 +891,11 @@ apiRouter.delete('/admin/finances/:id', requireAdmin, async (req: AuthenticatedR
   }
 });
 
-apiRouter.put('/admin/finances/:id', requireAdmin, async (req: AuthenticatedRequest, res) => {
+const handleUpdateFinance = async (req: AuthenticatedRequest, res: express.Response) => {
   try {
-    const updated = await db.updateFinancialEntry(req.params.id, req.body);
+    const id = req.params?.id || req.body?.id;
+    if (!id) return res.status(400).json({ success: false, message: 'ID required for finance entry update' });
+    const updated = await db.updateFinancialEntry(id, req.body);
     if (!updated) {
       return res.status(404).json({ success: false, message: 'Financial entry not found' });
     }
@@ -901,7 +903,12 @@ apiRouter.put('/admin/finances/:id', requireAdmin, async (req: AuthenticatedRequ
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
   }
-});
+};
+
+apiRouter.put('/admin/finances/:id', requireAdmin, handleUpdateFinance);
+apiRouter.post('/admin/finances/update', requireAdmin, handleUpdateFinance);
+apiRouter.post('/admin/finances/:id/update', requireAdmin, handleUpdateFinance);
+
 
 apiRouter.post('/admin/finances/delete', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
