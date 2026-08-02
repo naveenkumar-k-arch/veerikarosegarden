@@ -347,7 +347,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
 
   // Financial P&L Entries state
   const [finances, setFinances] = useState<FinancialEntry[]>([]);
+  const [editingFinance, setEditingFinance] = useState<FinancialEntry | null>(null);
   const [showFinanceModal, setShowFinanceModal] = useState(false);
+
   const [financeForm, setFinanceForm] = useState<{
     type: 'EXPENSE' | 'SALE';
     title: string;
@@ -924,27 +926,40 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
     }
   };
 
-  // Handle Save Financial Entry (Expense / Sale)
-
+  // Handle Save Financial Entry (Expense / Sale - Create & Update)
   const handleSaveFinance = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await authFetch('/api/admin/finances', {
-        method: 'POST',
-        body: JSON.stringify(financeForm)
-      });
-      const data = await res.json();
-      if (data.success && data.entry) {
-        setFinances(prev => [data.entry, ...prev]);
-      } else {
-        const newEntry: FinancialEntry = {
-          id: 'fin-' + Date.now(),
-          ...financeForm,
-          createdAt: new Date().toISOString()
+      if (editingFinance) {
+        const res = await authFetch(`/api/admin/finances/${editingFinance.id}`, {
+          method: 'PUT',
+          body: JSON.stringify(financeForm)
+        });
+        const data = await res.json();
+        const updatedItem: FinancialEntry = data.entry || {
+          ...editingFinance,
+          ...financeForm
         };
-        setFinances(prev => [newEntry, ...prev]);
+        setFinances(prev => prev.map(f => f.id === editingFinance.id ? updatedItem : f));
+      } else {
+        const res = await authFetch('/api/admin/finances', {
+          method: 'POST',
+          body: JSON.stringify(financeForm)
+        });
+        const data = await res.json();
+        if (data.success && data.entry) {
+          setFinances(prev => [data.entry, ...prev]);
+        } else {
+          const newEntry: FinancialEntry = {
+            id: 'fin-' + Date.now(),
+            ...financeForm,
+            createdAt: new Date().toISOString()
+          };
+          setFinances(prev => [newEntry, ...prev]);
+        }
       }
       setShowFinanceModal(false);
+      setEditingFinance(null);
       setFinanceForm({
         type: 'EXPENSE',
         title: '',
@@ -959,6 +974,22 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
       console.error(err);
     }
   };
+
+  const handleOpenEditFinance = (f: FinancialEntry) => {
+    setEditingFinance(f);
+    setFinanceForm({
+      type: f.type,
+      title: f.title,
+      category: f.category,
+      costAmount: f.costAmount,
+      sellAmount: f.sellAmount,
+      quantity: f.quantity,
+      notes: f.notes || '',
+      date: f.date || new Date().toISOString().split('T')[0]
+    });
+    setShowFinanceModal(true);
+  };
+
 
   const handleDeleteFinance = async (id: string) => {
     if (!confirm('Are you sure you want to delete this financial log entry?')) return;
@@ -2259,14 +2290,24 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                                   )}
                                 </td>
                                 <td className="py-3 px-3 text-right">
-                                  <button
-                                    onClick={() => handleDeleteFinance(f.id)}
-                                    className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors border border-rose-200 cursor-pointer"
-                                    title="Delete Entry"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
+                                  <div className="flex items-center justify-end gap-1.5">
+                                    <button
+                                      onClick={() => handleOpenEditFinance(f)}
+                                      className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-lg transition-colors border border-emerald-200 cursor-pointer"
+                                      title="Edit Entry"
+                                    >
+                                      <Edit className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteFinance(f.id)}
+                                      className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors border border-rose-200 cursor-pointer"
+                                      title="Delete Entry"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
                                 </td>
+
                               </tr>
                             );
                           })}
@@ -2772,11 +2813,12 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 my-8 border border-slate-200 shadow-2xl">
             <div className="flex justify-between items-center border-b border-slate-200 pb-3">
               <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
-                <span>💰 Add Farm Expense or Sale Entry</span>
+                <span>{editingFinance ? '✏️ Edit Farm Expense or Sale Entry' : '💰 Add Farm Expense or Sale Entry'}</span>
               </h3>
-              <button onClick={() => setShowFinanceModal(false)} className="p-1 text-slate-400 hover:text-slate-800 cursor-pointer">
+              <button onClick={() => { setShowFinanceModal(false); setEditingFinance(null); }} className="p-1 text-slate-400 hover:text-slate-800 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
+
             </div>
 
             <form onSubmit={handleSaveFinance} className="space-y-4 text-xs">

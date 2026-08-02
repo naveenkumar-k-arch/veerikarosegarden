@@ -891,6 +891,18 @@ apiRouter.delete('/admin/finances/:id', requireAdmin, async (req: AuthenticatedR
   }
 });
 
+apiRouter.put('/admin/finances/:id', requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const updated = await db.updateFinancialEntry(req.params.id, req.body);
+    if (!updated) {
+      return res.status(404).json({ success: false, message: 'Financial entry not found' });
+    }
+    res.json({ success: true, entry: updated, message: 'Financial entry updated successfully!' });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
 apiRouter.post('/admin/finances/delete', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const deleted = await db.deleteFinancialEntry(req.body.id);
@@ -899,6 +911,7 @@ apiRouter.post('/admin/finances/delete', requireAdmin, async (req: Authenticated
     res.status(400).json({ success: false, message: error.message });
   }
 });
+
 
 
 // ================= SITE SETTINGS =================

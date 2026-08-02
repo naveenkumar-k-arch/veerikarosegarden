@@ -1022,6 +1022,26 @@ class Store {
     return true;
   }
 
+  async updateFinancialEntry(id: string, data: Partial<FinancialEntry>): Promise<FinancialEntry | null> {
+    const idx = this.memoryFinances.findIndex(f => f.id === id);
+    if (idx !== -1) {
+      this.memoryFinances[idx] = {
+        ...this.memoryFinances[idx],
+        ...(data.type ? { type: data.type } : {}),
+        ...(data.title ? { title: data.title.trim() } : {}),
+        ...(data.category ? { category: data.category } : {}),
+        ...(data.costAmount !== undefined ? { costAmount: Number(data.costAmount) } : {}),
+        ...(data.sellAmount !== undefined ? { sellAmount: Number(data.sellAmount) } : {}),
+        ...(data.quantity !== undefined ? { quantity: Number(data.quantity) } : {}),
+        ...(data.notes !== undefined ? { notes: data.notes } : {}),
+        ...(data.date ? { date: data.date } : {})
+      };
+      return this.memoryFinances[idx];
+    }
+    return null;
+  }
+
+
 
 
 
