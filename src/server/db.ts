@@ -988,6 +988,8 @@ const deletedProductIds = (globalThis as any)._deletedProductIds || ((globalThis
 const deletedCategoryIds = (globalThis as any)._deletedCategoryIds || ((globalThis as any)._deletedCategoryIds = new Set<string>());
 const deletedCouponIds = (globalThis as any)._deletedCouponIds || ((globalThis as any)._deletedCouponIds = new Set<string>());
 const deletedFinanceIds = (globalThis as any)._deletedFinanceIds || ((globalThis as any)._deletedFinanceIds = new Set<string>());
+const deletedOrderIds = (globalThis as any)._deletedOrderIds || ((globalThis as any)._deletedOrderIds = new Set<string>());
+
 
 class Store {
   private memoryOrders: Order[] = [];
@@ -2359,10 +2361,31 @@ class Store {
     const allCombined = [...dbOrders, ...this.memoryOrders, ...gBuffer, ...fsOrders, ...defOrders];
     const uniqueMap = new Map<string, Order>();
     allCombined.forEach(o => {
-      if (o && o.id && !uniqueMap.has(o.id)) uniqueMap.set(o.id, o);
+      if (o && o.id && !uniqueMap.has(o.id) && !deletedOrderIds.has(o.id) && !deletedOrderIds.has(o.merchantTransactionId)) {
+        uniqueMap.set(o.id, o);
+      }
     });
     return Array.from(uniqueMap.values());
   }
+
+  async deleteOrder(id: string): Promise<boolean> {
+    const clean = (id || '').trim();
+    if (clean) {
+      deletedOrderIds.add(clean);
+    }
+    this.memoryOrders = this.memoryOrders.filter(o => o.id !== clean && o.merchantTransactionId !== clean);
+    const prisma = getPrismaClient();
+    if (prisma) {
+      try {
+        await prisma.orderItem.deleteMany({ where: { order: { OR: [{ id: clean }, { merchantTransactionId: clean }] } } }).catch(() => {});
+        await prisma.order.deleteMany({ where: { OR: [{ id: clean }, { merchantTransactionId: clean }] } }).catch(() => {});
+      } catch (err) {
+        console.error('Prisma deleteOrder error:', err);
+      }
+    }
+    return true;
+  }
+
 
   async getOrderById(id: string): Promise<Order | undefined> {
     const memMatch = this.memoryOrders.find(o => o.id === id || o.merchantTransactionId === id);

@@ -746,6 +746,23 @@ apiRouter.put('/admin/orders/:id/status', async (req: AuthenticatedRequest, res)
   }
 });
 
+// Admin delete order
+const handleDeleteOrderRoute = async (req: AuthenticatedRequest, res: express.Response) => {
+  try {
+    const id = req.params?.id || req.body?.id || req.body?.orderId;
+    if (!id) return res.status(400).json({ success: false, message: 'Order ID is required' });
+    await db.deleteOrder(String(id));
+    res.json({ success: true, message: `Order #${id} deleted successfully` });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+apiRouter.delete('/admin/orders/:id', requireAdmin, handleDeleteOrderRoute);
+apiRouter.post('/admin/orders/delete', requireAdmin, handleDeleteOrderRoute);
+apiRouter.post('/admin/orders/:id/delete', requireAdmin, handleDeleteOrderRoute);
+
+
 // PHONEPE VERIFIED CHECK STATUS API
 apiRouter.get('/phonepe/status/:merchantTransactionId', async (req, res) => {
   const statusRes = await PhonePeService.checkStatus(req.params.merchantTransactionId);

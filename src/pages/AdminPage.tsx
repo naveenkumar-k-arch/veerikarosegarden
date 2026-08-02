@@ -470,6 +470,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
       const delCoupons = new Set(JSON.parse(localStorage.getItem('vrg_deleted_coupons') || '[]'));
       const delProducts = new Set(JSON.parse(localStorage.getItem('vrg_deleted_products') || '[]'));
       const delCategories = new Set(JSON.parse(localStorage.getItem('vrg_deleted_categories') || '[]'));
+      const delOrders = new Set(JSON.parse(localStorage.getItem('vrg_deleted_orders') || '[]'));
 
       if (fnRes?.success && Array.isArray(fnRes.entries)) {
         setFinances(fnRes.entries.filter((f: any) => !delFinances.has(f.id)));
@@ -502,7 +503,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
       }
 
       if (oRes?.success && Array.isArray(oRes.orders)) {
-        setOrders(oRes.orders);
+        setOrders(oRes.orders.filter((o: any) => !delOrders.has(o.id) && !delOrders.has(o.merchantTransactionId)));
       } else {
         let localOrders: any[] = [];
         const keysToRead = ['veerika_admin_orders', 'vrg_user_orders', 'veerika_customer_orders', 'vrg_orders'];
@@ -519,12 +520,14 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
           } catch {}
         });
 
-        if (localOrders.length > 0) {
-          setOrders(localOrders as any);
+        const filteredLocal = localOrders.filter(o => !delOrders.has(o.id) && !delOrders.has(o.merchantTransactionId));
+        if (filteredLocal.length > 0) {
+          setOrders(filteredLocal as any);
         } else {
-          setOrders(getInitialAdminOrders());
+          setOrders(getInitialAdminOrders().filter(o => !delOrders.has(o.id) && !delOrders.has(o.merchantTransactionId)));
         }
       }
+
 
       if (bRes?.success) setBanners(bRes.banners);
       if (rRes?.success) setReviews(rRes.reviews);
@@ -767,6 +770,37 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
       console.error(err);
     }
   };
+
+  // Handle Delete Single Order
+  const handleDeleteOrder = async (orderId: string) => {
+    if (!confirm(`⚠️ Are you sure you want to permanently delete Order #${orderId}? This action cannot be undone.`)) return;
+
+    // 1. Save deleted order ID to localStorage blacklist
+    const delSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_orders') || '[]'));
+    delSet.add(orderId);
+    localStorage.setItem('vrg_deleted_orders', JSON.stringify([...delSet]));
+
+    // 2. Remove order from UI state and update local order caches
+    setOrders(prev => {
+      const filtered = prev.filter(o => o.id !== orderId && o.merchantTransactionId !== orderId);
+      const keysToSave = ['veerika_admin_orders', 'vrg_user_orders', 'veerika_customer_orders', 'vrg_orders'];
+      keysToSave.forEach(key => {
+        try {
+          localStorage.setItem(key, JSON.stringify(filtered));
+        } catch {}
+      });
+      return filtered;
+    });
+
+    // 3. Trigger backend deletion endpoints
+    try {
+      await authFetch(`/api/admin/orders/${encodeURIComponent(orderId)}`, { method: 'DELETE' }).catch(() => null);
+      await authFetch('/api/admin/orders/delete', { method: 'POST', body: JSON.stringify({ id: orderId }) }).catch(() => null);
+    } catch (err) {
+      console.error('Delete order error:', err);
+    }
+  };
+
 
   // Handle Dispatch Order
   const handleDispatchOrder = async (customTracking?: string, customCourier?: string) => {
@@ -1632,8 +1666,18 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                       >
                         4. Delivered & COD Collected
                       </button>
+
+                      <button
+                        onClick={() => handleDeleteOrder(o.id)}
+                        className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-xl text-[11px] flex items-center gap-1 border border-rose-200 cursor-pointer transition-colors"
+                        title="Permanently Delete Order"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete Order</span>
+                      </button>
                     </div>
                   </div>
+
                 </div>
               );
             };
