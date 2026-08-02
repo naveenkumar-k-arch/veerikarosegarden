@@ -1682,6 +1682,30 @@ class Store {
   }
 
   // BANNERS
+  async addBanner(data: { title: string; subtitle?: string; imageUrl: string; targetCategory?: string; active?: boolean; order?: number }): Promise<Banner> {
+    const prisma = getPrismaClient();
+    const id = 'banner-' + Date.now();
+    if (prisma) {
+      try {
+        const b = await prisma.banner.create({
+          data: {
+            id,
+            title: data.title,
+            subtitle: data.subtitle || '',
+            imageUrl: data.imageUrl,
+            targetCategory: data.targetCategory || '',
+            active: data.active !== false,
+            order: data.order || 1
+          }
+        });
+        return { id: b.id, title: b.title, subtitle: b.subtitle || '', imageUrl: b.imageUrl, targetCategory: b.targetCategory || '', active: b.active, order: b.order };
+      } catch (err) {
+        console.error('Prisma addBanner error:', err);
+      }
+    }
+    return { id, ...data, subtitle: data.subtitle || '', targetCategory: data.targetCategory || '', active: data.active !== false, order: data.order || 1 };
+  }
+
   async getBanners(): Promise<Banner[]> {
     const prisma = getPrismaClient();
     if (!prisma) return [];

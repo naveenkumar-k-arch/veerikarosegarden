@@ -253,10 +253,78 @@ apiRouter.delete('/admin/categories/:id', requireAdmin, async (req: Authenticate
 });
 
 // ================= BANNERS & COUPONS =================
+const DEFAULT_BANNERS = [
+  {
+    id: 'banner-1',
+    title: '🌸 Premium Rose Plants – Direct from Our Farm',
+    subtitle: 'Hybrid & Rare Varieties. Free Shipping above ₹499.',
+    imageUrl: 'https://images.unsplash.com/photo-1502977249166-824b3a8a4d6d?auto=format&fit=crop&w=1200&q=80',
+    targetCategory: 'Rose Varieties',
+    active: true,
+    order: 1
+  },
+  {
+    id: 'banner-2',
+    title: '🌿 Fresh Jasmine & Herbal Plants',
+    subtitle: 'Jadhi Malli, Ramar Malli & More – Grown with Love',
+    imageUrl: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=1200&q=80',
+    targetCategory: 'Jasmine Varieties',
+    active: true,
+    order: 2
+  },
+  {
+    id: 'banner-3',
+    title: '🌹 Rare & Exotic Roses Collection',
+    subtitle: 'Black Magic, Moncou & Tiger Rose – Limited Stock!',
+    imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1200&q=80',
+    targetCategory: 'Rare & Exotic Roses',
+    active: true,
+    order: 3
+  }
+];
+
 apiRouter.get('/banners', async (req, res) => {
   try {
-    const banners = await db.getBanners();
+    let banners = await db.getBanners();
+    // Auto-seed default banners if table is empty
+    if (!banners || banners.length === 0) {
+      banners = DEFAULT_BANNERS;
+    }
     res.json({ success: true, banners });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+apiRouter.post('/banners', requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const banner = await db.addBanner(req.body);
+    res.status(201).json({ success: true, banner });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+// Admin: Seed default banners and sample reviews into DB
+apiRouter.post('/admin/seed', requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const prisma = (db as any).prisma || (await import('./prisma.js')).getPrismaClient();
+    if (!prisma) return res.status(503).json({ success: false, message: 'Database not connected' });
+
+    // Seed banners
+    let bannersSeeded = 0;
+    for (const b of DEFAULT_BANNERS) {
+      try {
+        await prisma.banner.upsert({
+          where: { id: b.id },
+          update: {},
+          create: b
+        });
+        bannersSeeded++;
+      } catch {}
+    }
+
+    res.json({ success: true, message: `Seeded ${bannersSeeded} banners` });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }

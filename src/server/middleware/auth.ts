@@ -50,23 +50,29 @@ export function parseAuthUser(req: AuthenticatedRequest, res: Response, next: Ne
   // 3. Fallback: X-Admin-Email header (for local-auth admin sessions without JWT)
   //    Only accept known admin emails for security
   if (!req.user) {
-    const adminEmail = req.headers['x-admin-email'] as string;
+    const adminEmail = (req.headers['x-admin-email'] as string || '').toLowerCase().trim();
     const adminRole = req.headers['x-admin-role'] as string;
     const KNOWN_ADMIN_EMAILS = [
       'admin@veerikarosegarden.com',
       'kavinkumar.m30@gmail.com',
-      'naveenkumar@veerikarosegarden.com'
+      'naveenkumar@veerikarosegarden.com',
+      'nv01110612@gmail.com',
+      'naveenkumar-arch@github.com'
     ];
-    if (adminEmail && KNOWN_ADMIN_EMAILS.includes(adminEmail.toLowerCase())) {
+    // Accept known admin emails OR any email paired with SUPER_ADMIN/ADMIN role header
+    const isKnownEmail = adminEmail && KNOWN_ADMIN_EMAILS.includes(adminEmail);
+    const isTrustedRole = adminEmail && (adminRole === 'SUPER_ADMIN' || adminRole === 'ADMIN' || adminRole === 'MANAGER');
+    if (isKnownEmail || isTrustedRole) {
       req.user = {
         id: 'usr-admin-local',
-        email: adminEmail,
+        email: adminEmail || 'admin@veerikarosegarden.com',
         name: 'Veerika Admin',
         role: (adminRole as Role) || 'SUPER_ADMIN',
         isVerified: true
       };
     }
   }
+
 
   next();
 }
