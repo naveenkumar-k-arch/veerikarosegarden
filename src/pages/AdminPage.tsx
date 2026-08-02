@@ -1533,9 +1533,12 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                               const targetId = c.id || c.code;
                               setCoupons(prev => prev.filter(item => item.id !== c.id && item.code !== c.code));
                               try {
-                                let res = await authFetch(`/api/coupons/${encodeURIComponent(targetId)}`, { method: 'DELETE' });
+                                let res = await authFetch('/api/coupons/delete', {
+                                  method: 'POST',
+                                  body: JSON.stringify({ id: targetId, code: c.code })
+                                });
                                 if (!res.ok) {
-                                  res = await authFetch(`/api/coupons/${encodeURIComponent(targetId)}/delete`, { method: 'POST' });
+                                  res = await authFetch(`/api/coupons/${encodeURIComponent(targetId)}`, { method: 'DELETE' });
                                 }
                                 const data = await res.json();
                                 if (data.success) fetchData();
@@ -1546,6 +1549,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                             className="p-1.5 bg-rose-50 text-rose-600 rounded-lg border border-rose-200 hover:bg-rose-100"
                             title="Delete Coupon"
                           ><Trash2 className="w-3.5 h-3.5" /></button>
+
 
 
                         </div>

@@ -426,17 +426,23 @@ apiRouter.post('/coupons', requireAdmin, validateBody(couponSchema), async (req:
 
 const handleDeleteCoupon = async (req: AuthenticatedRequest, res: express.Response) => {
   try {
-    const id = req.params.id || req.params[0];
-    await db.deleteCoupon(id);
+    const id = req.body?.id || req.body?.code || req.query?.id || req.query?.code || req.params?.id || req.params[0];
+    if (!id) {
+      return res.status(400).json({ success: false, message: 'Coupon ID or code is required for deletion' });
+    }
+    await db.deleteCoupon(String(id));
     res.json({ success: true, message: `Coupon '${id}' deleted successfully` });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
+apiRouter.post('/coupons/delete', requireAdmin, handleDeleteCoupon);
+apiRouter.delete('/coupons', requireAdmin, handleDeleteCoupon);
 apiRouter.delete('/coupons/:id', requireAdmin, handleDeleteCoupon);
 apiRouter.post('/coupons/:id/delete', requireAdmin, handleDeleteCoupon);
 apiRouter.delete('/admin/coupons/:id', requireAdmin, handleDeleteCoupon);
+
 
 
 
