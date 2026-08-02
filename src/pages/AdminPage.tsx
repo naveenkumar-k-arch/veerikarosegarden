@@ -947,14 +947,15 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                     { label: 'Total Revenue', value: `₹${realTotalRevenue}`, sub: 'Verified via Cash & PhonePe PG', color: 'text-emerald-800' },
                     { label: 'Today Sales', value: `₹${realTodaySales}`, sub: "Today's farm orders", color: 'text-slate-900' },
                     { label: 'Total Orders', value: orders.length, sub: `${realPendingOrders} pending dispatch`, color: 'text-slate-900' },
-                    { label: 'Low Stock Alert', value: lowStockList.length, sub: 'Plants under 15 stock', color: 'text-amber-600' },
                   ].map(c => (
                     <div key={c.label} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-2xs space-y-1">
                       <span className="text-xs font-bold text-slate-400 uppercase">{c.label}</span>
                       <p className={`text-2xl font-black ${c.color}`}>{c.value}</p>
                       <p className="text-[10px] text-slate-500">{c.sub}</p>
                     </div>
+                  ))}
                 </div>
+
 
                 {/* 4-Stage Order Category Pipeline Widget */}
                 <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-2xs space-y-3">
