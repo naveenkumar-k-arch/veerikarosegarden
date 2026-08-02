@@ -102,6 +102,8 @@ interface AdminPageProps {
 
 export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }) => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'categories' | 'orders' | 'inventory' | 'coupons' | 'banners' | 'reviews' | 'settings' | 'audit'>('dashboard');
+  const [orderFilterStage, setOrderFilterStage] = useState<'all' | 'pending' | 'packing' | 'dispatched' | 'delivered'>('all');
+
 
   const getInitialAdminOrders = (): Order[] => {
     let localOrders: Order[] = [];
@@ -952,8 +954,57 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                       <p className={`text-2xl font-black ${c.color}`}>{c.value}</p>
                       <p className="text-[10px] text-slate-500">{c.sub}</p>
                     </div>
-                  ))}
                 </div>
+
+                {/* 4-Stage Order Category Pipeline Widget */}
+                <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-2xs space-y-3">
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                      <span>🌿 Nursery Order Processing (4 Categorized Stages)</span>
+                    </h3>
+                    <button onClick={() => { setOrderFilterStage('all'); setActiveTab('orders'); }} className="text-xs font-bold text-emerald-700 hover:underline">
+                      Manage All Orders ({orders.length}) →
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <button
+                      onClick={() => { setOrderFilterStage('pending'); setActiveTab('orders'); }}
+                      className="p-3 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-2xl text-left space-y-1 transition-all cursor-pointer"
+                    >
+                      <span className="text-lg">🌸</span>
+                      <p className="font-black text-xl text-amber-900">{orders.filter(o => o.orderStatus === 'PENDING').length}</p>
+                      <p className="font-bold text-amber-800 text-[11px]">1. Order Confirmed</p>
+                    </button>
+
+                    <button
+                      onClick={() => { setOrderFilterStage('packing'); setActiveTab('orders'); }}
+                      className="p-3 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-2xl text-left space-y-1 transition-all cursor-pointer"
+                    >
+                      <span className="text-lg">🌿</span>
+                      <p className="font-black text-xl text-purple-900">{orders.filter(o => o.orderStatus === 'PROCESSING' || (o.orderStatus as any) === 'PACKING').length}</p>
+                      <p className="font-bold text-purple-800 text-[11px]">2. Nursery Packed</p>
+                    </button>
+
+                    <button
+                      onClick={() => { setOrderFilterStage('dispatched'); setActiveTab('orders'); }}
+                      className="p-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-2xl text-left space-y-1 transition-all cursor-pointer"
+                    >
+                      <span className="text-lg">🚚</span>
+                      <p className="font-black text-xl text-blue-900">{orders.filter(o => o.orderStatus === 'DISPATCHED').length}</p>
+                      <p className="font-bold text-blue-800 text-[11px]">3. Dispatched</p>
+                    </button>
+
+                    <button
+                      onClick={() => { setOrderFilterStage('delivered'); setActiveTab('orders'); }}
+                      className="p-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-2xl text-left space-y-1 transition-all cursor-pointer"
+                    >
+                      <span className="text-lg">✅</span>
+                      <p className="font-black text-xl text-emerald-900">{orders.filter(o => o.orderStatus === 'DELIVERED').length}</p>
+                      <p className="font-bold text-emerald-800 text-[11px]">4. Delivered</p>
+                    </button>
+                  </div>
+                </div>
+
 
                 {/* Quick Stats Row */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -1334,124 +1385,259 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
             </div>
           )}
 
-          {/* TAB 3: ORDERS MANAGEMENT */}
-          {activeTab === 'orders' && (
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                <h3 className="font-bold text-base text-slate-900">All Customer Orders ({orders.length})</h3>
-                <span className="text-xs bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold px-3 py-1 rounded-xl">
-                  🚚 Manage 4-Stage Live Nursery Delivery & COD Collections
-                </span>
-              </div>
+          {/* TAB 3: ORDERS MANAGEMENT - 4 CATEGORIZED SECTIONS */}
+          {activeTab === 'orders' && (() => {
+            const pendingList = orders.filter(o => o.orderStatus === 'PENDING');
+            const packingList = orders.filter(o => o.orderStatus === 'PROCESSING' || (o.orderStatus as any) === 'PACKING');
+            const dispatchedList = orders.filter(o => o.orderStatus === 'DISPATCHED');
+            const deliveredList = orders.filter(o => o.orderStatus === 'DELIVERED');
 
-              <div className="space-y-4">
-                {orders.map((o) => {
-                  const isCod = o.paymentMethod === 'COD';
-                  const isDelivered = o.orderStatus === 'DELIVERED';
-                  const isDispatched = o.orderStatus === 'DISPATCHED';
-                  const isPacking = o.orderStatus === 'PROCESSING' || (o.orderStatus as any) === 'PACKING';
+            const renderOrderCard = (o: Order) => {
+              const isCod = o.paymentMethod === 'COD';
+              const isDelivered = o.orderStatus === 'DELIVERED';
+              const isDispatched = o.orderStatus === 'DISPATCHED';
+              const isPacking = o.orderStatus === 'PROCESSING' || (o.orderStatus as any) === 'PACKING';
 
-                  return (
-                    <div key={o.id} className="bg-white p-5 rounded-2xl border border-slate-200 space-y-4 text-xs shadow-xs">
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-3">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono font-black text-slate-900 text-sm">Order #{o.id}</span>
-                            <span className={`px-2.5 py-0.5 rounded-full font-bold text-[11px] ${isCod ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-blue-100 text-blue-900'}`}>
-                              {isCod ? '💵 Cash on Delivery (COD)' : '📱 PhonePe UPI'}
-                            </span>
-                          </div>
-                          <span className="text-slate-500 font-mono text-[11px]">Txn ID: {o.merchantTransactionId}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`font-bold px-3 py-1 rounded-full text-xs ${o.paymentStatus === 'SUCCESS' ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : 'bg-amber-100 text-amber-900'}`}>
-                            Payment: {o.paymentStatus === 'SUCCESS' ? '✅ SUCCESS' : '⏳ PENDING'}
-                          </span>
-                          <span className={`font-bold px-3 py-1 rounded-full text-xs ${isDelivered ? 'bg-emerald-700 text-white' : isDispatched ? 'bg-blue-600 text-white' : 'bg-purple-100 text-purple-900'}`}>
-                            Status: {o.orderStatus}
-                          </span>
-                        </div>
+              return (
+                <div key={o.id} className="bg-white p-5 rounded-2xl border border-slate-200 space-y-4 text-xs shadow-xs hover:border-slate-300 transition-all">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-black text-slate-900 text-sm">Order #{o.id}</span>
+                        <span className={`px-2.5 py-0.5 rounded-full font-bold text-[11px] ${isCod ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-blue-100 text-blue-900'}`}>
+                          {isCod ? '💵 Cash on Delivery (COD)' : '📱 PhonePe UPI'}
+                        </span>
                       </div>
+                      <span className="text-slate-500 font-mono text-[11px]">Txn ID: {o.merchantTransactionId}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`font-bold px-3 py-1 rounded-full text-xs ${o.paymentStatus === 'SUCCESS' ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : 'bg-amber-100 text-amber-900'}`}>
+                        Payment: {o.paymentStatus === 'SUCCESS' ? '✅ SUCCESS' : '⏳ PENDING'}
+                      </span>
+                      <span className={`font-bold px-3 py-1 rounded-full text-xs ${isDelivered ? 'bg-emerald-700 text-white' : isDispatched ? 'bg-blue-600 text-white' : isPacking ? 'bg-purple-700 text-white' : 'bg-amber-600 text-white'}`}>
+                        Status: {o.orderStatus}
+                      </span>
+                    </div>
+                  </div>
 
-                      {/* 4-Stage Live Delivery Progress Visualizer */}
-                      <div className="bg-slate-50 rounded-2xl p-3 border border-slate-200 space-y-2">
-                        <p className="font-bold text-slate-700">🚚 Live Nursery Delivery Progress:</p>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-[11px]">
-                          <div className={`p-2 rounded-xl border font-bold ${!isPacking && !isDispatched && !isDelivered ? 'bg-emerald-100 border-emerald-400 text-emerald-900' : 'bg-white border-slate-200 text-slate-500'}`}>
-                            1. Order Confirmed
-                          </div>
-                          <div className={`p-2 rounded-xl border font-bold ${isPacking ? 'bg-emerald-100 border-emerald-400 text-emerald-900' : 'bg-white border-slate-200 text-slate-500'}`}>
-                            2. Nursery Packing
-                          </div>
-                          <div className={`p-2 rounded-xl border font-bold ${isDispatched ? 'bg-emerald-100 border-emerald-400 text-emerald-900' : 'bg-white border-slate-200 text-slate-500'}`}>
-                            3. Dispatched
-                          </div>
-                          <div className={`p-2 rounded-xl border font-bold ${isDelivered ? 'bg-emerald-600 border-emerald-700 text-white' : 'bg-white border-slate-200 text-slate-500'}`}>
-                            4. Delivered
-                          </div>
-                        </div>
+                  {/* 4-Stage Live Delivery Progress Visualizer */}
+                  <div className="bg-slate-50 rounded-2xl p-3 border border-slate-200 space-y-2">
+                    <p className="font-bold text-slate-700">🚚 Live Nursery Delivery Progress:</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-[11px]">
+                      <div className={`p-2 rounded-xl border font-bold ${!isPacking && !isDispatched && !isDelivered ? 'bg-amber-100 border-amber-400 text-amber-900' : 'bg-white border-slate-200 text-slate-400'}`}>
+                        1. Order Confirmed
                       </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-700 bg-slate-50/50 p-3 rounded-xl">
-                        <p><strong>Customer Name & Phone:</strong> {o.customerName} (+91 {o.customerPhone})</p>
-                        <p><strong>Delivery Address:</strong> {typeof o.shippingAddress === 'string' ? o.shippingAddress : `${o.shippingAddress?.houseNo || ''}, ${o.shippingAddress?.street || ''}, ${o.shippingAddress?.villageTown || ''}, ${o.shippingAddress?.district || ''}, ${o.shippingAddress?.pincode || ''}`}</p>
+                      <div className={`p-2 rounded-xl border font-bold ${isPacking ? 'bg-purple-100 border-purple-400 text-purple-900' : 'bg-white border-slate-200 text-slate-400'}`}>
+                        2. Nursery Packing
                       </div>
-
-                      {/* Cash Collection Banner */}
-                      {isCod && (
-                        <div className={`p-3 rounded-xl font-bold flex flex-col sm:flex-row justify-between items-center gap-2 border ${o.paymentStatus === 'SUCCESS' ? 'bg-emerald-50 text-emerald-900 border-emerald-300' : 'bg-amber-50 text-amber-900 border-amber-300'}`}>
-                          <span>💵 Cash on Delivery Amount: ₹{o.grandTotal}</span>
-                          <span>{o.paymentStatus === 'SUCCESS' ? '✅ Cash Collected at Doorstep' : '⏳ Cash Pending (Collect ₹' + o.grandTotal + ' upon arrival)'}</span>
-                        </div>
-                      )}
-
-                      <div className="flex flex-wrap items-center justify-between pt-2 border-t border-slate-100 gap-2">
-                        <span className="font-bold text-slate-900 text-sm">Grand Total: ₹{o.grandTotal}</span>
-
-                        {/* Interactive Stage Controls & Customer Alerts */}
-                        <div className="flex flex-wrap items-center gap-2">
-                          <button
-                            onClick={() => handleSendWhatsAppUpdate(o)}
-                            className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-[11px] flex items-center gap-1 shadow-xs"
-                          >
-                            📲 Send WhatsApp Alert
-                          </button>
-
-                          <button
-                            onClick={() => handleUpdateOrderStatus(o.id, 'PENDING')}
-                            className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-[11px]"
-                          >
-                            1. Confirmed
-                          </button>
-
-                          <button
-                            onClick={() => handleUpdateOrderStatus(o.id, 'PROCESSING')}
-                            className="px-2.5 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-900 font-bold rounded-xl text-[11px]"
-                          >
-                            2. Nursery Packing
-                          </button>
-
-                          <button
-                            onClick={() => setDispatchOrder(o)}
-                            className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-[11px]"
-                          >
-                            3. Dispatch Courier / Self
-                          </button>
-
-                          <button
-                            onClick={() => handleUpdateOrderStatus(o.id, 'DELIVERED', 'SUCCESS')}
-                            className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl text-[11px]"
-                          >
-                            4. Delivered & COD Collected
-                          </button>
-                        </div>
+                      <div className={`p-2 rounded-xl border font-bold ${isDispatched ? 'bg-blue-100 border-blue-400 text-blue-900' : 'bg-white border-slate-200 text-slate-400'}`}>
+                        3. Dispatched
+                      </div>
+                      <div className={`p-2 rounded-xl border font-bold ${isDelivered ? 'bg-emerald-600 border-emerald-700 text-white' : 'bg-white border-slate-200 text-slate-400'}`}>
+                        4. Delivered
                       </div>
                     </div>
-                  );
-                })}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-700 bg-slate-50/50 p-3 rounded-xl">
+                    <p><strong>Customer Name & Phone:</strong> {o.customerName} (+91 {o.customerPhone})</p>
+                    <p><strong>Delivery Address:</strong> {typeof o.shippingAddress === 'string' ? o.shippingAddress : `${o.shippingAddress?.houseNo || ''}, ${o.shippingAddress?.street || ''}, ${o.shippingAddress?.villageTown || ''}, ${o.shippingAddress?.district || ''}, ${o.shippingAddress?.pincode || ''}`}</p>
+                  </div>
+
+                  {/* Cash Collection Banner */}
+                  {isCod && (
+                    <div className={`p-3 rounded-xl font-bold flex flex-col sm:flex-row justify-between items-center gap-2 border ${o.paymentStatus === 'SUCCESS' ? 'bg-emerald-50 text-emerald-900 border-emerald-300' : 'bg-amber-50 text-amber-900 border-amber-300'}`}>
+                      <span>💵 Cash on Delivery Amount: ₹{o.grandTotal}</span>
+                      <span>{o.paymentStatus === 'SUCCESS' ? '✅ Cash Collected at Doorstep' : '⏳ Cash Pending (Collect ₹' + o.grandTotal + ' upon arrival)'}</span>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap items-center justify-between pt-2 border-t border-slate-100 gap-2">
+                    <span className="font-bold text-slate-900 text-sm">Grand Total: ₹{o.grandTotal}</span>
+
+                    {/* Interactive Stage Controls & Customer Alerts */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        onClick={() => handleSendWhatsAppUpdate(o)}
+                        className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-[11px] flex items-center gap-1 shadow-xs cursor-pointer"
+                      >
+                        📲 Send WhatsApp Alert
+                      </button>
+
+                      <button
+                        onClick={() => handleUpdateOrderStatus(o.id, 'PENDING')}
+                        className={`px-2.5 py-1.5 rounded-xl font-bold text-[11px] cursor-pointer ${!isPacking && !isDispatched && !isDelivered ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+                      >
+                        1. Confirmed
+                      </button>
+
+                      <button
+                        onClick={() => handleUpdateOrderStatus(o.id, 'PROCESSING')}
+                        className={`px-2.5 py-1.5 rounded-xl font-bold text-[11px] cursor-pointer ${isPacking ? 'bg-purple-700 text-white' : 'bg-purple-100 hover:bg-purple-200 text-purple-900'}`}
+                      >
+                        2. Nursery Packing
+                      </button>
+
+                      <button
+                        onClick={() => setDispatchOrder(o)}
+                        className={`px-2.5 py-1.5 rounded-xl font-bold text-[11px] cursor-pointer ${isDispatched ? 'bg-blue-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+                      >
+                        3. Dispatch Courier / Self
+                      </button>
+
+                      <button
+                        onClick={() => handleUpdateOrderStatus(o.id, 'DELIVERED', 'SUCCESS')}
+                        className={`px-3 py-1.5 rounded-xl font-bold text-[11px] cursor-pointer ${isDelivered ? 'bg-emerald-800 text-white' : 'bg-emerald-700 hover:bg-emerald-800 text-white'}`}
+                      >
+                        4. Delivered & COD Collected
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            };
+
+            return (
+              <div className="space-y-6">
+                {/* Header & Sub-Bar */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+                  <div>
+                    <h3 className="font-black text-lg text-slate-900">Categorized Orders Management ({orders.length})</h3>
+                    <p className="text-xs text-slate-500 font-medium">Organized in 4 Nursery Pipeline Sections</p>
+                  </div>
+                  <span className="text-xs bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold px-3 py-1.5 rounded-xl">
+                    🚚 Auto-Synced with PostgreSQL DB & Live Customer Tracking
+                  </span>
+                </div>
+
+                {/* 4 Interactive Stage Filter Tabs */}
+                <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-100/80 rounded-2xl border border-slate-200">
+                  <button
+                    onClick={() => setOrderFilterStage('all')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${orderFilterStage === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+                  >
+                    All Sections ({orders.length})
+                  </button>
+                  <button
+                    onClick={() => setOrderFilterStage('pending')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${orderFilterStage === 'pending' ? 'bg-amber-500 text-white shadow-xs' : 'bg-amber-50 text-amber-900 hover:bg-amber-100'}`}
+                  >
+                    <span>🌸 1. Confirmed</span>
+                    <span className="px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-mono">{pendingList.length}</span>
+                  </button>
+                  <button
+                    onClick={() => setOrderFilterStage('packing')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${orderFilterStage === 'packing' ? 'bg-purple-600 text-white shadow-xs' : 'bg-purple-50 text-purple-900 hover:bg-purple-100'}`}
+                  >
+                    <span>🌿 2. Nursery Packed</span>
+                    <span className="px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-mono">{packingList.length}</span>
+                  </button>
+                  <button
+                    onClick={() => setOrderFilterStage('dispatched')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${orderFilterStage === 'dispatched' ? 'bg-blue-600 text-white shadow-xs' : 'bg-blue-50 text-blue-900 hover:bg-blue-100'}`}
+                  >
+                    <span>🚚 3. Dispatched</span>
+                    <span className="px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-mono">{dispatchedList.length}</span>
+                  </button>
+                  <button
+                    onClick={() => setOrderFilterStage('delivered')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${orderFilterStage === 'delivered' ? 'bg-emerald-700 text-white shadow-xs' : 'bg-emerald-50 text-emerald-900 hover:bg-emerald-100'}`}
+                  >
+                    <span>✅ 4. Delivered</span>
+                    <span className="px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-mono">{deliveredList.length}</span>
+                  </button>
+                </div>
+
+                {/* 4 CATEGORIZED SECTIONS DISPLAY */}
+                <div className="space-y-8">
+                  {/* SECTION 1: ORDER CONFIRMED */}
+                  {(orderFilterStage === 'all' || orderFilterStage === 'pending') && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between bg-amber-50 p-3.5 rounded-2xl border border-amber-200">
+                        <h4 className="font-black text-sm text-amber-950 flex items-center gap-2">
+                          <span className="text-base">🌸</span> SECTION 1: ORDER CONFIRMED ({pendingList.length})
+                        </h4>
+                        <span className="text-[11px] font-bold text-amber-800 bg-white/80 px-2.5 py-0.5 rounded-lg border border-amber-200">
+                          Ready for Nursery Moisture Packing
+                        </span>
+                      </div>
+                      {pendingList.length === 0 ? (
+                        <p className="text-xs text-slate-400 italic p-4 bg-white rounded-xl border border-dashed border-slate-200 text-center">No new pending orders in this section.</p>
+                      ) : (
+                        <div className="space-y-4">
+                          {pendingList.map(renderOrderCard)}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* SECTION 2: NURSERY PACKED */}
+                  {(orderFilterStage === 'all' || orderFilterStage === 'packing') && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between bg-purple-50 p-3.5 rounded-2xl border border-purple-200">
+                        <h4 className="font-black text-sm text-purple-950 flex items-center gap-2">
+                          <span className="text-base">🌿</span> SECTION 2: NURSERY PACKED ({packingList.length})
+                        </h4>
+                        <span className="text-[11px] font-bold text-purple-800 bg-white/80 px-2.5 py-0.5 rounded-lg border border-purple-200">
+                          Root Moisture Sealed & Packed
+                        </span>
+                      </div>
+                      {packingList.length === 0 ? (
+                        <p className="text-xs text-slate-400 italic p-4 bg-white rounded-xl border border-dashed border-slate-200 text-center">No orders currently in Nursery Packed stage.</p>
+                      ) : (
+                        <div className="space-y-4">
+                          {packingList.map(renderOrderCard)}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* SECTION 3: DISPATCHED */}
+                  {(orderFilterStage === 'all' || orderFilterStage === 'dispatched') && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between bg-blue-50 p-3.5 rounded-2xl border border-blue-200">
+                        <h4 className="font-black text-sm text-blue-950 flex items-center gap-2">
+                          <span className="text-base">🚚</span> SECTION 3: DISPATCHED & IN TRANSIT ({dispatchedList.length})
+                        </h4>
+                        <span className="text-[11px] font-bold text-blue-800 bg-white/80 px-2.5 py-0.5 rounded-lg border border-blue-200">
+                          Handed to Courier Partner / Farm Driver
+                        </span>
+                      </div>
+                      {dispatchedList.length === 0 ? (
+                        <p className="text-xs text-slate-400 italic p-4 bg-white rounded-xl border border-dashed border-slate-200 text-center">No dispatched orders currently in transit.</p>
+                      ) : (
+                        <div className="space-y-4">
+                          {dispatchedList.map(renderOrderCard)}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* SECTION 4: DELIVERED */}
+                  {(orderFilterStage === 'all' || orderFilterStage === 'delivered') && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between bg-emerald-50 p-3.5 rounded-2xl border border-emerald-200">
+                        <h4 className="font-black text-sm text-emerald-950 flex items-center gap-2">
+                          <span className="text-base">✅</span> SECTION 4: DELIVERED & COMPLETED ({deliveredList.length})
+                        </h4>
+                        <span className="text-[11px] font-bold text-emerald-800 bg-white/80 px-2.5 py-0.5 rounded-lg border border-emerald-200">
+                          Customer Delivered & Payment Collected
+                        </span>
+                      </div>
+                      {deliveredList.length === 0 ? (
+                        <p className="text-xs text-slate-400 italic p-4 bg-white rounded-xl border border-dashed border-slate-200 text-center">No delivered orders yet.</p>
+                      ) : (
+                        <div className="space-y-4">
+                          {deliveredList.map(renderOrderCard)}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
+
 
           {/* TAB: COUPONS */}
           {activeTab === 'coupons' && (
