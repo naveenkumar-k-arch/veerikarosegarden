@@ -1224,6 +1224,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                           <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px]">
                             <th className="py-2.5 px-3">Order ID</th>
                             <th className="py-2.5 px-3">Customer</th>
+                            <th className="py-2.5 px-3">Ordered Products</th>
                             <th className="py-2.5 px-3">Grand Total</th>
                             <th className="py-2.5 px-3">Payment</th>
                             <th className="py-2.5 px-3">Delivery Status</th>
@@ -1234,6 +1235,16 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                             <tr key={o.id} className="hover:bg-slate-50">
                               <td className="py-2.5 px-3 font-mono font-black text-slate-900">{o.id}</td>
                               <td className="py-2.5 px-3 font-bold text-slate-800">{o.customerName} ({typeof o.shippingAddress === 'string' ? o.shippingAddress : o.shippingAddress?.villageTown || 'Nursery'})</td>
+                              <td className="py-2.5 px-3">
+                                <div className="max-w-[220px]">
+                                  <p className="font-bold text-slate-900 truncate">
+                                    {o.items?.map(i => i.name).join(', ') || 'Plant item'}
+                                  </p>
+                                  <p className="text-[10px] text-slate-500 font-semibold">
+                                    {o.items?.length || 0} item{(o.items?.length || 0) > 1 ? 's' : ''}
+                                  </p>
+                                </div>
+                              </td>
                               <td className="py-2.5 px-3 font-bold text-emerald-800">₹{o.grandTotal}</td>
                               <td className="py-2.5 px-3">
                                 <span className={`font-bold px-2.5 py-0.5 rounded-full text-[10px] ${o.paymentMethod === 'COD' ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-blue-100 text-blue-900'}`}>
@@ -1617,6 +1628,52 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-700 bg-slate-50/50 p-3 rounded-xl">
                     <p><strong>Customer Name & Phone:</strong> {o.customerName} (+91 {o.customerPhone})</p>
                     <p><strong>Delivery Address:</strong> {typeof o.shippingAddress === 'string' ? o.shippingAddress : `${o.shippingAddress?.houseNo || ''}, ${o.shippingAddress?.street || ''}, ${o.shippingAddress?.villageTown || ''}, ${o.shippingAddress?.district || ''}, ${o.shippingAddress?.pincode || ''}`}</p>
+                  </div>
+
+                  {/* Ordered Product Names & Item Snapshot List */}
+                  <div className="bg-slate-50/90 rounded-2xl p-4 border border-slate-200 space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
+                      <span className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+                        <span>📦 Ordered Products ({o.items?.length || 0})</span>
+                      </span>
+                      <span className="text-[11px] text-emerald-800 font-bold truncate max-w-[250px] bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200">
+                        {o.items?.map(i => i.name).join(', ') || 'Nursery Products'}
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      {o.items && o.items.length > 0 ? (
+                        o.items.map((item, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={item.image || '/products/eq.jpeg'}
+                                alt={item.name}
+                                className="w-11 h-11 object-cover rounded-lg border border-slate-200 shrink-0"
+                              />
+                              <div>
+                                <p className="font-bold text-slate-900 text-xs">{item.name}</p>
+                                {item.tamilName && (
+                                  <p className="text-emerald-800 font-semibold text-[11px]">{item.tamilName}</p>
+                                )}
+                                {item.sku && (
+                                  <span className="font-mono text-[10px] text-slate-400">SKU: {item.sku}</span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <span className="font-bold text-slate-900 text-xs">Qty: {item.quantity}</span>
+                              <span className="text-emerald-800 font-bold block text-xs">₹{item.price * item.quantity}</span>
+                              {item.quantity > 1 && (
+                                <span className="text-[10px] text-slate-400 block">(₹{item.price} each)</span>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-slate-400 italic text-[11px]">No product items recorded</p>
+                      )}
+                    </div>
                   </div>
 
                   {/* Cash Collection Banner */}

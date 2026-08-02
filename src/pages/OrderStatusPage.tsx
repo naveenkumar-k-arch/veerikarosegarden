@@ -214,23 +214,30 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
 
       {/* Order Item Details Card */}
       <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4 text-xs">
-        <h3 className="font-bold text-base text-slate-900 border-b border-slate-100 pb-2">
-          Plants in This Shipment
-        </h3>
+        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+          <h3 className="font-bold text-base text-slate-900">
+            Plants in This Shipment ({order.items.length})
+          </h3>
+          <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200">
+            {order.items.map(i => i.name).join(', ')}
+          </span>
+        </div>
 
         <div className="space-y-3">
           {order.items.map((item, idx) => (
             <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-200/80">
               <div className="flex items-center gap-3">
-                <img src={item.image} alt={item.name} className="w-12 h-12 object-cover rounded-xl border" />
+                <img src={item.image || '/products/eq.jpeg'} alt={item.name} className="w-12 h-12 object-cover rounded-xl border shrink-0" />
                 <div>
                   <h4 className="font-bold text-slate-900 text-xs">{item.name}</h4>
-                  <p className="text-emerald-800 font-semibold text-[11px]">{item.tamilName}</p>
+                  {item.tamilName && <p className="text-emerald-800 font-semibold text-[11px]">{item.tamilName}</p>}
+                  {item.sku && <p className="text-[10px] text-slate-400 font-mono">SKU: {item.sku}</p>}
                 </div>
               </div>
-              <div className="text-right font-bold text-slate-900">
+              <div className="text-right font-bold text-slate-900 shrink-0">
                 <p>Qty: {item.quantity}</p>
-                <p className="text-emerald-800">₹{item.price * item.quantity}</p>
+                <p className="text-emerald-800 text-xs">₹{item.price * item.quantity}</p>
+                {item.quantity > 1 && <p className="text-[10px] text-slate-400 font-normal">(₹{item.price} each)</p>}
               </div>
             </div>
           ))}

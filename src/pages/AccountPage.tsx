@@ -657,38 +657,64 @@ export const AccountPage: React.FC<AccountPageProps> = ({
             orders.map((o) => (
                 <div
                   key={o.id}
-                  onClick={() => onViewOrder(o.id)}
-                  className="bg-white p-5 rounded-2xl border border-slate-200 hover:border-emerald-600 shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs"
+                  className="bg-white p-5 rounded-2xl border border-slate-200 hover:border-emerald-600 shadow-2xs hover:shadow-md transition-all space-y-3 text-xs"
                 >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-900 text-sm">Order #{o.id}</span>
-                      <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
-                        o.paymentStatus === 'SUCCESS' ? 'bg-emerald-100 text-emerald-900 border-emerald-300 font-extrabold' : 'bg-amber-100 text-amber-900 border-amber-300'
-                      }`}>
-                        {o.paymentMethod === 'COD' ? (o.paymentStatus === 'SUCCESS' ? '💵 COD PAID (Cash Collected)' : '⏳ COD PENDING (Pay on Delivery)') : `PhonePe (${o.paymentStatus})`}
-                      </span>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 cursor-pointer" onClick={() => onViewOrder(o.id)}>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-900 text-sm">Order #{o.id}</span>
+                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
+                          o.paymentStatus === 'SUCCESS' ? 'bg-emerald-100 text-emerald-900 border-emerald-300 font-extrabold' : 'bg-amber-100 text-amber-900 border-amber-300'
+                        }`}>
+                          {o.paymentMethod === 'COD' ? (o.paymentStatus === 'SUCCESS' ? '💵 COD PAID (Cash Collected)' : '⏳ COD PENDING (Pay on Delivery)') : `PhonePe (${o.paymentStatus})`}
+                        </span>
+                      </div>
+                      <p className="text-slate-500 font-mono">
+                        Placed: {new Date(o.createdAt).toLocaleDateString()} • {o.items?.length || 0} Item{(o.items?.length || 0) > 1 ? 's' : ''}
+                      </p>
+                      <p className="text-slate-700 font-semibold">
+                        Delivery Address: {typeof o.shippingAddress === 'string' ? o.shippingAddress : `${o.shippingAddress?.villageTown || ''}, ${o.shippingAddress?.district || ''}`}
+                      </p>
                     </div>
-                    <p className="text-slate-500 font-mono">
-                      Placed: {new Date(o.createdAt).toLocaleDateString()} • Items: {o.items.length}
-                    </p>
-                    <p className="text-slate-700 font-semibold">
-                      Delivery Address: {typeof o.shippingAddress === 'string' ? o.shippingAddress : `${o.shippingAddress?.villageTown || ''}, ${o.shippingAddress?.district || ''}`}
-                    </p>
+
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="text-right font-bold">
+                        <span className="text-emerald-800 text-sm block">₹{o.grandTotal}</span>
+                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
+                          o.orderStatus === 'DELIVERED' ? 'bg-emerald-700 text-white' :
+                          o.orderStatus === 'DISPATCHED' ? 'bg-blue-600 text-white' :
+                          'bg-slate-100 text-slate-700'
+                        }`}>
+                          {o.orderStatus}
+                        </span>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-slate-400" />
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-3 shrink-0">
-                    <div className="text-right font-bold">
-                      <span className="text-emerald-800 text-sm block">₹{o.grandTotal}</span>
-                      <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
-                        o.orderStatus === 'DELIVERED' ? 'bg-emerald-700 text-white' :
-                        o.orderStatus === 'DISPATCHED' ? 'bg-blue-600 text-white' :
-                        'bg-slate-100 text-slate-700'
-                      }`}>
-                        {o.orderStatus}
-                      </span>
+                  {/* Ordered Product Showcase */}
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/70 space-y-2">
+                    <div className="flex justify-between items-center text-[11px] font-bold text-slate-700 border-b border-slate-200/50 pb-1">
+                      <span>🛍️ Ordered Products:</span>
+                      <button onClick={() => onViewOrder(o.id)} className="text-emerald-700 hover:underline text-[11px] cursor-pointer">View Tracking & Details →</button>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-slate-400" />
+                    <div className="space-y-1.5">
+                      {o.items?.map((item, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-200/70">
+                          <div className="flex items-center gap-2.5">
+                            <img src={item.image || '/products/eq.jpeg'} alt={item.name} className="w-9 h-9 object-cover rounded-lg border shrink-0" />
+                            <div>
+                              <p className="font-bold text-slate-900 text-xs">{item.name}</p>
+                              {item.tamilName && <p className="text-emerald-800 text-[10px] font-medium">{item.tamilName}</p>}
+                            </div>
+                          </div>
+                          <div className="text-right text-xs shrink-0">
+                            <span className="font-bold text-slate-700">Qty: {item.quantity}</span>
+                            <span className="text-emerald-800 font-bold block">₹{item.price * item.quantity}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               ))
