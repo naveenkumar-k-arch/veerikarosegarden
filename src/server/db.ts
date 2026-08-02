@@ -1833,15 +1833,18 @@ class Store {
     };
   }
 
-  async deleteCoupon(id: string): Promise<boolean> {
+  async deleteCoupon(idOrCode: string): Promise<boolean> {
     const prisma = getPrismaClient();
     if (prisma) {
       try {
+        const clean = (idOrCode || '').trim();
+        const upper = clean.toUpperCase();
         await prisma.coupon.deleteMany({
           where: {
             OR: [
-              { id },
-              { code: { equals: id, mode: 'insensitive' } }
+              { id: clean },
+              { code: clean },
+              { code: upper }
             ]
           }
         });
@@ -1852,6 +1855,7 @@ class Store {
     }
     return true;
   }
+
 
 
   // REVIEWS
