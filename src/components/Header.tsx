@@ -80,7 +80,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
 
           {/* Logo */}
-          <div onClick={() => onNavigate('shop')} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', flexShrink: 0 }}>
+          <div onClick={() => onNavigate('home')} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', flexShrink: 0 }}>
             <div style={{
               width: 40, height: 40, borderRadius: '50%', overflow: 'hidden',
               border: '2px solid #16a34a',
