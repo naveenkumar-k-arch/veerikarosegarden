@@ -2292,6 +2292,11 @@ class Store {
             });
           }
 
+          // Pack paymentProofUrl (base64 image) into notes column for persistence
+          const notesPayload = order.paymentProofUrl
+            ? `|||PROOF|||${order.paymentProofUrl}|||TXNID|||${order.transactionId || ''}`
+            : (order.transactionId ? `|||TXNID|||${order.transactionId}` : null);
+
           await tx.order.create({
             data: {
               id: order.id,
@@ -2309,6 +2314,7 @@ class Store {
               status: 'PENDING',
               paymentStatus: order.paymentStatus === 'SUCCESS' ? 'SUCCESS' : 'PENDING',
               paymentMethod: (order.paymentMethod === 'COD' ? 'COD' : (order.paymentMethod === 'QR_PAYMENT' || order.paymentMethod === 'UPI_DIRECT' || Boolean(order.paymentProofUrl)) ? 'UPI' : 'PHONEPE') as any,
+              notes: notesPayload,
               items: {
                 create: resolvedItems.map(item => ({
                   productId: item.resolvedProductId,
@@ -2380,6 +2386,21 @@ class Store {
             image: '/products/double-delight.jpeg'
           }));
 
+          // Unpack paymentProofUrl and transactionId from notes column
+          const notesStr = (o as any).notes || '';
+          let unpackedProofUrl: string | undefined = undefined;
+          let unpackedTxnId: string | undefined = undefined;
+          if (notesStr.includes('|||PROOF|||')) {
+            const proofMatch = notesStr.split('|||PROOF|||')[1]?.split('|||TXNID|||')[0];
+            const txnMatch = notesStr.split('|||TXNID|||')[1];
+            if (proofMatch) unpackedProofUrl = proofMatch.trim();
+            if (txnMatch) unpackedTxnId = txnMatch.trim();
+          } else if (notesStr.includes('|||TXNID|||')) {
+            const txnMatch = notesStr.split('|||TXNID|||')[1];
+            if (txnMatch) unpackedTxnId = txnMatch.trim();
+          }
+
+          const hasProof = Boolean(unpackedProofUrl);
           return {
             id: o.id,
             customerName: o.customerName,
@@ -2392,13 +2413,14 @@ class Store {
             shippingCharge: o.deliveryFee,
             grandTotal: o.totalAmount,
             orderStatus: o.status === 'DELIVERED' ? 'DELIVERED' : o.status === 'DISPATCHED' ? 'DISPATCHED' : o.status === 'PAID' || o.status === 'PACKING' ? 'PROCESSING' : o.status === 'CANCELLED' ? 'CANCELLED' : 'PENDING',
-
             paymentStatus: o.paymentStatus === 'SUCCESS' ? 'SUCCESS' : o.paymentStatus === 'FAILED' ? 'FAILED' : 'PENDING',
             paymentMethod: ((o as any).paymentMethod === 'COD' 
               ? 'COD' 
-              : ((o as any).paymentMethod === 'UPI' || (o as any).paymentMethod === 'QR_PAYMENT' || Boolean((o as any).paymentProofUrl))
+              : ((o as any).paymentMethod === 'UPI' || (o as any).paymentMethod === 'QR_PAYMENT' || hasProof)
               ? 'QR_PAYMENT'
               : 'PHONEPE') as PaymentMethod,
+            paymentProofUrl: unpackedProofUrl,
+            transactionId: unpackedTxnId || o.merchantTransactionId || '',
             merchantTransactionId: o.merchantTransactionId || '',
             createdAt: o.createdAt.toISOString(),
             updatedAt: o.updatedAt.toISOString()
