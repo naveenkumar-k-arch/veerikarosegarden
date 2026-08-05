@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ShoppingBag } from 'lucide-react';
+import { ShoppingBag, Home, Store, User as UserIcon, ShoppingCart } from 'lucide-react';
 import { Product, Category, CartItem, Order, User, Banner, Review, PaymentMethod } from './types';
 import { auth, onAuthStateChanged, signOut } from './lib/firebase';
 import { Header } from './components/Header';
@@ -702,10 +702,10 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* Floating Sticky Cart Button (Left Bottom Corner for Mobile Response) */}
+      {/* Floating Sticky Cart Button — hidden on mobile (bottom nav replaces it) */}
       <button
         onClick={() => setIsCartOpen(true)}
-        className="fixed bottom-6 left-6 z-40 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white px-4 py-3 rounded-full shadow-2xl transition-all duration-200 flex items-center gap-2.5 border-2 border-emerald-500/40 cursor-pointer"
+        className="fixed bottom-6 left-6 z-40 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white px-4 py-3 rounded-full shadow-2xl transition-all duration-200 items-center gap-2.5 border-2 border-emerald-500/40 cursor-pointer hidden sm:flex"
         title="Open Shopping Cart"
         aria-label="Open Shopping Cart"
       >
@@ -722,12 +722,12 @@ export const App: React.FC = () => {
         </span>
       </button>
 
-      {/* Floating WhatsApp Button (Right Bottom Corner) */}
+      {/* Floating WhatsApp Button — hidden on mobile (uses bottom nav space) */}
       <a
         href="https://wa.me/917200826129?text=Hello%20Veerika%20Rose%20Garden!%20I%20have%20an%20enquiry%20about%20plants."
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-40 bg-emerald-600 hover:bg-emerald-700 text-white p-3.5 rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all duration-200 flex items-center justify-center group"
+        className="fixed bottom-6 right-6 z-40 bg-emerald-600 hover:bg-emerald-700 text-white p-3.5 rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all duration-200 items-center justify-center group hidden sm:flex"
         title="Chat with us on WhatsApp (+91 72008 26129)"
         aria-label="Chat with us on WhatsApp"
       >
@@ -739,6 +739,27 @@ export const App: React.FC = () => {
           WhatsApp Us
         </span>
       </a>
+
+      {/* ===== MOBILE BOTTOM NAVIGATION BAR ===== */}
+      <nav className="mobile-bottom-nav" role="navigation" aria-label="Mobile bottom navigation">
+        <button className={`nav-item ${currentPage === 'home' ? 'active' : ''}`} onClick={() => setCurrentPage('home')}>
+          <Home />
+          <span>Home</span>
+        </button>
+        <button className={`nav-item ${currentPage === 'shop' ? 'active' : ''}`} onClick={() => setCurrentPage('shop')}>
+          <Store />
+          <span>Shop</span>
+        </button>
+        <button className="nav-item cart-btn" onClick={() => setIsCartOpen(true)} aria-label="Open cart">
+          {cartCount > 0 && <span className="cart-badge">{cartCount > 9 ? '9+' : cartCount}</span>}
+          <ShoppingCart />
+          <span>Cart</span>
+        </button>
+        <button className={`nav-item ${currentPage === 'account' ? 'active' : ''}`} onClick={() => setCurrentPage('account')}>
+          <UserIcon />
+          <span>{user ? user.name?.split(' ')[0] : 'Account'}</span>
+        </button>
+      </nav>
     </div>
     </>
   );
