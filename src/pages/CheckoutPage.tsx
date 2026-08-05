@@ -153,7 +153,7 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
   };
 
   const handleCopyUpi = () => {
-    const upi = siteSettings?.upiId || '7200826129@ybl';
+    const upi = siteSettings?.upiId || 'veerikarosegarden@ibl';
     navigator.clipboard.writeText(upi);
     setCopiedUpi(true);
     setTimeout(() => setCopiedUpi(false), 3000);
@@ -233,7 +233,7 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
   const isCodEnabled = siteSettings ? siteSettings.enableCod !== false : true;
   const isQrEnabled = siteSettings ? siteSettings.enableQrPayment !== false : true;
 
-  const defaultQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=${siteSettings?.upiId || '7200826129@ybl'}&pn=${encodeURIComponent(siteSettings?.upiName || 'Veerika Rose Garden')}&am=${grandTotal}&cu=INR`;
+  const defaultQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=${siteSettings?.upiId || 'veerikarosegarden@ibl'}&pn=${encodeURIComponent(siteSettings?.upiName || 'ANISHA RAJA')}&am=${grandTotal}&cu=INR`;
   const qrCodeImg = siteSettings?.qrCodeImageUrl || defaultQrUrl;
 
   return (
@@ -529,7 +529,7 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
                         <span className="text-[10px] font-bold text-slate-400 uppercase block">Merchant UPI ID:</span>
                         <div className="flex items-center gap-2 mt-0.5">
                           <code className="bg-indigo-50 text-indigo-900 font-mono font-bold text-sm px-3 py-1.5 rounded-xl border border-indigo-200">
-                            {siteSettings?.upiId || '7200826129@ybl'}
+                            {siteSettings?.upiId || 'veerikarosegarden@ibl'}
                           </code>
                           <button
                             type="button"

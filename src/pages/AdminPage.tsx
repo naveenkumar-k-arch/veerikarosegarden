@@ -2446,8 +2446,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                   <label className="font-bold text-slate-700 block mb-1">Nursery UPI ID:</label>
                   <input
                     type="text"
-                    placeholder="7200826129@ybl"
-                    value={settings?.upiId ?? '7200826129@ybl'}
+                    placeholder="veerikarosegarden@ibl"
+                    value={settings?.upiId ?? 'veerikarosegarden@ibl'}
                     onChange={(e) => setSettings({ ...settings, upiId: e.target.value } as any)}
                     className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono font-bold"
                   />
@@ -2457,8 +2457,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                   <label className="font-bold text-slate-700 block mb-1">UPI Holder / Merchant Name:</label>
                   <input
                     type="text"
-                    placeholder="Veerika Rose Garden Nursery"
-                    value={settings?.upiName ?? 'Veerika Rose Garden Nursery'}
+                    placeholder="ANISHA RAJA"
+                    value={settings?.upiName ?? 'ANISHA RAJA'}
                     onChange={(e) => setSettings({ ...settings, upiName: e.target.value } as any)}
                     className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
                   />
