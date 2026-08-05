@@ -130,7 +130,11 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
             </div>
             <div>
               <span className="text-xs text-emerald-300 font-bold uppercase tracking-wider block">
-                {isCod ? '💵 Cash on Delivery Order Confirmed' : isSuccess ? 'PhonePe Payment Verified' : 'PhonePe Payment Pending'}
+                {isCod 
+                  ? '💵 Cash on Delivery Order Confirmed' 
+                  : (order.paymentMethod === 'QR_PAYMENT' || order.paymentMethod === 'UPI_DIRECT')
+                  ? (order.paymentStatus === 'SUCCESS' ? '📸 Scan QR Payment Verified' : '📸 Scan QR Payment Received (Pending Admin Verification)')
+                  : isSuccess ? 'PhonePe Payment Verified' : 'PhonePe Payment Pending'}
               </span>
               <h1 className="text-2xl font-black text-white">Order Reference #{order.id}</h1>
               <p className="text-xs text-emerald-200 font-medium mt-0.5">
@@ -142,7 +146,7 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
           <div className="flex flex-col items-center sm:items-end gap-2 shrink-0">
             <button
               onClick={() => setShowInvoiceModal(true)}
-              className="px-4 py-2 bg-white text-emerald-950 font-bold text-xs rounded-xl shadow-xs hover:bg-emerald-50 flex items-center gap-1.5"
+              className="px-4 py-2 bg-white text-emerald-950 font-bold text-xs rounded-xl shadow-xs hover:bg-emerald-50 flex items-center gap-1.5 cursor-pointer"
             >
               <Printer className="w-4 h-4" />
               <span>Tax Invoice</span>
@@ -162,7 +166,9 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
           <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-900 space-y-1">
             <CheckCircle2 className="w-5 h-5 text-emerald-700" />
             <p className="font-bold">1. Order Confirmed</p>
-            <p className="text-[10px] text-emerald-700">{isCod ? 'Cash on Delivery' : 'PhonePe PG Paid'}</p>
+            <p className="text-[10px] text-emerald-700">
+              {isCod ? 'Cash on Delivery' : (order.paymentMethod === 'QR_PAYMENT' || order.paymentMethod === 'UPI_DIRECT') ? 'Scan QR Paid' : 'PhonePe PG Paid'}
+            </p>
           </div>
 
           <div className={`p-3 rounded-2xl border space-y-1 ${

@@ -78,7 +78,7 @@ export const InvoicePrint: React.FC<InvoicePrintProps> = ({ order, onClose }) =>
 
         <div>
           <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] mb-1">Payment & Delivery Details:</h4>
-          <p><span className="text-slate-500">Payment Gateway:</span> <strong className={order.paymentMethod === 'COD' ? 'text-emerald-800' : 'text-purple-900'}>{order.paymentMethod === 'COD' ? 'Cash on Delivery (COD)' : `PhonePe PG (${order.paymentMethod})`}</strong></p>
+          <p><span className="text-slate-500">Payment Gateway:</span> <strong className={order.paymentMethod === 'COD' ? 'text-emerald-800' : (order.paymentMethod === 'QR_PAYMENT' || order.paymentMethod === 'UPI_DIRECT') ? 'text-indigo-900' : 'text-purple-900'}>{order.paymentMethod === 'COD' ? 'Cash on Delivery (COD)' : (order.paymentMethod === 'QR_PAYMENT' || order.paymentMethod === 'UPI_DIRECT') ? 'Scan QR Code Payment (Receipt Uploaded)' : `PhonePe PG (${order.paymentMethod})`}</strong></p>
           <p><span className="text-slate-500">Payment Status:</span> <strong className="text-emerald-700">{order.paymentStatus}</strong></p>
           {order.phonepeProviderReferenceId && (
             <p><span className="text-slate-500">PhonePe Ref ID:</span> <strong className="font-mono text-[11px]">{order.phonepeProviderReferenceId}</strong></p>

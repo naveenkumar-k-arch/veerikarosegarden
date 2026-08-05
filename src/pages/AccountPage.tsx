@@ -666,7 +666,11 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                         <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
                           o.paymentStatus === 'SUCCESS' ? 'bg-emerald-100 text-emerald-900 border-emerald-300 font-extrabold' : 'bg-amber-100 text-amber-900 border-amber-300'
                         }`}>
-                          {o.paymentMethod === 'COD' ? (o.paymentStatus === 'SUCCESS' ? '💵 COD PAID (Cash Collected)' : '⏳ COD PENDING (Pay on Delivery)') : `PhonePe (${o.paymentStatus})`}
+                          {o.paymentMethod === 'COD' 
+                            ? (o.paymentStatus === 'SUCCESS' ? '💵 COD PAID (Cash Collected)' : '⏳ COD PENDING (Pay on Delivery)') 
+                            : (o.paymentMethod === 'QR_PAYMENT' || o.paymentMethod === 'UPI_DIRECT')
+                            ? (o.paymentStatus === 'SUCCESS' ? '📸 QR PAID (Payment Verified)' : '📸 QR PAYMENT (Pending Admin Verification)')
+                            : `PhonePe (${o.paymentStatus})`}
                         </span>
                       </div>
                       <p className="text-slate-500 font-mono">

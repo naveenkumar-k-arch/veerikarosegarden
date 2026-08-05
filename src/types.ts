@@ -1,6 +1,6 @@
 export type PaymentStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'REFUNDED' | 'CANCELLED';
 export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PROCESSING' | 'PACKED' | 'DISPATCHED' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED' | 'RETURNED';
-export type PaymentMethod = 'PHONEPE' | 'COD' | 'UPI_DIRECT';
+export type PaymentMethod = 'PHONEPE' | 'COD' | 'UPI_DIRECT' | 'QR_PAYMENT';
 
 export interface Product {
   id: string;
@@ -106,6 +106,9 @@ export interface Order {
   paymentStatus: PaymentStatus;
   orderStatus: OrderStatus;
   paymentMethod: PaymentMethod;
+  paymentProofUrl?: string;
+  transactionId?: string;
+  paymentProofUploadedAt?: string;
   phonepeProviderReferenceId?: string;
   courierName?: string;
   trackingNumber?: string;
@@ -186,6 +189,13 @@ export interface SiteSettings {
   taxRate: number; // percentage
   shippingFee: number;
   freeShippingThreshold: number;
+  enableCod: boolean;
+  enablePhonePe: boolean;
+  enableQrPayment: boolean;
+  qrCodeImageUrl?: string;
+  upiId?: string;
+  upiName?: string;
+  qrInstructions?: string;
   phonepeMerchantId: string;
   phonepeSaltKey: string;
   phonepeSaltIndex: string;

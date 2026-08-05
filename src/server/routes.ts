@@ -476,7 +476,26 @@ apiRouter.post('/reviews', validateBody(reviewSchema), async (req, res) => {
 // ================= ORDERS & PHONEPE PAYMENTS =================
 apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), async (req: AuthenticatedRequest, res) => {
   try {
-    const { customerName, customerPhone, customerEmail, shippingAddress, items, couponCode, paymentMethod } = req.body;
+    const { customerName, customerPhone, customerEmail, shippingAddress, items, couponCode, paymentMethod, paymentProofUrl, transactionId } = req.body;
+
+    // Check if the selected payment method is enabled in Site Settings
+    const settings = await db.getSettings();
+    if (paymentMethod === 'PHONEPE' && settings.enablePhonePe === false) {
+      return res.status(400).json({ success: false, message: 'PhonePe payment method is currently disabled by admin.' });
+    }
+    if (paymentMethod === 'COD' && settings.enableCod === false) {
+      return res.status(400).json({ success: false, message: 'Cash on Delivery (COD) is currently disabled by admin.' });
+    }
+    if ((paymentMethod === 'QR_PAYMENT' || paymentMethod === 'UPI_DIRECT') && settings.enableQrPayment === false) {
+      return res.status(400).json({ success: false, message: 'Scan QR Code payment method is currently disabled by admin.' });
+    }
+
+    // Enforce mandatory payment screenshot proof for QR_PAYMENT / UPI_DIRECT
+    if (paymentMethod === 'QR_PAYMENT' || paymentMethod === 'UPI_DIRECT') {
+      if (!paymentProofUrl || typeof paymentProofUrl !== 'string' || !paymentProofUrl.trim()) {
+        return res.status(400).json({ success: false, message: 'Payment screenshot/proof is mandatory for QR Code payment.' });
+      }
+    }
 
     let calculatedSubtotal = 0;
     const verifiedItems = [];
@@ -577,7 +596,10 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
       grandTotal: calculatedGrandTotal,
       paymentStatus: 'PENDING',
       orderStatus: 'PENDING',
-      paymentMethod
+      paymentMethod,
+      paymentProofUrl: paymentProofUrl || undefined,
+      transactionId: transactionId || undefined,
+      paymentProofUploadedAt: paymentProofUrl ? new Date().toISOString() : undefined
     });
 
     if (paymentMethod === 'PHONEPE') {
@@ -608,7 +630,9 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
       success: true,
       order: newOrder,
       orderId: newOrder.id,
-      message: 'Order placed successfully!'
+      message: paymentMethod === 'QR_PAYMENT' 
+        ? 'Order placed! Your payment screenshot proof was submitted and is pending admin verification.' 
+        : 'Order placed successfully!'
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });

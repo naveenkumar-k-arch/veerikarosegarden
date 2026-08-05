@@ -307,6 +307,8 @@ export const App: React.FC = () => {
     customerEmail: string;
     shippingAddress: any;
     paymentMethod: PaymentMethod;
+    paymentProofUrl?: string;
+    transactionId?: string;
   }) => {
     const subtotal = cart.reduce((sum, i) => sum + i.product.sellingPrice * i.quantity, 0);
     const totalPlantCount = cart.reduce((sum, i) => sum + i.quantity, 0);
@@ -333,6 +335,8 @@ export const App: React.FC = () => {
         phone: cleanPhone
       },
       paymentMethod: orderData.paymentMethod,
+      paymentProofUrl: orderData.paymentProofUrl,
+      transactionId: orderData.transactionId,
       items: cart.map((i) => ({
         productId: i.product.id,
         sku: i.product.sku || 'VRG-ROSE',

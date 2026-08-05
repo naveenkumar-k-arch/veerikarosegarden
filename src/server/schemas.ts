@@ -28,7 +28,9 @@ export const createOrderSchema = z.object({
   shippingAddress: addressSchema,
   items: z.array(orderItemSchema).min(1, 'Order must contain at least one product item'),
   couponCode: z.string().optional(),
-  paymentMethod: z.enum(['PHONEPE', 'COD'])
+  paymentMethod: z.enum(['PHONEPE', 'COD', 'QR_PAYMENT', 'UPI_DIRECT']),
+  paymentProofUrl: z.string().optional(),
+  transactionId: z.string().optional()
 });
 
 export const productSchema = z.object({

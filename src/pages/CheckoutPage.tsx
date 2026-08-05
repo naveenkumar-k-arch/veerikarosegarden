@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { CartItem, ShippingAddress, PaymentMethod, User } from '../types';
-import { ShieldCheck, Truck, ArrowLeft, Check, Lock, Smartphone, Home, MapPin, Building2, CreditCard } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { CartItem, ShippingAddress, PaymentMethod, User, SiteSettings } from '../types';
+import { ShieldCheck, Truck, ArrowLeft, Check, Lock, Smartphone, Home, MapPin, Building2, CreditCard, QrCode, Upload, Copy, CheckCircle2, AlertCircle, Image as ImageIcon } from 'lucide-react';
 
 interface CheckoutPageProps {
   items: CartItem[];
@@ -13,6 +13,8 @@ interface CheckoutPageProps {
     customerEmail: string;
     shippingAddress: ShippingAddress;
     paymentMethod: PaymentMethod;
+    paymentProofUrl?: string;
+    transactionId?: string;
   }) => Promise<{ success: boolean; orderId?: string; phonepePayUrl?: string; merchantTransactionId?: string; message?: string }>;
 }
 
@@ -26,6 +28,13 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   const [step, setStep] = useState<1 | 2>(1); // 1: Address, 2: Payment
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
+
+  // QR Payment & Proof Upload States
+  const [paymentProofUrl, setPaymentProofUrl] = useState<string>('');
+  const [transactionId, setTransactionId] = useState<string>('');
+  const [copiedUpi, setCopiedUpi] = useState(false);
+  const [proofPreview, setProofPreview] = useState<string | null>(null);
 
   // Clean Address State
   const [address, setAddress] = useState<ShippingAddress>(() => ({
@@ -44,11 +53,63 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('PHONEPE');
 
+  // Fetch settings to check enabled payment methods
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.settings) {
+          setSiteSettings(data.settings);
+          // Auto-select first available payment method
+          if (data.settings.enablePhonePe !== false) {
+            setPaymentMethod('PHONEPE');
+          } else if (data.settings.enableQrPayment) {
+            setPaymentMethod('QR_PAYMENT');
+          } else if (data.settings.enableCod !== false) {
+            setPaymentMethod('COD');
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const subtotal = items.reduce((sum, i) => sum + i.product.sellingPrice * i.quantity, 0);
   const totalPlantCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const shippingCharge = totalPlantCount === 0 ? 0 : 50 + (totalPlantCount - 1) * 10;
   const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const grandTotal = Math.max(0, subtotal + shippingCharge - discountAmount);
+
+  // Handle Image File Upload for QR Screenshot Proof
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setErrorMsg('Please select a valid image file (JPG, PNG, WebP) for the payment proof.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorMsg('Image size should be less than 5MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result as string;
+      setPaymentProofUrl(base64);
+      setProofPreview(base64);
+      setErrorMsg(null);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCopyUpi = () => {
+    const upi = siteSettings?.upiId || '7200826129@ybl';
+    navigator.clipboard.writeText(upi);
+    setCopiedUpi(true);
+    setTimeout(() => setCopiedUpi(false), 3000);
+  };
 
   const handleAddressSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,6 +132,15 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       setErrorMsg('🔒 Login or Sign Up is required to complete your purchase.');
       return;
     }
+
+    // MANDATORY PROOF VALIDATION FOR QR PAYMENT
+    if (paymentMethod === 'QR_PAYMENT') {
+      if (!paymentProofUrl) {
+        setErrorMsg('📸 MANDATORY: Please upload your payment screenshot / receipt image before confirming your order.');
+        return;
+      }
+    }
+
     setLoading(true);
     setErrorMsg(null);
 
@@ -89,7 +159,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           ...address,
           phone: cleanPhone || address.phone
         },
-        paymentMethod
+        paymentMethod,
+        paymentProofUrl: paymentMethod === 'QR_PAYMENT' ? paymentProofUrl : undefined,
+        transactionId: paymentMethod === 'QR_PAYMENT' ? transactionId : undefined
       });
 
       setLoading(false);
@@ -102,13 +174,20 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     }
   };
 
+  const isPhonePeEnabled = siteSettings ? siteSettings.enablePhonePe !== false : true;
+  const isCodEnabled = siteSettings ? siteSettings.enableCod !== false : true;
+  const isQrEnabled = siteSettings ? siteSettings.enableQrPayment !== false : true;
+
+  const defaultQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=${siteSettings?.upiId || '7200826129@ybl'}&pn=${encodeURIComponent(siteSettings?.upiName || 'Veerika Rose Garden')}&am=${grandTotal}&cu=INR`;
+  const qrCodeImg = siteSettings?.qrCodeImageUrl || defaultQrUrl;
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
       {/* Top Header */}
       <div className="flex items-center justify-between border-b border-slate-200 pb-4">
         <button
           onClick={onBackToCart}
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-emerald-700 transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-emerald-700 transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Return to Cart</span>
@@ -116,7 +195,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
         <div className="flex items-center gap-2 text-xs font-bold text-emerald-800">
           <ShieldCheck className="w-4 h-4 text-emerald-600" />
-          <span>PhonePe Secure Checkout</span>
+          <span>Veerika Nursery Verified Checkout</span>
         </div>
       </div>
 
@@ -135,7 +214,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${step >= 2 ? 'bg-emerald-700 text-white' : 'bg-slate-200'}`}>
             2
           </span>
-          <span>Payment Method (PhonePe)</span>
+          <span>Payment Method</span>
         </div>
       </div>
 
@@ -152,7 +231,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           <button
             type="button"
             onClick={onBackToCart}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs whitespace-nowrap transition-colors"
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs whitespace-nowrap transition-colors cursor-pointer"
           >
             🔑 Go to Login / Sign Up
           </button>
@@ -160,8 +239,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       )}
 
       {errorMsg && (
-        <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-xl">
-          {errorMsg}
+        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-2xl flex items-center gap-2">
+          <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+          <span>{errorMsg}</span>
         </div>
       )}
 
@@ -271,7 +351,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
               <button
                 type="submit"
-                className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm rounded-2xl shadow-md transition-all pt-3"
+                className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm rounded-2xl shadow-md transition-all pt-3 cursor-pointer"
               >
                 PROCEED TO PAYMENT METHOD
               </button>
@@ -282,7 +362,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
             <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-6 text-xs">
               <h3 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3 flex items-center justify-between">
                 <span>Select Payment Method</span>
-                <button onClick={() => setStep(1)} className="text-emerald-700 hover:underline font-semibold text-xs">
+                <button onClick={() => setStep(1)} className="text-emerald-700 hover:underline font-semibold text-xs cursor-pointer">
                   Edit Address
                 </button>
               </h3>
@@ -290,63 +370,193 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
               {/* Payment Methods */}
               <div className="space-y-3">
                 {/* PhonePe Option */}
-                <div
-                  onClick={() => setPaymentMethod('PHONEPE')}
-                  className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 ${
-                    paymentMethod === 'PHONEPE'
-                      ? 'border-[#5f259f] bg-purple-50/60 ring-2 ring-purple-500/20'
-                      : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100'
-                  }`}
-                >
-                  <div className="w-8 h-8 bg-[#5f259f] text-white rounded-full flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
-                    पे
-                  </div>
-
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-bold text-slate-900 text-sm">PhonePe Payment Gateway (Recommended)</h4>
-                      <span className="bg-purple-200 text-purple-900 font-bold text-[10px] px-2 py-0.5 rounded-full">
-                        100% Secure
-                      </span>
+                {isPhonePeEnabled && (
+                  <div
+                    onClick={() => setPaymentMethod('PHONEPE')}
+                    className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 ${
+                      paymentMethod === 'PHONEPE'
+                        ? 'border-[#5f259f] bg-purple-50/60 ring-2 ring-purple-500/20'
+                        : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="w-8 h-8 bg-[#5f259f] text-white rounded-full flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                      पे
                     </div>
-                    <p className="text-slate-600 text-[11px] mt-1">
-                      Pay via PhonePe UPI, GPay, Paytm, QR Code Scan, RuPay Cards & All Indian NetBanking.
-                    </p>
+
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-slate-900 text-sm">PhonePe Payment Gateway</h4>
+                        <span className="bg-purple-200 text-purple-900 font-bold text-[10px] px-2 py-0.5 rounded-full">
+                          100% Instant & Secure
+                        </span>
+                      </div>
+                      <p className="text-slate-600 text-[11px] mt-1">
+                        Pay via PhonePe UPI, GPay, Paytm, RuPay Cards & All Indian NetBanking.
+                      </p>
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {/* Scan QR Code Payment Option */}
+                {isQrEnabled && (
+                  <div
+                    onClick={() => setPaymentMethod('QR_PAYMENT')}
+                    className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 ${
+                      paymentMethod === 'QR_PAYMENT'
+                        ? 'border-indigo-600 bg-indigo-50/70 ring-2 ring-indigo-500/20'
+                        : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                      <QrCode className="w-4 h-4" />
+                    </div>
+
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-slate-900 text-sm">Scan QR Code & Upload Receipt (Manual UPI)</h4>
+                        <span className="bg-indigo-100 text-indigo-900 font-bold text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1">
+                          📸 Mandatory Screenshot
+                        </span>
+                      </div>
+                      <p className="text-slate-600 text-[11px] mt-1">
+                        Scan nursery QR using GPay/PhonePe/Paytm, pay ₹{grandTotal}, and upload successful payment screenshot.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Cash on Delivery Option */}
-                <div
-                  onClick={() => setPaymentMethod('COD')}
-                  className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 ${
-                    paymentMethod === 'COD'
-                      ? 'border-emerald-700 bg-emerald-50/60 ring-2 ring-emerald-600/20'
-                      : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100'
-                  }`}
-                >
-                  <div className="w-8 h-8 bg-emerald-800 text-white rounded-full flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
-                    💵
+                {isCodEnabled && (
+                  <div
+                    onClick={() => setPaymentMethod('COD')}
+                    className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 ${
+                      paymentMethod === 'COD'
+                        ? 'border-emerald-700 bg-emerald-50/60 ring-2 ring-emerald-600/20'
+                        : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="w-8 h-8 bg-emerald-800 text-white rounded-full flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                      💵
+                    </div>
+
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-slate-900 text-sm">Cash on Delivery (COD)</h4>
+                        <span className="bg-emerald-100 text-emerald-900 font-bold text-[10px] px-2 py-0.5 rounded-full">
+                          Pay on Delivery
+                        </span>
+                      </div>
+                      <p className="text-slate-600 text-[11px] mt-1">
+                        Pay cash to courier driver upon plant arrival at your village/city address.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* QR PAYMENT SCANNER & PROOF UPLOADER PANEL */}
+              {paymentMethod === 'QR_PAYMENT' && isQrEnabled && (
+                <div className="p-5 bg-gradient-to-br from-indigo-50/80 to-purple-50/80 rounded-3xl border-2 border-indigo-200 space-y-4">
+                  <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-4 rounded-2xl border border-indigo-100 shadow-xs">
+                    {/* QR Code Image */}
+                    <div className="text-center shrink-0">
+                      <img
+                        src={qrCodeImg}
+                        alt="Nursery UPI QR Code"
+                        className="w-36 h-36 object-contain rounded-xl border border-slate-200 p-1.5 bg-white shadow-xs mx-auto"
+                      />
+                      <p className="text-[10px] font-bold text-indigo-900 mt-1">Scan to pay ₹{grandTotal}</p>
+                    </div>
+
+                    {/* UPI Details & Copy Button */}
+                    <div className="flex-1 space-y-2.5">
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase block">Merchant UPI ID:</span>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <code className="bg-indigo-50 text-indigo-900 font-mono font-bold text-sm px-3 py-1.5 rounded-xl border border-indigo-200">
+                            {siteSettings?.upiId || '7200826129@ybl'}
+                          </code>
+                          <button
+                            type="button"
+                            onClick={handleCopyUpi}
+                            className="p-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center gap-1 transition-all cursor-pointer shrink-0"
+                          >
+                            {copiedUpi ? <CheckCircle2 className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
+                            <span>{copiedUpi ? 'Copied!' : 'Copy'}</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase block">Account Holder Name:</span>
+                        <p className="font-bold text-slate-900 text-xs">{siteSettings?.upiName || 'Veerika Rose Garden Nursery'}</p>
+                      </div>
+
+                      <div className="bg-amber-50 border border-amber-200 p-2.5 rounded-xl text-[11px] text-amber-900 font-medium whitespace-pre-line">
+                        {siteSettings?.qrInstructions || '1. Scan QR code using GPay, PhonePe, Paytm or any UPI app.\n2. Pay exact order total amount.\n3. Take a screenshot of successful payment receipt.\n4. Upload the screenshot below to confirm your order.'}
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="flex-1">
+                  {/* Mandatory Payment Screenshot Upload Box */}
+                  <div className="bg-white p-4 rounded-2xl border-2 border-dashed border-indigo-300 space-y-3">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-bold text-slate-900 text-sm">Cash on Delivery (COD)</h4>
-                      <span className="bg-emerald-100 text-emerald-900 font-bold text-[10px] px-2 py-0.5 rounded-full">
-                        Pay on Transit
+                      <label className="font-extrabold text-slate-900 text-xs flex items-center gap-1.5">
+                        <ImageIcon className="w-4 h-4 text-indigo-600" />
+                        <span>Upload Paid Screenshot / Receipt *</span>
+                      </label>
+                      <span className="bg-rose-100 text-rose-800 font-extrabold text-[10px] px-2 py-0.5 rounded-full">
+                        MANDATORY
                       </span>
                     </div>
-                    <p className="text-slate-600 text-[11px] mt-1">
-                      Pay cash to courier driver upon plant arrival at your village/city address.
+
+                    <p className="text-[11px] text-slate-500 font-medium">
+                      Upload your GPay/PhonePe payment confirmation screenshot photo. Orders without receipt screenshot will be rejected.
                     </p>
+
+                    <div className="flex flex-col sm:flex-row items-center gap-3">
+                      <label className="w-full sm:w-auto px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-2 cursor-pointer transition-all">
+                        <Upload className="w-4 h-4" />
+                        <span>{paymentProofUrl ? 'Change Receipt Photo' : 'Select Screenshot Image'}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="hidden"
+                        />
+                      </label>
+
+                      {proofPreview && (
+                        <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-300 text-emerald-900 px-3 py-1.5 rounded-xl font-bold text-xs">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <img src={proofPreview} alt="Screenshot proof" className="w-7 h-7 object-cover rounded border" />
+                          <span>Screenshot Uploaded!</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* UTR / Transaction ID (Optional) */}
+                    <div className="pt-2">
+                      <label className="font-bold text-slate-700 text-[11px] block mb-1">
+                        UPI UTR / Transaction Ref No. (Optional):
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 421598231049 (12-digit UTR)"
+                        value={transactionId}
+                        onChange={(e) => setTransactionId(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono text-xs font-semibold"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Action Button */}
               <button
                 onClick={handleFinalPlaceOrder}
                 disabled={loading}
-                className="w-full py-4 bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-400 text-white font-bold text-sm rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2"
+                className="w-full py-4 bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-400 text-white font-bold text-sm rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />

@@ -735,6 +735,13 @@ const DEFAULT_SETTINGS: SiteSettings = {
   taxRate: 0,
   shippingFee: 50,
   freeShippingThreshold: 999,
+  enableCod: true,
+  enablePhonePe: true,
+  enableQrPayment: true,
+  qrCodeImageUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=7200826129@ybl&pn=Veerika%20Rose%20Garden&cu=INR',
+  upiId: '7200826129@ybl',
+  upiName: 'Veerika Rose Garden Nursery',
+  qrInstructions: '1. Scan the QR code using GPay, PhonePe, Paytm or any UPI app.\n2. Enter the exact order total amount and pay.\n3. Take a screenshot of the successful payment receipt.\n4. Upload the screenshot below to place your order.',
   phonepeMerchantId: process.env.PHONEPE_MERCHANT_ID || '',
   phonepeSaltKey: process.env.PHONEPE_SALT_KEY || '',
   phonepeSaltIndex: String(process.env.PHONEPE_SALT_INDEX || '1'),
@@ -994,6 +1001,7 @@ const deletedOrderIds = (globalThis as any)._deletedOrderIds || ((globalThis as 
 class Store {
   private memoryOrders: Order[] = [];
   private memoryFinances: FinancialEntry[] = [...DEFAULT_FINANCES];
+  private memorySettings: SiteSettings = { ...DEFAULT_SETTINGS };
 
   // FINANCIAL EXPENSE & PROFIT MANAGEMENT
   async getFinancialEntries(): Promise<FinancialEntry[]> {
@@ -2042,16 +2050,18 @@ class Store {
   // SITE SETTINGS
   async getSettings(): Promise<SiteSettings> {
     const prisma = getPrismaClient();
-    if (!prisma) return DEFAULT_SETTINGS;
+    if (!prisma) return { ...DEFAULT_SETTINGS, ...this.memorySettings };
 
     try {
       const s = await prisma.siteSetting.findUnique({
         where: { id: 'default' }
       });
 
-      if (!s) return DEFAULT_SETTINGS;
+      if (!s) return { ...DEFAULT_SETTINGS, ...this.memorySettings };
 
       return {
+        ...DEFAULT_SETTINGS,
+        ...this.memorySettings,
         businessName: s.businessName,
         tagline: s.tagline,
         phone: s.phone,
@@ -2066,15 +2076,24 @@ class Store {
         phonepeMerchantId: s.phonepeMerchantId,
         phonepeSaltKey: s.phonepeSaltKey,
         phonepeSaltIndex: s.phonepeSaltIndex,
-        phonepeEnv: s.phonepeEnv as 'SANDBOX' | 'PRODUCTION'
+        phonepeEnv: s.phonepeEnv as 'SANDBOX' | 'PRODUCTION',
+        enableCod: s.enableCod ?? DEFAULT_SETTINGS.enableCod,
+        enablePhonePe: s.enablePhonePe ?? DEFAULT_SETTINGS.enablePhonePe,
+        qrCodeUrl: s.qrCodeUrl ?? DEFAULT_SETTINGS.qrCodeUrl
       };
     } catch (err) {
       console.error('Prisma getSettings error:', err);
-      return DEFAULT_SETTINGS;
+      return { ...DEFAULT_SETTINGS, ...this.memorySettings };
     }
   }
 
   async updateSettings(updates: Partial<SiteSettings>): Promise<SiteSettings> {
+    this.memorySettings = {
+      ...DEFAULT_SETTINGS,
+      ...this.memorySettings,
+      ...updates
+    };
+
     const prisma = getPrismaClient();
 
     if (prisma) {
@@ -2119,6 +2138,8 @@ class Store {
         });
 
         return {
+          ...DEFAULT_SETTINGS,
+          ...this.memorySettings,
           businessName: s.businessName,
           tagline: s.tagline,
           phone: s.phone,
