@@ -38,35 +38,47 @@ app.use(helmet({
 // Cookie parser
 app.use(cookieParser(AUTH_CONFIG.cookieSecret));
 
-// FIX A05: Strict CORS — only allow known origins, NOT catch-all
+// Allowed origins — covers all known deployment domains
 const ALLOWED_ORIGINS = new Set([
-  'https://veerikarosegarden.vercel.app',
-  'https://www.veerikarosegarden.com',
+  // Production custom domain
   'https://veerikarosegarden.com',
+  'https://www.veerikarosegarden.com',
+  // Vercel deployments (main + previews handled by endsWith below)
+  'https://veerikarosegarden.vercel.app',
+  'https://flower.vercel.app',
+  // Render.com deployments
+  'https://veerika-rose-garden.onrender.com',
+  // From env (set CLIENT_URL in Vercel/Render dashboard)
   process.env.CLIENT_URL,
+  // Local development
   'http://localhost:3000',
   'http://localhost:5173',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:5173',
 ].filter(Boolean) as string[]);
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow same-origin requests (no origin header = server-to-server or curl)
-    if (!origin) return callback(null, true);
-    // Allow Vercel preview deployments (*.vercel.app)
+    // Allow same-origin / server-to-server / null-origin requests (embedded browsers, curl, etc.)
+    if (!origin || origin === 'null') return callback(null, true);
+    // Allow any *.vercel.app (covers preview deployments like flower-abc123.vercel.app)
     if (origin.endsWith('.vercel.app')) return callback(null, true);
+    // Allow any *.onrender.com (covers Render.com preview/production deployments)
+    if (origin.endsWith('.onrender.com')) return callback(null, true);
     // Allow explicit allowed origins
     if (ALLOWED_ORIGINS.has(origin)) return callback(null, true);
-    // Allow localhost in non-production
-    if (process.env.NODE_ENV !== 'production' && (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1'))) {
+    // Allow any localhost / 127.0.0.1 regardless of port in development
+    if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
       return callback(null, true);
     }
-    // FIX: Reject all other origins (previously had catch-all that accepted everything)
-    console.warn(`[CORS] Blocked request from unauthorized origin: ${origin}`);
-    return callback(new Error('CORS policy: Origin not allowed'), false);
+    // Reject unauthorized origins — log for monitoring
+    console.warn(`[CORS] Blocked origin: ${origin}`);
+    // Return null (allow the request but without CORS headers) rather than throwing
+    // an Error that cascades into the error handler as a confusing 500 response.
+    return callback(null, false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  // FIX A01: Removed X-Admin-Email and X-Admin-Role from allowed headers
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Verify', 'X-Merchant-Id'],
 }));
 

@@ -27,7 +27,7 @@ async function startServer() {
   // Cookie Parser
   app.use(cookieParser(AUTH_CONFIG.cookieSecret));
 
-  // Allowed CORS Origins Whitelist
+  // Allowed CORS Origins — covers local dev and any configured CLIENT_URL
   const allowedOrigins = new Set([
     'http://localhost:3000',
     'http://localhost:5173',
@@ -39,25 +39,26 @@ async function startServer() {
   // Restrict CORS to allowed origins
   app.use(cors({
     origin: (origin, callback) => {
-      // Allow server-to-server or non-browser requests with no origin header
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.has(origin)) {
+      // Allow server-to-server, null-origin (embedded browser/preview), or curl requests
+      if (!origin || origin === 'null') return callback(null, true);
+      // Allow explicit origins
+      if (allowedOrigins.has(origin)) return callback(null, true);
+      // Allow any localhost / 127.0.0.1 regardless of port
+      if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
         return callback(null, true);
       }
-
-      // Reject non-whitelisted origin
-      console.warn(`[CORS] Rejected request from origin: ${origin}`);
-      return callback(new Error('CORS policy error: Origin not allowed'));
+      // Reject non-whitelisted origin — log for visibility, don't throw (avoids 500 error response)
+      console.warn(`[CORS] Rejected origin: ${origin}`);
+      return callback(null, false);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Verify', 'X-Merchant-Id', 'X-Admin-Email', 'X-Admin-Role']
   }));
 
-  // Request size limit (OWASP DoS Protection)
-  app.use(express.json({ limit: '2mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+  // Body size limit — 15mb to support payment proof screenshot uploads
+  app.use(express.json({ limit: '15mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
   // Global Rate Limiter
   app.use('/api', globalLimiter);
