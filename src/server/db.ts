@@ -998,6 +998,37 @@ const deletedFinanceIds = (globalThis as any)._deletedFinanceIds || ((globalThis
 const deletedOrderIds = (globalThis as any)._deletedOrderIds || ((globalThis as any)._deletedOrderIds = new Set<string>());
 const globalMemorySettings: SiteSettings = (globalThis as any)._globalMemorySettings || ((globalThis as any)._globalMemorySettings = { ...DEFAULT_SETTINGS });
 
+const META_DELIMITER = '|||JSON_META|||';
+
+interface CustomMetaSettings {
+  enablePhonePe?: boolean;
+  enableCod?: boolean;
+  enableQrPayment?: boolean;
+  upiId?: string;
+  upiName?: string;
+  qrCodeImageUrl?: string;
+  qrInstructions?: string;
+}
+
+function extractMetaFromWorkingHours(rawWorkingHours?: string): { workingHours: string; meta: CustomMetaSettings } {
+  if (!rawWorkingHours) return { workingHours: DEFAULT_SETTINGS.workingHours, meta: {} };
+  const parts = rawWorkingHours.split(META_DELIMITER);
+  const workingHours = parts[0] || DEFAULT_SETTINGS.workingHours;
+  let meta: CustomMetaSettings = {};
+  if (parts[1]) {
+    try {
+      meta = JSON.parse(parts[1]);
+    } catch (e) {
+      meta = {};
+    }
+  }
+  return { workingHours, meta };
+}
+
+function packMetaIntoWorkingHours(cleanWorkingHours: string, meta: CustomMetaSettings): string {
+  return `${cleanWorkingHours || DEFAULT_SETTINGS.workingHours}${META_DELIMITER}${JSON.stringify(meta)}`;
+}
+
 class Store {
   private memoryOrders: Order[] = [];
   private memoryFinances: FinancialEntry[] = [...DEFAULT_FINANCES];
@@ -2048,7 +2079,7 @@ class Store {
 
   // SITE SETTINGS
   async getSettings(): Promise<SiteSettings> {
-    const memory = (globalThis as any)._globalMemorySettings || DEFAULT_SETTINGS;
+    const memory = (globalThis as any)._globalMemorySettings || {};
     const prisma = getPrismaClient();
     if (!prisma) return { ...DEFAULT_SETTINGS, ...memory };
 
@@ -2059,8 +2090,11 @@ class Store {
 
       if (!s) return { ...DEFAULT_SETTINGS, ...memory };
 
-      return {
+      const { workingHours, meta } = extractMetaFromWorkingHours(s.workingHours);
+
+      const merged: SiteSettings = {
         ...DEFAULT_SETTINGS,
+        ...meta,
         ...memory,
         businessName: s.businessName,
         tagline: s.tagline,
@@ -2069,7 +2103,7 @@ class Store {
         whatsapp: s.whatsapp,
         address: s.address,
         googleMapsUrl: s.googleMapsUrl,
-        workingHours: s.workingHours,
+        workingHours: workingHours,
         taxRate: s.taxRate,
         shippingFee: s.shippingFee,
         freeShippingThreshold: s.freeShippingThreshold,
@@ -2078,6 +2112,9 @@ class Store {
         phonepeSaltIndex: s.phonepeSaltIndex,
         phonepeEnv: s.phonepeEnv as 'SANDBOX' | 'PRODUCTION'
       };
+
+      (globalThis as any)._globalMemorySettings = merged;
+      return merged;
     } catch (err) {
       console.error('Prisma getSettings error:', err);
       return { ...DEFAULT_SETTINGS, ...memory };
@@ -2085,82 +2122,76 @@ class Store {
   }
 
   async updateSettings(updates: Partial<SiteSettings>): Promise<SiteSettings> {
-    const current = (globalThis as any)._globalMemorySettings || { ...DEFAULT_SETTINGS };
-    const merged = {
-      ...DEFAULT_SETTINGS,
+    const current = await this.getSettings();
+    const merged: SiteSettings = {
       ...current,
       ...updates
     };
+
     (globalThis as any)._globalMemorySettings = merged;
 
     const prisma = getPrismaClient();
 
     if (prisma) {
       try {
+        const metaToStore: CustomMetaSettings = {
+          enablePhonePe: merged.enablePhonePe,
+          enableCod: merged.enableCod,
+          enableQrPayment: merged.enableQrPayment,
+          upiId: merged.upiId,
+          upiName: merged.upiName,
+          qrCodeImageUrl: merged.qrCodeImageUrl,
+          qrInstructions: merged.qrInstructions
+        };
+
+        const packedWorkingHours = packMetaIntoWorkingHours(merged.workingHours, metaToStore);
+
         const s = await prisma.siteSetting.upsert({
           where: { id: 'default' },
           update: {
-            ...(updates.businessName ? { businessName: updates.businessName } : {}),
-            ...(updates.tagline ? { tagline: updates.tagline } : {}),
-            ...(updates.phone ? { phone: updates.phone } : {}),
-            ...(updates.email ? { email: updates.email } : {}),
-            ...(updates.whatsapp ? { whatsapp: updates.whatsapp } : {}),
-            ...(updates.address ? { address: updates.address } : {}),
-            ...(updates.googleMapsUrl ? { googleMapsUrl: updates.googleMapsUrl } : {}),
-            ...(updates.workingHours ? { workingHours: updates.workingHours } : {}),
-            ...(updates.taxRate !== undefined ? { taxRate: updates.taxRate } : {}),
-            ...(updates.shippingFee !== undefined ? { shippingFee: updates.shippingFee } : {}),
-            ...(updates.freeShippingThreshold !== undefined ? { freeShippingThreshold: updates.freeShippingThreshold } : {}),
-            ...(updates.phonepeMerchantId ? { phonepeMerchantId: updates.phonepeMerchantId } : {}),
-            ...(updates.phonepeSaltKey ? { phonepeSaltKey: updates.phonepeSaltKey } : {}),
-            ...(updates.phonepeSaltIndex ? { phonepeSaltIndex: updates.phonepeSaltIndex } : {}),
-            ...(updates.phonepeEnv ? { phonepeEnv: updates.phonepeEnv } : {})
+            businessName: merged.businessName,
+            tagline: merged.tagline,
+            phone: merged.phone,
+            email: merged.email,
+            whatsapp: merged.whatsapp,
+            address: merged.address,
+            googleMapsUrl: merged.googleMapsUrl,
+            workingHours: packedWorkingHours,
+            taxRate: merged.taxRate,
+            shippingFee: merged.shippingFee,
+            freeShippingThreshold: merged.freeShippingThreshold,
+            phonepeMerchantId: merged.phonepeMerchantId,
+            phonepeSaltKey: merged.phonepeSaltKey,
+            phonepeSaltIndex: merged.phonepeSaltIndex,
+            phonepeEnv: merged.phonepeEnv
           },
           create: {
             id: 'default',
-            businessName: updates.businessName || DEFAULT_SETTINGS.businessName,
-            tagline: updates.tagline || DEFAULT_SETTINGS.tagline,
-            phone: updates.phone || DEFAULT_SETTINGS.phone,
-            email: updates.email || DEFAULT_SETTINGS.email,
-            whatsapp: updates.whatsapp || DEFAULT_SETTINGS.whatsapp,
-            address: updates.address || DEFAULT_SETTINGS.address,
-            googleMapsUrl: updates.googleMapsUrl || DEFAULT_SETTINGS.googleMapsUrl,
-            workingHours: updates.workingHours || DEFAULT_SETTINGS.workingHours,
-            taxRate: updates.taxRate ?? DEFAULT_SETTINGS.taxRate,
-            shippingFee: updates.shippingFee ?? DEFAULT_SETTINGS.shippingFee,
-            freeShippingThreshold: updates.freeShippingThreshold ?? DEFAULT_SETTINGS.freeShippingThreshold,
-            phonepeMerchantId: updates.phonepeMerchantId || DEFAULT_SETTINGS.phonepeMerchantId,
-            phonepeSaltKey: updates.phonepeSaltKey || DEFAULT_SETTINGS.phonepeSaltKey,
-            phonepeSaltIndex: updates.phonepeSaltIndex || DEFAULT_SETTINGS.phonepeSaltIndex,
-            phonepeEnv: updates.phonepeEnv || DEFAULT_SETTINGS.phonepeEnv
+            businessName: merged.businessName,
+            tagline: merged.tagline,
+            phone: merged.phone,
+            email: merged.email,
+            whatsapp: merged.whatsapp,
+            address: merged.address,
+            googleMapsUrl: merged.googleMapsUrl,
+            workingHours: packedWorkingHours,
+            taxRate: merged.taxRate,
+            shippingFee: merged.shippingFee,
+            freeShippingThreshold: merged.freeShippingThreshold,
+            phonepeMerchantId: merged.phonepeMerchantId,
+            phonepeSaltKey: merged.phonepeSaltKey,
+            phonepeSaltIndex: merged.phonepeSaltIndex,
+            phonepeEnv: merged.phonepeEnv
           }
         });
 
-        return {
-          ...DEFAULT_SETTINGS,
-          ...merged,
-          businessName: s.businessName,
-          tagline: s.tagline,
-          phone: s.phone,
-          email: s.email,
-          whatsapp: s.whatsapp,
-          address: s.address,
-          googleMapsUrl: s.googleMapsUrl,
-          workingHours: s.workingHours,
-          taxRate: s.taxRate,
-          shippingFee: s.shippingFee,
-          freeShippingThreshold: s.freeShippingThreshold,
-          phonepeMerchantId: s.phonepeMerchantId,
-          phonepeSaltKey: s.phonepeSaltKey,
-          phonepeSaltIndex: s.phonepeSaltIndex,
-          phonepeEnv: s.phonepeEnv as 'SANDBOX' | 'PRODUCTION'
-        };
+        return merged;
       } catch (err) {
         console.error('Prisma updateSettings error:', err);
       }
     }
 
-    return { ...DEFAULT_SETTINGS, ...merged };
+    return merged;
   }
 
   // ORDERS
