@@ -27,7 +27,7 @@ export const App: React.FC = () => {
   const handleSplashComplete = useCallback(() => setShowSplash(false), []);
 
   // Page Navigation State
-  const [currentPage, setCurrentPage] = useState<string>('home');
+  const [currentPage, setCurrentPage] = useState<string>('shop');
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [policyTab, setPolicyTab] = useState<string>('shipping');
@@ -493,7 +493,7 @@ export const App: React.FC = () => {
             setCurrentPage('shop');
           }}
           isAdmin={currentPage === 'admin'}
-          onToggleAdmin={() => setCurrentPage(currentPage === 'admin' ? 'home' : 'admin')}
+          onToggleAdmin={() => setCurrentPage(currentPage === 'admin' ? 'shop' : 'admin')}
           user={user}
           onOpenExpertAdvice={() => setIsExpertAdviceOpen(true)}
         />
