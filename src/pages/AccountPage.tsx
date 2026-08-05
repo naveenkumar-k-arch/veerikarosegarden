@@ -127,7 +127,10 @@ export const AccountPage: React.FC<AccountPageProps> = ({
           }
         }, 1000);
       } else {
-        setErrorMsg(data.message || 'Registration failed.');
+        const errorDetails = data.errors && Array.isArray(data.errors) && data.errors.length > 0
+          ? `: ${data.errors.join(' ')}`
+          : '';
+        setErrorMsg((data.message || 'Registration failed.') + errorDetails);
       }
     } catch (err: any) {
       setErrorMsg('Registration error. Please try again.');
