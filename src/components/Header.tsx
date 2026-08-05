@@ -46,34 +46,29 @@ export const Header: React.FC<HeaderProps> = ({
       transition: 'box-shadow 0.3s ease',
     }}>
       {/* Announcement bar */}
-      <div style={{ background: 'linear-gradient(90deg, #15803d, #16a34a, #15803d)', padding: '7px 0' }}>
-        <div className="section-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ background: 'rgba(255,255,255,0.2)', color: 'white', fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 999, letterSpacing: '0.08em' }}>
-              🌿 FARM DIRECT · ALL INDIA DELIVERY
-            </span>
-            <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: 11, display: 'none' }} className="md-show">
-              7-Day Root Moisture Protection · Free Care Guide with Every Order
-            </span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <button
-              type="button"
-              onClick={onOpenExpertAdvice || (() => { window.location.href = 'tel:+917200826129'; })}
-              style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#bbf7d0', fontSize: 11, fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}
-            >
-              <Phone style={{ width: 12, height: 12 }} /> +91 72008 26129
-            </button>
+      <div style={{ background: 'linear-gradient(90deg, #15803d, #16a34a, #15803d)', padding: '5px 0' }}>
+        <div className="section-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', gap: 8, overflow: 'hidden' }}>
+          <span style={{ background: 'rgba(255,255,255,0.2)', color: 'white', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 999, letterSpacing: '0.06em', whiteSpace: 'nowrap', flexShrink: 0 }}>
+            🌿 ALL INDIA DELIVERY
+          </span>
+          <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: 10, display: 'none', whiteSpace: 'nowrap' }} className="md-show">
+            7-Day Root Moisture Protection · Free Care Guide
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            <a href="tel:+917200826129" style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#bbf7d0', fontSize: 10, fontWeight: 600, textDecoration: 'none' }}>
+              <Phone style={{ width: 11, height: 11 }} /> <span className="sm-show" style={{ display: 'none' }}>+91 72008 26129</span>
+            </a>
             <a
               href="https://wa.me/917200826129?text=Hello%20Veerika%20Rose%20Garden"
               target="_blank" rel="noreferrer"
-              style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'white', fontSize: 11, fontWeight: 600, textDecoration: 'none', background: 'rgba(255,255,255,0.2)', padding: '3px 10px', borderRadius: 999 }}
+              style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'white', fontSize: 10, fontWeight: 600, textDecoration: 'none', background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: 999, whiteSpace: 'nowrap' }}
             >
-              <MessageSquare style={{ width: 11, height: 11 }} /> WhatsApp
+              <MessageSquare style={{ width: 10, height: 10 }} /> WhatsApp
             </a>
           </div>
         </div>
       </div>
+
 
       {/* Main nav */}
       <div className="section-container" style={{ padding: '12px 24px' }}>
@@ -230,26 +225,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Mobile Quick Account Bar */}
-        <div className="mobile-show" style={{ display: 'none', marginTop: 8, padding: '6px 12px', background: user ? '#f0fdf4' : 'linear-gradient(90deg, #ecfdf5, #f0fdf4)', border: '1px solid #bbf7d0', borderRadius: 10, alignItems: 'center', justifyContent: 'space-between', fontSize: 11, fontWeight: 700 }}>
-          {user ? (
-            <>
-              <span style={{ color: '#166534' }}>👤 Hello, <strong>{user.name}</strong></span>
-              <button onClick={() => onNavigate('account')} style={{ background: '#16a34a', color: 'white', border: 'none', padding: '3px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>
-                My Orders
-              </button>
-            </>
-          ) : (
-            <>
-              <span style={{ color: '#166534' }}>🔑 Please Login to Order</span>
-              <button onClick={() => onNavigate('account')} style={{ background: '#16a34a', color: 'white', border: 'none', padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>
-                Login / Sign Up
-              </button>
-            </>
-          )}
-        </div>
-
-        {/* Mobile search */}
+        {/* Mobile search — compact */}
         <form onSubmit={handleSearchSubmit} style={{ marginTop: 8, position: 'relative', display: 'none' }} className="mobile-show">
           <Search style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: 'var(--text-light)' }} />
           <input type="text" placeholder="Search plants..." value={searchQuery} onChange={e => onSearchChange(e.target.value)} className="input-bright" style={{ paddingLeft: 34, paddingRight: 72 }} />
