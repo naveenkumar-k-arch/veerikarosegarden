@@ -2079,8 +2079,8 @@ class Store {
 
   // SITE SETTINGS
   async getSettings(): Promise<SiteSettings> {
-    const memory = (globalThis as any)._globalMemorySettings || {};
     const prisma = getPrismaClient();
+    const memory = (globalThis as any)._globalMemorySettings || {};
     if (!prisma) return { ...DEFAULT_SETTINGS, ...memory };
 
     try {
@@ -2092,10 +2092,11 @@ class Store {
 
       const { workingHours, meta } = extractMetaFromWorkingHours(s.workingHours);
 
+      // Prisma DB + meta always wins; memory is only fallback for fields not in DB
       const merged: SiteSettings = {
         ...DEFAULT_SETTINGS,
-        ...meta,
         ...memory,
+        // Explicit Prisma column fields
         businessName: s.businessName,
         tagline: s.tagline,
         phone: s.phone,
@@ -2110,7 +2111,15 @@ class Store {
         phonepeMerchantId: s.phonepeMerchantId,
         phonepeSaltKey: s.phonepeSaltKey,
         phonepeSaltIndex: s.phonepeSaltIndex,
-        phonepeEnv: s.phonepeEnv as 'SANDBOX' | 'PRODUCTION'
+        phonepeEnv: s.phonepeEnv as 'SANDBOX' | 'PRODUCTION',
+        // Meta fields packed inside workingHours JSON — always override memory/defaults
+        ...(meta.enablePhonePe !== undefined && { enablePhonePe: meta.enablePhonePe }),
+        ...(meta.enableCod !== undefined && { enableCod: meta.enableCod }),
+        ...(meta.enableQrPayment !== undefined && { enableQrPayment: meta.enableQrPayment }),
+        ...(meta.upiId && { upiId: meta.upiId }),
+        ...(meta.upiName && { upiName: meta.upiName }),
+        ...(meta.qrCodeImageUrl && { qrCodeImageUrl: meta.qrCodeImageUrl }),
+        ...(meta.qrInstructions && { qrInstructions: meta.qrInstructions }),
       };
 
       (globalThis as any)._globalMemorySettings = merged;
