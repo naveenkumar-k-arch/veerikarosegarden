@@ -767,7 +767,7 @@ export const App: React.FC = () => {
       </a>
 
       {/* ===== MOBILE BOTTOM NAVIGATION BAR ===== */}
-      <nav className="mobile-bottom-nav" role="navigation" aria-label="Mobile bottom navigation">
+      <nav className={`mobile-bottom-nav ${isCartOpen ? '!hidden' : ''}`} role="navigation" aria-label="Mobile bottom navigation">
         <button className={`nav-item ${currentPage === 'home' ? 'active' : ''}`} onClick={() => setCurrentPage('home')}>
           <Home />
           <span>Home</span>

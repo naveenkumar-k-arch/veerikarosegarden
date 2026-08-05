@@ -36,10 +36,18 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [proofPreview, setProofPreview] = useState<string | null>(null);
 
+  // Helper to sanitize phone input (strip Google OAuth dummy IDs)
+  const getInitialPhone = (p?: string) => {
+    if (!p) return '';
+    const clean = p.trim();
+    if (clean.startsWith('g_') || clean.includes('@') || /[a-zA-Z]/.test(clean)) return '';
+    return clean;
+  };
+
   // Clean Address State
   const [address, setAddress] = useState<ShippingAddress>(() => ({
     fullName: user?.name || '',
-    phone: user?.phone || '',
+    phone: getInitialPhone(user?.phone),
     alternatePhone: '',
     houseNo: '',
     street: '',
@@ -250,7 +258,7 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
   const qrCodeImg = dynamicQrUrl;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+    <div className="max-w-4xl mx-auto px-4 pt-6 pb-32 sm:pb-8 space-y-6">
       {/* Top Header */}
       <div className="flex items-center justify-between border-b border-slate-200 pb-4">
         <button

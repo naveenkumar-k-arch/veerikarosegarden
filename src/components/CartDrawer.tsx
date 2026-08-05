@@ -154,7 +154,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
         {/* Footer Summary & Checkout */}
         {items.length > 0 && (
-          <div className="p-4 bg-slate-50 border-t border-slate-200 space-y-3">
+          <div className="p-4 pb-28 sm:pb-4 bg-slate-50 border-t border-slate-200 space-y-3">
             {/* Coupon Code Section */}
             <div>
               {appliedCoupon ? (
