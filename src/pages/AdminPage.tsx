@@ -1594,13 +1594,13 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                         <span className={`px-2.5 py-0.5 rounded-full font-bold text-[11px] ${
                           isCod 
                             ? 'bg-amber-100 text-amber-900 border border-amber-300' 
-                            : (o.paymentMethod === 'QR_PAYMENT' || o.paymentMethod === 'UPI_DIRECT')
+                            : (o.paymentMethod === 'QR_PAYMENT' || o.paymentMethod === 'UPI_DIRECT' || o.paymentProofUrl)
                             ? 'bg-indigo-100 text-indigo-950 border border-indigo-300'
                             : 'bg-blue-100 text-blue-900 border border-blue-300'
                         }`}>
                           {isCod 
                             ? '💵 Cash on Delivery (COD)' 
-                            : (o.paymentMethod === 'QR_PAYMENT' || o.paymentMethod === 'UPI_DIRECT')
+                            : (o.paymentMethod === 'QR_PAYMENT' || o.paymentMethod === 'UPI_DIRECT' || o.paymentProofUrl)
                             ? '📸 Scan QR Code Payment'
                             : '📱 PhonePe UPI'}
                         </span>
@@ -1696,8 +1696,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                     </div>
                   </div>
 
-                  {/* Scan QR Payment Proof & Verification Controls */}
-                  {(o.paymentMethod === 'QR_PAYMENT' || o.paymentMethod === 'UPI_DIRECT' || o.paymentProofUrl) && (
+                  {/* Online & Scan QR Payment Verification Controls */}
+                  {(!isCod || o.paymentMethod === 'QR_PAYMENT' || o.paymentMethod === 'UPI_DIRECT' || o.paymentProofUrl) && (
                     <div className="bg-indigo-50/80 border border-indigo-200 rounded-2xl p-3.5 space-y-3">
                       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-indigo-200/60 pb-2">
                         <div className="flex items-center gap-2">
