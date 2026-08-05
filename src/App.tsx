@@ -625,8 +625,7 @@ export const App: React.FC = () => {
             <AdminLoginForm
               onLoginSuccess={(adminUser) => {
                 setUser(adminUser);
-                localStorage.setItem('vrg_user', JSON.stringify(adminUser));
-                localStorage.setItem('vrg_admin_email', adminUser.email);
+                localStorage.setItem('vrg_user', JSON.stringify({ name: adminUser.name, role: adminUser.role })); // Store minimal data only
               }}
               onBackToStore={() => setCurrentPage('home')}
             />

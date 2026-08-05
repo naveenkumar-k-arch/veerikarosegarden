@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import { db } from './db.js';
 import { PhonePeService } from './phonepe.js';
 import { authRouter } from './routes/authRoutes.js';
@@ -55,7 +55,7 @@ apiRouter.get('/products', async (req, res) => {
     });
     res.json({ success: true, count: products.length, products });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
 
@@ -67,7 +67,7 @@ apiRouter.get('/products/:id', async (req, res) => {
     }
     res.json({ success: true, product });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
 
@@ -97,7 +97,7 @@ apiRouter.delete('/products/all', requireAdmin, async (req: AuthenticatedRequest
     await db.deleteAllProducts();
     res.json({ success: true, message: 'All products removed successfully' });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
 
@@ -106,7 +106,7 @@ apiRouter.delete('/products/:id', requireAdmin, async (req: AuthenticatedRequest
     await db.deleteProduct(req.params.id);
     res.json({ success: true, message: 'Product deleted' });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
 
@@ -121,7 +121,7 @@ apiRouter.get('/categories', async (req, res) => {
     });
     res.json({ success: true, count: categories.length, categories });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
 
@@ -175,7 +175,7 @@ apiRouter.get('/categories/:slug', async (req, res) => {
       }
     });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
 
@@ -184,7 +184,7 @@ apiRouter.get('/admin/categories', requireAdmin, async (req: AuthenticatedReques
     const categories = await db.getCategories({ onlyActive: false });
     res.json({ success: true, count: categories.length, categories });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
 
@@ -223,7 +223,7 @@ apiRouter.delete('/admin/categories/all', requireAdmin, async (req: Authenticate
     await db.deleteAllCategories();
     res.json({ success: true, message: 'All categories removed successfully' });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
 
@@ -248,7 +248,7 @@ apiRouter.delete('/admin/categories/:id', requireAdmin, async (req: Authenticate
 
     res.json({ success: true, message: 'Category deleted successfully' });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
 
@@ -256,8 +256,8 @@ apiRouter.delete('/admin/categories/:id', requireAdmin, async (req: Authenticate
 const DEFAULT_BANNERS = [
   {
     id: 'banner-1',
-    title: '🌸 Premium Rose Plants – Direct from Our Farm',
-    subtitle: 'Hybrid & Rare Varieties. Free Shipping above ₹499.',
+    title: 'ðŸŒ¸ Premium Rose Plants â€“ Direct from Our Farm',
+    subtitle: 'Hybrid & Rare Varieties. Free Shipping above â‚¹499.',
     imageUrl: 'https://images.unsplash.com/photo-1502977249166-824b3a8a4d6d?auto=format&fit=crop&w=1200&q=80',
     targetCategory: 'Rose Varieties',
     active: true,
@@ -265,8 +265,8 @@ const DEFAULT_BANNERS = [
   },
   {
     id: 'banner-2',
-    title: '🌿 Fresh Jasmine & Herbal Plants',
-    subtitle: 'Jadhi Malli, Ramar Malli & More – Grown with Love',
+    title: 'ðŸŒ¿ Fresh Jasmine & Herbal Plants',
+    subtitle: 'Jadhi Malli, Ramar Malli & More â€“ Grown with Love',
     imageUrl: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=1200&q=80',
     targetCategory: 'Jasmine Varieties',
     active: true,
@@ -274,8 +274,8 @@ const DEFAULT_BANNERS = [
   },
   {
     id: 'banner-3',
-    title: '🌹 Rare & Exotic Roses Collection',
-    subtitle: 'Black Magic, Moncou & Tiger Rose – Limited Stock!',
+    title: 'ðŸŒ¹ Rare & Exotic Roses Collection',
+    subtitle: 'Black Magic, Moncou & Tiger Rose â€“ Limited Stock!',
     imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1200&q=80',
     targetCategory: 'Rare & Exotic Roses',
     active: true,
@@ -292,7 +292,7 @@ apiRouter.get('/banners', async (req, res) => {
     }
     res.json({ success: true, banners });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
 
@@ -346,7 +346,7 @@ apiRouter.post('/admin/seed', requireAdmin, async (req: AuthenticatedRequest, re
 
     res.json({ success: true, message: `Seeded ${bannersSeeded} banners and ${couponsSeeded} coupons` });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
 
@@ -367,7 +367,7 @@ apiRouter.post('/coupons/apply', async (req, res) => {
     if (cartAmount < coupon.minOrder) {
       return res.status(400).json({
         success: false,
-        message: `Minimum order amount of ₹${coupon.minOrder} required for coupon ${coupon.code}`
+        message: `Minimum order amount of â‚¹${coupon.minOrder} required for coupon ${coupon.code}`
       });
     }
 
@@ -385,10 +385,10 @@ apiRouter.post('/coupons/apply', async (req, res) => {
       success: true,
       code: coupon.code,
       discountAmount: Math.round(discountAmount),
-      message: `Coupon '${coupon.code}' applied successfully! 🎉`
+      message: `Coupon '${coupon.code}' applied successfully! ðŸŽ‰`
     });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
 
@@ -398,7 +398,7 @@ apiRouter.get('/coupons', requireAdmin, async (req: AuthenticatedRequest, res) =
     const coupons = await db.getCoupons();
     res.json({ success: true, coupons });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
 
@@ -433,7 +433,7 @@ const handleDeleteCoupon = async (req: AuthenticatedRequest, res: express.Respon
     await db.deleteCoupon(String(id));
     res.json({ success: true, message: `Coupon '${id}' deleted successfully` });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 };
 
@@ -453,7 +453,7 @@ apiRouter.get('/reviews', async (req, res) => {
     const reviews = await db.getReviews(productId as string | undefined);
     res.json({ success: true, reviews });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
 
@@ -508,7 +508,7 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
           sku: item.sku || `VRG-${item.productId.slice(0, 6).toUpperCase()}`,
           name: item.name || 'Nursery Plant Sapling',
           englishName: item.name || 'Nursery Plant Sapling',
-          tamilName: item.tamilName || item.name || 'ரோஜா செடி',
+          tamilName: item.tamilName || item.name || 'à®°à¯‹à®œà®¾ à®šà¯†à®Ÿà®¿',
           scientificName: 'Rosa Hybrid',
           categoryId: 'cat-rose',
           categoryName: 'Rose Varieties',
@@ -635,7 +635,7 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
         : 'Order placed successfully!'
     });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
 
@@ -657,7 +657,7 @@ apiRouter.get('/orders', async (req: AuthenticatedRequest, res) => {
 
     res.json({ success: true, count: orders.length, orders });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
 
@@ -666,7 +666,7 @@ apiRouter.get('/admin/orders', async (req: AuthenticatedRequest, res) => {
     const orders = await db.getOrders();
     res.json({ success: true, count: orders.length, orders });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
 
@@ -675,7 +675,7 @@ apiRouter.get('/admin/dashboard', async (req: AuthenticatedRequest, res) => {
     const stats = await db.getDashboardStats();
     res.json({ success: true, stats });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
 
@@ -726,7 +726,7 @@ apiRouter.get('/orders/user/:identifier', async (req: AuthenticatedRequest, res)
       orders: matchedOrders
     });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
 
@@ -745,7 +745,7 @@ apiRouter.get('/orders/:id', async (req, res) => {
 
     res.json({ success: true, order });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
 
@@ -755,7 +755,7 @@ apiRouter.get('/admin/orders', async (req: AuthenticatedRequest, res) => {
     const orders = await db.getOrders();
     res.json({ success: true, count: orders.length, orders });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
 
@@ -766,7 +766,7 @@ apiRouter.put('/admin/orders/:id/status', async (req: AuthenticatedRequest, res)
     const order = await db.updateOrderStatus(req.params.id, orderStatus, trackingNumber, courierName, paymentStatus, paymentProofUrl);
     res.json({ success: true, order, message: 'Order status updated successfully' });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
 
@@ -778,7 +778,7 @@ const handleDeleteOrderRoute = async (req: AuthenticatedRequest, res: express.Re
     await db.deleteOrder(String(id));
     res.json({ success: true, message: `Order #${id} deleted successfully` });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 };
 
@@ -833,7 +833,7 @@ apiRouter.post('/phonepe/webhook', async (req, res) => {
     res.json({ success: true, message: 'Webhook received and processed' });
   } catch (error: any) {
     console.error('[PhonePe Webhook] Error:', error.message);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
 
@@ -891,7 +891,7 @@ apiRouter.get('/admin/dashboard', async (req: AuthenticatedRequest, res) => {
     const stats = await db.getDashboardStats();
     res.json({ success: true, stats });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
 
@@ -900,7 +900,7 @@ apiRouter.get('/admin/payment-logs', async (req: AuthenticatedRequest, res) => {
     const logs = await db.getPaymentLogs();
     res.json({ success: true, logs });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
 
@@ -910,7 +910,7 @@ apiRouter.get('/admin/finances', async (req: AuthenticatedRequest, res) => {
     const entries = await db.getFinancialEntries();
     res.json({ success: true, entries });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
 
@@ -974,7 +974,7 @@ apiRouter.get('/settings', async (req, res) => {
     const { phonepeSaltKey, phonepeMerchantId, ...publicSettings } = settings as any;
     res.json({ success: true, settings: publicSettings });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
 
@@ -983,7 +983,7 @@ apiRouter.get('/admin/settings', requireAdmin, async (req: AuthenticatedRequest,
     const settings = await db.getSettings();
     res.json({ success: true, settings });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
 
@@ -992,7 +992,7 @@ apiRouter.put('/settings', requireAdmin, async (req: AuthenticatedRequest, res) 
     const updated = await db.updateSettings(req.body);
     res.json({ success: true, settings: updated, message: 'Settings updated successfully' });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
 
@@ -1044,11 +1044,12 @@ Also mention our phone hotline +91 72008 26129 at the end.`
 
   return res.json({
     success: true,
-    answer: `🌿 Veerika Rose Garden Care Advice:
-• Sunlight & Soil: Ensure 5-6 hours of full direct morning sunlight. Use equal parts soil, dried cow dung manure, and coco peat for best root aeration.
-• Organic Nutrition: Apply 2 tablespoons of organic Rose Mix Fertilizer or Neem Cake powder every 15 days around the root drip line.
-• Pruning: Prune dead stems 45-degrees above an outward facing bud node to trigger new flower shoots.
+    answer: `ðŸŒ¿ Veerika Rose Garden Care Advice:
+â€¢ Sunlight & Soil: Ensure 5-6 hours of full direct morning sunlight. Use equal parts soil, dried cow dung manure, and coco peat for best root aeration.
+â€¢ Organic Nutrition: Apply 2 tablespoons of organic Rose Mix Fertilizer or Neem Cake powder every 15 days around the root drip line.
+â€¢ Pruning: Prune dead stems 45-degrees above an outward facing bud node to trigger new flower shoots.
 
 Need personalized diagnosis? Call our nursery expert directly at +91 72008 26129!`
   });
 });
+
