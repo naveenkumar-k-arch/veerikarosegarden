@@ -80,6 +80,8 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   const grandTotal = Math.max(0, subtotal + shippingCharge - discountAmount);
 
   // Handle Image File Upload for QR Screenshot Proof
+  const [uploadingImage, setUploadingImage] = useState(false);
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -89,18 +91,24 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      setErrorMsg('Image size should be less than 5MB.');
+    if (file.size > 8 * 1024 * 1024) {
+      setErrorMsg('Image size should be less than 8MB.');
       return;
     }
 
+    setUploadingImage(true);
     const reader = new FileReader();
     reader.onload = () => {
       const base64 = reader.result as string;
       setPaymentProofUrl(base64);
       setProofPreview(base64);
       setPaymentMethod('QR_PAYMENT');
+      setUploadingImage(false);
       setErrorMsg(null);
+    };
+    reader.onerror = () => {
+      setUploadingImage(false);
+      setErrorMsg('Failed to process image file. Please try another screenshot.');
     };
     reader.readAsDataURL(file);
   };
@@ -131,6 +139,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   const handleFinalPlaceOrder = async () => {
     if (!user) {
       setErrorMsg('🔒 Login or Sign Up is required to complete your purchase.');
+      return;
+    }
+
+    if (uploadingImage) {
+      setErrorMsg('⌛ Processing payment screenshot photo... Please wait a second.');
       return;
     }
 

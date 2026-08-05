@@ -377,6 +377,8 @@ export const App: React.FC = () => {
         items: cart.map((i) => ({ productId: i.product.id, name: i.product.name, price: i.product.sellingPrice, quantity: i.quantity, image: i.product.images?.[0] || '/products/double-delight.jpeg' })),
         grandTotal,
         paymentMethod: orderData.paymentMethod,
+        paymentProofUrl: payload.paymentProofUrl,
+        transactionId: payload.transactionId,
         paymentStatus: 'PENDING',
         orderStatus: 'PENDING',
         createdAt: new Date().toISOString()
