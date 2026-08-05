@@ -81,29 +81,34 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
 const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000, quality = 0.75): Promise<string> => {
   return new Promise((resolve) => {
+    if (!dataUrl || !dataUrl.startsWith('data:image')) return resolve(dataUrl);
     const img = new Image();
     img.onload = () => {
-      let width = img.width;
-      let height = img.height;
+      try {
+        let width = img.width;
+        let height = img.height;
 
-      if (width > maxWidth || height > maxHeight) {
-        if (width > height) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
-        } else {
-          width = Math.round((width * maxHeight) / height);
-          height = maxHeight;
+        if (width > maxWidth || height > maxHeight) {
+          if (width > height) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
         }
-      }
 
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', quality));
-      } else {
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        } else {
+          resolve(dataUrl);
+        }
+      } catch {
         resolve(dataUrl);
       }
     };
@@ -124,25 +129,31 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
       return;
     }
 
-    if (file.size > 15 * 1024 * 1024) {
-      setErrorMsg('Image size should be less than 15MB.');
+    if (file.size > 20 * 1024 * 1024) {
+      setErrorMsg('Image size should be less than 20MB.');
       return;
     }
 
     setUploadingImage(true);
     const reader = new FileReader();
     reader.onload = async () => {
+      const rawBase64 = (reader.result as string) || '';
+      // Immediately set rawBase64 so paymentProofUrl is 100% populated in state
+      setPaymentProofUrl(rawBase64);
+      setProofPreview(rawBase64);
+      setPaymentMethod('QR_PAYMENT');
+
       try {
-        const rawBase64 = reader.result as string;
         const compressedBase64 = await compressImageBase64(rawBase64);
-        setPaymentProofUrl(compressedBase64);
-        setProofPreview(compressedBase64);
-        setPaymentMethod('QR_PAYMENT');
+        if (compressedBase64 && compressedBase64.length > 50) {
+          setPaymentProofUrl(compressedBase64);
+          setProofPreview(compressedBase64);
+        }
+      } catch (err) {
+        console.warn('Image compression notice:', err);
+      } finally {
         setUploadingImage(false);
         setErrorMsg(null);
-      } catch (err) {
-        setUploadingImage(false);
-        setErrorMsg('Failed to compress image file. Please try another screenshot.');
       }
     };
     reader.onerror = () => {
