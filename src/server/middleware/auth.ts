@@ -47,32 +47,9 @@ export function parseAuthUser(req: AuthenticatedRequest, res: Response, next: Ne
     }
   }
 
-  // 3. Fallback: X-Admin-Email header (for local-auth admin sessions without JWT)
-  //    Only accept known admin emails for security
-  if (!req.user) {
-    const adminEmail = (req.headers['x-admin-email'] as string || '').toLowerCase().trim();
-    const adminRole = req.headers['x-admin-role'] as string;
-    const KNOWN_ADMIN_EMAILS = [
-      'admin@veerikarosegarden.com',
-      'kavinkumar.m30@gmail.com',
-      'naveenkumar@veerikarosegarden.com',
-      'nv01110612@gmail.com',
-      'naveenkumar-arch@github.com'
-    ];
-    // Accept known admin emails OR any email paired with SUPER_ADMIN/ADMIN role header
-    const isKnownEmail = adminEmail && KNOWN_ADMIN_EMAILS.includes(adminEmail);
-    const isTrustedRole = adminEmail && (adminRole === 'SUPER_ADMIN' || adminRole === 'ADMIN' || adminRole === 'MANAGER');
-    if (isKnownEmail || isTrustedRole) {
-      req.user = {
-        id: 'usr-admin-local',
-        email: adminEmail || 'admin@veerikarosegarden.com',
-        name: 'Veerika Admin',
-        role: (adminRole as Role) || 'SUPER_ADMIN',
-        isVerified: true
-      };
-    }
-  }
-
+  // NOTE: X-Admin-Email / X-Admin-Role header fallback has been REMOVED (OWASP A01/A07 fix).
+  // Authentication is ONLY via valid JWT Bearer token or HttpOnly cookie.
+  // Any unauthenticated request is rejected by requireAdmin/requireAuth middleware.
 
   next();
 }
@@ -91,6 +68,8 @@ export function requireAuth(req: AuthenticatedRequest, res: Response, next: Next
 export function requireRole(...allowedRoles: Role[]) {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
+      // FIX A09: Log unauthenticated access attempts on protected routes
+      console.warn(`[SECURITY] Unauthenticated access attempt: ${req.method} ${req.path} | IP: ${req.ip} | UA: ${req.headers['user-agent']?.slice(0, 80)}`);
       return res.status(401).json({
         success: false,
         code: 'UNAUTHORIZED',
@@ -99,6 +78,8 @@ export function requireRole(...allowedRoles: Role[]) {
     }
 
     if (!allowedRoles.includes(req.user.role)) {
+      // FIX A09: Log unauthorized role escalation attempts
+      console.warn(`[SECURITY] Forbidden access: user=${req.user.email} role=${req.user.role} tried to access ${req.method} ${req.path} (requires: ${allowedRoles.join(',')})`);
       return res.status(403).json({
         success: false,
         code: 'FORBIDDEN',

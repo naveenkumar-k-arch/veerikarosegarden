@@ -8,7 +8,8 @@ export const globalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   validate: false,
-  skip: (req) => req.path.startsWith('/admin') || req.path.startsWith('/health') || req.path.startsWith('/orders/user'),
+  // FIX A05: Removed 'admin' from skip list — admin routes now rate limited
+  skip: (req) => req.path.startsWith('/health'),
   message: {
     success: false,
     code: 'RATE_LIMIT_EXCEEDED',
@@ -27,6 +28,20 @@ export const authLimiter = rateLimit({
     success: false,
     code: 'AUTH_RATE_LIMIT_EXCEEDED',
     message: 'Too many authentication attempts. Please wait 15 minutes before trying again.'
+  }
+});
+
+// FIX A05: Strict Admin rate limiter (20 requests / 15 mins)
+export const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: false,
+  message: {
+    success: false,
+    code: 'ADMIN_RATE_LIMIT_EXCEEDED',
+    message: 'Too many admin requests. Please wait before trying again.'
   }
 });
 
