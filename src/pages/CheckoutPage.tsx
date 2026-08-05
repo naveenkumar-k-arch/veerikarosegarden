@@ -244,8 +244,10 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
   const isCodEnabled = siteSettings ? siteSettings.enableCod !== false : true;
   const isQrEnabled = siteSettings ? siteSettings.enableQrPayment !== false : true;
 
-  const defaultQrUrl = '/nursery-qr.svg';
-  const qrCodeImg = siteSettings?.qrCodeImageUrl || defaultQrUrl;
+  const upiId = siteSettings?.upiId || 'veerikarosegarden@ibl';
+  const upiName = siteSettings?.upiName || 'ANISHA RAJA';
+  const dynamicQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=10&data=${encodeURIComponent(`upi://pay?pa=${upiId}&pn=${upiName}&cu=INR`)}`;
+  const qrCodeImg = dynamicQrUrl;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
@@ -529,9 +531,10 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
                       <img
                         src={qrCodeImg}
                         alt="Nursery UPI QR Code"
-                        className="w-36 h-36 object-contain rounded-xl border border-slate-200 p-1.5 bg-white shadow-xs mx-auto"
+                        className="w-48 h-48 object-contain rounded-xl border-2 border-indigo-200 bg-white shadow-sm mx-auto"
                       />
-                      <p className="text-[10px] font-bold text-indigo-900 mt-1">Scan to pay ₹{grandTotal}</p>
+                      <p className="text-[11px] font-bold text-indigo-900 mt-2">📱 Scan to pay ₹{grandTotal}</p>
+                      <p className="text-[10px] text-slate-500 font-medium">{upiId}</p>
                     </div>
 
                     {/* UPI Details & Copy Button */}
