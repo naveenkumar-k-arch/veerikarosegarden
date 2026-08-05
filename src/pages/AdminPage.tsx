@@ -1780,19 +1780,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                             <span className="text-[10px] text-indigo-900 font-bold text-center">📸 Customer Receipt Attached</span>
                           </div>
                         ) : (
-                          <div className="p-3.5 bg-amber-100/90 text-amber-900 rounded-xl text-center text-xs font-bold w-full md:w-48 shrink-0 border border-amber-300 space-y-2">
+                          <div className="p-3 bg-amber-100/90 text-amber-900 rounded-xl text-center text-xs font-bold w-full md:w-44 shrink-0 border border-amber-300 space-y-0.5">
                             <p className="text-xs">⚠️ No Screenshot Photo</p>
                             <p className="text-[10px] text-amber-800 font-normal">Check nursery bank / UTR ref</p>
-                            <label className="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-extrabold px-3 py-1.5 rounded-lg cursor-pointer transition-colors shadow-2xs">
-                              <Camera className="w-3.5 h-3.5" />
-                              <span>Upload Screenshot</span>
-                              <input 
-                                type="file" 
-                                accept="image/*" 
-                                className="hidden" 
-                                onChange={(e) => handleAdminUploadProof(o.id, e)} 
-                              />
-                            </label>
                           </div>
                         )}
 
