@@ -129,11 +129,11 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
               <CheckCircle2 className="w-8 h-8" />
             </div>
             <div>
-              <span className="text-xs text-emerald-300 font-bold uppercase tracking-wider block">
+              <span className="text-xs font-bold uppercase tracking-wider block">
                 {isCod 
                   ? '💵 Cash on Delivery Order Confirmed' 
                   : (order.paymentMethod === 'QR_PAYMENT' || order.paymentMethod === 'UPI_DIRECT')
-                  ? (order.paymentStatus === 'SUCCESS' ? '📸 Scan QR Payment Verified' : '📸 Scan QR Payment Received (Pending Admin Verification)')
+                  ? (order.paymentStatus === 'SUCCESS' ? '✅ Scan QR Payment Verified' : order.paymentStatus === 'FAILED' ? '❌ Scan QR Payment Rejected (Unverified)' : '⏳ Scan QR Payment Pending Verification')
                   : isSuccess ? 'PhonePe Payment Verified' : 'PhonePe Payment Pending'}
               </span>
               <h1 className="text-2xl font-black text-white">Order Reference #{order.id}</h1>

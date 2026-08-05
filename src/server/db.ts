@@ -2076,10 +2076,7 @@ class Store {
         phonepeMerchantId: s.phonepeMerchantId,
         phonepeSaltKey: s.phonepeSaltKey,
         phonepeSaltIndex: s.phonepeSaltIndex,
-        phonepeEnv: s.phonepeEnv as 'SANDBOX' | 'PRODUCTION',
-        enableCod: s.enableCod ?? DEFAULT_SETTINGS.enableCod,
-        enablePhonePe: s.enablePhonePe ?? DEFAULT_SETTINGS.enablePhonePe,
-        qrCodeUrl: s.qrCodeUrl ?? DEFAULT_SETTINGS.qrCodeUrl
+        phonepeEnv: s.phonepeEnv as 'SANDBOX' | 'PRODUCTION'
       };
     } catch (err) {
       console.error('Prisma getSettings error:', err);
