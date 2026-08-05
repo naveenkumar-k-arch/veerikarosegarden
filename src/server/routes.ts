@@ -1,4 +1,4 @@
-﻿import express from 'express';
+import express from 'express';
 import { db } from './db.js';
 import { PhonePeService } from './phonepe.js';
 import { authRouter } from './routes/authRoutes.js';
@@ -635,7 +635,8 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
         : 'Order placed successfully!'
     });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
+    console.error('POST /api/orders error:', error);
+    res.status(500).json({ success: false, message: error.message || 'Error processing order. Please try again.' });
   }
 });
 

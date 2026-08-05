@@ -354,6 +354,7 @@ export const App: React.FC = () => {
     };
 
     let data: any = null;
+    let resStatus = 0;
     try {
       const res = await fetch('/api/orders', {
         method: 'POST',
@@ -361,9 +362,20 @@ export const App: React.FC = () => {
         credentials: 'include',
         body: JSON.stringify(payload)
       });
-      data = await res.json().catch(() => null);
-    } catch (err) {
-      console.error('Order request failed:', err);
+      resStatus = res.status;
+      const rawText = await res.text();
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        console.warn('Non-JSON order response:', resStatus, rawText.slice(0, 200));
+        if (resStatus === 413) {
+          return { success: false, message: '📸 Uploaded payment screenshot is too large. Please select a smaller photo or take a new screenshot.' };
+        }
+        return { success: false, message: `Server returned error (${resStatus}). Please try placing your order again.` };
+      }
+    } catch (err: any) {
+      console.error('Order request network error:', err);
+      return { success: false, message: 'Network connection error. Please check your connection and try again.' };
     }
 
     if (data && data.success) {

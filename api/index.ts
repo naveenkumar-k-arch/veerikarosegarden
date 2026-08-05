@@ -70,9 +70,9 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Verify', 'X-Merchant-Id'],
 }));
 
-// Body parsers
-app.use(express.json({ limit: '2mb' }));
-app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+// Body parsers (15mb limit to support payment proof screenshot uploads)
+app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
 // FIX A05: Rate limit ALL routes including admin (removed admin skip)
 app.use('/api', globalLimiter);

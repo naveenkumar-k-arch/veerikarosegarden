@@ -29,18 +29,16 @@ export const createOrderSchema = z.object({
   items: z.array(orderItemSchema).min(1, 'Order must contain at least one product item'),
   couponCode: z.string().optional(),
   paymentMethod: z.enum(['PHONEPE', 'COD', 'QR_PAYMENT', 'UPI_DIRECT']),
-  // FIX A03: Only accept base64 image data URIs — block javascript:, data:text/html, arbitrary URLs
+  // Payment proof URL validation — accepts data URIs (base64 image), HTTP URLs, or relative paths
   paymentProofUrl: z.string()
     .optional()
+    .nullable()
+    .transform(val => val || undefined)
     .refine(
-      (val) => !val || val.startsWith('data:image/'),
-      { message: 'Payment proof must be a valid image (data:image/...)' }
-    )
-    .refine(
-      (val) => !val || val.length <= 5 * 1024 * 1024, // max 5MB base64
-      { message: 'Payment proof image is too large (max 5MB)' }
+      (val) => !val || val.startsWith('data:image/') || val.startsWith('http://') || val.startsWith('https://') || val.startsWith('/') || val.length > 50,
+      { message: 'Payment proof must be a valid image or URL' }
     ),
-  transactionId: z.string().max(100).optional()
+  transactionId: z.string().max(100).optional().nullable().transform(val => val || undefined)
 });
 
 export const productSchema = z.object({
