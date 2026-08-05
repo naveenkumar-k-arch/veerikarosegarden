@@ -2416,8 +2416,13 @@ class Store {
     const allCombined = [...dbOrders, ...this.memoryOrders, ...gBuffer, ...fsOrders, ...defOrders];
     const uniqueMap = new Map<string, Order>();
     allCombined.forEach(o => {
-      if (o && o.id && !uniqueMap.has(o.id) && !deletedOrderIds.has(o.id) && !deletedOrderIds.has(o.merchantTransactionId)) {
-        uniqueMap.set(o.id, o);
+      if (o && o.id && !deletedOrderIds.has(o.id) && !deletedOrderIds.has(o.merchantTransactionId)) {
+        const existing = uniqueMap.get(o.id);
+        if (!existing) {
+          uniqueMap.set(o.id, o);
+        } else if (!existing.paymentProofUrl && o.paymentProofUrl) {
+          uniqueMap.set(o.id, { ...existing, paymentProofUrl: o.paymentProofUrl, paymentMethod: 'QR_PAYMENT' });
+        }
       }
     });
     return Array.from(uniqueMap.values());
