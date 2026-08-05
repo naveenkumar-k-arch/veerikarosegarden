@@ -145,6 +145,20 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             )}
 
+            {/* Account / User button */}
+            <button onClick={() => onNavigate('account')} title={user ? `My Account (${user.name})` : "Sign In / My Account"} style={{
+              height: 32, padding: user ? '0 10px' : '0 8px', display: 'flex', alignItems: 'center', gap: 5,
+              background: user ? '#f0fdf4' : 'var(--bg-soft)',
+              border: `1.5px solid ${user ? '#bbf7d0' : '#d1fae5'}`,
+              borderRadius: 8, color: user ? '#15803d' : 'var(--text-muted)',
+              cursor: 'pointer', flexShrink: 0, fontSize: 11, fontWeight: 700,
+            }}>
+              <UserIcon style={{ width: 14, height: 14, color: user ? '#16a34a' : 'var(--text-muted)' }} />
+              <span className="sm-show" style={{ display: 'none', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user ? user.name?.split(' ')[0] : 'Account'}
+              </span>
+            </button>
+
             {/* Wishlist button */}
             <button onClick={() => onNavigate('account', { tab: 'wishlist' })} title="Wishlist" style={{
               width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
