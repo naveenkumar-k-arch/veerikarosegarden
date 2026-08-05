@@ -99,6 +99,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       const base64 = reader.result as string;
       setPaymentProofUrl(base64);
       setProofPreview(base64);
+      setPaymentMethod('QR_PAYMENT');
       setErrorMsg(null);
     };
     reader.readAsDataURL(file);
@@ -133,8 +134,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       return;
     }
 
+    const effectivePaymentMethod = (paymentMethod === 'QR_PAYMENT' || Boolean(paymentProofUrl)) ? 'QR_PAYMENT' : paymentMethod;
+
     // MANDATORY PROOF VALIDATION FOR QR PAYMENT
-    if (paymentMethod === 'QR_PAYMENT') {
+    if (effectivePaymentMethod === 'QR_PAYMENT') {
       if (!paymentProofUrl) {
         setErrorMsg('📸 MANDATORY: Please upload your payment screenshot / receipt image before confirming your order.');
         return;
@@ -159,9 +162,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           ...address,
           phone: cleanPhone || address.phone
         },
-        paymentMethod,
-        paymentProofUrl: paymentMethod === 'QR_PAYMENT' ? paymentProofUrl : undefined,
-        transactionId: paymentMethod === 'QR_PAYMENT' ? transactionId : undefined
+        paymentMethod: effectivePaymentMethod,
+        paymentProofUrl: effectivePaymentMethod === 'QR_PAYMENT' ? paymentProofUrl : undefined,
+        transactionId: effectivePaymentMethod === 'QR_PAYMENT' ? transactionId : undefined
       });
 
       setLoading(false);
