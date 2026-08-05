@@ -2308,7 +2308,7 @@ class Store {
               totalAmount: order.grandTotal,
               status: 'PENDING',
               paymentStatus: order.paymentStatus === 'SUCCESS' ? 'SUCCESS' : 'PENDING',
-              paymentMethod: order.paymentMethod === 'COD' ? 'COD' : 'PHONEPE',
+              paymentMethod: (order.paymentMethod === 'COD' ? 'COD' : (order.paymentMethod === 'QR_PAYMENT' || order.paymentMethod === 'UPI_DIRECT' || Boolean(order.paymentProofUrl)) ? 'UPI' : 'PHONEPE') as any,
               items: {
                 create: resolvedItems.map(item => ({
                   productId: item.resolvedProductId,
@@ -2394,7 +2394,11 @@ class Store {
             orderStatus: o.status === 'DELIVERED' ? 'DELIVERED' : o.status === 'DISPATCHED' ? 'DISPATCHED' : o.status === 'PAID' || o.status === 'PACKING' ? 'PROCESSING' : o.status === 'CANCELLED' ? 'CANCELLED' : 'PENDING',
 
             paymentStatus: o.paymentStatus === 'SUCCESS' ? 'SUCCESS' : o.paymentStatus === 'FAILED' ? 'FAILED' : 'PENDING',
-            paymentMethod: ((o as any).paymentMethod === 'COD' ? 'COD' : 'PHONEPE') as PaymentMethod,
+            paymentMethod: ((o as any).paymentMethod === 'COD' 
+              ? 'COD' 
+              : ((o as any).paymentMethod === 'UPI' || (o as any).paymentMethod === 'QR_PAYMENT' || Boolean((o as any).paymentProofUrl))
+              ? 'QR_PAYMENT'
+              : 'PHONEPE') as PaymentMethod,
             merchantTransactionId: o.merchantTransactionId || '',
             createdAt: o.createdAt.toISOString(),
             updatedAt: o.updatedAt.toISOString()
