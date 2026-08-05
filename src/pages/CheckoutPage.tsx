@@ -655,7 +655,7 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
               Order Items ({items.length})
             </h3>
 
-            <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+            <div className="space-y-3 max-h-52 sm:max-h-64 overflow-y-auto pr-1.5 overscroll-contain scrollbar-thin">
               {items.map((item) => (
                 <div key={item.product.id} className="flex gap-2.5 items-center justify-between">
                   <img
