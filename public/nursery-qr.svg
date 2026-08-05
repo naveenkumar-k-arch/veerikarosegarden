@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="1200" viewBox="0 0 600 1200">
+  <!-- Background -->
+  <rect width="600" height="1200" fill="#ffffff"/>
+  
+  <!-- PhonePe Logo Header -->
+  <g transform="translate(180, 110)">
+    <circle cx="45" cy="45" r="45" fill="#5f259f"/>
+    <!-- PhonePe 'pe' symbol in white -->
+    <path d="M42 22 L56 22 C64 22 70 28 70 36 C70 44 64 50 56 50 L42 50 Z M42 22 L42 68 M42 36 L58 36" stroke="#ffffff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+  <text x="380" y="170" font-family="'Inter', 'Helvetica Neue', Arial, sans-serif" font-weight="800" font-size="46" fill="#1c1917">PhonePe</text>
+  
+  <!-- Subtitle ACCEPTED HERE -->
+  <text x="300" y="270" font-family="'Inter', 'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="32" fill="#5f259f" text-anchor="middle" letter-spacing="1">ACCEPTED HERE</text>
+  <text x="300" y="340" font-family="'Inter', 'Helvetica Neue', Arial, sans-serif" font-weight="700" font-size="24" fill="#334155" text-anchor="middle">Scan &amp; Pay Using PhonePe App</text>
+  
+  <!-- QR Code Container Box -->
+  <g transform="translate(70, 390)">
+    <!-- High Resolution QR Matrix Pattern -->
+    <image href="https://api.qrserver.com/v1/create-qr-code/?size=460x460&amp;data=upi://pay?pa=veerikarosegarden@ibl%26pn=ANISHA%20RAJA%26cu=INR" width="460" height="460"/>
+    
+    <!-- PhonePe Central Icon Overlay -->
+    <circle cx="230" cy="230" r="48" fill="#000000" stroke="#ffffff" stroke-width="6"/>
+    <circle cx="230" cy="230" r="40" fill="#000000"/>
+    <path d="M226 210 L238 210 C244 210 248 214 248 220 C248 226 244 230 238 230 L226 230 Z M226 210 L226 250 M226 220 L240 220" stroke="#ffffff" stroke-width="7" stroke-linecap="round" fill="none"/>
+  </g>
+  
+  <!-- Merchant Account Name -->
+  <text x="300" y="940" font-family="'Inter', 'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="34" fill="#0f172a" text-anchor="middle" letter-spacing="2">ANISHA RAJA</text>
+  <text x="300" y="985" font-family="'Inter', 'Helvetica Neue', Arial, sans-serif" font-weight="800" font-size="20" fill="#4f46e5" text-anchor="middle">veerikarosegarden@ibl</text>
+  
+  <!-- Footer Copyright -->
+  <text x="300" y="1120" font-family="'Inter', 'Helvetica Neue', Arial, sans-serif" font-weight="600" font-size="16" fill="#64748b" text-anchor="middle">© 2026, All rights reserved, PhonePe Ltd (Formerly</text>
+  <text x="300" y="1145" font-family="'Inter', 'Helvetica Neue', Arial, sans-serif" font-weight="600" font-size="16" fill="#64748b" text-anchor="middle">known as 'PhonePe Private Ltd')</text>
+</svg>

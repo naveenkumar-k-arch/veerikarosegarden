@@ -738,7 +738,7 @@ const DEFAULT_SETTINGS: SiteSettings = {
   enableCod: true,
   enablePhonePe: true,
   enableQrPayment: true,
-  qrCodeImageUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=veerikarosegarden@ibl&pn=ANISHA%20RAJA&cu=INR',
+  qrCodeImageUrl: '/nursery-qr.svg',
   upiId: 'veerikarosegarden@ibl',
   upiName: 'ANISHA RAJA',
   qrInstructions: '1. Scan the QR code using GPay, PhonePe, Paytm or any UPI app.\n2. Enter the exact order total amount and pay.\n3. Take a screenshot of the successful payment receipt.\n4. Upload the screenshot below to place your order.',

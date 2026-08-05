@@ -244,7 +244,7 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
   const isCodEnabled = siteSettings ? siteSettings.enableCod !== false : true;
   const isQrEnabled = siteSettings ? siteSettings.enableQrPayment !== false : true;
 
-  const defaultQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=${siteSettings?.upiId || 'veerikarosegarden@ibl'}&pn=${encodeURIComponent(siteSettings?.upiName || 'ANISHA RAJA')}&am=${grandTotal}&cu=INR`;
+  const defaultQrUrl = '/nursery-qr.svg';
   const qrCodeImg = siteSettings?.qrCodeImageUrl || defaultQrUrl;
 
   return (
