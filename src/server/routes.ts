@@ -762,8 +762,8 @@ apiRouter.get('/admin/orders', async (req: AuthenticatedRequest, res) => {
 // Admin update order status
 apiRouter.put('/admin/orders/:id/status', async (req: AuthenticatedRequest, res) => {
   try {
-    const { orderStatus, trackingNumber, courierName, paymentStatus } = req.body;
-    const order = await db.updateOrderStatus(req.params.id, orderStatus, trackingNumber, courierName, paymentStatus);
+    const { orderStatus, trackingNumber, courierName, paymentStatus, paymentProofUrl } = req.body;
+    const order = await db.updateOrderStatus(req.params.id, orderStatus, trackingNumber, courierName, paymentStatus, paymentProofUrl);
     res.json({ success: true, order, message: 'Order status updated successfully' });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });

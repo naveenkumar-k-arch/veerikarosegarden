@@ -945,6 +945,31 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
     }
   };
 
+  // Handle Admin Manual Receipt Upload for Orders Missing Proof
+  const handleAdminUploadProof = (orderId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64 = reader.result as string;
+      try {
+        const res = await authFetch(`/api/admin/orders/${orderId}/status`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            paymentProofUrl: base64
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          fetchData();
+        }
+      } catch (err) {
+        console.error('Failed to attach proof photo:', err);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Handle Refund Trigger
   const handleTriggerRefund = async (merchantTransactionId: string, amount: number) => {
     if (!confirm(`Are you sure you want to trigger PhonePe refund of ₹${amount}?`)) return;
@@ -1755,9 +1780,19 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                             <span className="text-[10px] text-indigo-900 font-bold text-center">📸 Customer Receipt Attached</span>
                           </div>
                         ) : (
-                          <div className="p-4 bg-amber-100/90 text-amber-900 rounded-xl text-center text-xs font-bold w-full md:w-48 shrink-0 border border-amber-300 space-y-1">
-                            <p className="text-sm">⚠️ No Screenshot Photo</p>
+                          <div className="p-3.5 bg-amber-100/90 text-amber-900 rounded-xl text-center text-xs font-bold w-full md:w-48 shrink-0 border border-amber-300 space-y-2">
+                            <p className="text-xs">⚠️ No Screenshot Photo</p>
                             <p className="text-[10px] text-amber-800 font-normal">Check nursery bank / UTR ref</p>
+                            <label className="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-extrabold px-3 py-1.5 rounded-lg cursor-pointer transition-colors shadow-2xs">
+                              <Camera className="w-3.5 h-3.5" />
+                              <span>Upload Screenshot</span>
+                              <input 
+                                type="file" 
+                                accept="image/*" 
+                                className="hidden" 
+                                onChange={(e) => handleAdminUploadProof(o.id, e)} 
+                              />
+                            </label>
                           </div>
                         )}
 

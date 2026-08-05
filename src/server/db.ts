@@ -2526,7 +2526,7 @@ class Store {
     }
   }
 
-  async updateOrderStatus(orderId: string, status: Order['orderStatus'], trackingNumber?: string, courierName?: string, paymentStatus?: string): Promise<Order | null> {
+  async updateOrderStatus(orderId: string, status?: Order['orderStatus'], trackingNumber?: string, courierName?: string, paymentStatus?: string, paymentProofUrl?: string): Promise<Order | null> {
     let memOrder = this.memoryOrders.find(o => o.id === orderId);
     if (!memOrder) {
       memOrder = {
@@ -2542,17 +2542,22 @@ class Store {
         discount: 0,
         grandTotal: 249,
         paymentStatus: (paymentStatus as any) || 'PENDING',
-        orderStatus: status,
-        paymentMethod: 'COD',
+        orderStatus: status || 'PENDING',
+        paymentMethod: paymentProofUrl ? 'QR_PAYMENT' : 'COD',
+        paymentProofUrl: paymentProofUrl,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
       this.memoryOrders.push(memOrder);
     } else {
-      memOrder.orderStatus = status;
+      if (status) memOrder.orderStatus = status;
       if (paymentStatus) memOrder.paymentStatus = paymentStatus as any;
       if (trackingNumber) (memOrder as any).trackingNumber = trackingNumber;
       if (courierName) (memOrder as any).courierName = courierName;
+      if (paymentProofUrl) {
+        memOrder.paymentProofUrl = paymentProofUrl;
+        memOrder.paymentMethod = 'QR_PAYMENT';
+      }
     }
 
     const prisma = getPrismaClient();
