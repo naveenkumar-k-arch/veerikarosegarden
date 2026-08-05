@@ -691,32 +691,29 @@ apiRouter.get('/orders/user/:identifier', async (req: AuthenticatedRequest, res)
       return res.json({ success: true, count: 0, orders: [] });
     }
 
-    const emailUser = cleanId.includes('@') ? cleanId.split('@')[0] : cleanId;
-    const tokens = emailUser.split(/[^a-z0-9]+/).filter(t => t.length >= 3);
-    const numOnly = cleanId.replace(/[^0-9]/g, '');
+    const numOnly = cleanId.replace(/\D/g, '');
 
     const matchedOrders = allOrders.filter(o => {
-      // 1. Session User Match
+      // 1. Session User Match (Strict)
       if (authUser) {
-        if (o.userId && o.userId === authUser.id) return true;
+        if (o.userId && authUser.id && o.userId === authUser.id) return true;
         if (o.customerEmail && authUser.email && o.customerEmail.toLowerCase() === authUser.email.toLowerCase()) return true;
-        if (o.customerPhone && authUser.phone && o.customerPhone.replace(/\D/g, '') === authUser.phone.replace(/\D/g, '')) return true;
+        if (o.customerPhone && authUser.phone && o.customerPhone.replace(/\D/g, '').slice(-10) === authUser.phone.replace(/\D/g, '').slice(-10)) return true;
       }
 
-      // 2. Direct identifier field match
+      // 2. Direct exact identifier field match (Strict ID / Email / Phone only)
       const p = (o.customerPhone || '').replace(/\D/g, '');
       const e = (o.customerEmail || '').toLowerCase();
       const u = (o.userId || '').toLowerCase();
-      const n = (o.customerName || '').toLowerCase();
 
-      if (numOnly && numOnly.length >= 7 && p && (p.includes(numOnly) || numOnly.includes(p))) return true;
-      if (e && e.length > 3 && (cleanId.includes(e) || e.includes(cleanId))) return true;
-      if (u && u.length > 3 && (cleanId.includes(u) || u.includes(cleanId))) return true;
+      // Match exact User ID
+      if (u && u === cleanId) return true;
 
-      // 3. User Name & Email Token Matching (e.g. kupendran, naveen, email username)
-      for (const t of tokens) {
-        if (n.includes(t) || e.includes(t) || u.includes(t)) return true;
-      }
+      // Match exact Email address
+      if (cleanId.includes('@') && e && e === cleanId) return true;
+
+      // Match exact 10-digit Phone number
+      if (numOnly.length >= 10 && p && p.slice(-10) === numOnly.slice(-10)) return true;
 
       return false;
     });

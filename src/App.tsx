@@ -153,12 +153,25 @@ export const App: React.FC = () => {
     } catch {}
 
     if (!user) {
+      setUserOrders([]);
+      return;
+    }
+
+    // Filter local storage orders to match current user's email, phone, or ID
+    localOrders = localOrders.filter(o => {
+      if (user.id && o.userId === user.id) return true;
+      if (user.email && o.customerEmail?.toLowerCase() === user.email.toLowerCase()) return true;
+      if (user.phone && o.customerPhone?.replace(/\D/g, '').slice(-10) === user.phone.replace(/\D/g, '').slice(-10)) return true;
+      return false;
+    });
+
+    const identifier = user.email || user.phone || user.id;
+    if (!identifier) {
       setUserOrders(localOrders);
       return;
     }
 
     try {
-      const identifier = user.email || user.phone || user.id || user.name;
       const res = await fetch(`/api/orders/user/${encodeURIComponent(identifier)}`, {
         credentials: 'include'
       }).catch(() => null);
@@ -615,7 +628,9 @@ export const App: React.FC = () => {
                 console.error(e);
               }
               localStorage.removeItem('vrg_user');
+              localStorage.removeItem('vrg_my_orders');
               setUser(null);
+              setUserOrders([]);
             }}
             onViewOrder={(orderId) => {
               setSelectedOrderId(orderId);
