@@ -79,6 +79,39 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const grandTotal = Math.max(0, subtotal + shippingCharge - discountAmount);
 
+const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000, quality = 0.75): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let width = img.width;
+      let height = img.height;
+
+      if (width > maxWidth || height > maxHeight) {
+        if (width > height) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        } else {
+          width = Math.round((width * maxHeight) / height);
+          height = maxHeight;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      } else {
+        resolve(dataUrl);
+      }
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+};
+
   // Handle Image File Upload for QR Screenshot Proof
   const [uploadingImage, setUploadingImage] = useState(false);
 
@@ -91,20 +124,26 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       return;
     }
 
-    if (file.size > 8 * 1024 * 1024) {
-      setErrorMsg('Image size should be less than 8MB.');
+    if (file.size > 15 * 1024 * 1024) {
+      setErrorMsg('Image size should be less than 15MB.');
       return;
     }
 
     setUploadingImage(true);
     const reader = new FileReader();
-    reader.onload = () => {
-      const base64 = reader.result as string;
-      setPaymentProofUrl(base64);
-      setProofPreview(base64);
-      setPaymentMethod('QR_PAYMENT');
-      setUploadingImage(false);
-      setErrorMsg(null);
+    reader.onload = async () => {
+      try {
+        const rawBase64 = reader.result as string;
+        const compressedBase64 = await compressImageBase64(rawBase64);
+        setPaymentProofUrl(compressedBase64);
+        setProofPreview(compressedBase64);
+        setPaymentMethod('QR_PAYMENT');
+        setUploadingImage(false);
+        setErrorMsg(null);
+      } catch (err) {
+        setUploadingImage(false);
+        setErrorMsg('Failed to compress image file. Please try another screenshot.');
+      }
     };
     reader.onerror = () => {
       setUploadingImage(false);
