@@ -996,12 +996,11 @@ const deletedCategoryIds = (globalThis as any)._deletedCategoryIds || ((globalTh
 const deletedCouponIds = (globalThis as any)._deletedCouponIds || ((globalThis as any)._deletedCouponIds = new Set<string>());
 const deletedFinanceIds = (globalThis as any)._deletedFinanceIds || ((globalThis as any)._deletedFinanceIds = new Set<string>());
 const deletedOrderIds = (globalThis as any)._deletedOrderIds || ((globalThis as any)._deletedOrderIds = new Set<string>());
-
+const globalMemorySettings: SiteSettings = (globalThis as any)._globalMemorySettings || ((globalThis as any)._globalMemorySettings = { ...DEFAULT_SETTINGS });
 
 class Store {
   private memoryOrders: Order[] = [];
   private memoryFinances: FinancialEntry[] = [...DEFAULT_FINANCES];
-  private memorySettings: SiteSettings = { ...DEFAULT_SETTINGS };
 
   // FINANCIAL EXPENSE & PROFIT MANAGEMENT
   async getFinancialEntries(): Promise<FinancialEntry[]> {
@@ -2049,19 +2048,20 @@ class Store {
 
   // SITE SETTINGS
   async getSettings(): Promise<SiteSettings> {
+    const memory = (globalThis as any)._globalMemorySettings || DEFAULT_SETTINGS;
     const prisma = getPrismaClient();
-    if (!prisma) return { ...DEFAULT_SETTINGS, ...this.memorySettings };
+    if (!prisma) return { ...DEFAULT_SETTINGS, ...memory };
 
     try {
       const s = await prisma.siteSetting.findUnique({
         where: { id: 'default' }
       });
 
-      if (!s) return { ...DEFAULT_SETTINGS, ...this.memorySettings };
+      if (!s) return { ...DEFAULT_SETTINGS, ...memory };
 
       return {
         ...DEFAULT_SETTINGS,
-        ...this.memorySettings,
+        ...memory,
         businessName: s.businessName,
         tagline: s.tagline,
         phone: s.phone,
@@ -2080,16 +2080,18 @@ class Store {
       };
     } catch (err) {
       console.error('Prisma getSettings error:', err);
-      return { ...DEFAULT_SETTINGS, ...this.memorySettings };
+      return { ...DEFAULT_SETTINGS, ...memory };
     }
   }
 
   async updateSettings(updates: Partial<SiteSettings>): Promise<SiteSettings> {
-    this.memorySettings = {
+    const current = (globalThis as any)._globalMemorySettings || { ...DEFAULT_SETTINGS };
+    const merged = {
       ...DEFAULT_SETTINGS,
-      ...this.memorySettings,
+      ...current,
       ...updates
     };
+    (globalThis as any)._globalMemorySettings = merged;
 
     const prisma = getPrismaClient();
 
@@ -2136,7 +2138,7 @@ class Store {
 
         return {
           ...DEFAULT_SETTINGS,
-          ...this.memorySettings,
+          ...merged,
           businessName: s.businessName,
           tagline: s.tagline,
           phone: s.phone,
@@ -2158,7 +2160,7 @@ class Store {
       }
     }
 
-    return { ...DEFAULT_SETTINGS, ...updates };
+    return { ...DEFAULT_SETTINGS, ...merged };
   }
 
   // ORDERS
