@@ -1696,99 +1696,113 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                     </div>
                   </div>
 
-                  {/* Online & Scan QR Payment Verification Controls */}
-                  {(!isCod || o.paymentMethod === 'QR_PAYMENT' || o.paymentMethod === 'UPI_DIRECT' || o.paymentProofUrl) && (
-                    <div className="bg-indigo-50/80 border border-indigo-200 rounded-2xl p-3.5 space-y-3">
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-indigo-200/60 pb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="font-extrabold text-indigo-950 text-xs flex items-center gap-1.5">
-                            <Camera className="w-4 h-4 text-indigo-600" />
-                            <span>📸 Scan QR Code Payment Verification</span>
+                  {/* Manual Online & Scan QR Payment Verification Box */}
+                  {!isCod && (
+                    <div className="bg-indigo-50/90 border-2 border-indigo-200 rounded-2xl p-4 space-y-3 shadow-xs">
+                      {/* Header bar with Amount & Payment Method */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-indigo-200/80 pb-2.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-extrabold text-slate-900 text-xs flex items-center gap-1.5 bg-indigo-100 px-3 py-1 rounded-xl border border-indigo-300">
+                            <Camera className="w-4 h-4 text-indigo-700" />
+                            <span>Payment Method: <strong>{(o.paymentMethod === 'QR_PAYMENT' || o.paymentMethod === 'UPI_DIRECT' || o.paymentProofUrl) ? 'Scan QR Code Payment' : 'PhonePe UPI'}</strong></span>
                           </span>
-                          <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
-                            o.paymentStatus === 'SUCCESS' 
-                              ? 'bg-emerald-100 text-emerald-900 border-emerald-300' 
-                              : o.paymentStatus === 'FAILED' 
-                              ? 'bg-rose-100 text-rose-900 border-rose-300' 
-                              : 'bg-amber-100 text-amber-900 border-amber-300'
-                          }`}>
-                            {o.paymentStatus === 'SUCCESS' ? '✅ VERIFIED (PAID)' : o.paymentStatus === 'FAILED' ? '❌ UNVERIFIED / REJECTED' : '⏳ PENDING VERIFICATION'}
+
+                          <span className="font-extrabold text-emerald-900 text-xs bg-emerald-100 px-3 py-1 rounded-xl border border-emerald-300">
+                            💰 Amount to Verify: <strong>₹{o.grandTotal}</strong>
                           </span>
                         </div>
 
-                        {o.transactionId && (
-                          <span className="font-mono text-[11px] text-indigo-900 font-bold bg-white px-2.5 py-0.5 rounded-lg border border-indigo-200">
-                            UTR / Ref: {o.transactionId}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-xs font-black px-3 py-1 rounded-xl border ${
+                            o.paymentStatus === 'SUCCESS' 
+                              ? 'bg-emerald-700 text-white border-emerald-800' 
+                              : o.paymentStatus === 'FAILED' 
+                              ? 'bg-rose-600 text-white border-rose-700' 
+                              : 'bg-amber-500 text-white border-amber-600'
+                          }`}>
+                            {o.paymentStatus === 'SUCCESS' ? '✅ VERIFIED (PAID)' : o.paymentStatus === 'FAILED' ? '❌ REJECTED / UNVERIFIED' : '⏳ PENDING MANUAL VERIFICATION'}
                           </span>
-                        )}
+
+                          {o.transactionId && (
+                            <span className="font-mono text-[11px] text-indigo-950 font-black bg-white px-2.5 py-1 rounded-lg border border-indigo-200">
+                              UTR / Ref: {o.transactionId}
+                            </span>
+                          )}
+                        </div>
                       </div>
 
-                      <div className="flex flex-col sm:flex-row items-center gap-4">
-                        {/* Receipt Screenshot Image Thumbnail */}
+                      {/* Proof Image Box & Manual Verification Action Controls */}
+                      <div className="flex flex-col md:flex-row items-center gap-4">
+                        {/* Receipt Screenshot Image */}
                         {o.paymentProofUrl ? (
-                          <div 
-                            onClick={() => setSelectedProofOrder(o)}
-                            className="relative group cursor-pointer shrink-0 rounded-xl overflow-hidden border-2 border-indigo-300 bg-slate-900 w-full sm:w-36 h-24 flex items-center justify-center shadow-xs"
-                            title="Click to view full screenshot proof"
-                          >
-                            <img
-                              src={o.paymentProofUrl}
-                              alt="Customer Payment Receipt Proof"
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                            />
-                            <div className="absolute inset-0 bg-slate-900/40 group-hover:bg-slate-900/20 flex items-center justify-center opacity-90 transition-opacity">
-                              <span className="bg-indigo-600 text-white font-bold text-[10px] px-2 py-1 rounded-md flex items-center gap-1">
-                                <Camera className="w-3 h-3" /> Zoom Receipt
-                              </span>
+                          <div className="flex flex-col items-center gap-1.5 shrink-0 w-full md:w-48">
+                            <div 
+                              onClick={() => setSelectedProofOrder(o)}
+                              className="relative group cursor-pointer w-full h-32 rounded-xl overflow-hidden border-2 border-indigo-400 bg-slate-900 flex items-center justify-center shadow-sm"
+                              title="Click to zoom receipt photo"
+                            >
+                              <img
+                                src={o.paymentProofUrl}
+                                alt="Customer Payment Receipt Proof"
+                                className="w-full h-full object-contain group-hover:scale-105 transition-transform"
+                              />
+                              <div className="absolute inset-0 bg-slate-900/40 group-hover:bg-slate-900/10 flex items-center justify-center transition-opacity opacity-90">
+                                <span className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-[11px] px-2.5 py-1 rounded-lg shadow-md flex items-center gap-1">
+                                  <Camera className="w-3.5 h-3.5" /> 🔍 Zoom Receipt
+                                </span>
+                              </div>
                             </div>
+                            <span className="text-[10px] text-indigo-900 font-bold text-center">📸 Customer Receipt Attached</span>
                           </div>
                         ) : (
-                          <div className="p-3 bg-amber-100 text-amber-900 rounded-xl text-center text-xs font-semibold w-full sm:w-36 shrink-0 border border-amber-300">
-                            ⚠️ Screenshot Not Attached
+                          <div className="p-4 bg-amber-100/90 text-amber-900 rounded-xl text-center text-xs font-bold w-full md:w-48 shrink-0 border border-amber-300 space-y-1">
+                            <p className="text-sm">⚠️ No Screenshot Photo</p>
+                            <p className="text-[10px] text-amber-800 font-normal">Check nursery bank / UTR ref</p>
                           </div>
                         )}
 
-                        {/* Direct 3-Button Admin Controls: Verified, Unverified, Cancel/Reject */}
-                        <div className="flex-1 w-full space-y-1.5">
-                          <p className="text-[11px] text-indigo-900 font-bold">Quick QR Payment Actions:</p>
-                          <div className="grid grid-cols-3 gap-2">
+                        {/* Manual Admin Verification Controls */}
+                        <div className="flex-1 w-full space-y-2 bg-white p-3 rounded-xl border border-indigo-100">
+                          <p className="text-xs text-slate-900 font-black flex items-center justify-between">
+                            <span>⚙️ Manual Admin Payment Verification:</span>
+                            <span className="text-[11px] text-slate-500 font-normal">Verify amount ₹{o.grandTotal} in nursery UPI app</span>
+                          </p>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                             <button
                               onClick={() => handleUpdateOrderStatus(o.id, o.orderStatus === 'PENDING' ? 'PROCESSING' : o.orderStatus, 'SUCCESS')}
-                              className={`py-2 px-2 rounded-xl text-[11px] font-extrabold shadow-2xs flex items-center justify-center gap-1 cursor-pointer transition-all ${
+                              className={`py-2.5 px-3 rounded-xl text-xs font-black shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
                                 o.paymentStatus === 'SUCCESS'
-                                  ? 'bg-emerald-700 text-white ring-2 ring-emerald-500'
+                                  ? 'bg-emerald-700 text-white ring-2 ring-emerald-500 shadow-md'
                                   : 'bg-emerald-600 hover:bg-emerald-700 text-white'
                               }`}
-                              title="Mark Payment as Verified & Paid"
                             >
-                              <Check className="w-3.5 h-3.5" />
-                              <span>Verified</span>
+                              <Check className="w-4 h-4" />
+                              <span>✅ Mark Verified & Paid</span>
                             </button>
 
                             <button
                               onClick={() => handleUpdateOrderStatus(o.id, o.orderStatus, 'PENDING')}
-                              className={`py-2 px-2 rounded-xl text-[11px] font-extrabold shadow-2xs flex items-center justify-center gap-1 cursor-pointer transition-all ${
+                              className={`py-2.5 px-3 rounded-xl text-xs font-black shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
                                 o.paymentStatus === 'PENDING'
-                                  ? 'bg-amber-600 text-white ring-2 ring-amber-400'
-                                  : 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300'
+                                  ? 'bg-amber-600 text-white ring-2 ring-amber-400 shadow-md'
+                                  : 'bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300'
                               }`}
-                              title="Mark Payment as Unverified / Pending"
                             >
-                              <RefreshCw className="w-3.5 h-3.5" />
-                              <span>Unverified</span>
+                              <RefreshCw className="w-4 h-4" />
+                              <span>⏳ Keep Unverified / Pending</span>
                             </button>
 
                             <button
                               onClick={() => handleUpdateOrderStatus(o.id, 'CANCELLED', 'FAILED')}
-                              className={`py-2 px-2 rounded-xl text-[11px] font-extrabold shadow-2xs flex items-center justify-center gap-1 cursor-pointer transition-all ${
+                              className={`py-2.5 px-3 rounded-xl text-xs font-black shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
                                 o.paymentStatus === 'FAILED'
-                                  ? 'bg-rose-700 text-white ring-2 ring-rose-500'
+                                  ? 'bg-rose-700 text-white ring-2 ring-rose-500 shadow-md'
                                   : 'bg-rose-600 hover:bg-rose-700 text-white'
                               }`}
-                              title="Reject Payment & Cancel Order"
                             >
-                              <X className="w-3.5 h-3.5" />
-                              <span>Cancel/Reject</span>
+                              <X className="w-4 h-4" />
+                              <span>❌ Reject & Cancel Order</span>
                             </button>
                           </div>
                         </div>
