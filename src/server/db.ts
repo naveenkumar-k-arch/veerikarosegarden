@@ -5295,9 +5295,15 @@ class Store {
 
     deletedComboIds.add(cleanId);
 
+    // 1. Remove from in-memory store
     const idx = memoryCombosStore.findIndex(c => c.id === cleanId);
     if (idx !== -1) memoryCombosStore.splice(idx, 1);
 
+    // 2. Remove from default hardcoded combos array so it never reappears on restart
+    const defIdx = DEFAULT_COMBOS.findIndex(c => c.id === cleanId);
+    if (defIdx !== -1) DEFAULT_COMBOS.splice(defIdx, 1);
+
+    // 3. Permanently delete from Prisma PostgreSQL database
     const prisma = getPrismaClient();
     if (prisma) {
       try {
@@ -5312,6 +5318,7 @@ class Store {
   async deleteAllCombos(): Promise<boolean> {
     DEFAULT_COMBOS.forEach(c => deletedComboIds.add(c.id));
     memoryCombosStore.length = 0;
+    DEFAULT_COMBOS.length = 0;
     const prisma = getPrismaClient();
     if (prisma) {
       try {
