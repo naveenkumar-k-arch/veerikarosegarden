@@ -53,6 +53,8 @@ export const AdminLoginForm: React.FC<AdminLoginFormProps> = ({ onLoginSuccess, 
         role: 'SUPER_ADMIN',
         createdAt: new Date().toISOString()
       };
+      localStorage.setItem('vrg_admin_email', adminUser.email || 'admin@veerikarosegarden.com');
+      localStorage.setItem('vrg_admin_role', adminUser.role || 'SUPER_ADMIN');
       setLoading(false);
       onLoginSuccess(adminUser);
     } else {

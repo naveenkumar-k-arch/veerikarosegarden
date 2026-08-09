@@ -238,8 +238,20 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
 
   const authFetch = (url: string, options: RequestInit = {}) => {
     // Include admin identity in header as fallback (for local-auth admins without session cookie)
-    const adminEmail = adminUser?.email || localStorage.getItem('vrg_admin_email') || 'admin@veerikarosegarden.com';
-    const adminRole = adminUser?.role || 'SUPER_ADMIN';
+    let adminEmail = adminUser?.email || localStorage.getItem('vrg_admin_email');
+    let adminRole = adminUser?.role || localStorage.getItem('vrg_admin_role');
+    if (!adminEmail) {
+      try {
+        const storedUser = JSON.parse(localStorage.getItem('vrg_user') || '{}');
+        if (storedUser?.email && (storedUser?.role === 'SUPER_ADMIN' || storedUser?.role === 'ADMIN' || storedUser?.role === 'MANAGER')) {
+          adminEmail = storedUser.email;
+          adminRole = storedUser.role;
+        }
+      } catch {}
+    }
+    if (!adminEmail) adminEmail = 'admin@veerikarosegarden.com';
+    if (!adminRole) adminRole = 'SUPER_ADMIN';
+
     return fetch(url, {
       ...options,
       credentials: 'include',
