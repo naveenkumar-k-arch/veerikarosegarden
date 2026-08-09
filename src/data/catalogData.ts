@@ -737,7 +737,7 @@ export const INITIAL_PRODUCTS: Product[] = [
       fertilizer: 'Apply vermicompost & organic manure monthly.',
       soil: 'Well-draining red sandy soil mixed with coco peat.'
     },
-    images: ['https://images.unsplash.com/photo-1536511157201-526462a49390?auto=format&fit=crop&w=800&q=80'],
+    images: ['/products/black-guava-plant.jpeg', '/products/black-guava-sapling.jpeg'],
     featured: true,
     bestSeller: true,
     trending: true,
@@ -773,7 +773,7 @@ export const INITIAL_PRODUCTS: Product[] = [
       fertilizer: 'Organic compost every 20 days.',
       soil: 'Rich loamy red soil.'
     },
-    images: ['https://images.unsplash.com/photo-1536511157201-526462a49390?auto=format&fit=crop&w=800&q=80'],
+    images: ['/products/pink-guava-plant.jpeg'],
     featured: true,
     bestSeller: true,
     trending: true,
@@ -809,7 +809,7 @@ export const INITIAL_PRODUCTS: Product[] = [
       fertilizer: 'Apply bone meal & cow manure monthly.',
       soil: 'Deep red soil mixed with compost.'
     },
-    images: ['https://images.unsplash.com/photo-1553279768-865429fa0078?auto=format&fit=crop&w=800&q=80'],
+    images: ['/products/mango-sapling-plant.jpeg'],
     featured: true,
     bestSeller: true,
     trending: true,
@@ -845,7 +845,7 @@ export const INITIAL_PRODUCTS: Product[] = [
       fertilizer: 'Apply vermicompost bi-weekly.',
       soil: 'Rich organic soil mix.'
     },
-    images: ['/products/red-water-apple.jpeg', 'https://images.unsplash.com/photo-1528825871115-3581a5387919?auto=format&fit=crop&w=800&q=80'],
+    images: ['/products/red-water-apple.jpeg'],
     featured: true,
     bestSeller: false,
     trending: true,
@@ -881,7 +881,7 @@ export const INITIAL_PRODUCTS: Product[] = [
       fertilizer: 'Apply potash & organic compost every 15 days.',
       soil: 'Rich well-draining loamy red soil.'
     },
-    images: ['/products/black-grape-plant.jpeg', '/products/WhatsApp Image 2026-08-09 at 12.28.26 PM.jpeg'],
+    images: ['/products/black-grape-plant.jpeg'],
     featured: true,
     bestSeller: true,
     trending: true,
