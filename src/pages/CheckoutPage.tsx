@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CartItem, ShippingAddress, PaymentMethod, User, SiteSettings } from '../types';
 import { ShieldCheck, Truck, ArrowLeft, Check, Lock, Smartphone, Home, MapPin, Building2, CreditCard, QrCode, Upload, Copy, CheckCircle2, AlertCircle, Image as ImageIcon } from 'lucide-react';
+import { calculateDeliveryFee, INDIAN_STATES, isSouthState, isGrapeItem } from '../utils/delivery';
 
 interface CheckoutPageProps {
   items: CartItem[];
@@ -83,7 +84,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
   const subtotal = items.reduce((sum, i) => sum + i.product.sellingPrice * i.quantity, 0);
   const totalPlantCount = items.reduce((sum, i) => sum + i.quantity, 0);
-  const shippingCharge = totalPlantCount === 0 ? 0 : 50 + (totalPlantCount - 1) * 10;
+  const shippingCharge = calculateDeliveryFee(items, address.state);
   const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const grandTotal = Math.max(0, subtotal + shippingCharge - discountAmount);
 
@@ -379,7 +380,36 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">State *</label>
+                  <select
+                    required
+                    value={address.state}
+                    onChange={(e) => setAddress({ ...address, state: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 cursor-pointer"
+                  >
+                    {INDIAN_STATES.map((st) => (
+                      <option key={st} value={st}>
+                        {st} {isSouthState(st) ? '(₹50 base shipping)' : '(₹100 base shipping)'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Pincode *</label>
+                  <input
+                    type="text"
+                    required
+                    value={address.pincode}
+                    onChange={(e) => setAddress({ ...address, pincode: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-mono font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">Village / Town *</label>
                   <input
@@ -399,17 +429,6 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
                     value={address.district}
                     onChange={(e) => setAddress({ ...address, district: e.target.value })}
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-semibold"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Pincode *</label>
-                  <input
-                    type="text"
-                    required
-                    value={address.pincode}
-                    onChange={(e) => setAddress({ ...address, pincode: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-mono font-semibold"
                   />
                 </div>
               </div>
@@ -679,9 +698,14 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
                 <span>Subtotal:</span>
                 <span className="font-semibold text-slate-900">₹{subtotal}</span>
               </div>
-              <div className="flex justify-between">
-                <span>Delivery Charge:</span>
-                <span>{shippingCharge === 0 ? 'FREE' : `₹${shippingCharge}`}</span>
+              <div className="flex justify-between items-start">
+                <div>
+                  <span className="block font-medium">Delivery Charge:</span>
+                  <span className="text-[10px] text-slate-500 block">
+                    {address.state} ({isSouthState(address.state) ? 'TN/KL/KA' : 'Other State'})
+                  </span>
+                </div>
+                <span className="font-bold text-slate-900">{shippingCharge === 0 ? 'FREE' : `₹${shippingCharge}`}</span>
               </div>
               {appliedCoupon && (
                 <div className="flex justify-between text-emerald-700 font-semibold">

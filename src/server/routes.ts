@@ -18,6 +18,7 @@ import {
   updateOrderStatusSchema
 } from './schemas.js';
 import { isPrismaConnected } from './prisma.js';
+import { calculateDeliveryFee } from '../utils/delivery.js';
 
 export const apiRouter = express.Router();
 
@@ -608,8 +609,8 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
       }
     }
 
-    const totalPlants = verifiedItems.reduce((sum, item) => sum + item.quantity, 0);
-    const shippingCharge = totalPlants === 0 ? 0 : 50 + (totalPlants - 1) * 10;
+    const targetState = shippingAddress?.state || 'Tamil Nadu';
+    const shippingCharge = calculateDeliveryFee(verifiedItems, targetState);
     const calculatedGrandTotal = Math.max(1, Math.round(calculatedSubtotal + shippingCharge - discount));
 
     const merchantTransactionId = 'MT' + Date.now() + Math.floor(10 + Math.random() * 89);

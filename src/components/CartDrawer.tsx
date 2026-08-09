@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CartItem } from '../types';
-import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Tag, Truck, ShieldCheck } from 'lucide-react';
+import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Tag, Truck, ShieldCheck, MapPin } from 'lucide-react';
+import { calculateDeliveryFee } from '../utils/delivery';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -28,12 +29,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   const [couponCode, setCouponCode] = useState('');
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponMsg, setCouponMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [previewState, setPreviewState] = useState<string>('Tamil Nadu');
 
   if (!isOpen) return null;
 
   const subtotal = items.reduce((sum, item) => sum + item.product.sellingPrice * item.quantity, 0);
   const totalPlantCount = items.reduce((sum, item) => sum + item.quantity, 0);
-  const shippingFee = totalPlantCount === 0 ? 0 : 50 + (totalPlantCount - 1) * 10;
+  const shippingFee = calculateDeliveryFee(items, previewState);
   const couponDiscount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const grandTotal = Math.max(0, subtotal + shippingFee - couponDiscount);
 
@@ -72,13 +74,23 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           </button>
         </div>
 
-        {/* Shipping Fee Policy Banner */}
-        <div className="bg-emerald-50 px-4 py-2.5 border-b border-emerald-100 flex items-center justify-between text-xs font-semibold text-emerald-900">
-          <span className="flex items-center gap-1.5">
+        {/* Shipping Fee Policy & State Preview Selector Banner */}
+        <div className="bg-emerald-50 px-4 py-2.5 border-b border-emerald-100 flex flex-wrap items-center justify-between gap-2 text-xs font-semibold text-emerald-900">
+          <div className="flex items-center gap-1.5 min-w-0">
             <Truck className="w-4 h-4 text-emerald-700 shrink-0" />
-            <span>🚚 Delivery: <strong>₹50</strong> for 1st plant + <strong>₹10</strong> per add'l plant</span>
-          </span>
-          <span className="bg-emerald-200/80 text-emerald-900 font-bold px-2 py-0.5 rounded-md text-[11px]">
+            <div className="text-[11px] leading-tight">
+              <span>Delivery: </span>
+              <select
+                value={previewState}
+                onChange={(e) => setPreviewState(e.target.value)}
+                className="bg-white border border-emerald-300 text-emerald-900 rounded font-bold px-1 py-0.5 text-[11px] focus:outline-none cursor-pointer"
+              >
+                <option value="Tamil Nadu">TN / Kerala / Karnataka (₹50 base)</option>
+                <option value="Other State">Other States (₹100 base)</option>
+              </select>
+            </div>
+          </div>
+          <span className="bg-emerald-700 text-white font-bold px-2 py-0.5 rounded-md text-[11px]">
             ₹{shippingFee} Shipping
           </span>
         </div>

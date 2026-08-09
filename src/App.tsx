@@ -20,6 +20,7 @@ import { PoliciesPage } from './pages/PoliciesPage';
 import { AdminPage } from './pages/AdminPage';
 import { AdminLoginForm } from './components/AdminLoginForm';
 import { INITIAL_PRODUCTS, INITIAL_CATEGORIES } from './data/catalogData';
+import { calculateDeliveryFee } from './utils/delivery';
 
 export const App: React.FC = () => {
   // Splash Screen State
@@ -348,7 +349,7 @@ export const App: React.FC = () => {
   }) => {
     const subtotal = cart.reduce((sum, i) => sum + i.product.sellingPrice * i.quantity, 0);
     const totalPlantCount = cart.reduce((sum, i) => sum + i.quantity, 0);
-    const shippingCharge = totalPlantCount === 0 ? 0 : 50 + (totalPlantCount - 1) * 10;
+    const shippingCharge = calculateDeliveryFee(cart, orderData.shippingAddress?.state);
     const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
     const grandTotal = Math.max(0, subtotal + shippingCharge - discountAmount);
 
