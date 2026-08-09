@@ -4071,49 +4071,9 @@ const deletedFinanceIds = (globalThis as any)._deletedFinanceIds || ((globalThis
 const deletedOrderIds = (globalThis as any)._deletedOrderIds || ((globalThis as any)._deletedOrderIds = new Set<string>());
 const deletedComboIds = (globalThis as any)._deletedComboIds || ((globalThis as any)._deletedComboIds = new Set<string>());
 
-export const DEFAULT_COMBOS: Combo[] = [
-  {
-    id: 'combo-exotic-fruits',
-    title: 'Exotic Fruit Garden Trio',
-    subtitle: '1x Black Guava + 1x Thai Pink Guava + 1x All-Season Mango Sapling',
-    badge: '3-IN-1 FRUIT COMBO',
-    productIds: ['prod-black-guava', 'prod-pink-guava', 'prod-mango-sapling'],
-    originalPrice: 1029,
-    comboPrice: 699,
-    discountPercent: 32,
-    imageUrl: '/products/black-guava-plant.jpeg',
-    active: true,
-    order: 1
-  },
-  {
-    id: 'combo-fragrant-roses',
-    title: 'Fragrant Panneer & Exotic Rose Bundle',
-    subtitle: '1x White Panneer Rose + 1x Black Magic Rose + 1x Double Delight Rose',
-    badge: 'BESTSELLER COMBO',
-    productIds: ['prod-white-panneer', 'prod-black-magic', 'prod-double-delight'],
-    originalPrice: 519,
-    comboPrice: 389,
-    discountPercent: 25,
-    imageUrl: '/products/white-panneer.jpeg',
-    active: true,
-    order: 2
-  },
-  {
-    id: 'combo-climbing-vines',
-    title: 'Grape Vine & Water Apple Orchard Pack',
-    subtitle: '1x Hybrid Black Grape Vine + 1x Red Water Apple Plant',
-    badge: 'SPECIAL OFFER',
-    productIds: ['prod-black-grape', 'prod-water-apple'],
-    originalPrice: 570,
-    comboPrice: 399,
-    discountPercent: 30,
-    imageUrl: '/products/black-grape-plant.jpeg',
-    active: true,
-    order: 3
-  }
-];
+export const DEFAULT_COMBOS: Combo[] = [];
 
-const memoryCombosStore: Combo[] = (globalThis as any)._memoryCombosStore || ((globalThis as any)._memoryCombosStore = [...DEFAULT_COMBOS]);
+const memoryCombosStore: Combo[] = (globalThis as any)._memoryCombosStore || ((globalThis as any)._memoryCombosStore = []);
 const globalMemorySettings: SiteSettings = (globalThis as any)._globalMemorySettings || ((globalThis as any)._globalMemorySettings = { ...DEFAULT_SETTINGS });
 
 const META_DELIMITER = '|||JSON_META|||';
