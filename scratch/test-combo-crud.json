@@ -1,0 +1,8 @@
+{
+  "title": "TEST COMBO FOR UPDATE",
+  "subtitle": "Before Update Subtitle",
+  "badge": "BEFORE",
+  "productIds": ["prod-black-guava"],
+  "originalPrice": 300,
+  "comboPrice": 250
+}

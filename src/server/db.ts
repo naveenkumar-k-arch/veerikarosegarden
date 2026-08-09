@@ -2372,29 +2372,53 @@ class Store {
   }
 
   async updateCombo(id: string, updates: Partial<Combo>): Promise<Combo | null> {
+    const cleanId = (id || '').trim();
     const prisma = getPrismaClient();
+
     if (prisma) {
       try {
-        await prisma.combo.update({
-          where: { id },
-          data: {
-            ...(updates.title ? { title: updates.title } : {}),
-            ...(updates.subtitle !== undefined ? { subtitle: updates.subtitle } : {}),
-            ...(updates.badge ? { badge: updates.badge } : {}),
-            ...(updates.productIds ? { productIds: updates.productIds } : {}),
-            ...(updates.originalPrice !== undefined ? { originalPrice: updates.originalPrice } : {}),
-            ...(updates.comboPrice !== undefined ? { comboPrice: updates.comboPrice } : {}),
-            ...(updates.discountPercent !== undefined ? { discountPercent: updates.discountPercent } : {}),
-            ...(updates.imageUrl !== undefined ? { imageUrl: updates.imageUrl } : {}),
-            ...(updates.active !== undefined ? { active: updates.active } : {})
-          }
-        });
+        const existing = await prisma.combo.findUnique({ where: { id: cleanId } });
+        if (existing) {
+          const origPrice = updates.originalPrice !== undefined ? Number(updates.originalPrice) : existing.originalPrice;
+          const cmbPrice = updates.comboPrice !== undefined ? Number(updates.comboPrice) : existing.comboPrice;
+          const disPercent = origPrice > 0 ? Math.round(((origPrice - cmbPrice) / origPrice) * 100) : 0;
+
+          const updated = await prisma.combo.update({
+            where: { id: cleanId },
+            data: {
+              ...(updates.title ? { title: updates.title } : {}),
+              ...(updates.subtitle !== undefined ? { subtitle: updates.subtitle } : {}),
+              ...(updates.badge ? { badge: updates.badge } : {}),
+              ...(updates.productIds ? { productIds: updates.productIds } : {}),
+              ...(updates.originalPrice !== undefined ? { originalPrice: origPrice } : {}),
+              ...(updates.comboPrice !== undefined ? { comboPrice: cmbPrice, discountPercent: disPercent } : {}),
+              ...(updates.imageUrl !== undefined ? { imageUrl: updates.imageUrl } : {}),
+              ...(updates.active !== undefined ? { active: updates.active } : {})
+            }
+          });
+
+          return {
+            id: updated.id,
+            title: updated.title,
+            subtitle: updated.subtitle || undefined,
+            badge: updated.badge || 'COMBO OFFER',
+            productIds: updated.productIds,
+            originalPrice: updated.originalPrice,
+            comboPrice: updated.comboPrice,
+            discountPercent: updated.discountPercent,
+            imageUrl: updated.imageUrl || undefined,
+            active: updated.active,
+            order: updated.order,
+            createdAt: updated.createdAt ? updated.createdAt.toISOString() : new Date().toISOString(),
+            updatedAt: updated.updatedAt ? updated.updatedAt.toISOString() : new Date().toISOString()
+          };
+        }
       } catch (err) {
         console.error('Prisma updateCombo error:', err);
       }
     }
 
-    const idx = memoryCombosStore.findIndex(c => c.id === id);
+    const idx = memoryCombosStore.findIndex(c => c.id === cleanId);
     if (idx !== -1) {
       memoryCombosStore[idx] = { ...memoryCombosStore[idx], ...updates };
       return memoryCombosStore[idx];

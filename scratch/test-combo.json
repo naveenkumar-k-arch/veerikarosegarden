@@ -1,0 +1,8 @@
+{
+  "title": "TEST COMBO FOR CURL DELETION",
+  "subtitle": "Test item for live API curl test",
+  "badge": "TEST",
+  "productIds": ["prod-black-guava"],
+  "originalPrice": 200,
+  "comboPrice": 150
+}
