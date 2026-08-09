@@ -5128,59 +5128,34 @@ class Store {
 
     if (prisma) {
       try {
-        let items = await prisma.combo.findMany({
+        const items = await prisma.combo.findMany({
           orderBy: { order: 'asc' }
         });
-
-        // Seed default combos into database once if database table is completely empty and no deletions recorded
-        if (items.length === 0 && deletedComboIds.size === 0 && !(globalThis as any)._combosSeeded) {
-          (globalThis as any)._combosSeeded = true;
-          for (const c of DEFAULT_COMBOS) {
-            await prisma.combo.create({
-              data: {
-                id: c.id,
-                title: c.title,
-                subtitle: c.subtitle || '',
-                badge: c.badge || 'COMBO OFFER',
-                productIds: c.productIds,
-                originalPrice: c.originalPrice,
-                comboPrice: c.comboPrice,
-                discountPercent: c.discountPercent,
-                imageUrl: c.imageUrl || '',
-                active: c.active !== false,
-                order: c.order || 1
-              }
-            }).catch(() => {});
-          }
-          items = await prisma.combo.findMany({ orderBy: { order: 'asc' } });
-        }
 
         const allProducts = await this.getProducts();
         const prodMap = new Map(allProducts.map(p => [p.id, p]));
 
-        return items
-          .filter(c => !deletedComboIds.has(c.id))
-          .map(c => {
-            const matchedProds = (c.productIds || [])
-              .map(pid => prodMap.get(pid))
-              .filter(Boolean) as Product[];
-            return {
-              id: c.id,
-              title: c.title,
-              subtitle: c.subtitle || undefined,
-              badge: c.badge || 'COMBO OFFER',
-              productIds: c.productIds,
-              products: matchedProds,
-              originalPrice: c.originalPrice,
-              comboPrice: c.comboPrice,
-              discountPercent: c.discountPercent,
-              imageUrl: c.imageUrl || undefined,
-              active: c.active,
-              order: c.order,
-              createdAt: c.createdAt ? c.createdAt.toISOString() : new Date().toISOString(),
-              updatedAt: c.updatedAt ? c.updatedAt.toISOString() : new Date().toISOString()
-            };
-          });
+        return items.map(c => {
+          const matchedProds = (c.productIds || [])
+            .map(pid => prodMap.get(pid))
+            .filter(Boolean) as Product[];
+          return {
+            id: c.id,
+            title: c.title,
+            subtitle: c.subtitle || undefined,
+            badge: c.badge || 'COMBO OFFER',
+            productIds: c.productIds,
+            products: matchedProds,
+            originalPrice: c.originalPrice,
+            comboPrice: c.comboPrice,
+            discountPercent: c.discountPercent,
+            imageUrl: c.imageUrl || undefined,
+            active: c.active,
+            order: c.order,
+            createdAt: c.createdAt ? c.createdAt.toISOString() : new Date().toISOString(),
+            updatedAt: c.updatedAt ? c.updatedAt.toISOString() : new Date().toISOString()
+          };
+        });
       } catch (err) {
         console.error('Prisma getCombos error:', err);
       }
@@ -5189,12 +5164,10 @@ class Store {
     const allProducts = await this.getProducts();
     const prodMap = new Map(allProducts.map(p => [p.id, p]));
 
-    return memoryCombosStore
-      .filter(c => !deletedComboIds.has(c.id))
-      .map(c => ({
-        ...c,
-        products: (c.productIds || []).map(pid => prodMap.get(pid)).filter(Boolean) as Product[]
-      }));
+    return memoryCombosStore.map(c => ({
+      ...c,
+      products: (c.productIds || []).map(pid => prodMap.get(pid)).filter(Boolean) as Product[]
+    }));
   }
 
   async addCombo(data: Partial<Combo>): Promise<Combo> {
@@ -5308,16 +5281,15 @@ class Store {
 
   async deleteCombo(id: string): Promise<boolean> {
     const cleanId = (id || '').trim();
-    if (cleanId) {
-      deletedComboIds.add(cleanId);
-    }
+    if (!cleanId) return false;
+
     const idx = memoryCombosStore.findIndex(c => c.id === cleanId);
     if (idx !== -1) memoryCombosStore.splice(idx, 1);
 
     const prisma = getPrismaClient();
     if (prisma) {
       try {
-        await prisma.combo.deleteMany({ where: { id: cleanId } }).catch(() => {});
+        await prisma.combo.deleteMany({ where: { id: cleanId } });
       } catch (err) {
         console.error('Prisma deleteCombo error:', err);
       }
