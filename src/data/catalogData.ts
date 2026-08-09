@@ -6,24 +6,24 @@ export const INITIAL_CATEGORIES: Category[] = [
     name: 'Rose Varieties',
     tamilName: 'ரோஜா வகைகள்',
     slug: 'rose-varieties',
-    image: '/products/double-delight.jpeg',
+    image: '/products/rose-varieties-cat.jpeg',
     description: 'Premium live hybrid rose plants, double delight & button rose varieties.',
     order: 1,
     isActive: true,
     isFeatured: true,
-    productCount: 5
+    productCount: 52
   },
   {
     id: 'cat-herbals',
     name: 'Herbal Plants',
     tamilName: 'மூலிகை (Herbals)',
     slug: 'herbals',
-    image: '/products/eq.jpeg',
+    image: '/products/herbal-plants-cat.jpeg',
     description: 'Medicinal plants including Panner leaf, Ranakalli, and Rosemary.',
     order: 2,
     isActive: true,
     isFeatured: true,
-    productCount: 3
+    productCount: 24
   },
   {
     id: 'cat-jasmine',
