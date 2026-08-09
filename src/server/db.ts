@@ -3821,208 +3821,7 @@ const DEFAULT_SETTINGS: SiteSettings = {
   phonepeEnv: (process.env.PHONEPE_ENV as 'SANDBOX' | 'PRODUCTION') || 'PRODUCTION'
 };
 
-const DEFAULT_ORDERS: Order[] = [
-  {
-    id: 'ORD-VRG-8235',
-    merchantTransactionId: 'MT1785428235',
-    customerName: 'Kupendran Kupendran',
-    customerPhone: '9876543210',
-    customerEmail: 'kupendrankupendran391@gmail.com',
-    shippingAddress: { fullName: 'Kupendran Kupendran', phone: '9876543210', houseNo: '12', street: 'Main Road', villageTown: 'Pennagaram', district: 'Dharmapuri', state: 'Tamil Nadu', pincode: '636810', addressType: 'Home' },
-    items: [{ productId: 'prod-dd-8inch', sku: 'VRG-ROSE-01', name: 'Double Delight (8 inch pot)', tamilName: 'டபுள் டிலைட் ரோஜா', price: 199, mrp: 230, quantity: 1, image: '/products/double-delight.jpeg' }],
-    subtotal: 199, shippingCharge: 50, discount: 0, grandTotal: 249, paymentStatus: 'PENDING', orderStatus: 'PENDING', paymentMethod: 'COD', createdAt: '2026-07-30T14:30:00.000Z', updatedAt: '2026-07-30T14:30:00.000Z'
-  },
-  {
-    id: 'ORD-VRG-2197',
-    merchantTransactionId: 'MT1785422197',
-    customerName: 'Kupendran Kupendran',
-    customerPhone: '9876543210',
-    customerEmail: 'kupendrankupendran391@gmail.com',
-    shippingAddress: { fullName: 'Kupendran Kupendran', phone: '9876543210', houseNo: '12', street: 'Main Road', villageTown: 'Pennagaram', district: 'Dharmapuri', state: 'Tamil Nadu', pincode: '636810', addressType: 'Home' },
-    items: [{ productId: 'prod-tiger-rose', sku: 'VRG-ROSE-02', name: 'Tiger Rose', tamilName: 'டைகர் ரோஸ்', price: 199, mrp: 230, quantity: 1, image: '/products/rhdhd.jpeg' }],
-    subtotal: 199, shippingCharge: 50, discount: 0, grandTotal: 249, paymentStatus: 'PENDING', orderStatus: 'PENDING', paymentMethod: 'COD', createdAt: '2026-07-30T14:20:00.000Z', updatedAt: '2026-07-30T14:20:00.000Z'
-  },
-  {
-    id: 'ORD-VRG-2834',
-    merchantTransactionId: 'MT1785422834',
-    customerName: 'Kupendran Kupendran',
-    customerPhone: '9876543210',
-    customerEmail: 'kupendrankupendran391@gmail.com',
-    shippingAddress: { fullName: 'Kupendran Kupendran', phone: '9876543210', houseNo: '12', street: 'Main Road', villageTown: 'Pennagaram', district: 'Dharmapuri', state: 'Tamil Nadu', pincode: '636810', addressType: 'Home' },
-    items: [{ productId: 'prod-dd-8inch', sku: 'VRG-ROSE-01', name: 'Double Delight', tamilName: 'டபுள் டிலைட்', price: 199, mrp: 230, quantity: 1, image: '/products/double-delight.jpeg' }],
-    subtotal: 199, shippingCharge: 50, discount: 0, grandTotal: 249, paymentStatus: 'PENDING', orderStatus: 'PENDING', paymentMethod: 'COD', createdAt: '2026-07-30T14:10:00.000Z', updatedAt: '2026-07-30T14:10:00.000Z'
-  },
-  {
-    id: 'ORD-VRG-5004',
-    merchantTransactionId: 'MT1785425004',
-    customerName: 'Kupendran Kupendran',
-    customerPhone: '9876543210',
-    customerEmail: 'kupendrankupendran391@gmail.com',
-    shippingAddress: { fullName: 'Kupendran Kupendran', phone: '9876543210', houseNo: '12', street: 'Main Road', villageTown: 'Pennagaram', district: 'Dharmapuri', state: 'Tamil Nadu', pincode: '636810', addressType: 'Home' },
-    items: [{ productId: 'prod-dd-8inch', sku: 'VRG-ROSE-01', name: 'Double Delight', tamilName: 'டபுள் டிலைட்', price: 199, mrp: 230, quantity: 1, image: '/products/double-delight.jpeg' }],
-    subtotal: 199, shippingCharge: 50, discount: 0, grandTotal: 249, paymentStatus: 'PENDING', orderStatus: 'PENDING', paymentMethod: 'COD', createdAt: '2026-07-30T14:00:00.000Z', updatedAt: '2026-07-30T14:00:00.000Z'
-  },
-  {
-    id: 'ORD-VRG-6769',
-    merchantTransactionId: 'MT178542702721868',
-    customerName: 'New Account User',
-    customerPhone: '9123456789',
-    customerEmail: 'newaccount@test.com',
-    shippingAddress: { fullName: 'New Account User', phone: '9123456789', houseNo: '88', street: 'Rose Street', villageTown: 'Pennagaram', district: 'Dharmapuri', state: 'Tamil Nadu', pincode: '636810', addressType: 'Home' },
-    items: [{ productId: 'prod-panner-leaf', sku: 'VRG-HERB-01', name: 'Panner Leaf Plant', tamilName: 'பன்னீர் இலை', price: 30, mrp: 50, quantity: 1, image: '/products/eq.jpeg' }],
-    subtotal: 30, shippingCharge: 50, discount: 0, grandTotal: 80, paymentStatus: 'SUCCESS', orderStatus: 'DELIVERED', paymentMethod: 'COD', createdAt: '2026-07-30T15:57:07.000Z', updatedAt: '2026-07-30T15:57:07.000Z'
-  },
-  {
-    id: 'ORD-VRG-5881',
-    merchantTransactionId: 'MT178542465001456',
-    customerName: 'Admin List Test User',
-    customerPhone: '9998887776',
-    customerEmail: 'adminlist@test.com',
-    shippingAddress: { fullName: 'Admin List Test User', phone: '9998887776', houseNo: '15', street: 'Flower Lane', villageTown: 'Salem', district: 'Salem', state: 'Tamil Nadu', pincode: '636002', addressType: 'Home' },
-    items: [{ productId: 'prod-dd-8inch', sku: 'VRG-ROSE-01', name: 'Double Delight Rose', tamilName: 'டபுள் டிலைட்', price: 199, mrp: 230, quantity: 1, image: '/products/double-delight.jpeg' }],
-    subtotal: 199, shippingCharge: 50, discount: 0, grandTotal: 249, paymentStatus: 'SUCCESS', orderStatus: 'DELIVERED', paymentMethod: 'COD', createdAt: '2026-07-30T15:17:30.000Z', updatedAt: '2026-07-30T15:17:30.000Z'
-  },
-  {
-    id: 'ORD-VRG-3014',
-    merchantTransactionId: 'MT178542350729786',
-    customerName: 'Final Live Test User',
-    customerPhone: '9876543210',
-    customerEmail: 'finallive@test.com',
-    shippingAddress: { fullName: 'Final Live Test User', phone: '9876543210', houseNo: '12', street: 'Garden Lane', villageTown: 'Pennagaram', district: 'Dharmapuri', state: 'Tamil Nadu', pincode: '636810', addressType: 'Home' },
-    items: [{ productId: 'prod-panner-leaf', sku: 'VRG-HERB-01', name: 'Panner Leaf Plant', tamilName: 'பன்னீர் இலை', price: 30, mrp: 50, quantity: 1, image: '/products/eq.jpeg' }],
-    subtotal: 30, shippingCharge: 50, discount: 0, grandTotal: 80, paymentStatus: 'SUCCESS', orderStatus: 'DELIVERED', paymentMethod: 'COD', createdAt: '2026-07-30T14:58:27.000Z', updatedAt: '2026-07-30T14:58:27.000Z'
-  },
-  {
-    id: 'ORD-VRG-4020',
-    merchantTransactionId: 'MT1785424020',
-    customerName: 'Naveen Kumar',
-    customerPhone: '09360931606',
-    customerEmail: 'nv01110612@gmail.com',
-    shippingAddress: { fullName: 'Naveen Kumar', phone: '09360931606', houseNo: '21', street: 'Main Road', villageTown: 'Pennagaram', district: 'Dharmapuri', state: 'Tamil Nadu', pincode: '636810', addressType: 'Home' },
-    items: [{ productId: 'prod-dd-8inch', sku: 'VRG-ROSE-01', name: 'Double Delight', tamilName: 'டபுள் டிலைட்', price: 199, mrp: 230, quantity: 1, image: '/products/double-delight.jpeg' }],
-    subtotal: 199, shippingCharge: 50, discount: 0, grandTotal: 249, paymentStatus: 'SUCCESS', orderStatus: 'DELIVERED', paymentMethod: 'COD', createdAt: '2026-07-30T13:45:00.000Z', updatedAt: '2026-07-30T13:45:00.000Z'
-  },
-  {
-    id: 'ORD-VRG-8219',
-    merchantTransactionId: 'MT1785428219',
-    customerName: 'Naveen Kumar',
-    customerPhone: '09360931606',
-    customerEmail: 'nv01110612@gmail.com',
-    shippingAddress: { fullName: 'Naveen Kumar', phone: '09360931606', houseNo: '21', street: 'Main Road', villageTown: 'Pennagaram', district: 'Dharmapuri', state: 'Tamil Nadu', pincode: '636810', addressType: 'Home' },
-    items: [{ productId: 'prod-dd-8inch', sku: 'VRG-ROSE-01', name: 'Double Delight', tamilName: 'டபுள் டிலைட்', price: 199, mrp: 230, quantity: 1, image: '/products/double-delight.jpeg' }],
-    subtotal: 199, shippingCharge: 50, discount: 0, grandTotal: 249, paymentStatus: 'SUCCESS', orderStatus: 'DELIVERED', paymentMethod: 'COD', createdAt: '2026-07-30T13:30:00.000Z', updatedAt: '2026-07-30T13:30:00.000Z'
-  },
-  {
-    id: 'ORD-VRG-6642',
-    merchantTransactionId: 'MT1785426642',
-    customerName: 'Naveen Kumar',
-    customerPhone: '09360931606',
-    customerEmail: 'nv01110612@gmail.com',
-    shippingAddress: { fullName: 'Naveen Kumar', phone: '09360931606', houseNo: '21', street: 'Main Road', villageTown: 'Pennagaram', district: 'Dharmapuri', state: 'Tamil Nadu', pincode: '636810', addressType: 'Home' },
-    items: [{ productId: 'prod-dd-8inch', sku: 'VRG-ROSE-01', name: 'Double Delight', tamilName: 'டபுள் டிலைட்', price: 199, mrp: 230, quantity: 1, image: '/products/double-delight.jpeg' }],
-    subtotal: 199, shippingCharge: 50, discount: 0, grandTotal: 249, paymentStatus: 'PENDING', orderStatus: 'PENDING', paymentMethod: 'COD', createdAt: '2026-07-30T13:15:00.000Z', updatedAt: '2026-07-30T13:15:00.000Z'
-  },
-  {
-    id: 'ORD-VRG-9682',
-    merchantTransactionId: 'MT1785429682',
-    customerName: 'Naveen Kumar',
-    customerPhone: '09360931606',
-    customerEmail: 'nv01110612@gmail.com',
-    shippingAddress: { fullName: 'Naveen Kumar', phone: '09360931606', houseNo: '21', street: 'Main Road', villageTown: 'Pennagaram', district: 'Dharmapuri', state: 'Tamil Nadu', pincode: '636810', addressType: 'Home' },
-    items: [{ productId: 'prod-dd-8inch', sku: 'VRG-ROSE-01', name: 'Double Delight', tamilName: 'டபுள் டிலைட்', price: 199, mrp: 230, quantity: 1, image: '/products/double-delight.jpeg' }],
-    subtotal: 199, shippingCharge: 50, discount: 0, grandTotal: 249, paymentStatus: 'PENDING', orderStatus: 'PENDING', paymentMethod: 'COD', createdAt: '2026-07-30T13:00:00.000Z', updatedAt: '2026-07-30T13:00:00.000Z'
-  },
-  {
-    id: 'ORD-VRG-4082',
-    merchantTransactionId: 'MT1785424082',
-    customerName: 'Naveen Kumar',
-    customerPhone: '09360931606',
-    customerEmail: 'nv01110612@gmail.com',
-    shippingAddress: { fullName: 'Naveen Kumar', phone: '09360931606', houseNo: '21', street: 'Main Road', villageTown: 'Pennagaram', district: 'Dharmapuri', state: 'Tamil Nadu', pincode: '636810', addressType: 'Home' },
-    items: [{ productId: 'prod-dd-8inch', sku: 'VRG-ROSE-01', name: 'Double Delight', tamilName: 'டபுள் டிலைட்', price: 199, mrp: 230, quantity: 1, image: '/products/double-delight.jpeg' }],
-    subtotal: 199, shippingCharge: 50, discount: 0, grandTotal: 249, paymentStatus: 'PENDING', orderStatus: 'PENDING', paymentMethod: 'COD', createdAt: '2026-07-30T12:45:00.000Z', updatedAt: '2026-07-30T12:45:00.000Z'
-  },
-  {
-    id: 'ORD-VRG-2156',
-    merchantTransactionId: 'MT1785422156',
-    customerName: 'Naveen Kumar',
-    customerPhone: '09360931606',
-    customerEmail: 'nv01110612@gmail.com',
-    shippingAddress: { fullName: 'Naveen Kumar', phone: '09360931606', houseNo: '21', street: 'Main Road', villageTown: 'Pennagaram', district: 'Dharmapuri', state: 'Tamil Nadu', pincode: '636810', addressType: 'Home' },
-    items: [{ productId: 'prod-dd-8inch', sku: 'VRG-ROSE-01', name: 'Double Delight', tamilName: 'டபுள் டிலைட்', price: 199, mrp: 230, quantity: 1, image: '/products/double-delight.jpeg' }],
-    subtotal: 199, shippingCharge: 50, discount: 0, grandTotal: 249, paymentStatus: 'PENDING', orderStatus: 'PENDING', paymentMethod: 'COD', createdAt: '2026-07-30T12:30:00.000Z', updatedAt: '2026-07-30T12:30:00.000Z'
-  },
-  {
-    id: 'ORD-VRG-1416',
-    merchantTransactionId: 'MT1785421416',
-    customerName: 'Naveen Kumar',
-    customerPhone: '09360931606',
-    customerEmail: 'nv01110612@gmail.com',
-    shippingAddress: { fullName: 'Naveen Kumar', phone: '09360931606', houseNo: '21', street: 'Main Road', villageTown: 'Pennagaram', district: 'Dharmapuri', state: 'Tamil Nadu', pincode: '636810', addressType: 'Home' },
-    items: [{ productId: 'prod-dd-8inch', sku: 'VRG-ROSE-01', name: 'Double Delight', tamilName: 'டபுள் டிலைட்', price: 199, mrp: 230, quantity: 1, image: '/products/double-delight.jpeg' }],
-    subtotal: 199, shippingCharge: 50, discount: 0, grandTotal: 249, paymentStatus: 'PENDING', orderStatus: 'PENDING', paymentMethod: 'COD', createdAt: '2026-07-30T12:15:00.000Z', updatedAt: '2026-07-30T12:15:00.000Z'
-  },
-  {
-    id: 'ORD-VRG-2286',
-    merchantTransactionId: 'MT1785422286',
-    customerName: 'Naveen Kumar',
-    customerPhone: '09360931606',
-    customerEmail: 'nv01110612@gmail.com',
-    shippingAddress: { fullName: 'Naveen Kumar', phone: '09360931606', houseNo: '21', street: 'Main Road', villageTown: 'Pennagaram', district: 'Dharmapuri', state: 'Tamil Nadu', pincode: '636810', addressType: 'Home' },
-    items: [{ productId: 'prod-panner-leaf', sku: 'VRG-HERB-01', name: 'Panner Leaf Plant', tamilName: 'பன்னீர் இலை', price: 30, mrp: 50, quantity: 1, image: '/products/eq.jpeg' }],
-    subtotal: 30, shippingCharge: 50, discount: 0, grandTotal: 80, paymentStatus: 'PENDING', orderStatus: 'PENDING', paymentMethod: 'COD', createdAt: '2026-07-30T12:00:00.000Z', updatedAt: '2026-07-30T12:00:00.000Z'
-  },
-  {
-    id: 'ORD-VRG-6412',
-    merchantTransactionId: 'MT1785426412',
-    customerName: 'Naveen Kumar',
-    customerPhone: '09360931606',
-    customerEmail: 'nv01110612@gmail.com',
-    shippingAddress: { fullName: 'Naveen Kumar', phone: '09360931606', houseNo: '21', street: 'Main Road', villageTown: 'Pennagaram', district: 'Dharmapuri', state: 'Tamil Nadu', pincode: '636810', addressType: 'Home' },
-    items: [{ productId: 'prod-dd-8inch', sku: 'VRG-ROSE-01', name: 'Double Delight', tamilName: 'டபுள் டிலைட்', price: 199, mrp: 230, quantity: 1, image: '/products/double-delight.jpeg' }],
-    subtotal: 199, shippingCharge: 50, discount: 0, grandTotal: 249, paymentStatus: 'PENDING', orderStatus: 'PENDING', paymentMethod: 'COD', createdAt: '2026-07-30T11:45:00.000Z', updatedAt: '2026-07-30T11:45:00.000Z'
-  },
-  {
-    id: 'ORD-VRG-4615',
-    merchantTransactionId: 'MT1785424615',
-    customerName: 'Naveen Kumar',
-    customerPhone: '09360931606',
-    customerEmail: 'nv01110612@gmail.com',
-    shippingAddress: { fullName: 'Naveen Kumar', phone: '09360931606', houseNo: '11', street: 'Beach Road', villageTown: 'Chennai', district: 'Chennai', state: 'Tamil Nadu', pincode: '600001', addressType: 'Home' },
-    items: [{ productId: 'prod-dd-8inch', sku: 'VRG-ROSE-01', name: 'Double Delight', tamilName: 'டபுள் டிலைட்', price: 199, mrp: 230, quantity: 1, image: '/products/double-delight.jpeg' }],
-    subtotal: 199, shippingCharge: 50, discount: 0, grandTotal: 249, paymentStatus: 'PENDING', orderStatus: 'PENDING', paymentMethod: 'COD', createdAt: '2026-07-30T11:30:00.000Z', updatedAt: '2026-07-30T11:30:00.000Z'
-  },
-  {
-    id: 'ORD-VRG-1205',
-    merchantTransactionId: 'MT1785421205',
-    customerName: 'Naveen Kumar',
-    customerPhone: '09360931606',
-    customerEmail: 'nv01110612@gmail.com',
-    shippingAddress: { fullName: 'Naveen Kumar', phone: '09360931606', houseNo: '444', street: 'Beach Road', villageTown: 'Chennai', district: 'Chennai', state: 'Tamil Nadu', pincode: '600001', addressType: 'Home' },
-    items: [{ productId: 'prod-panner-leaf', sku: 'VRG-HERB-01', name: 'Panner Leaf Plant', tamilName: 'பன்னீர் இலை', price: 30, mrp: 50, quantity: 1, image: '/products/eq.jpeg' }],
-    subtotal: 30, shippingCharge: 50, discount: 0, grandTotal: 80, paymentStatus: 'PENDING', orderStatus: 'PENDING', paymentMethod: 'COD', createdAt: '2026-07-30T11:15:00.000Z', updatedAt: '2026-07-30T11:15:00.000Z'
-  },
-  {
-    id: 'ORD-VRG-6118',
-    merchantTransactionId: 'MT1785426118',
-    customerName: 'Naveen Kumar',
-    customerPhone: '09360931606',
-    customerEmail: 'nv01110612@gmail.com',
-    shippingAddress: { fullName: 'Naveen Kumar', phone: '09360931606', houseNo: '11', street: 'Beach Road', villageTown: 'Chennai', district: 'Chennai', state: 'Tamil Nadu', pincode: '600001', addressType: 'Home' },
-    items: [{ productId: 'prod-tiger-rose', sku: 'VRG-ROSE-02', name: 'Tiger Rose', tamilName: 'டைகர் ரோஸ்', price: 99, mrp: 150, quantity: 1, image: '/products/rhdhd.jpeg' }],
-    subtotal: 99, shippingCharge: 50, discount: 0, grandTotal: 149, paymentStatus: 'PENDING', orderStatus: 'PENDING', paymentMethod: 'COD', createdAt: '2026-07-30T11:00:00.000Z', updatedAt: '2026-07-30T11:00:00.000Z'
-  },
-  {
-    id: 'ORD-VRG-9131',
-    merchantTransactionId: 'MT1785429131',
-    customerName: 'Different Account Customer',
-    customerPhone: '9991112223',
-    customerEmail: 'diffaccount@test.com',
-    shippingAddress: { fullName: 'Different Account Customer', phone: '9991112223', houseNo: '101', street: 'Garden Road', villageTown: 'Salem', district: 'Salem', state: 'Tamil Nadu', pincode: '636001', addressType: 'Home' },
-    items: [{ productId: 'prod-button-rose', sku: 'VRG-ROSE-02', name: 'Button Rose Plant', tamilName: 'பட்டன் ரோஸ்', price: 120, mrp: 150, quantity: 2, image: '/products/button.jpeg' }],
-    subtotal: 240, shippingCharge: 60, discount: 0, grandTotal: 300, paymentStatus: 'PENDING', orderStatus: 'PENDING', paymentMethod: 'COD', createdAt: '2026-07-30T16:04:00.000Z', updatedAt: '2026-07-30T16:04:00.000Z'
-  }
-];
+const DEFAULT_ORDERS: Order[] = [];
 
 const DEFAULT_FINANCES: FinancialEntry[] = [
   {
@@ -5491,7 +5290,24 @@ class Store {
 
   // ORDERS
   async createOrder(orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>): Promise<Order> {
-    const id = 'ORD-VRG-' + Math.floor(1000 + Math.random() * 9000);
+    // Determine next sequential Order ID starting from 0 (ORD-0, ORD-1, ORD-2...)
+    const existingOrders = await this.getOrders();
+    let maxNum = -1;
+    for (const o of existingOrders) {
+      if (o && o.id) {
+        // extract numeric part of order ID
+        const match = o.id.match(/^ORD-(\d+)$/i) || o.id.match(/^(\d+)$/i) || o.id.match(/(\d+)/);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (!isNaN(num) && num < 1000000 && num > maxNum) {
+            maxNum = num;
+          }
+        }
+      }
+    }
+
+    const nextIndex = maxNum + 1; // Starts at 0 if no previous ORD-N orders exist
+    const id = `ORD-${nextIndex}`;
     const order: Order = {
       ...orderData,
       id,
@@ -5766,6 +5582,36 @@ class Store {
 
 
   async getOrderById(id: string): Promise<Order | undefined> {
+    const clean = (id || '').trim();
+    if (!clean) return undefined;
+
+    const all = await this.getOrders();
+    const cleanLower = clean.toLowerCase();
+    const numOnly = clean.replace(/\D/g, '');
+
+    // 1. Direct match on ID, orderNumber, merchantTransactionId, or trackingNumber
+    let match = all.find(o =>
+      (o.id && o.id.toLowerCase() === cleanLower) ||
+      (o.merchantTransactionId && o.merchantTransactionId.toLowerCase() === cleanLower) ||
+      (o.trackingNumber && o.trackingNumber.toLowerCase() === cleanLower)
+    );
+
+    // 2. Flexible numeric match (e.g., searching "0" matches "ORD-0")
+    if (!match && numOnly !== '') {
+      match = all.find(o => {
+        if (!o.id) return false;
+        const oNum = o.id.replace(/\D/g, '');
+        return oNum === numOnly;
+      });
+    }
+
+    // 3. Phone number match (10 digits)
+    if (!match && numOnly.length >= 10) {
+      match = all.find(o => o.customerPhone && o.customerPhone.replace(/\D/g, '').slice(-10) === numOnly.slice(-10));
+    }
+
+    if (match) return match;
+
     const memMatch = this.memoryOrders.find(o => o.id === id || o.merchantTransactionId === id);
 
     const prisma = getPrismaClient();
@@ -5775,9 +5621,10 @@ class Store {
       const o = await prisma.order.findFirst({
         where: {
           OR: [
-            { id },
-            { orderNumber: id },
-            { merchantTransactionId: id }
+            { id: clean },
+            { orderNumber: clean },
+            { merchantTransactionId: clean },
+            { trackingNumber: clean }
           ]
         },
         include: { items: { include: { product: true } } }
