@@ -2117,7 +2117,15 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                                 onClick={async () => {
                                   if (!confirm(`Delete combo package "${combo.title}"?`)) return;
                                   setCombos(prev => prev.filter(c => c.id !== combo.id));
-                                  await authFetch(`/api/admin/combos/${combo.id}`, { method: 'DELETE' });
+                                  try {
+                                    const res = await authFetch(`/api/admin/combos/${combo.id}`, { method: 'DELETE' });
+                                    const data = await res.json().catch(() => ({}));
+                                    if (!data.success) {
+                                      await authFetch(`/api/admin/combos/${combo.id}/delete`, { method: 'POST' });
+                                    }
+                                  } catch {
+                                    await authFetch(`/api/admin/combos/${combo.id}/delete`, { method: 'POST' }).catch(() => {});
+                                  }
                                 }}
                                 className="p-1.5 bg-rose-50 text-rose-600 rounded-lg border border-rose-200 hover:bg-rose-100"
                                 title="Delete Combo"

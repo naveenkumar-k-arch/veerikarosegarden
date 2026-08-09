@@ -5135,27 +5135,29 @@ class Store {
         const allProducts = await this.getProducts();
         const prodMap = new Map(allProducts.map(p => [p.id, p]));
 
-        return items.map(c => {
-          const matchedProds = (c.productIds || [])
-            .map(pid => prodMap.get(pid))
-            .filter(Boolean) as Product[];
-          return {
-            id: c.id,
-            title: c.title,
-            subtitle: c.subtitle || undefined,
-            badge: c.badge || 'COMBO OFFER',
-            productIds: c.productIds,
-            products: matchedProds,
-            originalPrice: c.originalPrice,
-            comboPrice: c.comboPrice,
-            discountPercent: c.discountPercent,
-            imageUrl: c.imageUrl || undefined,
-            active: c.active,
-            order: c.order,
-            createdAt: c.createdAt ? c.createdAt.toISOString() : new Date().toISOString(),
-            updatedAt: c.updatedAt ? c.updatedAt.toISOString() : new Date().toISOString()
-          };
-        });
+        return items
+          .filter(c => !deletedComboIds.has(c.id))
+          .map(c => {
+            const matchedProds = (c.productIds || [])
+              .map(pid => prodMap.get(pid))
+              .filter(Boolean) as Product[];
+            return {
+              id: c.id,
+              title: c.title,
+              subtitle: c.subtitle || undefined,
+              badge: c.badge || 'COMBO OFFER',
+              productIds: c.productIds,
+              products: matchedProds,
+              originalPrice: c.originalPrice,
+              comboPrice: c.comboPrice,
+              discountPercent: c.discountPercent,
+              imageUrl: c.imageUrl || undefined,
+              active: c.active,
+              order: c.order,
+              createdAt: c.createdAt ? c.createdAt.toISOString() : new Date().toISOString(),
+              updatedAt: c.updatedAt ? c.updatedAt.toISOString() : new Date().toISOString()
+            };
+          });
       } catch (err) {
         console.error('Prisma getCombos error:', err);
       }
@@ -5164,10 +5166,12 @@ class Store {
     const allProducts = await this.getProducts();
     const prodMap = new Map(allProducts.map(p => [p.id, p]));
 
-    return memoryCombosStore.map(c => ({
-      ...c,
-      products: (c.productIds || []).map(pid => prodMap.get(pid)).filter(Boolean) as Product[]
-    }));
+    return memoryCombosStore
+      .filter(c => !deletedComboIds.has(c.id))
+      .map(c => ({
+        ...c,
+        products: (c.productIds || []).map(pid => prodMap.get(pid)).filter(Boolean) as Product[]
+      }));
   }
 
   async addCombo(data: Partial<Combo>): Promise<Combo> {
@@ -5283,6 +5287,8 @@ class Store {
     const cleanId = (id || '').trim();
     if (!cleanId) return false;
 
+    deletedComboIds.add(cleanId);
+
     const idx = memoryCombosStore.findIndex(c => c.id === cleanId);
     if (idx !== -1) memoryCombosStore.splice(idx, 1);
 
@@ -5292,6 +5298,20 @@ class Store {
         await prisma.combo.deleteMany({ where: { id: cleanId } });
       } catch (err) {
         console.error('Prisma deleteCombo error:', err);
+      }
+    }
+    return true;
+  }
+
+  async deleteAllCombos(): Promise<boolean> {
+    DEFAULT_COMBOS.forEach(c => deletedComboIds.add(c.id));
+    memoryCombosStore.length = 0;
+    const prisma = getPrismaClient();
+    if (prisma) {
+      try {
+        await prisma.combo.deleteMany().catch(() => {});
+      } catch (err) {
+        console.error('Prisma deleteAllCombos error:', err);
       }
     }
     return true;

@@ -473,14 +473,22 @@ apiRouter.put('/admin/combos/:id', requireAdmin, async (req: AuthenticatedReques
   }
 });
 
-apiRouter.delete('/admin/combos/:id', requireAdmin, async (req: AuthenticatedRequest, res) => {
+const handleDeleteCombo = async (req: AuthenticatedRequest, res: express.Response) => {
   try {
-    await db.deleteCombo(req.params.id);
+    const id = req.params.id || req.body?.id;
+    if (!id) return res.status(400).json({ success: false, message: 'Combo ID is required' });
+    await db.deleteCombo(id);
     res.json({ success: true, message: 'Combo package deleted successfully' });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to delete combo package' });
   }
-});
+};
+
+apiRouter.delete('/admin/combos/:id', requireAdmin, handleDeleteCombo);
+apiRouter.post('/admin/combos/:id/delete', requireAdmin, handleDeleteCombo);
+apiRouter.delete('/combos/:id', requireAdmin, handleDeleteCombo);
+apiRouter.post('/combos/:id/delete', requireAdmin, handleDeleteCombo);
+apiRouter.post('/combos/delete', requireAdmin, handleDeleteCombo);
 
 
 
