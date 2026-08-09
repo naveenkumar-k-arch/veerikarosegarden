@@ -104,10 +104,15 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                   className="group bg-white/90 backdrop-blur-md border border-amber-200/70 hover:border-amber-400 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between relative transform hover:-translate-y-1"
                 >
                   {/* Top Discount Badge */}
-                  <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5">
+                  <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 flex-wrap">
                     <span className="bg-gradient-to-r from-rose-600 to-amber-600 text-white font-black text-[11px] px-3 py-1 rounded-full shadow-md uppercase tracking-wide flex items-center gap-1">
                       <Tag className="w-3 h-3" /> {combo.badge || 'COMBO OFFER'}
                     </span>
+                    {combo.freeDelivery && (
+                      <span className="bg-emerald-600 text-white font-black text-[11px] px-2.5 py-1 rounded-full shadow-md flex items-center gap-1">
+                        <Truck className="w-3 h-3" /> FREE DELIVERY
+                      </span>
+                    )}
                     {discount > 0 && (
                       <span className="bg-emerald-700 text-white font-black text-[11px] px-2.5 py-1 rounded-full shadow-md">
                         {discount}% OFF
@@ -198,6 +203,13 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                             <p className="text-xs font-extrabold text-emerald-700 mt-0.5">
                               🎉 Total Savings: ₹{savings} ({discount}% OFF)
                             </p>
+                          )}
+                          {combo.freeDelivery && (
+                            <div className="mt-1">
+                              <span className="bg-emerald-100 text-emerald-900 font-extrabold text-[11px] px-2.5 py-0.5 rounded-lg border border-emerald-300 inline-flex items-center gap-1">
+                                🚚 Includes 100% Free Shipping!
+                              </span>
+                            </div>
                           )}
                         </div>
                       </div>

@@ -5154,6 +5154,7 @@ class Store {
               imageUrl: c.imageUrl || undefined,
               active: c.active,
               order: c.order,
+              freeDelivery: c.freeDelivery || false,
               createdAt: c.createdAt ? c.createdAt.toISOString() : new Date().toISOString(),
               updatedAt: c.updatedAt ? c.updatedAt.toISOString() : new Date().toISOString()
             };
@@ -5185,6 +5186,7 @@ class Store {
     const discountPercent = originalPrice > 0 ? Math.round(((originalPrice - comboPrice) / originalPrice) * 100) : 0;
     const imageUrl = data.imageUrl || '/products/pink-guava-plant.jpeg';
     const active = data.active !== false;
+    const freeDelivery = data.freeDelivery === true;
 
     const newCombo: Combo = {
       id,
@@ -5197,6 +5199,7 @@ class Store {
       discountPercent,
       imageUrl,
       active,
+      freeDelivery,
       order: 1,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -5216,7 +5219,8 @@ class Store {
             comboPrice,
             discountPercent,
             imageUrl,
-            active
+            active,
+            freeDelivery
           }
         });
       } catch (err) {
@@ -5250,7 +5254,8 @@ class Store {
               ...(updates.originalPrice !== undefined ? { originalPrice: origPrice } : {}),
               ...(updates.comboPrice !== undefined ? { comboPrice: cmbPrice, discountPercent: disPercent } : {}),
               ...(updates.imageUrl !== undefined ? { imageUrl: updates.imageUrl } : {}),
-              ...(updates.active !== undefined ? { active: updates.active } : {})
+              ...(updates.active !== undefined ? { active: updates.active } : {}),
+              ...(updates.freeDelivery !== undefined ? { freeDelivery: updates.freeDelivery } : {})
             }
           });
 
@@ -5265,6 +5270,7 @@ class Store {
             discountPercent: updated.discountPercent,
             imageUrl: updated.imageUrl || undefined,
             active: updated.active,
+            freeDelivery: updated.freeDelivery,
             order: updated.order,
             createdAt: updated.createdAt ? updated.createdAt.toISOString() : new Date().toISOString(),
             updatedAt: updated.updatedAt ? updated.updatedAt.toISOString() : new Date().toISOString()

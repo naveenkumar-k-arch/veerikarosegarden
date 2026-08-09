@@ -148,7 +148,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
     originalPrice: 0,
     comboPrice: 0,
     imageUrl: '',
-    active: true
+    active: true,
+    freeDelivery: false
   });
   const [banners, setBanners] = useState<Banner[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -2007,7 +2008,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                         originalPrice: products.length >= 2 ? (products[0].mrp + products[1].mrp) : 500,
                         comboPrice: products.length >= 2 ? (products[0].sellingPrice + products[1].sellingPrice - 50) : 350,
                         imageUrl: '',
-                        active: true
+                        active: true,
+                        freeDelivery: false
                       });
                       setShowComboModal(true);
                     }}
@@ -2044,6 +2046,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                                 <span className="bg-amber-100 text-amber-900 font-black text-[10px] px-2 py-0.5 rounded-full uppercase">
                                   {combo.badge || 'COMBO OFFER'}
                                 </span>
+                                {combo.freeDelivery && (
+                                  <span className="bg-emerald-600 text-white font-black text-[10px] px-2 py-0.5 rounded-full">
+                                    🚚 FREE DELIVERY
+                                  </span>
+                                )}
                                 {discount > 0 && (
                                   <span className="bg-emerald-700 text-white font-bold text-[10px] px-2 py-0.5 rounded-full">
                                     {discount}% OFF
@@ -2089,7 +2096,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                                     originalPrice: combo.originalPrice,
                                     comboPrice: combo.comboPrice,
                                     imageUrl: combo.imageUrl || '',
-                                    active: combo.active !== false
+                                    active: combo.active !== false,
+                                    freeDelivery: combo.freeDelivery === true
                                   });
                                   setShowComboModal(true);
                                 }}
@@ -3593,6 +3601,35 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                   🎉 Customer Saves ₹{comboForm.originalPrice - comboForm.comboPrice} ({Math.round(((comboForm.originalPrice - comboForm.comboPrice) / comboForm.originalPrice) * 100)}% OFF)
                 </div>
               )}
+
+              {/* Free Delivery Toggle Button */}
+              <div className="flex items-center justify-between p-3.5 bg-emerald-50/80 rounded-2xl border border-emerald-200 shadow-2xs">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-xl">🚚</span>
+                  <div>
+                    <label htmlFor="comboFreeDelivery" className="font-extrabold text-emerald-950 text-xs cursor-pointer block">
+                      Free Delivery for this Combo Package
+                    </label>
+                    <p className="text-[11px] text-emerald-800 font-medium">
+                      Offer 100% FREE Shipping for customers buying this combo bundle!
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  id="comboFreeDelivery"
+                  onClick={() => setComboForm(prev => ({ ...prev, freeDelivery: !prev.freeDelivery }))}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    comboForm.freeDelivery ? 'bg-emerald-600' : 'bg-slate-300'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                      comboForm.freeDelivery ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
 
               <div className="flex items-center gap-2 pt-1">
                 <input

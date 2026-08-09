@@ -229,6 +229,7 @@ export interface Combo {
   imageUrl?: string;
   active: boolean;
   order?: number;
+  freeDelivery?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
