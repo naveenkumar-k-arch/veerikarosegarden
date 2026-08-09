@@ -31,17 +31,64 @@ export const ShopPage: React.FC<ShopPageProps> = ({
   const [inStockOnly, setInStockOnly] = useState<boolean>(false);
   const [mobileFilterOpen, setMobileFilterOpen] = useState<boolean>(false);
 
+  // Robust Category Matching Helper
+  const isProductInCat = (p: Product, catTarget?: string): boolean => {
+    if (!catTarget || catTarget === 'all') return true;
+
+    const matchCat = categories.find(
+      c => c.id === catTarget || c.slug === catTarget || c.id.toLowerCase() === catTarget.toLowerCase() || c.name.toLowerCase() === catTarget.toLowerCase()
+    );
+
+    const targetId = (matchCat ? matchCat.id : catTarget).toLowerCase();
+    const targetSlug = (matchCat ? matchCat.slug : catTarget).toLowerCase();
+    const targetName = (matchCat ? matchCat.name : catTarget).toLowerCase();
+
+    const pCatId = (p.categoryId || '').toLowerCase();
+    const pCatName = (p.categoryName || '').toLowerCase();
+    const pTags = Array.isArray(p.tags) ? p.tags.map(t => t.toLowerCase()) : [];
+    const pName = (p.name || '').toLowerCase();
+
+    // 1. Direct ID or Slug match
+    if (pCatId && (pCatId === targetId || pCatId === targetSlug)) return true;
+    if (pCatName && (pCatName === targetName || pCatName === targetSlug)) return true;
+
+    // 2. Specific Category Mappings
+    if (targetId === 'cat-herbals' || targetSlug === 'herbals' || targetName.includes('herbal') || targetName.includes('மூலிகை')) {
+      return pCatId === 'cat-herbals' || pCatName.includes('herbal') || pTags.includes('herbal') || pTags.includes('herbals') || pTags.includes('herbal plants') || pName.includes('panner leaf') || pName.includes('ranakalli') || pName.includes('rosemary') || pName.includes('miracle leaf');
+    }
+
+    if (targetId === 'cat-jasmine' || targetSlug === 'jasmine-varieties' || targetName.includes('jasmine') || targetName.includes('மல்லி')) {
+      return pCatId === 'cat-jasmine' || pCatName.includes('jasmine') || pTags.includes('jasmine') || pTags.includes('malli') || pName.includes('malli') || pName.includes('kakattan');
+    }
+
+    if (targetId === 'cat-fruits' || targetSlug === 'fruit-plants' || targetName.includes('fruit') || targetName.includes('பழ')) {
+      return pCatId === 'cat-fruits' || pCatName.includes('fruit') || pTags.includes('fruit') || pName.includes('mango') || pName.includes('guava') || pName.includes('apple') || pName.includes('grape');
+    }
+
+    if (targetId === 'cat-creeper' || targetSlug === 'creeper-roses' || targetName.includes('creeper')) {
+      return pCatId === 'cat-creeper' || pCatName.includes('creeper') || pTags.includes('creeper') || pName.includes('creeper');
+    }
+
+    if (targetId === 'cat-miniature' || targetSlug === 'miniature-roses' || targetName.includes('miniature')) {
+      return pCatId === 'cat-miniature' || pCatName.includes('miniature') || pTags.includes('miniature') || pName.includes('button');
+    }
+
+    if (targetId === 'cat-rare' || targetSlug === 'rare-exotic-roses' || targetName.includes('rare')) {
+      return pCatId === 'cat-rare' || pCatName.includes('rare') || pTags.includes('rare') || pName.includes('black magic') || pName.includes('tiger');
+    }
+
+    if (targetId === 'cat-rose' || targetSlug === 'rose-varieties' || targetName.includes('rose')) {
+      return pCatId === 'cat-rose' || pCatName.includes('rose') || pTags.includes('rose') || pTags.includes('roses') || pName.includes('rose');
+    }
+
+    // 3. Fallback Substring match
+    return pCatId === targetId || pCatName.includes(targetName) || targetName.includes(pCatName) || pTags.includes(targetName);
+  };
+
   // Filter products
   let filtered = products.filter((p) => {
     if (p.status !== 'ACTIVE') return false;
-    if (selectedCategory) {
-      const matchCat = categories.find(c => c.id === selectedCategory || c.slug === selectedCategory || c.id.toLowerCase() === selectedCategory.toLowerCase());
-      const matchId = (matchCat ? matchCat.id : selectedCategory).toLowerCase();
-      const matchName = (matchCat ? matchCat.name : selectedCategory).toLowerCase();
-      const pCatId = (p.categoryId || '').toLowerCase();
-      const pCatName = (p.categoryName || '').toLowerCase();
-      if (pCatId !== matchId && pCatName !== matchName && !pCatName.includes(matchName) && !matchName.includes(pCatName)) return false;
-    }
+    if (selectedCategory && !isProductInCat(p, selectedCategory)) return false;
     if (p.sellingPrice > maxPrice) return false;
     if (inStockOnly && p.stock <= 0) return false;
 
@@ -67,7 +114,9 @@ export const ShopPage: React.FC<ShopPageProps> = ({
     filtered.sort((a, b) => b.rating - a.rating);
   }
 
-  const currentCategoryObj = categories.find((c) => c.id === selectedCategory);
+  const currentCategoryObj = categories.find(
+    (c) => c.id === selectedCategory || c.slug === selectedCategory || c.id.toLowerCase() === (selectedCategory || '').toLowerCase()
+  );
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
@@ -119,17 +168,18 @@ export const ShopPage: React.FC<ShopPageProps> = ({
                 }`}
               >
                 <span>All Categories</span>
-                <span>({products.length})</span>
+                <span>({products.filter(p => p.status === 'ACTIVE').length})</span>
               </button>
 
               {categories.map((cat) => {
-                const count = products.filter((p) => p.categoryId === cat.id).length;
+                const count = products.filter((p) => p.status === 'ACTIVE' && isProductInCat(p, cat.id)).length;
+                const isSelected = selectedCategory === cat.id || selectedCategory === cat.slug;
                 return (
                   <button
                     key={cat.id}
                     onClick={() => onSelectCategory(cat.id)}
                     className={`w-full text-left px-3 py-2 rounded-xl transition-colors font-medium flex items-center justify-between ${
-                      selectedCategory === cat.id
+                      isSelected
                         ? 'bg-emerald-100 text-emerald-900 font-bold'
                         : 'text-slate-700 hover:bg-slate-100'
                     }`}
