@@ -280,14 +280,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
         authFetch('/api/admin/finances').then((r) => r.json()).catch(() => null)
       ]);
 
-      const delFinances = new Set(JSON.parse(localStorage.getItem('vrg_deleted_finances') || '[]'));
-      const delCoupons = new Set(JSON.parse(localStorage.getItem('vrg_deleted_coupons') || '[]'));
-      const delProducts = new Set(JSON.parse(localStorage.getItem('vrg_deleted_products') || '[]'));
-      const delCategories = new Set(JSON.parse(localStorage.getItem('vrg_deleted_categories') || '[]'));
-      const delOrders = new Set(JSON.parse(localStorage.getItem('vrg_deleted_orders') || '[]'));
-
       if (fnRes?.success && Array.isArray(fnRes.entries)) {
-        setFinances(fnRes.entries.filter((f: any) => !delFinances.has(f.id)));
+        setFinances(fnRes.entries);
       }
 
       if (sRes?.success) setStats(sRes.stats);
@@ -295,51 +289,27 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
       if (pRes?.success && Array.isArray(pRes.products) && pRes.products.length > 0) {
         const now = Date.now();
         setProducts(prev => {
-          return pRes.products
-            .filter((p: any) => !delProducts.has(p.id))
-            .map((apiProd: Product) => {
-              const editedAt = pendingStockRef.current.get(apiProd.id);
-              if (editedAt && now - editedAt < 10000) {
-                const local = prev.find(p => p.id === apiProd.id);
-                return local ? { ...apiProd, stock: local.stock } : apiProd;
-              }
-              return apiProd;
-            });
+          return pRes.products.map((apiProd: Product) => {
+            const editedAt = pendingStockRef.current.get(apiProd.id);
+            if (editedAt && now - editedAt < 10000) {
+              const local = prev.find(p => p.id === apiProd.id);
+              return local ? { ...apiProd, stock: local.stock } : apiProd;
+            }
+            return apiProd;
+          });
         });
       }
 
       if (cRes?.success && Array.isArray(cRes.categories) && cRes.categories.length > 0) {
-        setCategories(cRes.categories.filter((c: any) => !delCategories.has(c.id)));
+        setCategories(cRes.categories);
       }
 
       if (cpRes?.success && Array.isArray(cpRes.coupons)) {
-        setCoupons(cpRes.coupons.filter((c: any) => !delCoupons.has(c.id) && !delCoupons.has(c.code)));
+        setCoupons(cpRes.coupons);
       }
 
       if (oRes?.success && Array.isArray(oRes.orders)) {
-        setOrders(oRes.orders.filter((o: any) => !delOrders.has(o.id) && !delOrders.has(o.merchantTransactionId)));
-      } else {
-        let localOrders: any[] = [];
-        const keysToRead = ['veerika_admin_orders', 'vrg_user_orders', 'veerika_customer_orders', 'vrg_orders'];
-
-        keysToRead.forEach(key => {
-          try {
-            const saved = localStorage.getItem(key);
-            if (saved) {
-              const parsed = JSON.parse(saved);
-              if (Array.isArray(parsed)) {
-                localOrders = [...localOrders, ...parsed];
-              }
-            }
-          } catch {}
-        });
-
-        const filteredLocal = localOrders.filter(o => !delOrders.has(o.id) && !delOrders.has(o.merchantTransactionId));
-        if (filteredLocal.length > 0) {
-          setOrders(filteredLocal as any);
-        } else {
-          setOrders(getInitialAdminOrders().filter(o => !delOrders.has(o.id) && !delOrders.has(o.merchantTransactionId)));
-        }
+        setOrders(oRes.orders);
       }
 
 
@@ -355,8 +325,15 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
   };
 
   useEffect(() => {
+    // Purge legacy local storage blacklists that cause multi-device desync
+    localStorage.removeItem('vrg_deleted_orders');
+    localStorage.removeItem('vrg_deleted_products');
+    localStorage.removeItem('vrg_deleted_categories');
+    localStorage.removeItem('vrg_deleted_coupons');
+    localStorage.removeItem('vrg_deleted_finances');
+
     fetchData();
-    // Poll every 30 seconds (was 3s — caused stock to revert on every poll)
+    // Poll every 30 seconds
     const interval = setInterval(() => {
       fetchData();
     }, 30000);
@@ -585,28 +562,13 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
     }
   };
 
-  // Handle Delete Single Order
   const handleDeleteOrder = async (orderId: string) => {
     if (!confirm(`⚠️ Are you sure you want to permanently delete Order #${orderId}? This action cannot be undone.`)) return;
 
-    // 1. Save deleted order ID to localStorage blacklist
-    const delSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_orders') || '[]'));
-    delSet.add(orderId);
-    localStorage.setItem('vrg_deleted_orders', JSON.stringify([...delSet]));
+    // Remove order from UI state
+    setOrders(prev => prev.filter(o => o.id !== orderId && o.merchantTransactionId !== orderId));
 
-    // 2. Remove order from UI state and update local order caches
-    setOrders(prev => {
-      const filtered = prev.filter(o => o.id !== orderId && o.merchantTransactionId !== orderId);
-      const keysToSave = ['veerika_admin_orders', 'vrg_user_orders', 'veerika_customer_orders', 'vrg_orders'];
-      keysToSave.forEach(key => {
-        try {
-          localStorage.setItem(key, JSON.stringify(filtered));
-        } catch {}
-      });
-      return filtered;
-    });
-
-    // 3. Trigger backend deletion endpoints
+    // Trigger backend deletion endpoints
     try {
       await authFetch(`/api/admin/orders/${encodeURIComponent(orderId)}`, { method: 'DELETE' }).catch(() => null);
       await authFetch('/api/admin/orders/delete', { method: 'POST', body: JSON.stringify({ id: orderId }) }).catch(() => null);
