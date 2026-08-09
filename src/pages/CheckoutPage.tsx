@@ -16,6 +16,8 @@ interface CheckoutPageProps {
     paymentMethod: PaymentMethod;
     paymentProofUrl?: string;
     transactionId?: string;
+    potCharge?: number;
+    potOption?: string;
   }) => Promise<{ success: boolean; orderId?: string; phonepePayUrl?: string; merchantTransactionId?: string; message?: string }>;
 }
 
@@ -61,6 +63,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   }));
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('PHONEPE');
+  const [selectedPot, setSelectedPot] = useState<'NONE' | '6_INCH' | '8_INCH'>('NONE');
 
   // Fetch settings to check enabled payment methods
   useEffect(() => {
@@ -85,8 +88,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   const subtotal = items.reduce((sum, i) => sum + i.product.sellingPrice * i.quantity, 0);
   const totalPlantCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const shippingCharge = calculateDeliveryFee(items, address.state);
+  const potCharge = selectedPot === '6_INCH' ? 99 : selectedPot === '8_INCH' ? 199 : 0;
   const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
-  const grandTotal = Math.max(0, subtotal + shippingCharge - discountAmount);
+  const grandTotal = Math.max(0, subtotal + potCharge + shippingCharge - discountAmount);
 
 const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000, quality = 0.75): Promise<string> => {
   return new Promise((resolve) => {
@@ -236,7 +240,9 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
         },
         paymentMethod: effectivePaymentMethod,
         paymentProofUrl: effectivePaymentMethod === 'QR_PAYMENT' ? paymentProofUrl : undefined,
-        transactionId: effectivePaymentMethod === 'QR_PAYMENT' ? transactionId : undefined
+        transactionId: effectivePaymentMethod === 'QR_PAYMENT' ? transactionId : undefined,
+        potCharge,
+        potOption: selectedPot
       });
 
       setLoading(false);
@@ -669,14 +675,16 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
 
         {/* Order Summary Sidebar */}
         <div className="space-y-4">
-          <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 text-xs space-y-4">
-            <h3 className="font-bold text-slate-900 text-sm border-b border-slate-200 pb-2">
-              Order Items ({items.length})
+          <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 text-xs space-y-4 shadow-sm">
+            <h3 className="font-bold text-slate-900 text-sm border-b border-slate-200 pb-2 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <span>📦</span> Order Items ({items.length})
+              </span>
             </h3>
 
             <div className="space-y-3 max-h-52 sm:max-h-64 overflow-y-auto pr-1.5 overscroll-contain scrollbar-thin">
               {items.map((item) => (
-                <div key={item.product.id} className="flex gap-2.5 items-center justify-between">
+                <div key={item.product.id} className="flex gap-2.5 items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200/80">
                   <img
                     src={item.product.images[0]}
                     alt={item.product.name}
@@ -693,29 +701,117 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
               ))}
             </div>
 
-            <div className="pt-3 border-t border-slate-200 space-y-1.5 text-slate-600">
-              <div className="flex justify-between">
-                <span>Subtotal:</span>
+            {/* Plant Pot Requirement Options */}
+            <div className="pt-3 border-t border-slate-200 space-y-2">
+              <label className="font-extrabold text-slate-900 text-xs flex items-center gap-1.5">
+                <span>🪴</span> Plant Pot Requirement:
+              </label>
+
+              <div className="grid grid-cols-1 gap-2">
+                {/* 1. No Pot Required */}
+                <div
+                  onClick={() => setSelectedPot('NONE')}
+                  className={`p-2.5 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between ${
+                    selectedPot === 'NONE'
+                      ? 'border-emerald-600 bg-emerald-50 text-emerald-950 font-bold shadow-xs'
+                      : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="potRequirement"
+                      checked={selectedPot === 'NONE'}
+                      onChange={() => setSelectedPot('NONE')}
+                      className="accent-emerald-700 cursor-pointer"
+                    />
+                    <span className="text-[11px] font-semibold">🌱 No pot required (Grow bag)</span>
+                  </div>
+                  <span className="text-[11px] font-extrabold text-emerald-700">₹0</span>
+                </div>
+
+                {/* 2. 6 Inch Pot */}
+                <div
+                  onClick={() => setSelectedPot('6_INCH')}
+                  className={`p-2.5 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between ${
+                    selectedPot === '6_INCH'
+                      ? 'border-emerald-600 bg-emerald-50 text-emerald-950 font-bold shadow-xs'
+                      : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="potRequirement"
+                      checked={selectedPot === '6_INCH'}
+                      onChange={() => setSelectedPot('6_INCH')}
+                      className="accent-emerald-700 cursor-pointer"
+                    />
+                    <span className="text-[11px] font-semibold">🪴 6 inch pot (+delivery)</span>
+                  </div>
+                  <span className="text-[11px] font-extrabold text-slate-900">+₹99</span>
+                </div>
+
+                {/* 3. 8 Inch Pot */}
+                <div
+                  onClick={() => setSelectedPot('8_INCH')}
+                  className={`p-2.5 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between ${
+                    selectedPot === '8_INCH'
+                      ? 'border-emerald-600 bg-emerald-50 text-emerald-950 font-bold shadow-xs'
+                      : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="potRequirement"
+                      checked={selectedPot === '8_INCH'}
+                      onChange={() => setSelectedPot('8_INCH')}
+                      className="accent-emerald-700 cursor-pointer"
+                    />
+                    <span className="text-[11px] font-semibold">🪴 8 inch pot (+delivery)</span>
+                  </div>
+                  <span className="text-[11px] font-extrabold text-slate-900">+₹199</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Price Calculations & Emojis */}
+            <div className="pt-3 border-t border-slate-200 space-y-2 text-slate-600">
+              <div className="flex justify-between items-center">
+                <span className="flex items-center gap-1 font-medium">🧾 Subtotal:</span>
                 <span className="font-semibold text-slate-900">₹{subtotal}</span>
               </div>
+
+              {potCharge > 0 && (
+                <div className="flex justify-between items-center text-emerald-800 font-semibold">
+                  <span className="flex items-center gap-1">
+                    🪴 Pot Charge ({selectedPot === '6_INCH' ? '6 Inch' : '8 Inch'}):
+                  </span>
+                  <span className="font-bold text-emerald-700">+₹{potCharge}</span>
+                </div>
+              )}
+
               <div className="flex justify-between items-start">
                 <div>
-                  <span className="block font-medium">Delivery Charge:</span>
+                  <span className="flex items-center gap-1 font-medium">🚚 Delivery Charge:</span>
                   <span className="text-[10px] text-slate-500 block">
                     {address.state} ({isSouthState(address.state) ? 'TN/KL/KA' : 'Other State'})
                   </span>
                 </div>
                 <span className="font-bold text-slate-900">{shippingCharge === 0 ? 'FREE' : `₹${shippingCharge}`}</span>
               </div>
+
               {appliedCoupon && (
-                <div className="flex justify-between text-emerald-700 font-semibold">
-                  <span>Coupon ({appliedCoupon.code}):</span>
+                <div className="flex justify-between text-emerald-700 font-semibold items-center">
+                  <span className="flex items-center gap-1">🏷️ Coupon ({appliedCoupon.code}):</span>
                   <span>-₹{discountAmount}</span>
                 </div>
               )}
-              <div className="flex justify-between text-sm font-bold text-slate-900 pt-2 border-t border-slate-300">
-                <span>Grand Total:</span>
-                <span className="text-emerald-800 text-base">₹{grandTotal}</span>
+
+              <div className="flex justify-between text-base font-bold text-slate-900 pt-2 border-t border-slate-300 items-center">
+                <span className="flex items-center gap-1 font-extrabold">💰 Grand Total:</span>
+                <span className="text-emerald-800 text-lg font-extrabold">₹{grandTotal}</span>
               </div>
             </div>
           </div>

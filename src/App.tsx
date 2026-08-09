@@ -346,12 +346,15 @@ export const App: React.FC = () => {
     paymentMethod: PaymentMethod;
     paymentProofUrl?: string;
     transactionId?: string;
+    potCharge?: number;
+    potOption?: string;
   }) => {
     const subtotal = cart.reduce((sum, i) => sum + i.product.sellingPrice * i.quantity, 0);
     const totalPlantCount = cart.reduce((sum, i) => sum + i.quantity, 0);
     const shippingCharge = calculateDeliveryFee(cart, orderData.shippingAddress?.state);
     const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
-    const grandTotal = Math.max(0, subtotal + shippingCharge - discountAmount);
+    const potCharge = orderData.potCharge || 0;
+    const grandTotal = Math.max(0, subtotal + potCharge + shippingCharge - discountAmount);
 
     const rawPhone = (orderData.customerPhone || user?.phone || '').replace(/\D/g, '');
     const cleanPhone = rawPhone.length >= 10 ? rawPhone.slice(-10) : (rawPhone || '9123456789');
