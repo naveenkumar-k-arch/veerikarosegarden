@@ -87,8 +87,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
   const subtotal = items.reduce((sum, i) => sum + i.product.sellingPrice * i.quantity, 0);
   const totalPlantCount = items.reduce((sum, i) => sum + i.quantity, 0);
-  const shippingCharge = calculateDeliveryFee(items, address.state);
-  const potCharge = selectedPot === '6_INCH' ? 99 : selectedPot === '8_INCH' ? 199 : 0;
+  const shippingCharge = selectedPot !== 'NONE' ? 0 : calculateDeliveryFee(items, address.state);
+  const potUnitFee = selectedPot === '6_INCH' ? 99 : selectedPot === '8_INCH' ? 199 : 0;
+  const potCharge = potUnitFee * totalPlantCount;
   const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const grandTotal = Math.max(0, subtotal + potCharge + shippingCharge - discountAmount);
 
@@ -725,12 +726,12 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
                       onChange={() => setSelectedPot('NONE')}
                       className="accent-emerald-700 cursor-pointer"
                     />
-                    <span className="text-[11px] font-semibold">🌱 No pot required (Grow bag)</span>
+                    <span className="text-[11px] font-semibold">🌱 No pot required(reduced soil)</span>
                   </div>
                   <span className="text-[11px] font-extrabold text-emerald-700">₹0</span>
                 </div>
 
-                {/* 2. 6 Inch Pot */}
+                {/* 2. Below 6 inch */}
                 <div
                   onClick={() => setSelectedPot('6_INCH')}
                   className={`p-2.5 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between ${
@@ -747,12 +748,15 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
                       onChange={() => setSelectedPot('6_INCH')}
                       className="accent-emerald-700 cursor-pointer"
                     />
-                    <span className="text-[11px] font-semibold">🪴 6 inch pot (+delivery)</span>
+                    <span className="text-[11px] font-semibold">🪴 below 6 inch (no delivery charges )</span>
                   </div>
-                  <span className="text-[11px] font-extrabold text-slate-900">+₹99</span>
+                  <div className="text-right">
+                    <span className="text-[11px] font-extrabold text-slate-900 block">+₹{99 * totalPlantCount}</span>
+                    <span className="text-[9px] text-emerald-700 font-bold block">({totalPlantCount} {totalPlantCount === 1 ? 'pot' : 'pots'})</span>
+                  </div>
                 </div>
 
-                {/* 3. 8 Inch Pot */}
+                {/* 3. Above 6 inch */}
                 <div
                   onClick={() => setSelectedPot('8_INCH')}
                   className={`p-2.5 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between ${
@@ -769,9 +773,12 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
                       onChange={() => setSelectedPot('8_INCH')}
                       className="accent-emerald-700 cursor-pointer"
                     />
-                    <span className="text-[11px] font-semibold">🪴 8 inch pot (+delivery)</span>
+                    <span className="text-[11px] font-semibold">🪴 Above 6 inch (no delivery charges)</span>
                   </div>
-                  <span className="text-[11px] font-extrabold text-slate-900">+₹199</span>
+                  <div className="text-right">
+                    <span className="text-[11px] font-extrabold text-slate-900 block">+₹{199 * totalPlantCount}</span>
+                    <span className="text-[9px] text-emerald-700 font-bold block">({totalPlantCount} {totalPlantCount === 1 ? 'pot' : 'pots'})</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -784,9 +791,9 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
               </div>
 
               {potCharge > 0 && (
-                <div className="flex justify-between items-center text-emerald-800 font-semibold">
+                <div className="flex justify-between items-center text-emerald-800 font-semibold text-xs">
                   <span className="flex items-center gap-1">
-                    🪴 Pot Charge ({selectedPot === '6_INCH' ? '6 Inch' : '8 Inch'}):
+                    🪴 Pot Charge ({selectedPot === '6_INCH' ? 'below 6 inch' : 'Above 6 inch'} × {totalPlantCount} {totalPlantCount === 1 ? 'pot' : 'pots'}):
                   </span>
                   <span className="font-bold text-emerald-700">+₹{potCharge}</span>
                 </div>
@@ -796,10 +803,18 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
                 <div>
                   <span className="flex items-center gap-1 font-medium">🚚 Delivery Charge:</span>
                   <span className="text-[10px] text-slate-500 block">
-                    {address.state} ({isSouthState(address.state) ? 'TN/KL/KA' : 'Other State'})
+                    {selectedPot !== 'NONE'
+                      ? 'Free delivery included with pot selection'
+                      : `${address.state} (${isSouthState(address.state) ? 'TN/KL/KA' : 'Other State'})`}
                   </span>
                 </div>
-                <span className="font-bold text-slate-900">{shippingCharge === 0 ? 'FREE' : `₹${shippingCharge}`}</span>
+                <span className="font-bold text-slate-900">
+                  {selectedPot !== 'NONE' ? (
+                    <span className="text-emerald-700 font-extrabold">FREE (With Pot)</span>
+                  ) : (
+                    shippingCharge === 0 ? 'FREE' : `₹${shippingCharge}`
+                  )}
+                </span>
               </div>
 
               {appliedCoupon && (

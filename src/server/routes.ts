@@ -618,8 +618,12 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
     }
 
     const targetState = shippingAddress?.state || 'Tamil Nadu';
-    const shippingCharge = calculateDeliveryFee(verifiedItems, targetState);
-    const calculatedGrandTotal = Math.max(1, Math.round(calculatedSubtotal + shippingCharge - discount));
+    const potOption = req.body.potOption || 'NONE';
+    const totalPlantCount = verifiedItems.reduce((sum, i) => sum + i.quantity, 0);
+    const potUnitFee = potOption === '6_INCH' ? 99 : potOption === '8_INCH' ? 199 : 0;
+    const potCharge = req.body.potCharge ?? (potUnitFee * totalPlantCount);
+    const shippingCharge = potOption !== 'NONE' ? 0 : calculateDeliveryFee(verifiedItems, targetState);
+    const calculatedGrandTotal = Math.max(1, Math.round(calculatedSubtotal + potCharge + shippingCharge - discount));
 
     const merchantTransactionId = 'MT' + Date.now() + Math.floor(10 + Math.random() * 89);
 
@@ -638,6 +642,8 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
       items: verifiedItems,
       subtotal: calculatedSubtotal,
       shippingCharge,
+      potCharge,
+      potOption,
       discount: Math.round(discount),
       couponCode: couponCode || undefined,
       grandTotal: calculatedGrandTotal,

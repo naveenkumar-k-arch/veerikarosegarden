@@ -38,7 +38,9 @@ export const createOrderSchema = z.object({
       (val) => !val || val.startsWith('data:image/') || val.startsWith('http://') || val.startsWith('https://') || val.startsWith('/') || val.length > 50,
       { message: 'Payment proof must be a valid image or URL' }
     ),
-  transactionId: z.string().max(100).optional().nullable().transform(val => val || undefined)
+  transactionId: z.string().max(100).optional().nullable().transform(val => val || undefined),
+  potOption: z.string().optional(),
+  potCharge: z.number().min(0).optional()
 });
 
 export const productSchema = z.object({

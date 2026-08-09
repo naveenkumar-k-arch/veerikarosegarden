@@ -113,6 +113,8 @@ export interface Order {
   courierName?: string;
   trackingNumber?: string;
   deliveryNotes?: string;
+  potCharge?: number;
+  potOption?: string;
   createdAt: string;
   updatedAt: string;
 }
