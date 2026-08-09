@@ -6,7 +6,7 @@ export const INITIAL_CATEGORIES: Category[] = [
     name: 'Rose Varieties',
     tamilName: 'ரோஜா வகைகள்',
     slug: 'rose-varieties',
-    image: '/products/rose-varieties-cat.jpeg',
+    image: '/products/double-delight.jpeg',
     description: 'Premium live hybrid rose plants, double delight & button rose varieties.',
     order: 1,
     isActive: true,
@@ -18,7 +18,7 @@ export const INITIAL_CATEGORIES: Category[] = [
     name: 'Herbal Plants',
     tamilName: 'மூலிகை (Herbals)',
     slug: 'herbals',
-    image: '/products/herbal-plants-cat.jpeg',
+    image: '/products/ww.jpeg',
     description: 'Medicinal plants including Panner leaf, Ranakalli, and Rosemary.',
     order: 2,
     isActive: true,
@@ -35,7 +35,7 @@ export const INITIAL_CATEGORIES: Category[] = [
     order: 3,
     isActive: true,
     isFeatured: true,
-    productCount: 3
+    productCount: 12
   },
   {
     id: 'cat-creeper',
@@ -54,7 +54,7 @@ export const INITIAL_CATEGORIES: Category[] = [
     name: 'Miniature Roses',
     tamilName: 'miniature ரோஸ் வகை',
     slug: 'miniature-roses',
-    image: '/products/double-delight.jpeg',
+    image: '/products/button-rose.jpeg',
     description: 'Compact miniature rose plants for balcony pots and gardens.',
     order: 5,
     isActive: true,
