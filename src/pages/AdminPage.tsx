@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Product, Category, Order, Coupon, Banner, Review, SiteSettings, PaymentLog, FinancialEntry } from '../types';
+import { Product, Category, Order, Coupon, Banner, Review, SiteSettings, PaymentLog, FinancialEntry, Combo } from '../types';
 import { LayoutDashboard, Package, ShoppingBag, FolderTree, Tag, Image, Star, Settings as SettingsIcon, ShieldCheck, Plus, Edit, Trash2, Check, X, RefreshCw, Printer, AlertTriangle, Search, Lock, ExternalLink, DollarSign, TrendingUp, TrendingDown, Camera } from 'lucide-react';
 
 import { INITIAL_PRODUCTS, INITIAL_CATEGORIES } from '../data/catalogData';
@@ -137,6 +137,19 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
   const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
   const [orders, setOrders] = useState<Order[]>(getInitialAdminOrders);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [combos, setCombos] = useState<Combo[]>([]);
+  const [showComboModal, setShowComboModal] = useState(false);
+  const [editingCombo, setEditingCombo] = useState<Combo | null>(null);
+  const [comboForm, setComboForm] = useState({
+    title: '',
+    subtitle: '',
+    badge: '3-IN-1 COMBO',
+    productIds: [] as string[],
+    originalPrice: 0,
+    comboPrice: 0,
+    imageUrl: '',
+    active: true
+  });
   const [banners, setBanners] = useState<Banner[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [settings, setSettings] = useState<SiteSettings | null>({} as SiteSettings);
@@ -267,7 +280,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [sRes, pRes, cRes, oRes, cpRes, bRes, rRes, stRes, plRes, fnRes] = await Promise.all([
+      const [sRes, pRes, cRes, oRes, cpRes, bRes, rRes, stRes, plRes, fnRes, cbRes] = await Promise.all([
         authFetch('/api/admin/dashboard').then((r) => r.json()).catch(() => null),
         authFetch('/api/products').then((r) => r.json()).catch(() => null),
         authFetch('/api/admin/categories').then((r) => r.json()).catch(() => null),
@@ -277,8 +290,13 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
         authFetch('/api/reviews').then((r) => r.json()).catch(() => null),
         authFetch('/api/admin/settings').then((r) => r.json()).catch(() => null),
         authFetch('/api/admin/payment-logs').then((r) => r.json()).catch(() => null),
-        authFetch('/api/admin/finances').then((r) => r.json()).catch(() => null)
+        authFetch('/api/admin/finances').then((r) => r.json()).catch(() => null),
+        authFetch('/api/combos').then((r) => r.json()).catch(() => null)
       ]);
+
+      if (cbRes?.success && Array.isArray(cbRes.combos)) {
+        setCombos(cbRes.combos);
+      }
 
       if (fnRes?.success && Array.isArray(fnRes.entries)) {
         setFinances(fnRes.entries);
@@ -1968,6 +1986,152 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                   </div>
                 )}
               </div>
+
+              {/* Plant Combo Packages & Offers Management Section */}
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-2xs overflow-hidden p-6 space-y-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-4">
+                  <div>
+                    <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
+                      <span>🎁 Special Plant Combo Packages & Offers ({combos.length})</span>
+                    </h3>
+                    <p className="text-slate-500 text-xs mt-0.5">Group multiple plants together, set special combo pricing, and showcase bundles above categories on the store homepage.</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setEditingCombo(null);
+                      setComboForm({
+                        title: '',
+                        subtitle: '',
+                        badge: '3-IN-1 COMBO',
+                        productIds: products.length >= 2 ? [products[0].id, products[1].id] : [],
+                        originalPrice: products.length >= 2 ? (products[0].mrp + products[1].mrp) : 500,
+                        comboPrice: products.length >= 2 ? (products[0].sellingPrice + products[1].sellingPrice - 50) : 350,
+                        imageUrl: '',
+                        active: true
+                      });
+                      setShowComboModal(true);
+                    }}
+                    className="px-4 py-2 bg-gradient-to-r from-emerald-700 to-amber-700 hover:from-emerald-800 hover:to-amber-800 text-white font-bold rounded-2xl text-xs flex items-center gap-1.5 shadow-sm shrink-0 cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" /> Create Plant Combo
+                  </button>
+                </div>
+
+                {combos.length === 0 ? (
+                  <div className="p-8 text-center bg-slate-50 rounded-2xl border border-slate-200">
+                    <p className="text-3xl mb-2">🎁</p>
+                    <p className="text-slate-700 font-bold">No Combo Packages Created</p>
+                    <p className="text-slate-500 text-xs">Create your first plant bundle combo above to showcase special offers on the homepage!</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {combos.map(combo => {
+                      const discount = combo.discountPercent || (combo.originalPrice > 0 ? Math.round(((combo.originalPrice - combo.comboPrice) / combo.originalPrice) * 100) : 0);
+                      const comboProducts = (combo.products || []).length > 0
+                        ? combo.products
+                        : products.filter(p => (combo.productIds || []).includes(p.id));
+
+                      return (
+                        <div key={combo.id} className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3 relative group hover:border-amber-400 transition-all">
+                          <div className="flex items-start gap-3">
+                            <img
+                              src={combo.imageUrl || comboProducts?.[0]?.images?.[0] || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80'}
+                              alt={combo.title}
+                              className="w-16 h-16 rounded-xl object-cover border border-slate-200 shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="bg-amber-100 text-amber-900 font-black text-[10px] px-2 py-0.5 rounded-full uppercase">
+                                  {combo.badge || 'COMBO OFFER'}
+                                </span>
+                                {discount > 0 && (
+                                  <span className="bg-emerald-700 text-white font-bold text-[10px] px-2 py-0.5 rounded-full">
+                                    {discount}% OFF
+                                  </span>
+                                )}
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${combo.active !== false ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'}`}>
+                                  {combo.active !== false ? 'ACTIVE' : 'INACTIVE'}
+                                </span>
+                              </div>
+                              <h4 className="font-bold text-slate-900 text-sm mt-1 truncate">{combo.title}</h4>
+                              <p className="text-slate-500 text-xs truncate">{combo.subtitle || `${comboProducts?.length || 0} plants bundle`}</p>
+                            </div>
+                          </div>
+
+                          {/* Included Products Badges */}
+                          <div className="bg-white p-2.5 rounded-xl border border-slate-200 text-[11px] space-y-1">
+                            <p className="font-bold text-slate-500 text-[10px] uppercase">Included Plants ({comboProducts?.length || 0}):</p>
+                            <div className="flex flex-wrap gap-1">
+                              {comboProducts?.map(p => (
+                                <span key={p?.id} className="bg-emerald-50 text-emerald-900 font-semibold px-2 py-0.5 rounded-md border border-emerald-200 text-[10px]">
+                                  🌿 {p?.name}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Pricing & Actions */}
+                          <div className="flex items-center justify-between pt-1 border-t border-slate-200/60">
+                            <div>
+                              <span className="text-slate-400 line-through font-bold mr-1.5">₹{combo.originalPrice}</span>
+                              <span className="font-black text-slate-900 text-base">₹{combo.comboPrice}</span>
+                            </div>
+
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => {
+                                  setEditingCombo(combo);
+                                  setComboForm({
+                                    title: combo.title,
+                                    subtitle: combo.subtitle || '',
+                                    badge: combo.badge || 'COMBO OFFER',
+                                    productIds: combo.productIds || [],
+                                    originalPrice: combo.originalPrice,
+                                    comboPrice: combo.comboPrice,
+                                    imageUrl: combo.imageUrl || '',
+                                    active: combo.active !== false
+                                  });
+                                  setShowComboModal(true);
+                                }}
+                                className="p-1.5 bg-white text-slate-700 hover:bg-slate-100 rounded-lg border border-slate-300 font-bold text-xs"
+                                title="Edit Combo"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                              </button>
+
+                              <button
+                                onClick={async () => {
+                                  const newStatus = combo.active === false;
+                                  setCombos(prev => prev.map(c => c.id === combo.id ? { ...c, active: newStatus } : c));
+                                  await authFetch(`/api/admin/combos/${combo.id}`, {
+                                    method: 'PUT',
+                                    body: JSON.stringify({ active: newStatus })
+                                  });
+                                }}
+                                className={`px-2 py-1 rounded-lg border font-bold text-[10px] ${combo.active !== false ? 'bg-amber-50 text-amber-800 border-amber-300' : 'bg-emerald-50 text-emerald-800 border-emerald-300'}`}
+                              >
+                                {combo.active !== false ? 'Deactivate' : 'Activate'}
+                              </button>
+
+                              <button
+                                onClick={async () => {
+                                  if (!confirm(`Delete combo package "${combo.title}"?`)) return;
+                                  setCombos(prev => prev.filter(c => c.id !== combo.id));
+                                  await authFetch(`/api/admin/combos/${combo.id}`, { method: 'DELETE' });
+                                }}
+                                className="p-1.5 bg-rose-50 text-rose-600 rounded-lg border border-rose-200 hover:bg-rose-100"
+                                title="Delete Combo"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -3227,6 +3391,219 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                 className="w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
               >
                 Save Financial Log Entry
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Create / Edit Combo Package Modal */}
+      {showComboModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white max-w-xl w-full rounded-3xl p-6 border border-slate-200 shadow-2xl space-y-4 my-8">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
+                  <span>🎁 {editingCombo ? 'Edit Plant Combo Package' : 'Create New Plant Combo Package'}</span>
+                </h3>
+                <p className="text-slate-500 text-xs mt-0.5">Select grouped plants, set offer badge & combo discount price.</p>
+              </div>
+              <button
+                onClick={() => setShowComboModal(false)}
+                className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (comboForm.productIds.length === 0) {
+                  alert('Please select at least 1 product for the combo package.');
+                  return;
+                }
+
+                const payload = {
+                  ...comboForm,
+                  originalPrice: Number(comboForm.originalPrice || 0),
+                  comboPrice: Number(comboForm.comboPrice || 0)
+                };
+
+                if (editingCombo) {
+                  const res = await authFetch(`/api/admin/combos/${editingCombo.id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(payload)
+                  });
+                  const data = await res.json();
+                  if (data.success) {
+                    setCombos(prev => prev.map(c => c.id === editingCombo.id ? { ...c, ...payload } : c));
+                  }
+                } else {
+                  const res = await authFetch('/api/admin/combos', {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                  });
+                  const data = await res.json();
+                  if (data.success && data.combo) {
+                    setCombos(prev => [data.combo, ...prev]);
+                  }
+                }
+
+                setShowComboModal(false);
+                setTimeout(() => fetchData(), 1000);
+              }}
+              className="space-y-4 text-xs"
+            >
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Combo Package Title *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Exotic Fruit Garden Trio"
+                  value={comboForm.title}
+                  onChange={(e) => setComboForm({ ...comboForm, title: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Subtitle / Plant Summary</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 1x Black Guava + 1x Pink Guava + 1x Mango Sapling"
+                  value={comboForm.subtitle}
+                  onChange={(e) => setComboForm({ ...comboForm, subtitle: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Offer Badge Tag</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 3-IN-1 COMBO"
+                    value={comboForm.badge}
+                    onChange={(e) => setComboForm({ ...comboForm, badge: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold uppercase"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Combo Cover Image URL (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="/products/black-guava-plant.jpeg"
+                    value={comboForm.imageUrl}
+                    onChange={(e) => setComboForm({ ...comboForm, imageUrl: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium"
+                  />
+                </div>
+              </div>
+
+              {/* Grouped Product Selector */}
+              <div>
+                <label className="font-bold text-slate-700 block mb-1.5">
+                  Select Grouped Nursery Plants ({comboForm.productIds.length} Selected) *
+                </label>
+                <div className="max-h-48 overflow-y-auto border border-slate-300 rounded-2xl p-2 space-y-1 bg-slate-50">
+                  {products.map(p => {
+                    const isSelected = comboForm.productIds.includes(p.id);
+                    return (
+                      <label
+                        key={p.id}
+                        className={`flex items-center justify-between p-2 rounded-xl border cursor-pointer transition-colors ${
+                          isSelected ? 'bg-emerald-50 border-emerald-300 font-bold text-emerald-900' : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-100'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 truncate">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => {
+                              let nextIds = [...comboForm.productIds];
+                              if (e.target.checked) {
+                                if (!nextIds.includes(p.id)) nextIds.push(p.id);
+                              } else {
+                                nextIds = nextIds.filter(id => id !== p.id);
+                              }
+                              const selectedProds = products.filter(item => nextIds.includes(item.id));
+                              const autoMrpSum = selectedProds.reduce((sum, item) => sum + (item.mrp || item.sellingPrice || 0), 0);
+                              const autoSellingSum = selectedProds.reduce((sum, item) => sum + (item.sellingPrice || 0), 0);
+
+                              setComboForm({
+                                ...comboForm,
+                                productIds: nextIds,
+                                originalPrice: autoMrpSum > 0 ? autoMrpSum : comboForm.originalPrice,
+                                comboPrice: autoSellingSum > 0 ? Math.round(autoSellingSum * 0.8) : comboForm.comboPrice
+                              });
+                            }}
+                            className="w-4 h-4 rounded text-emerald-700"
+                          />
+                          <img src={p.images?.[0] || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80'} className="w-8 h-8 rounded-lg object-cover" alt={p.name} />
+                          <span className="truncate">{p.name}</span>
+                        </div>
+                        <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md shrink-0 ml-2">
+                          MRP ₹{p.mrp} (Sell ₹{p.sellingPrice})
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Pricing Section */}
+              <div className="grid grid-cols-2 gap-3 bg-amber-50/70 p-3.5 rounded-2xl border border-amber-200">
+                <div>
+                  <label className="font-bold text-amber-900 block mb-1">Original Total MRP (₹)</label>
+                  <input
+                    type="number"
+                    required
+                    min={0}
+                    value={comboForm.originalPrice}
+                    onChange={(e) => setComboForm({ ...comboForm, originalPrice: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 bg-white border border-amber-300 rounded-xl font-black font-mono text-slate-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-emerald-900 block mb-1">Combo Special Price (₹) *</label>
+                  <input
+                    type="number"
+                    required
+                    min={0}
+                    value={comboForm.comboPrice}
+                    onChange={(e) => setComboForm({ ...comboForm, comboPrice: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 bg-white border border-emerald-300 rounded-xl font-black font-mono text-emerald-900 text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Discount Tag Preview */}
+              {comboForm.originalPrice > comboForm.comboPrice && (
+                <div className="bg-emerald-100 text-emerald-900 p-2.5 rounded-xl font-extrabold text-center text-xs border border-emerald-300">
+                  🎉 Customer Saves ₹{comboForm.originalPrice - comboForm.comboPrice} ({Math.round(((comboForm.originalPrice - comboForm.comboPrice) / comboForm.originalPrice) * 100)}% OFF)
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="comboActive"
+                  checked={comboForm.active}
+                  onChange={(e) => setComboForm({ ...comboForm, active: e.target.checked })}
+                  className="w-4 h-4 text-emerald-700 rounded"
+                />
+                <label htmlFor="comboActive" className="font-bold text-slate-800 cursor-pointer">
+                  Show this Combo Package live on the homepage
+                </label>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3 bg-gradient-to-r from-emerald-700 to-amber-700 hover:from-emerald-800 hover:to-amber-800 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer"
+              >
+                {editingCombo ? 'Save Combo Package Changes' : 'Publish Combo Package to Homepage'}
               </button>
             </form>
           </div>

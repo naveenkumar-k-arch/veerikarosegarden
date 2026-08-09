@@ -522,3 +522,19 @@ model SiteSetting {
   updatedAt             DateTime @updatedAt
 }
 
+model Combo {
+  id              String   @id @default(uuid())
+  title           String
+  subtitle        String?
+  badge           String   @default("COMBO OFFER")
+  productIds      String[]
+  originalPrice   Float
+  comboPrice      Float
+  discountPercent Int      @default(0)
+  imageUrl        String?
+  active          Boolean  @default(true)
+  order           Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+

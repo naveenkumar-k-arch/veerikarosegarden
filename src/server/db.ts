@@ -1,4 +1,4 @@
-import { Product, Category, Order, Coupon, Banner, Review, SiteSettings, PaymentLog, OrderItemSnapshot, PaymentMethod, FinancialEntry } from '../types.js';
+import { Product, Category, Order, Coupon, Banner, Review, SiteSettings, PaymentLog, OrderItemSnapshot, PaymentMethod, FinancialEntry, Combo } from '../types.js';
 
 import { getPrismaClient, executeInTransaction } from './prisma.js';
 import { firestoreSaveOrder, firestoreGetAllOrders, firestoreUpdateOrder } from './firestore.js';
@@ -1189,6 +1189,51 @@ const deletedCategoryIds = (globalThis as any)._deletedCategoryIds || ((globalTh
 const deletedCouponIds = (globalThis as any)._deletedCouponIds || ((globalThis as any)._deletedCouponIds = new Set<string>());
 const deletedFinanceIds = (globalThis as any)._deletedFinanceIds || ((globalThis as any)._deletedFinanceIds = new Set<string>());
 const deletedOrderIds = (globalThis as any)._deletedOrderIds || ((globalThis as any)._deletedOrderIds = new Set<string>());
+const deletedComboIds = (globalThis as any)._deletedComboIds || ((globalThis as any)._deletedComboIds = new Set<string>());
+
+export const DEFAULT_COMBOS: Combo[] = [
+  {
+    id: 'combo-exotic-fruits',
+    title: 'Exotic Fruit Garden Trio',
+    subtitle: '1x Black Guava + 1x Thai Pink Guava + 1x All-Season Mango Sapling',
+    badge: '3-IN-1 FRUIT COMBO',
+    productIds: ['prod-black-guava', 'prod-pink-guava', 'prod-mango-sapling'],
+    originalPrice: 1029,
+    comboPrice: 699,
+    discountPercent: 32,
+    imageUrl: '/products/black-guava-plant.jpeg',
+    active: true,
+    order: 1
+  },
+  {
+    id: 'combo-fragrant-roses',
+    title: 'Fragrant Panneer & Exotic Rose Bundle',
+    subtitle: '1x White Panneer Rose + 1x Black Magic Rose + 1x Double Delight Rose',
+    badge: 'BESTSELLER COMBO',
+    productIds: ['prod-white-panneer', 'prod-black-magic', 'prod-double-delight'],
+    originalPrice: 519,
+    comboPrice: 389,
+    discountPercent: 25,
+    imageUrl: '/products/white-panneer.jpeg',
+    active: true,
+    order: 2
+  },
+  {
+    id: 'combo-climbing-vines',
+    title: 'Grape Vine & Water Apple Orchard Pack',
+    subtitle: '1x Hybrid Black Grape Vine + 1x Red Water Apple Plant',
+    badge: 'SPECIAL OFFER',
+    productIds: ['prod-black-grape', 'prod-water-apple'],
+    originalPrice: 570,
+    comboPrice: 399,
+    discountPercent: 30,
+    imageUrl: '/products/black-grape-plant.jpeg',
+    active: true,
+    order: 3
+  }
+];
+
+const memoryCombosStore: Combo[] = (globalThis as any)._memoryCombosStore || ((globalThis as any)._memoryCombosStore = [...DEFAULT_COMBOS]);
 const globalMemorySettings: SiteSettings = (globalThis as any)._globalMemorySettings || ((globalThis as any)._globalMemorySettings = { ...DEFAULT_SETTINGS });
 
 const META_DELIMITER = '|||JSON_META|||';
@@ -2192,6 +2237,159 @@ class Store {
         }).catch(() => {});
       } catch (err) {
         console.error('Prisma deleteCoupon error:', err);
+      }
+    }
+    return true;
+  }
+
+  // COMBOS & OFFERS
+  async getCombos(): Promise<Combo[]> {
+    const prisma = getPrismaClient();
+    let dbCombos: Combo[] = [];
+
+    if (prisma && (prisma as any).combo) {
+      try {
+        const items = await (prisma as any).combo.findMany({
+          orderBy: { order: 'asc' }
+        });
+        dbCombos = items.map((c: any) => ({
+          id: c.id,
+          title: c.title,
+          subtitle: c.subtitle || undefined,
+          badge: c.badge || 'COMBO OFFER',
+          productIds: c.productIds,
+          originalPrice: c.originalPrice,
+          comboPrice: c.comboPrice,
+          discountPercent: c.discountPercent,
+          imageUrl: c.imageUrl || undefined,
+          active: c.active,
+          order: c.order,
+          createdAt: c.createdAt ? c.createdAt.toISOString() : new Date().toISOString(),
+          updatedAt: c.updatedAt ? c.updatedAt.toISOString() : new Date().toISOString()
+        }));
+      } catch (err) {
+        console.error('Prisma getCombos error:', err);
+      }
+    }
+
+    const allCombined = [...dbCombos, ...memoryCombosStore];
+    const uniqueMap = new Map<string, Combo>();
+    const allProducts = await this.getProducts();
+    const prodMap = new Map(allProducts.map(p => [p.id, p]));
+
+    allCombined.forEach(c => {
+      if (c && c.id && !deletedComboIds.has(c.id)) {
+        if (!uniqueMap.has(c.id)) {
+          const matchedProds = (c.productIds || [])
+            .map(pid => prodMap.get(pid))
+            .filter(Boolean) as Product[];
+          uniqueMap.set(c.id, {
+            ...c,
+            products: matchedProds
+          });
+        }
+      }
+    });
+
+    return Array.from(uniqueMap.values());
+  }
+
+  async addCombo(data: Partial<Combo>): Promise<Combo> {
+    const id = 'combo-' + Date.now();
+    const title = data.title || 'Special Plant Combo';
+    const subtitle = data.subtitle || '';
+    const badge = data.badge || 'COMBO OFFER';
+    const productIds = data.productIds || [];
+    const originalPrice = Number(data.originalPrice || 0);
+    const comboPrice = Number(data.comboPrice || 0);
+    const discountPercent = originalPrice > 0 ? Math.round(((originalPrice - comboPrice) / originalPrice) * 100) : 0;
+    const imageUrl = data.imageUrl || '/products/pink-guava-plant.jpeg';
+    const active = data.active !== false;
+
+    const newCombo: Combo = {
+      id,
+      title,
+      subtitle,
+      badge,
+      productIds,
+      originalPrice,
+      comboPrice,
+      discountPercent,
+      imageUrl,
+      active,
+      order: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    const prisma = getPrismaClient();
+    if (prisma && (prisma as any).combo) {
+      try {
+        await (prisma as any).combo.create({
+          data: {
+            id,
+            title,
+            subtitle,
+            badge,
+            productIds,
+            originalPrice,
+            comboPrice,
+            discountPercent,
+            imageUrl,
+            active
+          }
+        });
+      } catch (err) {
+        console.error('Prisma addCombo error:', err);
+      }
+    }
+
+    memoryCombosStore.unshift(newCombo);
+    return newCombo;
+  }
+
+  async updateCombo(id: string, updates: Partial<Combo>): Promise<Combo | null> {
+    const prisma = getPrismaClient();
+    if (prisma && (prisma as any).combo) {
+      try {
+        await (prisma as any).combo.update({
+          where: { id },
+          data: {
+            ...(updates.title ? { title: updates.title } : {}),
+            ...(updates.subtitle !== undefined ? { subtitle: updates.subtitle } : {}),
+            ...(updates.badge ? { badge: updates.badge } : {}),
+            ...(updates.productIds ? { productIds: updates.productIds } : {}),
+            ...(updates.originalPrice !== undefined ? { originalPrice: updates.originalPrice } : {}),
+            ...(updates.comboPrice !== undefined ? { comboPrice: updates.comboPrice } : {}),
+            ...(updates.discountPercent !== undefined ? { discountPercent: updates.discountPercent } : {}),
+            ...(updates.imageUrl !== undefined ? { imageUrl: updates.imageUrl } : {}),
+            ...(updates.active !== undefined ? { active: updates.active } : {})
+          }
+        });
+      } catch (err) {
+        console.error('Prisma updateCombo error:', err);
+      }
+    }
+
+    const idx = memoryCombosStore.findIndex(c => c.id === id);
+    if (idx !== -1) {
+      memoryCombosStore[idx] = { ...memoryCombosStore[idx], ...updates };
+      return memoryCombosStore[idx];
+    }
+    return null;
+  }
+
+  async deleteCombo(id: string): Promise<boolean> {
+    deletedComboIds.add(id);
+    const idx = memoryCombosStore.findIndex(c => c.id === id);
+    if (idx !== -1) memoryCombosStore.splice(idx, 1);
+
+    const prisma = getPrismaClient();
+    if (prisma && (prisma as any).combo) {
+      try {
+        await (prisma as any).combo.delete({ where: { id } }).catch(() => {});
+      } catch (err) {
+        console.error('Prisma deleteCombo error:', err);
       }
     }
     return true;

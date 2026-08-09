@@ -216,3 +216,20 @@ export interface FinancialEntry {
   createdAt: string;
 }
 
+export interface Combo {
+  id: string;
+  title: string;
+  subtitle?: string;
+  badge?: string;
+  productIds: string[];
+  products?: Product[];
+  originalPrice: number;
+  comboPrice: number;
+  discountPercent: number;
+  imageUrl?: string;
+  active: boolean;
+  order?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+

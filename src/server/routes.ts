@@ -443,6 +443,44 @@ apiRouter.delete('/coupons/:id', requireAdmin, handleDeleteCoupon);
 apiRouter.post('/coupons/:id/delete', requireAdmin, handleDeleteCoupon);
 apiRouter.delete('/admin/coupons/:id', requireAdmin, handleDeleteCoupon);
 
+// ================= COMBOS & OFFERS =================
+apiRouter.get('/combos', async (req, res) => {
+  try {
+    const combos = await db.getCombos();
+    res.json({ success: true, count: combos.length, combos });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to fetch plant combos' });
+  }
+});
+
+apiRouter.post('/admin/combos', requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const combo = await db.addCombo(req.body);
+    res.status(201).json({ success: true, combo, message: 'Plant combo package created successfully' });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+apiRouter.put('/admin/combos/:id', requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const updated = await db.updateCombo(req.params.id, req.body);
+    if (!updated) return res.status(404).json({ success: false, message: 'Combo not found' });
+    res.json({ success: true, combo: updated, message: 'Combo package updated successfully' });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+apiRouter.delete('/admin/combos/:id', requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    await db.deleteCombo(req.params.id);
+    res.json({ success: true, message: 'Combo package deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to delete combo package' });
+  }
+});
+
 
 
 
