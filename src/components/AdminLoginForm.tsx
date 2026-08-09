@@ -29,6 +29,7 @@ export const AdminLoginForm: React.FC<AdminLoginFormProps> = ({ onLoginSuccess, 
       const data = await res.json();
 
       if (data.success && data.user && (data.user.role === 'SUPER_ADMIN' || data.user.role === 'ADMIN' || data.user.role === 'MANAGER')) {
+        setLoading(false);
         onLoginSuccess(data.user);
         return;
       }
@@ -52,11 +53,12 @@ export const AdminLoginForm: React.FC<AdminLoginFormProps> = ({ onLoginSuccess, 
         role: 'SUPER_ADMIN',
         createdAt: new Date().toISOString()
       };
+      setLoading(false);
       onLoginSuccess(adminUser);
     } else {
       setError('Invalid Admin Username or Password');
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (

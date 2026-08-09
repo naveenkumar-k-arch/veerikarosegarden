@@ -128,207 +128,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
       if (o && o.id) uniqueMap.set(o.id, o);
     });
 
-    if (uniqueMap.size > 0) {
-      return Array.from(uniqueMap.values());
-    }
-
-    return [
-      {
-        id: 'ORD-VRG-2286',
-        merchantTransactionId: 'MT1785419991201',
-        customerName: 'Naveen Kumar',
-        customerPhone: '09360931606',
-        customerEmail: 'nv01110612@gmail.com',
-        shippingAddress: {
-          fullName: 'Naveen Kumar',
-          phone: '09360931606',
-          houseNo: '212121',
-          street: 'Main Road',
-          villageTown: 'Chennai',
-          district: 'Chennai',
-          state: 'Tamil Nadu',
-          pincode: '600001',
-          addressType: 'Home'
-        },
-        items: [
-          {
-            productId: 'prod-panner-leaf',
-            sku: 'VRG-HERB-01',
-            name: 'Panner Leaf Plant',
-            tamilName: 'பன்னீர் இலை மூலிகை',
-            price: 30,
-            mrp: 50,
-            quantity: 1,
-            image: '/products/eq.jpeg'
-          }
-        ],
-        subtotal: 30,
-        shippingCharge: 50,
-        discount: 0,
-        grandTotal: 80,
-        paymentStatus: 'PENDING',
-        orderStatus: 'PENDING',
-        paymentMethod: 'COD',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      },
-      {
-        id: 'ORD-VRG-6412',
-        merchantTransactionId: 'MT1785419991202',
-        customerName: 'Naveen Kumar',
-        customerPhone: '09360931606',
-        customerEmail: 'nv01110612@gmail.com',
-        shippingAddress: {
-          fullName: 'Naveen Kumar',
-          phone: '09360931606',
-          houseNo: '12',
-          street: 'Nursery Road',
-          villageTown: 'Pennagaram',
-          district: 'Dharmapuri',
-          state: 'Tamil Nadu',
-          pincode: '636810',
-          addressType: 'Home'
-        },
-        items: [
-          {
-            productId: 'prod-dd-8inch',
-            sku: 'VRG-ROSE-01',
-            name: 'Double Delight (8 inch pot)',
-            tamilName: 'டபுள் டிலைட் ரோஜா (8 இன்ச் பாட்)',
-            price: 199,
-            mrp: 230,
-            quantity: 1,
-            image: '/products/double-delight.jpeg'
-          }
-        ],
-        subtotal: 199,
-        shippingCharge: 50,
-        discount: 0,
-        grandTotal: 249,
-        paymentStatus: 'PENDING',
-        orderStatus: 'PENDING',
-        paymentMethod: 'COD',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      },
-      {
-        id: 'ORD-VRG-4615',
-        merchantTransactionId: 'MT1785419991203',
-        customerName: 'Naveen Kumar',
-        customerPhone: '09360931606',
-        customerEmail: 'nv01110612@gmail.com',
-        shippingAddress: {
-          fullName: 'Naveen Kumar',
-          phone: '09360931606',
-          houseNo: '11',
-          street: 'Main Street',
-          villageTown: 'Chennai',
-          district: 'Chennai',
-          state: 'Tamil Nadu',
-          pincode: '600001',
-          addressType: 'Home'
-        },
-        items: [
-          {
-            productId: 'prod-dd-8inch',
-            sku: 'VRG-ROSE-01',
-            name: 'Double Delight (8 inch pot)',
-            tamilName: 'டபுள் டிலைட் ரோஜா (8 இன்ச் பாட்)',
-            price: 199,
-            mrp: 230,
-            quantity: 1,
-            image: '/products/double-delight.jpeg'
-          }
-        ],
-        subtotal: 199,
-        shippingCharge: 50,
-        discount: 0,
-        grandTotal: 249,
-        paymentStatus: 'PENDING',
-        orderStatus: 'PENDING',
-        paymentMethod: 'COD',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      },
-      {
-        id: 'ORD-VRG-1205',
-        merchantTransactionId: 'MT178541929139089',
-        customerName: 'Naveen Kumar',
-        customerPhone: '09360931606',
-        customerEmail: 'nv01110612@gmail.com',
-        shippingAddress: {
-          fullName: 'Naveen Kumar',
-          phone: '09360931606',
-          houseNo: '444',
-          street: 'TRS Mens-Hostel, S.R.M Nagar Kattankulathur',
-          villageTown: 'Chennai',
-          district: 'Chengalpattu',
-          state: 'Tamil Nadu',
-          pincode: '603203',
-          addressType: 'Home'
-        },
-        items: [
-          {
-            productId: 'prod-panner-leaf',
-            sku: 'VRG-HERB-01',
-            name: 'Panner Leaf Plant',
-            tamilName: 'பன்னீர் இலை மூலிகை',
-            price: 30,
-            mrp: 50,
-            quantity: 1,
-            image: '/products/eq.jpeg'
-          }
-        ],
-        subtotal: 30,
-        shippingCharge: 50,
-        discount: 0,
-        grandTotal: 80,
-        paymentStatus: 'PENDING',
-        orderStatus: 'PENDING',
-        paymentMethod: 'COD',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      },
-      {
-        id: 'ORD-VRG-6118',
-        merchantTransactionId: 'MT1785418345316',
-        customerName: 'Naveen Kumar',
-        customerPhone: '09360931606',
-        customerEmail: 'nv01110612@gmail.com',
-        shippingAddress: {
-          fullName: 'Naveen Kumar',
-          phone: '09360931606',
-          houseNo: '11',
-          street: 'Main Road',
-          villageTown: 'Chennai',
-          district: 'Chennai',
-          state: 'Tamil Nadu',
-          pincode: '600001',
-          addressType: 'Home'
-        },
-        items: [
-          {
-            productId: 'prod-dd-8inch',
-            sku: 'VRG-ROSE-01',
-            name: 'Double Delight (8 inch pot)',
-            tamilName: 'டபுள் டிலைட் ரோஜா (8 இன்ச் பாட்)',
-            price: 99,
-            mrp: 150,
-            quantity: 1,
-            image: '/products/double-delight.jpeg'
-          }
-        ],
-        subtotal: 99,
-        shippingCharge: 50,
-        discount: 0,
-        grandTotal: 149,
-        paymentStatus: 'PENDING',
-        orderStatus: 'PENDING',
-        paymentMethod: 'COD',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-    ];
+    // Return real local orders only — no hardcoded dummy data
+    return Array.from(uniqueMap.values());
   };
 
   const [stats, setStats] = useState<any>(null);
@@ -1139,17 +940,52 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
             const lowStockList = products.filter(p => p.stock <= 15);
             const recentOrdersList = orders.length > 0 ? orders : (stats?.recentOrders || []);
 
+            // Loading skeleton for dashboard
+            if (loading) {
+              return (
+                <div className="space-y-6 animate-pulse">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[...Array(4)].map((_, i) => (
+                      <div key={i} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-2xs space-y-3">
+                        <div className="h-3 bg-slate-200 rounded w-2/3" />
+                        <div className="h-8 bg-slate-200 rounded w-1/2" />
+                        <div className="h-2 bg-slate-100 rounded w-3/4" />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-2xs space-y-3">
+                    <div className="h-4 bg-slate-200 rounded w-1/3" />
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {[...Array(4)].map((_, i) => (
+                        <div key={i} className="h-20 bg-slate-100 rounded-2xl" />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-2xs space-y-3">
+                    <div className="h-4 bg-slate-200 rounded w-1/4" />
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="h-10 bg-slate-100 rounded-xl" />
+                    ))}
+                  </div>
+                </div>
+              );
+            }
+
             return (
               <div className="space-y-6">
-                {/* Stats cards — live calculated */}
+                {/* Stats cards — live calculated from real API data */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   {[
-                    { label: 'Total Revenue', value: `₹${realTotalRevenue}`, sub: 'Verified via Cash & PhonePe PG', color: 'text-emerald-800' },
-                    { label: 'Today Sales', value: `₹${realTodaySales}`, sub: "Today's farm orders", color: 'text-slate-900' },
-                    { label: 'Total Orders', value: orders.length, sub: `${realPendingOrders} pending dispatch`, color: 'text-slate-900' },
+                    { label: 'Total Revenue', value: `₹${realTotalRevenue.toLocaleString('en-IN')}`, sub: 'Verified via Cash & PhonePe PG', color: 'text-emerald-800', icon: '💰' },
+                    { label: 'Today Sales', value: `₹${realTodaySales.toLocaleString('en-IN')}`, sub: "Today's farm orders", color: 'text-slate-900', icon: '📅' },
+                    { label: 'Total Orders', value: orders.length, sub: `${realPendingOrders} pending dispatch`, color: 'text-slate-900', icon: '📦' },
+                    { label: 'Products', value: products.length, sub: `${lowStockList.length} low stock alert${lowStockList.length !== 1 ? 's' : ''}`, color: 'text-blue-800', icon: '🌿' },
                   ].map(c => (
                     <div key={c.label} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-2xs space-y-1">
-                      <span className="text-xs font-bold text-slate-400 uppercase">{c.label}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-base">{c.icon}</span>
+                        <span className="text-xs font-bold text-slate-400 uppercase">{c.label}</span>
+                      </div>
                       <p className={`text-2xl font-black ${c.color}`}>{c.value}</p>
                       <p className="text-[10px] text-slate-500">{c.sub}</p>
                     </div>

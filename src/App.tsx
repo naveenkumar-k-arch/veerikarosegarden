@@ -197,21 +197,44 @@ export const App: React.FC = () => {
     window.addEventListener('orderStatusUpdated', handleSync);
     window.addEventListener('storage', handleSync);
 
-    // Verify backend auth session
+    // Verify backend auth session — skip if user is already an admin (local-auth login)
     fetch('/api/auth/me', {
       credentials: 'include'
     })
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.user) {
-          setUser(data.user);
+          // Don't overwrite an already-authenticated admin with a customer session
+          setUser((curr) => {
+            const currRole = curr?.role;
+            if (currRole === 'SUPER_ADMIN' || currRole === 'ADMIN' || currRole === 'MANAGER') {
+              return curr; // Keep the admin session intact
+            }
+            return data.user;
+          });
         }
       })
       .catch((err) => console.log('Session check:', err));
 
-    // Firebase Auth State Listener
+    // Firebase Auth State Listener — only update user if not already admin-authenticated
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       if (fbUser) {
+        // Don't let a Firebase Google session overwrite a local-admin login
+        setUser((curr) => {
+          const currRole = curr?.role;
+          if (currRole === 'SUPER_ADMIN' || currRole === 'ADMIN' || currRole === 'MANAGER') {
+            return curr; // Preserve admin session — fire-and-forget the Google sync
+          }
+          return curr; // Will be updated async below
+        });
+
+        // Only sync Google auth if not already an admin
+        const currentUser = JSON.parse(localStorage.getItem('vrg_user') || 'null');
+        const currentRole = currentUser?.role;
+        if (currentRole === 'SUPER_ADMIN' || currentRole === 'ADMIN' || currentRole === 'MANAGER') {
+          return; // Admin session is active — don't override with Google customer account
+        }
+
         try {
           const idToken = await fbUser.getIdToken();
           const res = await fetch('/api/auth/google', {
@@ -652,7 +675,7 @@ export const App: React.FC = () => {
             <AdminLoginForm
               onLoginSuccess={(adminUser) => {
                 setUser(adminUser);
-                localStorage.setItem('vrg_user', JSON.stringify({ name: adminUser.name, role: adminUser.role })); // Store minimal data only
+                localStorage.setItem('vrg_user', JSON.stringify(adminUser));
               }}
               onBackToStore={() => setCurrentPage('home')}
             />

@@ -662,7 +662,7 @@ apiRouter.get('/orders', async (req: AuthenticatedRequest, res) => {
   }
 });
 
-apiRouter.get('/admin/orders', async (req: AuthenticatedRequest, res) => {
+apiRouter.get('/admin/orders', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const orders = await db.getOrders();
     res.json({ success: true, count: orders.length, orders });
@@ -671,7 +671,7 @@ apiRouter.get('/admin/orders', async (req: AuthenticatedRequest, res) => {
   }
 });
 
-apiRouter.get('/admin/dashboard', async (req: AuthenticatedRequest, res) => {
+apiRouter.get('/admin/dashboard', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const stats = await db.getDashboardStats();
     res.json({ success: true, stats });
@@ -748,7 +748,7 @@ apiRouter.get('/orders/:id', async (req, res) => {
 });
 
 // Admin GET all orders - no user filtering, always returns every order from every customer
-apiRouter.get('/admin/orders', async (req: AuthenticatedRequest, res) => {
+apiRouter.get('/admin/orders', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const orders = await db.getOrders();
     res.json({ success: true, count: orders.length, orders });
@@ -758,7 +758,7 @@ apiRouter.get('/admin/orders', async (req: AuthenticatedRequest, res) => {
 });
 
 // Admin update order status
-apiRouter.put('/admin/orders/:id/status', async (req: AuthenticatedRequest, res) => {
+apiRouter.put('/admin/orders/:id/status', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const { orderStatus, trackingNumber, courierName, paymentStatus, paymentProofUrl } = req.body;
     const order = await db.updateOrderStatus(req.params.id, orderStatus, trackingNumber, courierName, paymentStatus, paymentProofUrl);
@@ -884,7 +884,7 @@ apiRouter.post('/phonepe/refund', requireAdmin, async (req: AuthenticatedRequest
 });
 
 // ================= ADMIN DASHBOARD & LOGS =================
-apiRouter.get('/admin/dashboard', async (req: AuthenticatedRequest, res) => {
+apiRouter.get('/admin/dashboard', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const stats = await db.getDashboardStats();
     res.json({ success: true, stats });
@@ -893,7 +893,7 @@ apiRouter.get('/admin/dashboard', async (req: AuthenticatedRequest, res) => {
   }
 });
 
-apiRouter.get('/admin/payment-logs', async (req: AuthenticatedRequest, res) => {
+apiRouter.get('/admin/payment-logs', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const logs = await db.getPaymentLogs();
     res.json({ success: true, logs });
@@ -903,7 +903,7 @@ apiRouter.get('/admin/payment-logs', async (req: AuthenticatedRequest, res) => {
 });
 
 // Financial Expense & Profit Logs
-apiRouter.get('/admin/finances', async (req: AuthenticatedRequest, res) => {
+apiRouter.get('/admin/finances', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const entries = await db.getFinancialEntries();
     res.json({ success: true, entries });
