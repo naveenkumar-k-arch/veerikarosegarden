@@ -946,9 +946,19 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
         <div className="lg:col-span-4 space-y-6">
           {/* TAB 1: DASHBOARD */}
           {activeTab === 'dashboard' && (() => {
-            const realTotalRevenue = orders.reduce((sum, o) => sum + o.grandTotal, 0);
-            const realTodaySales = orders.filter(o => new Date(o.createdAt).toDateString() === new Date().toDateString()).reduce((sum, o) => sum + o.grandTotal, 0);
-            const realPendingOrders = orders.filter(o => o.orderStatus !== 'DELIVERED').length;
+            const paidOrders = orders.filter(o => o.paymentStatus === 'SUCCESS' || o.paymentStatus === 'PAID' || (o.paymentMethod === 'COD' && o.orderStatus === 'DELIVERED'));
+            const realTotalRevenue = stats?.totalRevenue !== undefined && stats?.totalRevenue !== null
+              ? stats.totalRevenue
+              : paidOrders.reduce((sum, o) => sum + o.grandTotal, 0);
+
+            const realTodaySales = stats?.todaySales !== undefined && stats?.todaySales !== null
+              ? stats.todaySales
+              : paidOrders.filter(o => new Date(o.createdAt).toDateString() === new Date().toDateString()).reduce((sum, o) => sum + o.grandTotal, 0);
+
+            const realPendingOrders = stats?.pendingOrders !== undefined && stats?.pendingOrders !== null
+              ? stats.pendingOrders
+              : orders.filter(o => o.orderStatus !== 'DELIVERED' && o.orderStatus !== 'CANCELLED').length;
+
             const lowStockList = products.filter(p => p.stock <= 15);
             const recentOrdersList = orders.length > 0 ? orders : (stats?.recentOrders || []);
 

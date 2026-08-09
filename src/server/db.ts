@@ -2636,7 +2636,8 @@ class Store {
     const gBuffer = ((globalThis as any).globalMemoryOrdersBuffer || []) as Order[];
     // Fetch from Firestore for true cross-device persistence
     const fsOrders = await firestoreGetAllOrders().catch(() => []) as Order[];
-    const defOrders = (typeof DEFAULT_ORDERS !== 'undefined' ? DEFAULT_ORDERS : []) as Order[];
+    const hasRealOrders = dbOrders.length > 0 || this.memoryOrders.length > 0 || gBuffer.length > 0 || fsOrders.length > 0;
+    const defOrders = (!hasRealOrders && typeof DEFAULT_ORDERS !== 'undefined' ? DEFAULT_ORDERS : []) as Order[];
     const allCombined = [...dbOrders, ...this.memoryOrders, ...gBuffer, ...fsOrders, ...defOrders];
     const uniqueMap = new Map<string, Order>();
     allCombined.forEach(o => {
