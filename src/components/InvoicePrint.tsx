@@ -50,7 +50,7 @@ export const InvoicePrint: React.FC<InvoicePrintProps> = ({ order, onClose }) =>
           <p className="text-xs text-slate-600">
             Pennagaram, Dharmapuri District, Tamil Nadu - 636810
           </p>
-          <p className="text-xs text-slate-600">Phone: +91 72008 26129 • Email: kavinkumar.m30@gmail.com</p>
+          <p className="text-xs text-slate-600">Phone: +91 72008 26129 • Email: nv01110612@gmail.com</p>
         </div>
 
         <div className="text-left sm:text-right space-y-1">

@@ -299,20 +299,23 @@ authRouter.post('/login', async (req, res) => {
       return res.status(500).json({ success: false, message: 'Database connection unavailable.' });
     }
 
-    // Auto-ensure Super Admin user nv01110612@gmail.com
-    if (cleanId === 'nv01110612@gmail.com' && password === 'nv01110612@gmail.com' && prisma) {
-      const adminHash = await hashPassword('nv01110612@gmail.com');
+    // Auto-ensure Super Admin from env — seeds/ensures the initial admin account exists in the DB.
+    // Credentials are read from ADMIN_INITIAL_EMAIL / ADMIN_INITIAL_PASSWORD env vars (never hardcoded).
+    const adminInitialEmail = (process.env.ADMIN_INITIAL_EMAIL || '').trim().toLowerCase();
+    const adminInitialPassword = (process.env.ADMIN_INITIAL_PASSWORD || '').trim();
+    if (adminInitialEmail && adminInitialPassword && cleanId === adminInitialEmail && password === adminInitialPassword && prisma) {
+      const adminHash = await hashPassword(adminInitialPassword);
       foundUser = await prisma.user.upsert({
-        where: { email: 'nv01110612@gmail.com' },
+        where: { email: adminInitialEmail },
         update: {
           passwordHash: adminHash,
           role: Role.SUPER_ADMIN,
           isVerified: true
         },
         create: {
-          email: 'nv01110612@gmail.com',
-          phone: '09360931606',
-          name: 'Naveen Kumar (Admin)',
+          email: adminInitialEmail,
+          phone: process.env.ADMIN_INITIAL_PHONE || '',
+          name: process.env.ADMIN_INITIAL_NAME || 'Admin',
           passwordHash: adminHash,
           role: Role.SUPER_ADMIN,
           isVerified: true
