@@ -633,10 +633,10 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
 
     const merchantTransactionId = 'MT' + Date.now() + Math.floor(10 + Math.random() * 89);
 
-    const userId = req.user?.id || req.body.userId || undefined;
+    const userId = req.user ? req.user.id : (req.body.userId || undefined);
     const finalName = customerName || req.user?.name || 'Valued Customer';
     const finalPhone = customerPhone || req.user?.phone || '';
-    const finalEmail = req.user?.email || req.body.userEmail || customerEmail || '';
+    const finalEmail = req.user?.email || customerEmail || '';
 
     const newOrder = await db.createOrder({
       userId,
@@ -699,20 +699,22 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
   }
 });
 
-apiRouter.get('/orders', async (req: AuthenticatedRequest, res) => {
+apiRouter.get('/orders', requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
     const user = req.user;
-    let orders = await db.getOrders();
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Authentication required. Please sign in to view orders.' });
+    }
 
-    if (user) {
-      const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN';
-      if (!isAdmin) {
-        orders = orders.filter(o => 
-          (o.userId && o.userId === user.id) ||
-          (o.customerEmail && o.customerEmail.toLowerCase() === user.email?.toLowerCase()) ||
-          (o.customerPhone && o.customerPhone === user.phone)
-        );
-      }
+    let orders = await db.getOrders();
+    const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN';
+
+    if (!isAdmin) {
+      orders = orders.filter(o => 
+        (o.userId && o.userId === user.id) ||
+        (o.customerEmail && user.email && o.customerEmail.toLowerCase() === user.email.toLowerCase()) ||
+        (o.customerPhone && user.phone && o.customerPhone.replace(/\D/g, '').slice(-10) === user.phone.replace(/\D/g, '').slice(-10))
+      );
     }
 
     res.json({ success: true, count: orders.length, orders });
@@ -744,12 +746,28 @@ apiRouter.get('/orders/user/:identifier', async (req: AuthenticatedRequest, res)
     const { identifier } = req.params;
     const authUser = req.user;
     const cleanId = (identifier || '').toLowerCase().trim();
-    const allOrders = await db.getOrders();
 
     if (!cleanId || cleanId === 'all' || cleanId === 'guest') {
       return res.json({ success: true, count: 0, orders: [] });
     }
 
+    // Security check: If caller is authenticated as customer (non-admin), prevent requesting another user's identifier
+    if (authUser && authUser.role !== 'ADMIN' && authUser.role !== 'SUPER_ADMIN') {
+      const selfId = (authUser.id || '').toLowerCase();
+      const selfEmail = (authUser.email || '').toLowerCase();
+      const selfPhone = (authUser.phone || '').replace(/\D/g, '').slice(-10);
+      const reqNum = cleanId.replace(/\D/g, '').slice(-10);
+
+      const isMatchesSelf = (selfId && cleanId === selfId) ||
+        (selfEmail && cleanId === selfEmail) ||
+        (selfPhone && reqNum && reqNum === selfPhone);
+
+      if (!isMatchesSelf) {
+        return res.status(403).json({ success: false, message: 'Access denied. You can only view your own account orders.' });
+      }
+    }
+
+    const allOrders = await db.getOrders();
     const numOnly = cleanId.replace(/\D/g, '');
 
     const matchedOrders = allOrders.filter(o => {
@@ -787,11 +805,22 @@ apiRouter.get('/orders/user/:identifier', async (req: AuthenticatedRequest, res)
   }
 });
 
-apiRouter.get('/orders/:id', async (req, res) => {
+apiRouter.get('/orders/:id', async (req: AuthenticatedRequest, res) => {
   try {
     let order = await db.getOrderById(req.params.id);
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    // Security check: If authenticated as customer (non-admin), ensure order belongs to caller
+    const user = req.user;
+    if (user && user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
+      const isOwner = (order.userId && order.userId === user.id) ||
+        (order.customerEmail && user.email && order.customerEmail.toLowerCase() === user.email.toLowerCase()) ||
+        (order.customerPhone && user.phone && order.customerPhone.replace(/\D/g, '').slice(-10) === user.phone.replace(/\D/g, '').slice(-10));
+      if (!isOwner) {
+        return res.status(403).json({ success: false, message: 'Access denied. You can only view your own orders.' });
+      }
     }
 
     // Auto-verify with PhonePe if still PENDING and payment method is PHONEPE
