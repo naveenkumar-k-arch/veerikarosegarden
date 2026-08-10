@@ -27,8 +27,48 @@ export const App: React.FC = () => {
   const [showSplash, setShowSplash] = useState<boolean>(true);
   const handleSplashComplete = useCallback(() => setShowSplash(false), []);
 
-  // Page Navigation State — restored from sessionStorage so refresh keeps the user on the same page
+  // Helper to parse URL path into page name & param ID for multi-page routing
+  const getPageFromUrl = (pathname: string): { page: string; paramId?: string } => {
+    const path = pathname.trim().replace(/\/+$/, '') || '/';
+    if (path.startsWith('/product/')) {
+      return { page: 'product-detail', paramId: decodeURIComponent(path.replace('/product/', '')) };
+    }
+    if (path.startsWith('/order-status/')) {
+      return { page: 'order-status', paramId: decodeURIComponent(path.replace('/order-status/', '')) };
+    }
+    if (path === '/checkout') return { page: 'checkout' };
+    if (path === '/shop') return { page: 'shop' };
+    if (path === '/account') return { page: 'account' };
+    if (path === '/policies') return { page: 'policies' };
+    if (path === '/admin') return { page: 'admin' };
+    if (path === '/order-status') return { page: 'order-status' };
+    if (path === '/' || path === '') return { page: 'home' };
+    return { page: 'home' };
+  };
+
+  // Helper to construct canonical URL for a given page & parameters
+  const getUrlForPage = (page: string, extra?: { product?: Product | null; orderId?: string | null }): string => {
+    switch (page) {
+      case 'home': return '/';
+      case 'shop': return '/shop';
+      case 'product-detail':
+        return extra?.product ? `/product/${encodeURIComponent(extra.product.id)}` : '/shop';
+      case 'checkout': return '/checkout';
+      case 'order-status':
+        return extra?.orderId ? `/order-status/${encodeURIComponent(extra.orderId)}` : '/order-status';
+      case 'account': return '/account';
+      case 'policies': return '/policies';
+      case 'admin': return '/admin';
+      default: return '/';
+    }
+  };
+
+  // Initialize page & initial entity state from URL path or sessionStorage fallback
+  const initialUrlState = getPageFromUrl(window.location.pathname);
+
+  // Page Navigation State — multi-page URL routing enabled
   const [currentPage, setCurrentPage] = useState<string>(() => {
+    if (initialUrlState.page) return initialUrlState.page;
     try {
       const saved = sessionStorage.getItem('vrg_current_page');
       if (saved && ['home', 'shop', 'product-detail', 'checkout', 'order-status', 'account', 'policies', 'admin'].includes(saved)) {
@@ -37,6 +77,7 @@ export const App: React.FC = () => {
     } catch {}
     return 'home';
   });
+
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(() => {
     try {
       const saved = sessionStorage.getItem('vrg_selected_category');
@@ -59,8 +100,12 @@ export const App: React.FC = () => {
     return 'shipping';
   });
 
-  // Selected Entities for Views — restored from sessionStorage
+  // Selected Entities for Views — synced with URL & restored from sessionStorage
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(() => {
+    if (initialUrlState.page === 'product-detail' && initialUrlState.paramId) {
+      const matched = INITIAL_PRODUCTS.find(p => p.id === initialUrlState.paramId || p.sku === initialUrlState.paramId);
+      if (matched) return matched;
+    }
     try {
       const saved = sessionStorage.getItem('vrg_selected_product');
       if (saved) {
@@ -70,7 +115,11 @@ export const App: React.FC = () => {
     } catch {}
     return null;
   });
+
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(() => {
+    if (initialUrlState.page === 'order-status' && initialUrlState.paramId) {
+      return initialUrlState.paramId;
+    }
     try {
       const saved = sessionStorage.getItem('vrg_selected_order_id');
       if (saved) return JSON.parse(saved) || null;
@@ -410,8 +459,72 @@ export const App: React.FC = () => {
   // Direct "Buy Now" flow
   const handleBuyNow = (product: Product, quantity = 1) => {
     setCart([{ product, quantity }]);
-    setCurrentPage('checkout');
+    navigateTo('checkout');
   };
+
+  // Centralized Navigation Handler — updates state, URL path, and browser history
+  const navigateTo = useCallback((page: string, params?: {
+    product?: Product | null;
+    orderId?: string | null;
+    policy?: string;
+    category?: string;
+    query?: string;
+    replace?: boolean;
+  }) => {
+    if (params?.product !== undefined) setSelectedProduct(params.product);
+    if (params?.orderId !== undefined) setSelectedOrderId(params.orderId);
+    if (params?.policy !== undefined) setPolicyTab(params.policy);
+    if (params?.category !== undefined) setSelectedCategory(params.category);
+    if (params?.query !== undefined) setSearchQuery(params.query);
+
+    setCurrentPage(page);
+
+    const activeProd = params?.product !== undefined ? params.product : selectedProduct;
+    const activeOrder = params?.orderId !== undefined ? params.orderId : selectedOrderId;
+    const targetUrl = getUrlForPage(page, { product: activeProd, orderId: activeOrder });
+
+    if (window.location.pathname !== targetUrl) {
+      if (params?.replace) {
+        window.history.replaceState({ page }, '', targetUrl);
+      } else {
+        window.history.pushState({ page }, '', targetUrl);
+      }
+    }
+  }, [selectedProduct, selectedOrderId]);
+
+  // Handle Browser Back & Forward Buttons (popstate listener)
+  useEffect(() => {
+    const handlePopState = () => {
+      const { page, paramId } = getPageFromUrl(window.location.pathname);
+      setCurrentPage(page);
+      if (page === 'product-detail' && paramId) {
+        const match = products.find(p => p.id === paramId || p.sku === paramId);
+        if (match) setSelectedProduct(match);
+      } else if (page === 'order-status' && paramId) {
+        setSelectedOrderId(paramId);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [products]);
+
+  // Sync initial URL path to history state on mount
+  useEffect(() => {
+    const initialUrl = getUrlForPage(currentPage, { product: selectedProduct, orderId: selectedOrderId });
+    if (window.location.pathname !== initialUrl && window.location.pathname === '/') {
+      window.history.replaceState({ page: currentPage }, '', initialUrl);
+    }
+  }, []);
+
+  // When products list updates from API, resolve selectedProduct if URL points to a product page
+  useEffect(() => {
+    const { page, paramId } = getPageFromUrl(window.location.pathname);
+    if (page === 'product-detail' && paramId) {
+      const match = products.find(p => p.id === paramId || p.sku === paramId);
+      if (match) setSelectedProduct(match);
+    }
+  }, [products]);
 
   // Apply Coupon
   const handleApplyCoupon = async (code: string): Promise<{ success: boolean; message: string }> => {
@@ -571,8 +684,7 @@ export const App: React.FC = () => {
         }
       } else {
         // COD order — go straight to order status page
-        setSelectedOrderId(orderId);
-        setCurrentPage('order-status');
+        navigateTo('order-status', { orderId });
       }
 
       fetchUserOrders();
@@ -633,8 +745,8 @@ export const App: React.FC = () => {
           cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
           wishlistCount={wishlist.length}
           onOpenCart={() => setIsCartOpen(true)}
-          onNavigate={(page) => {
-            setCurrentPage(page);
+          onNavigate={(page, params) => {
+            navigateTo(page, params);
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
           searchQuery={searchQuery}
@@ -642,11 +754,10 @@ export const App: React.FC = () => {
           categories={categories}
           activeCategory={selectedCategory}
           onSelectCategory={(catId) => {
-            setSelectedCategory(catId);
-            setCurrentPage('shop');
+            navigateTo('shop', { category: catId });
           }}
           isAdmin={currentPage === 'admin'}
-          onToggleAdmin={() => setCurrentPage(currentPage === 'admin' ? 'home' : 'admin')}
+          onToggleAdmin={() => navigateTo(currentPage === 'admin' ? 'home' : 'admin')}
           user={user}
           onOpenExpertAdvice={() => setIsExpertAdviceOpen(true)}
         />
@@ -661,24 +772,21 @@ export const App: React.FC = () => {
             banners={banners}
             onAddToCart={handleAddToCart}
             onViewDetails={(product) => {
-              setSelectedProduct(product);
-              setCurrentPage('product-detail');
+              navigateTo('product-detail', { product });
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             onOpenCareGuide={(product) => setCareGuideProduct(product)}
             onOpenExpertAdvice={() => setIsExpertAdviceOpen(true)}
             onNavigate={(page) => {
-              setCurrentPage(page);
+              navigateTo(page);
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             onSelectCategory={(catId) => {
-              setSelectedCategory(catId);
-              setCurrentPage('shop');
+              navigateTo('shop', { category: catId });
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             onSearchTag={(tag) => {
-              setSearchQuery(tag);
-              setCurrentPage('shop');
+              navigateTo('shop', { query: tag });
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
           />
@@ -694,8 +802,7 @@ export const App: React.FC = () => {
             onSearchChange={(q) => setSearchQuery(q)}
             onAddToCart={handleAddToCart}
             onViewDetails={(product) => {
-              setSelectedProduct(product);
-              setCurrentPage('product-detail');
+              navigateTo('product-detail', { product });
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             onOpenCareGuide={(product) => setCareGuideProduct(product)}
@@ -705,13 +812,13 @@ export const App: React.FC = () => {
         {currentPage === 'product-detail' && selectedProduct && (
           <ProductDetailsPage
             product={selectedProduct}
-            onBack={() => setCurrentPage('shop')}
+            onBack={() => navigateTo('shop')}
             onAddToCart={handleAddToCart}
             onBuyNow={handleBuyNow}
             onOpenCareGuide={(p) => setCareGuideProduct(p)}
             relatedProducts={products.filter((p) => p.categoryId === selectedProduct.categoryId && p.id !== selectedProduct.id)}
             onSelectProduct={(p) => {
-              setSelectedProduct(p);
+              navigateTo('product-detail', { product: p });
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             reviews={reviews.filter((r) => r.productId === selectedProduct.id)}
@@ -733,7 +840,7 @@ export const App: React.FC = () => {
           <OrderStatusPage
             orderId={selectedOrderId}
             onBackToHome={() => {
-              setCurrentPage('home');
+              navigateTo('home');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
           />
@@ -761,8 +868,7 @@ export const App: React.FC = () => {
               setUserOrders([]);
             }}
             onViewOrder={(orderId) => {
-              setSelectedOrderId(orderId);
-              setCurrentPage('order-status');
+              navigateTo('order-status', { orderId });
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             onAddToCart={handleAddToCart}
@@ -775,14 +881,14 @@ export const App: React.FC = () => {
 
         {currentPage === 'admin' && (
           user && (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN' || user.role === 'MANAGER') ? (
-            <AdminPage onBackToStore={() => setCurrentPage('home')} adminUser={user} />
+            <AdminPage onBackToStore={() => navigateTo('home')} adminUser={user} />
           ) : (
             <AdminLoginForm
               onLoginSuccess={(adminUser) => {
                 setUser(adminUser);
                 localStorage.setItem('vrg_user', JSON.stringify(adminUser));
               }}
-              onBackToStore={() => setCurrentPage('home')}
+              onBackToStore={() => navigateTo('home')}
             />
           )
         )}
@@ -792,8 +898,7 @@ export const App: React.FC = () => {
       {currentPage !== 'admin' && (
         <Footer
           onNavigate={(page, params) => {
-            if (params?.policy) setPolicyTab(params.policy);
-            setCurrentPage(page);
+            navigateTo(page, params);
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
         />
@@ -810,9 +915,9 @@ export const App: React.FC = () => {
           setIsCartOpen(false);
           if (!user) {
             alert('🔑 Login or Sign Up Required:\nPlease login to your account before placing an order.');
-            setCurrentPage('account');
+            navigateTo('account');
           } else {
-            setCurrentPage('checkout');
+            navigateTo('checkout');
           }
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
@@ -844,8 +949,7 @@ export const App: React.FC = () => {
           payUrl={phonepeModal.payUrl}
           onSuccess={(oid) => {
             setPhonepeModal(null);
-            setSelectedOrderId(oid || phonepeModal.orderId);
-            setCurrentPage('order-status');
+            navigateTo('order-status', { orderId: oid || phonepeModal.orderId });
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
           onFailure={(err) => {
@@ -896,11 +1000,11 @@ export const App: React.FC = () => {
 
       {/* ===== MOBILE BOTTOM NAVIGATION BAR ===== */}
       <nav className={`mobile-bottom-nav ${isCartOpen ? '!hidden' : ''}`} role="navigation" aria-label="Mobile bottom navigation">
-        <button className={`nav-item ${currentPage === 'home' ? 'active' : ''}`} onClick={() => setCurrentPage('home')}>
+        <button className={`nav-item ${currentPage === 'home' ? 'active' : ''}`} onClick={() => navigateTo('home')}>
           <Home />
           <span>Home</span>
         </button>
-        <button className={`nav-item ${currentPage === 'shop' ? 'active' : ''}`} onClick={() => setCurrentPage('shop')}>
+        <button className={`nav-item ${currentPage === 'shop' ? 'active' : ''}`} onClick={() => navigateTo('shop')}>
           <Store />
           <span>Shop</span>
         </button>
@@ -909,7 +1013,7 @@ export const App: React.FC = () => {
           <ShoppingCart />
           <span>Cart</span>
         </button>
-        <button className={`nav-item ${currentPage === 'account' ? 'active' : ''}`} onClick={() => setCurrentPage('account')}>
+        <button className={`nav-item ${currentPage === 'account' ? 'active' : ''}`} onClick={() => navigateTo('account')}>
           <UserIcon />
           <span>{user ? user.name?.split(' ')[0] : 'Account'}</span>
         </button>
