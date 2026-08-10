@@ -42,18 +42,18 @@ export const AdminLoginForm: React.FC<AdminLoginFormProps> = ({ onLoginSuccess, 
     const cleanPass = password.trim();
 
     if (
-      (cleanUser === 'admin@veerikarosegarden.com' || cleanUser === '7200826129' || cleanUser === 'admin' || cleanUser === 'kavinkumar.m30@gmail.com') &&
-      (cleanPass === 'admin123' || cleanPass === 'VeerikaRose@2026' || cleanPass === 'admin')
+      cleanUser === 'nv01110612@gmail.com' &&
+      cleanPass === 'nv01110612@gmail.com'
     ) {
       const adminUser: User = {
         id: 'usr-admin-01',
         name: 'Veerika Nursery Admin',
-        email: 'admin@veerikarosegarden.com',
-        phone: '7200826129',
+        email: 'nv01110612@gmail.com',
+        phone: '09360931606',
         role: 'SUPER_ADMIN',
         createdAt: new Date().toISOString()
       };
-      localStorage.setItem('vrg_admin_email', adminUser.email || 'admin@veerikarosegarden.com');
+      localStorage.setItem('vrg_admin_email', adminUser.email);
       localStorage.setItem('vrg_admin_role', adminUser.role || 'SUPER_ADMIN');
       setLoading(false);
       onLoginSuccess(adminUser);

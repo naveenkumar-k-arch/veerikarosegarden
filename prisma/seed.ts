@@ -10,8 +10,8 @@ async function main() {
   console.log('🌱 Starting production database initialization...');
 
   // 1. Seed Super Admin User dynamically from environment variables
-  const adminEmail = (process.env.ADMIN_INITIAL_EMAIL || 'admin@veerikarosegarden.com').toLowerCase();
-  const rawPassword = process.env.ADMIN_INITIAL_PASSWORD || 'AdminSecurePassword123!';
+  const adminEmail = (process.env.ADMIN_INITIAL_EMAIL || 'nv01110612@gmail.com').toLowerCase();
+  const rawPassword = process.env.ADMIN_INITIAL_PASSWORD || 'nv01110612@gmail.com';
   const passwordHash = await argon2.hash(rawPassword);
 
   const adminUser = await prisma.user.upsert({
@@ -23,7 +23,7 @@ async function main() {
     },
     create: {
       email: adminEmail,
-      phone: '910000000000',
+      phone: '09360931606',
       name: 'Super Admin',
       passwordHash,
       role: Role.SUPER_ADMIN,

@@ -17,7 +17,7 @@
   <!-- QR Code Container Box -->
   <g transform="translate(70, 390)">
     <!-- High Resolution QR Matrix Pattern -->
-    <image href="https://api.qrserver.com/v1/create-qr-code/?size=460x460&amp;data=upi://pay?pa=veerikarosegarden@ibl%26pn=ANISHA%20RAJA%26cu=INR" width="460" height="460"/>
+    <image href="https://api.qrserver.com/v1/create-qr-code/?size=460x460&amp;data=upi://pay?pn=VEERIKA%20ROSE%20GARDEN&amp;cu=INR" width="460" height="460"/>
     
     <!-- PhonePe Central Icon Overlay -->
     <circle cx="230" cy="230" r="48" fill="#000000" stroke="#ffffff" stroke-width="6"/>
@@ -26,8 +26,8 @@
   </g>
   
   <!-- Merchant Account Name -->
-  <text x="300" y="940" font-family="'Inter', 'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="34" fill="#0f172a" text-anchor="middle" letter-spacing="2">ANISHA RAJA</text>
-  <text x="300" y="985" font-family="'Inter', 'Helvetica Neue', Arial, sans-serif" font-weight="800" font-size="20" fill="#4f46e5" text-anchor="middle">veerikarosegarden@ibl</text>
+  <text x="300" y="940" font-family="'Inter', 'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="28" fill="#0f172a" text-anchor="middle" letter-spacing="2">VEERIKA ROSE GARDEN</text>
+  <text x="300" y="985" font-family="'Inter', 'Helvetica Neue', Arial, sans-serif" font-weight="800" font-size="20" fill="#4f46e5" text-anchor="middle">Scan &amp; Pay via Any UPI App</text>
   
   <!-- Footer Copyright -->
   <text x="300" y="1120" font-family="'Inter', 'Helvetica Neue', Arial, sans-serif" font-weight="600" font-size="16" fill="#64748b" text-anchor="middle">© 2026, All rights reserved, PhonePe Ltd (Formerly</text>
