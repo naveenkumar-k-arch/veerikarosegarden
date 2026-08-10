@@ -29,36 +29,18 @@ export const AdminLoginForm: React.FC<AdminLoginFormProps> = ({ onLoginSuccess, 
       const data = await res.json();
 
       if (data.success && data.user && (data.user.role === 'SUPER_ADMIN' || data.user.role === 'ADMIN' || data.user.role === 'MANAGER')) {
+        localStorage.setItem('vrg_admin_email', data.user.email);
+        localStorage.setItem('vrg_admin_role', data.user.role);
         setLoading(false);
         onLoginSuccess(data.user);
         return;
+      } else {
+        setError(data.message || 'Invalid Admin Username or Password');
+        setLoading(false);
+        return;
       }
     } catch {
-      // Fallback local verification for demo & dev environment
-    }
-
-    // Local Verification for Admin Credentials
-    const cleanUser = username.trim().toLowerCase();
-    const cleanPass = password.trim();
-
-    if (
-      cleanUser === 'nv01110612@gmail.com' &&
-      cleanPass === 'nv01110612@gmail.com'
-    ) {
-      const adminUser: User = {
-        id: 'usr-admin-01',
-        name: 'Veerika Nursery Admin',
-        email: 'nv01110612@gmail.com',
-        phone: '09360931606',
-        role: 'SUPER_ADMIN',
-        createdAt: new Date().toISOString()
-      };
-      localStorage.setItem('vrg_admin_email', adminUser.email);
-      localStorage.setItem('vrg_admin_role', adminUser.role || 'SUPER_ADMIN');
-      setLoading(false);
-      onLoginSuccess(adminUser);
-    } else {
-      setError('Invalid Admin Username or Password');
+      setError('Unable to reach server. Please check your internet connection.');
       setLoading(false);
     }
   };

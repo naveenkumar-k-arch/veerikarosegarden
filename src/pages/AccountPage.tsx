@@ -162,10 +162,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
       const data = await res.json();
       if (data.success) {
         setOtpSent(true);
-        if (data.otpCode) {
-          setDemoOtp(data.otpCode);
-        }
-        setSuccessMsg(data.message || `OTP sent to +91 ${otpPhone.trim()}. Check code below.`);
+        setSuccessMsg(data.message || `OTP sent to +91 ${otpPhone.trim()}. Please enter the 6-digit code received.`);
       } else {
         setErrorMsg(data.message || 'Failed to send OTP.');
       }
@@ -219,10 +216,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
       const data = await res.json();
       if (data.success) {
         setResetStep(2);
-        if (data.resetToken) {
-          setResetToken(data.resetToken);
-        }
-        setSuccessMsg('Reset token generated. Please set your new password below.');
+        setSuccessMsg('If your email is registered, a password reset code has been sent. Check your inbox.');
       } else {
         setErrorMsg(data.message || 'Error processing request.');
       }

@@ -547,48 +547,39 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
     let calculatedSubtotal = 0;
     const verifiedItems = [];
 
+    const allProducts = await db.getProducts();
+
     for (const item of items) {
-      let dbProduct = await db.getProductById(item.productId);
-      if (!dbProduct) {
-        dbProduct = {
-          id: item.productId,
-          sku: item.sku || `VRG-${item.productId.slice(0, 6).toUpperCase()}`,
-          name: item.name || 'Nursery Plant Sapling',
-          englishName: item.name || 'Nursery Plant Sapling',
-          tamilName: item.tamilName || item.name || 'à®°à¯‹à®œà®¾ à®šà¯†à®Ÿà®¿',
-          scientificName: 'Rosa Hybrid',
-          categoryId: 'cat-rose',
-          categoryName: 'Rose Varieties',
-          description: item.name || 'Live Nursery Plant Sapling',
-          mrp: item.price ? Math.round(item.price * 1.2) : 199,
-          sellingPrice: item.price || 149,
-          discount: 10,
-          stock: 100,
-          plantHeight: '1.5 Feet',
-          potSize: '6 inch Grow Bag',
-          sunlight: 'Full Sun',
-          waterRequirement: 'Daily',
-          floweringSeason: 'Continuous',
-          careInstructions: {
-            watering: 'Daily',
-            sunlight: 'Full Sun',
-            fertilizer: 'Organic Manure',
-            soil: 'Red Soil'
-          },
-          images: [item.image || '/products/double-delight.jpeg'],
-          rating: 4.8,
-          reviewCount: 12,
-          featured: false,
-          bestSeller: false,
-          trending: false,
-          tags: ['rose'],
-          status: 'ACTIVE',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
+      if (!item || !item.productId) {
+        return res.status(400).json({ success: false, message: 'Invalid item format in order request.' });
       }
 
-      const itemTotal = dbProduct.sellingPrice * item.quantity;
+      // Enforce positive integer quantity
+      const validQty = Math.max(1, Math.floor(Number(item.quantity) || 1));
+      if (isNaN(validQty) || validQty < 1) {
+        return res.status(400).json({ success: false, message: 'Quantity must be a positive integer.' });
+      }
+
+      // Strictly lookup product from Server Database — NEVER trust client-supplied prices
+      let dbProduct = await db.getProductById(item.productId);
+      if (!dbProduct) {
+        dbProduct = allProducts.find(p => p.id === item.productId || p.sku === item.sku) || null;
+      }
+
+      if (!dbProduct) {
+        return res.status(400).json({
+          success: false,
+          message: `Product '${item.name || item.productId}' is invalid or no longer available.`
+        });
+      }
+
+      // Enforce database price
+      const verifiedPrice = Number(dbProduct.sellingPrice);
+      if (isNaN(verifiedPrice) || verifiedPrice <= 0) {
+        return res.status(400).json({ success: false, message: 'Invalid product pricing configuration.' });
+      }
+
+      const itemTotal = verifiedPrice * validQty;
       calculatedSubtotal += itemTotal;
 
       verifiedItems.push({
@@ -596,34 +587,42 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
         sku: dbProduct.sku,
         name: dbProduct.name,
         tamilName: dbProduct.tamilName,
-        price: dbProduct.sellingPrice,
+        price: verifiedPrice,
         mrp: dbProduct.mrp,
-        quantity: item.quantity,
-        image: dbProduct.images[0] || ''
+        quantity: validQty,
+        image: (dbProduct.images && dbProduct.images.length > 0) ? dbProduct.images[0] : ''
       });
     }
 
-    // Coupon verification
+    // Coupon verification against server-calculated subtotal
     let discount = 0;
     if (couponCode) {
       const coupon = await db.getCouponByCode(couponCode);
-      if (coupon && coupon.active && calculatedSubtotal >= coupon.minOrder) {
-        if (coupon.type === 'PERCENT') {
-          discount = (calculatedSubtotal * coupon.value) / 100;
+      if (coupon && coupon.active && calculatedSubtotal >= (coupon.minOrder || 0)) {
+        const couponType = (coupon as any).type || (coupon as any).discountType || 'FIXED';
+        const couponValue = Number(coupon.value || (coupon as any).discountValue || 0);
+
+        if (couponType === 'PERCENT' || couponType === 'PERCENTAGE') {
+          discount = (calculatedSubtotal * couponValue) / 100;
           if (coupon.maxDiscount && discount > coupon.maxDiscount) discount = coupon.maxDiscount;
         } else {
-          discount = coupon.value;
+          discount = couponValue;
         }
       }
     }
 
-    const targetState = shippingAddress?.state || 'Tamil Nadu';
-    const potOption = req.body.potOption || 'NONE';
+    // Server-side Pot Charge calculation (ignore client potCharge override)
+    const potOption = (req.body.potOption as string) || 'NONE';
     const totalPlantCount = verifiedItems.reduce((sum, i) => sum + i.quantity, 0);
     const potUnitFee = potOption === '6_INCH' ? 99 : potOption === '8_INCH' ? 199 : 0;
-    const potCharge = req.body.potCharge ?? (potUnitFee * totalPlantCount);
+    const potCharge = potUnitFee * totalPlantCount;
+
+    // Server-side Shipping Charge calculation
+    const targetState = shippingAddress?.state || 'Tamil Nadu';
     const shippingCharge = potOption !== 'NONE' ? 0 : calculateDeliveryFee(verifiedItems, targetState);
-    const calculatedGrandTotal = Math.max(1, Math.round(calculatedSubtotal + potCharge + shippingCharge - discount));
+
+    // Final Grand Total calculated strictly on server
+    const calculatedGrandTotal = Math.max(1, Math.round(calculatedSubtotal + potCharge + shippingCharge - Math.min(discount, calculatedSubtotal)));
 
     const merchantTransactionId = 'MT' + Date.now() + Math.floor(10 + Math.random() * 89);
 

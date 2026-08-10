@@ -59,85 +59,13 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({ onSuccess, c
         setErrorMsg(`Domain not authorized in Firebase Console (${window.location.hostname}). Please add it under Firebase -> Auth -> Settings -> Authorized Domains.`);
       } else if (err?.code === 'auth/operation-not-allowed') {
         setErrorMsg('Google Sign-In is disabled in Firebase Console. Please enable Google under Firebase -> Auth -> Sign-in Method.');
-      } else if (err?.message || err?.code) {
-        setErrorMsg(`Google Sign-In error: ${err?.code || err?.message || 'Authentication failed'}`);
       } else {
-        setShowEmailFallback(true);
+        setErrorMsg(`Google Sign-In error: ${err?.code || err?.message || 'Authentication failed'}`);
       }
     } finally {
       setLoading(false);
     }
   };
-
-  const handleEmailFallbackSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!fallbackEmail.includes('@')) {
-      setErrorMsg('Please enter a valid Google email address.');
-      return;
-    }
-    const rawName = fallbackName.trim() || fallbackEmail.split('@')[0].replace(/[._]/g, ' ');
-    const formattedName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
-    const selfUser: User = {
-      id: `usr-g-${Date.now()}`,
-      name: formattedName,
-      email: fallbackEmail.trim().toLowerCase(),
-      phone: '',
-      role: 'CUSTOMER',
-      createdAt: new Date().toISOString()
-    };
-    onSuccess(selfUser);
-  };
-
-  if (showEmailFallback) {
-    return (
-      <div className="w-full space-y-3">
-        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900 font-semibold">
-          🔑 Enter your Google account details below to sign in instantly.
-        </div>
-        <form onSubmit={handleEmailFallbackSubmit} className="space-y-2.5">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Your Name (e.g. Kavin Kumar)"
-              value={fallbackName}
-              onChange={e => setFallbackName(e.target.value)}
-              className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white"
-            />
-            <span className="absolute left-3 top-2.5 text-slate-400 text-sm">👤</span>
-          </div>
-          <div className="relative">
-            <input
-              type="email"
-              required
-              placeholder="Your Google Email (e.g. you@gmail.com)"
-              value={fallbackEmail}
-              onChange={e => setFallbackEmail(e.target.value)}
-              className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white"
-            />
-            <Mail className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
-          </div>
-          {errorMsg && (
-            <div className="p-2 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl text-center">
-              {errorMsg}
-            </div>
-          )}
-          <button
-            type="submit"
-            className="w-full py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
-          >
-            Continue as Google User <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => { setShowEmailFallback(false); setErrorMsg(''); }}
-            className="w-full text-xs text-slate-400 hover:text-slate-600 transition-colors py-1"
-          >
-            ← Back to sign-in options
-          </button>
-        </form>
-      </div>
-    );
-  }
 
   return (
     <div className="w-full space-y-2">
