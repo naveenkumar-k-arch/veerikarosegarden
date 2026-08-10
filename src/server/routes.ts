@@ -22,7 +22,8 @@ import { calculateDeliveryFee } from '../utils/delivery.js';
 
 export const apiRouter = express.Router();
 
-apiRouter.use(express.json());
+apiRouter.use(express.json({ limit: '15mb' }));
+apiRouter.use(express.urlencoded({ extended: true, limit: '15mb' }));
 apiRouter.use(parseAuthUser);
 
 // Mount Production Auth Router
