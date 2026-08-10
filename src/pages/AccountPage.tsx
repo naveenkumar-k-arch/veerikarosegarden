@@ -43,11 +43,12 @@ export const AccountPage: React.FC<AccountPageProps> = ({
   const [otpPhone, setOtpPhone] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [otpSent, setOtpSent] = useState(false);
-  const [demoOtp, setDemoOtp] = useState<string | null>(null);
+
 
   // Forgot Password State
   const [forgotEmail, setForgotEmail] = useState('');
   const [resetToken, setResetToken] = useState('');
+
   const [newPassword, setNewPassword] = useState('');
   const [resetStep, setResetStep] = useState<1 | 2>(1);
 
@@ -408,13 +409,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                   </form>
                 ) : (
                   <form onSubmit={handleVerifyOtp} className="space-y-4">
-                    {demoOtp && (
-                      <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 font-medium">
-                        <span className="font-bold">Sandbox OTP Code: </span>
-                        <code className="bg-amber-100 px-2 py-0.5 rounded font-mono font-bold text-amber-950">{demoOtp}</code>
-                      </div>
-                    )}
-
                     <div>
                       <label className="text-xs font-bold text-slate-700 block mb-1">Enter 6-Digit OTP Code:</label>
                       <div className="relative">

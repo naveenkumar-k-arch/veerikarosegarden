@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { User } from '../types';
 import { auth, googleProvider, signInWithPopup } from '../lib/firebase';
-import { Mail, ArrowRight } from 'lucide-react';
 
 interface GoogleAuthButtonProps {
   onSuccess: (user: User, token?: string) => void;
@@ -11,14 +10,10 @@ interface GoogleAuthButtonProps {
 export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({ onSuccess, className = '' }) => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [showEmailFallback, setShowEmailFallback] = useState(false);
-  const [fallbackEmail, setFallbackEmail] = useState('');
-  const [fallbackName, setFallbackName] = useState('');
 
   const handleDirectPopupSignIn = async () => {
     setLoading(true);
     setErrorMsg('');
-    setShowEmailFallback(false);
     try {
       // Real Firebase Google Auth Popup
       const result = await signInWithPopup(auth, googleProvider);
