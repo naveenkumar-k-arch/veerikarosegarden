@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CartItem, ShippingAddress, PaymentMethod, User, SiteSettings } from '../types';
 import { ShieldCheck, Truck, ArrowLeft, Check, Lock, Smartphone, Home, MapPin, Building2, CreditCard, QrCode, Upload, Copy, CheckCircle2, AlertCircle, Image as ImageIcon } from 'lucide-react';
-import { calculateDeliveryFee, INDIAN_STATES, isSouthState, isGrapeItem } from '../utils/delivery';
+import { calculateDeliveryFee, INDIAN_STATES, isSouthState, isTamilNadu, isGrapeItem } from '../utils/delivery';
 
 interface CheckoutPageProps {
   items: CartItem[];
@@ -398,7 +398,7 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
                   >
                     {INDIAN_STATES.map((st) => (
                       <option key={st} value={st}>
-                        {st} {isSouthState(st) ? '(₹50 base shipping)' : '(₹100 base shipping)'}
+                        {st} {isTamilNadu(st) ? '(₹60 base shipping)' : '(₹100 base shipping)'}
                       </option>
                     ))}
                   </select>
@@ -805,7 +805,7 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
                   <span className="text-[10px] text-slate-500 block">
                     {selectedPot !== 'NONE'
                       ? 'Free delivery included with pot selection'
-                      : `${address.state} (${isSouthState(address.state) ? 'TN/KL/KA' : 'Other State'})`}
+                      : `${address.state} (${isTamilNadu(address.state) ? 'Tamil Nadu Rate' : 'Other South States Rate'})`}
                   </span>
                 </div>
                 <span className="font-bold text-slate-900">

@@ -1,0 +1,126 @@
+import json
+import os
+
+plants_raw = [
+    {"num": 1, "name": "Aavaram Poo Plant", "tamilName": "ஆவாரம்பூ மரம்", "category": "Herbals", "categoryId": "cat-herbals", "price": 50, "mrp": 70, "desc": "Medicinal Tanner's Cassia (Senna auriculata) plant with bright yellow flowers, highly valued in traditional Tamil herbal medicine."},
+    {"num": 2, "name": "Color Kakattan Jasmine", "tamilName": "கலர் காகட்டன்", "category": "Jasmine Varieties", "categoryId": "cat-jasmine", "price": 30, "mrp": 50, "desc": "Beautiful multi-color fragrant Star Jasmine plant producing abundant colorful blossoms."},
+    {"num": 3, "name": "Orchid Rose (6 Inch Pot)", "tamilName": "ஆர்ச்சிட் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 150, "mrp": 160, "desc": "Exotic orchid-shaped pink rose variety grown in a sturdy 6-inch pot."},
+    {"num": 4, "name": "Naatu Rose Pink", "tamilName": "நாத்து பன்னீர் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 80, "mrp": 100, "desc": "Traditional aromatic native Tamil Nadu pink rose with rich natural fragrance."},
+    {"num": 5, "name": "Orchid Rose Premium (6 Inch Pot)", "tamilName": "ஆர்ச்சிட் ரோஸ் பிரீமியம்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 150, "mrp": 160, "desc": "High-yielding Orchid Rose potted plant with lush dark green foliage."},
+    {"num": 6, "name": "Rosemary Herbal Plant", "tamilName": "ரோஸ்மேரி மூலிகை", "category": "Herbals", "categoryId": "cat-herbals", "price": 30, "mrp": 50, "desc": "Aromatic culinary and medicinal Rosemary herb plant with evergreen needle-like leaves."},
+    {"num": 7, "name": "Green Rose Plant", "tamilName": "பச்சை ரோஜா", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 100, "mrp": 120, "desc": "Rare exotic green-petaled rose variety (Rosa chinensis viridiflora) for collectors."},
+    {"num": 8, "name": "Ranakalli Medicinal Plant", "tamilName": "ரணகள்ளி", "category": "Herbals", "categoryId": "cat-herbals", "price": 30, "mrp": 50, "desc": "Bryophyllum Pinnatum (Miracle Leaf) miracle medicinal plant used in traditional healing."},
+    {"num": 9, "name": "Jadhi Malli Plant", "tamilName": "ஜாதிமல்லி", "category": "Jasmine Varieties", "categoryId": "cat-jasmine", "price": 30, "mrp": 50, "desc": "Highly fragrant Spanish Jasmine (Jasminum grandiflorum) with star-shaped white blossoms."},
+    {"num": 10, "name": "Any Pink Hybrid Rose", "tamilName": "பிங்க் ஹைப்ரிட் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 89, "mrp": 109, "desc": "Vibrant pink hybrid rose sapling blooming continuously throughout the year."},
+    {"num": 11, "name": "Betel Vine Sapling", "tamilName": "வெற்றிலைக்கொடி", "category": "Herbals", "categoryId": "cat-herbals", "price": 50, "mrp": 70, "desc": "Fresh Piper Betle climbing vine sapling producing glossy green betel leaves."},
+    {"num": 12, "name": "Bramma Kamalam Sacred Plant", "tamilName": "பிரம்ம கமல மலர்", "category": "Flowering Plants", "categoryId": "cat-flowering", "price": 30, "mrp": 50, "desc": "Epiphyllum oxypetalum (Night Blooming Ceres) sacred bloom plant associated with good fortune."},
+    {"num": 13, "name": "Button Pink Rose", "tamilName": "பட்டன் பிங்க் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 89, "mrp": 109, "desc": "Compact miniature pink button rose producing dense clusters of small sweet flowers."},
+    {"num": 14, "name": "Melastoma Flowering Plant", "tamilName": "மெலாஸ்டோமா", "category": "Flowering Plants", "categoryId": "cat-flowering", "price": 90, "mrp": 100, "desc": "Stunning purple Indian Rhododendron (Melastoma malabathricum) flowering shrub."},
+    {"num": 15, "name": "Black Magic Rose", "tamilName": "கருப்பு ரோஜா (Black Magic)", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 119, "mrp": 139, "desc": "Deep velvety dark maroon-black hybrid rose with high petal count and long vase life."},
+    {"num": 16, "name": "Color Changing Rose", "tamilName": "நிறம் மாறும் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 30, "mrp": 50, "desc": "Fascinating rose variety whose petals transition from yellow to deep coral pink with sunlight exposure."},
+    {"num": 17, "name": "Classic Red Rose", "tamilName": "சிவப்பு ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 90, "mrp": 100, "desc": "Timeless vivid red rose plant with rich green foliage and sturdy stems."},
+    {"num": 18, "name": "Arabic Panneer Rose", "tamilName": "அராபிக் பன்னீர் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 50, "mrp": 70, "desc": "Fragrant Arabic Rose (Damask variation) producing sweet scented light pink blossoms."},
+    {"num": 19, "name": "Button Panneer Rose", "tamilName": "பட்டன் பன்னீர் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 90, "mrp": 100, "desc": "Miniature scented panner rose with dense pink button-like clusters."},
+    {"num": 20, "name": "Yellow Miniature Rose", "tamilName": "மஞ்சள் மினியேச்சர் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 80, "mrp": 100, "desc": "Bright golden yellow miniature rose shrub perfect for balcony pots and home borders."},
+    {"num": 21, "name": "Panneer Button Rose Special", "tamilName": "பன்னீர் பட்டன் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 90, "mrp": 100, "desc": "High fragrance miniature pink panneer rose variety ideal for garland flowers."},
+    {"num": 22, "name": "Pacha Mullai Plant", "tamilName": "பச்சை முல்லை", "category": "Jasmine Varieties", "categoryId": "cat-jasmine", "price": 50, "mrp": 60, "desc": "Lush green Jasminum auriculatum climbing vine with intoxicating fragrance."},
+    {"num": 23, "name": "Naatu Rose Pink Native", "tamilName": "நாட்டு பன்னீர் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 80, "mrp": 100, "desc": "Organically grown native Tamil Nadu fragrance rose sapling."},
+    {"num": 24, "name": "Panner Leaf Plant", "tamilName": "பன்னீர் இலை மரம்", "category": "Herbals", "categoryId": "cat-herbals", "price": 30, "mrp": 50, "desc": "Fragrant Panner leaf medicinal plant used for floral water and traditional remedies."},
+    {"num": 25, "name": "Blue Sangu Poo Plant", "tamilName": "நீல சங்குப்பூ (Butterfly Pea)", "category": "Flowering Plants", "categoryId": "cat-flowering", "price": 30, "mrp": 50, "desc": "Clitoria ternatea (Blue Butterfly Pea) vine producing deep cobalt blue edible tea flowers."},
+    {"num": 26, "name": "Button Panner Rose Garden", "tamilName": "பட்டன் பன்னீர் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 90, "mrp": 100, "desc": "Prolific blooming button rose with sweet rose-water perfume."},
+    {"num": 27, "name": "White Sangu Poo Plant", "tamilName": "வெள்ளை சங்குப்பூ", "category": "Flowering Plants", "categoryId": "cat-flowering", "price": 30, "mrp": 50, "desc": "Rare white-flowered Butterfly Pea (Clitoria ternatea alba) sacred climber vine."},
+    {"num": 28, "name": "Ramar Malli Jasmine", "tamilName": "ராமர் மல்லி", "category": "Jasmine Varieties", "categoryId": "cat-jasmine", "price": 50, "mrp": 60, "desc": "Traditional Ramar Malli jasmine with thick fragrant double petals."},
+    {"num": 29, "name": "Mint Thulasi Medicinal Plant", "tamilName": "புதினா துளசி", "category": "Herbals", "categoryId": "cat-herbals", "price": 30, "mrp": 50, "desc": "Hybrid Mint-scented Tulsi (Holy Basil) plant rich in immunity-boosting essential oils."},
+    {"num": 30, "name": "Suloli Hanging Rose", "tamilName": "சுலோலி தொங்கும் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 90, "mrp": 100, "desc": "Cascading trailing pink rose variety ideal for hanging baskets and porch planters."},
+    {"num": 31, "name": "Panneer Button Rose Extra", "tamilName": "பன்னீர் பட்டன் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 90, "mrp": 100, "desc": "Ever-blooming fragrant pink button rose with dense bushy habit."},
+    {"num": 32, "name": "Exotic Melastoma Shrub", "tamilName": "மெலாஸ்டோமா சிறப்பு", "category": "Flowering Plants", "categoryId": "cat-flowering", "price": 90, "mrp": 100, "desc": "Vibrant purple flowering ornamental bush easy to grow in full sun."},
+    {"num": 33, "name": "Color Shift Changing Rose", "tamilName": "நிறம் மாறும் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 30, "mrp": 50, "desc": "Multi-hued rose bush that changes color as the bloom matures."},
+    {"num": 34, "name": "Marikolunthu Herb", "tamilName": "மரிகொழுந்து", "category": "Herbals", "categoryId": "cat-herbals", "price": 30, "mrp": 50, "desc": "Artemisia pallens (Davana / Marikolunthu) highly aromatic herb essential for temple garlands."},
+    {"num": 35, "name": "Mint Thulasi Organic", "tamilName": "புதினா துளசி", "category": "Herbals", "categoryId": "cat-herbals", "price": 30, "mrp": 50, "desc": "Aromatic spearmint-flavored Holy Basil herbal sapling."},
+    {"num": 36, "name": "Aavaram Poo Herbal Bush", "tamilName": "ஆவாரம்பூ செடி", "category": "Herbals", "categoryId": "cat-herbals", "price": 50, "mrp": 70, "desc": "Golden Cassia flower shrub valued for skin care and herbal teas."},
+    {"num": 37, "name": "White Sangu Poo Sacred Vine", "tamilName": "வெள்ளை சங்குப்பூ", "category": "Flowering Plants", "categoryId": "cat-flowering", "price": 30, "mrp": 50, "desc": "Purity white conch-flower vine plant for home worship."},
+    {"num": 38, "name": "Blue Sangu Poo Herbal Vine", "tamilName": "நீல சங்குப்பூ", "category": "Flowering Plants", "categoryId": "cat-flowering", "price": 30, "mrp": 50, "desc": "Herbal blue tea flower climber plant with medicinal benefits."},
+    {"num": 39, "name": "Pacha Mullai Jasmine", "tamilName": "பச்சை முல்லை செடி", "category": "Jasmine Varieties", "categoryId": "cat-jasmine", "price": 50, "mrp": 60, "desc": "High fragrance Mullai jasmine climber with rich green foliage."},
+    {"num": 40, "name": "Bramma Kamalam Lucky Plant", "tamilName": "பிரம்ம கமலம்", "category": "Flowering Plants", "categoryId": "cat-flowering", "price": 30, "mrp": 50, "desc": "Auspicious nocturnal blooming lotus cactus plant."},
+    {"num": 41, "name": "Green Rose Exotic collector", "tamilName": "பச்சை ரோஜா செடி", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 100, "mrp": 120, "desc": "Unique green petaled rose variety for rare plant enthusiasts."},
+    {"num": 42, "name": "Red Rose Garden Classic", "tamilName": "சிவப்பு ரோஸ் செடி", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 90, "mrp": 100, "desc": "High-yield red rose plant with large glossy blooms."},
+    {"num": 43, "name": "Betel Vine Vetrilai Plant", "tamilName": "வெற்றிலை கொடி", "category": "Herbals", "categoryId": "cat-herbals", "price": 50, "mrp": 70, "desc": "Traditional Tamil Vetrilai betel leaf creeper plant."},
+    {"num": 44, "name": "Thanjavur Panneer Rose", "tamilName": "தஞ்சாவூர் பன்னீர் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 90, "mrp": 100, "desc": "Famous Thanjavur heritage pink rose with intense sweet perfume."},
+    {"num": 45, "name": "Taj Mahal Red Rose", "tamilName": "தாஜ்மஹால் ரெட் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 90, "mrp": 100, "desc": "Long-stemmed velvet crimson red cut-flower rose variety."},
+    {"num": 46, "name": "Strawberry Fruit Plant Sapling", "tamilName": "ஸ்ட்ராபெரி செடி", "category": "Fruit Plants", "categoryId": "cat-fruits", "price": 100, "mrp": 150, "desc": "Grafted sweet strawberry plant suitable for container pots and home gardens."},
+    {"num": 47, "name": "Nanthiyavattam Jasmine Shrub", "tamilName": "நந்தியாவட்டம்", "category": "Jasmine Varieties", "categoryId": "cat-jasmine", "price": 50, "mrp": 70, "desc": "Tabernaemontana divaricarita (Pinwheel Flower / Nanthiyavattam) pristine white flower shrub."},
+    {"num": 48, "name": "Money Plant Indoor Vine", "tamilName": "மணி பிளான்ட்", "category": "Indoor Plants", "categoryId": "cat-indoor", "price": 50, "mrp": 60, "desc": "Golden Pothos (Epipremnum aureum) air-purifying indoor climber plant."},
+    {"num": 49, "name": "Mon Coeur French Rose", "tamilName": "மன்கூர் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 150, "mrp": 180, "desc": "Exquisite French cupped pink rose variety with gentle perfume."},
+    {"num": 50, "name": "White Panneer Rose Premium", "tamilName": "வெள்ளை பன்னீர் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 180, "mrp": 200, "desc": "Rare snow-white fragrant Panneer Rose plant producing large double blooms."},
+    {"num": 51, "name": "Anny Duperey Yellow Rose", "tamilName": "ஆனி டுபெரி மஞ்சள் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 120, "mrp": 150, "desc": "Bright golden-yellow romantic shrub rose with citrus fragrance."},
+    {"num": 52, "name": "Summer Snow White Rose", "tamilName": "சம்மர் ஸ்னோ வெள்ளை ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 80, "mrp": 100, "desc": "Prolific cluster-blooming white floribunda rose variety."},
+    {"num": 53, "name": "Calcutta Rose Hybrid", "tamilName": "கொல்கத்தா ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 80, "mrp": 100, "desc": "High resistance Kolkata pink hybrid rose for home gardens."},
+    {"num": 54, "name": "Paradise Lavender Rose", "tamilName": "பாரடைஸ் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 100, "mrp": 120, "desc": "Stunning lavender-mauve shaded hybrid tea rose with ruby red edge."},
+    {"num": 55, "name": "Blue Moon Lagerfeld Rose", "tamilName": "ப்ளூ மூன் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 150, "mrp": 250, "desc": "Famous silvery-lilac Blue Moon rose with strong sweet perfume."},
+    {"num": 56, "name": "Orchid Rose Potted", "tamilName": "ஆர்ச்சிட் ரோஸ் செடி", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 150, "mrp": 160, "desc": "Lush potted orchid rose with heavy buds."},
+    {"num": 57, "name": "Suloli Hanging Pink Rose", "tamilName": "சுலோலி தொங்கும் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 90, "mrp": 100, "desc": "Graceful trailing pink rose variety for porch planters."},
+    {"num": 58, "name": "Arabic Panneer Heritage Rose", "tamilName": "அராபிக் பன்னீர் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 50, "mrp": 70, "desc": "Fragrant heritage Damask rose variation."},
+    {"num": 59, "name": "Arabic Panneer Native Rose", "tamilName": "நாட்டு பன்னீர் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 50, "mrp": 70, "desc": "High fragrance pink rose for daily floral offering."},
+    {"num": 60, "name": "Button Panneer Rose Bush", "tamilName": "பட்டன் பன்னீர் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 90, "mrp": 100, "desc": "Abundant small scented pink blooms."},
+    {"num": 61, "name": "Panneer Leaf Herbal Plant", "tamilName": "பன்னீர் இலை செடி", "category": "Herbals", "categoryId": "cat-herbals", "price": 30, "mrp": 50, "desc": "Herbal Panner leaf plant for garden collection."},
+    {"num": 62, "name": "Ranakalli Miracle Leaf", "tamilName": "ரணகள்ளி மூலிகை", "category": "Herbals", "categoryId": "cat-herbals", "price": 30, "mrp": 50, "desc": "Kidney stone healing herbal plant Ranakalli."},
+    {"num": 63, "name": "Rosemary Culinary Herb", "tamilName": "ரோஸ்மேரி செடி", "category": "Herbals", "categoryId": "cat-herbals", "price": 30, "mrp": 50, "desc": "Fresh Rosemary aromatic plant for home cooking."},
+    {"num": 64, "name": "Jadhi Malli Spanish Jasmine", "tamilName": "ஜாதிமல்லி செடி", "category": "Jasmine Varieties", "categoryId": "cat-jasmine", "price": 30, "mrp": 50, "desc": "Fragrant white star jasmine vine."},
+    {"num": 65, "name": "Color Kakattan Jasmine Bush", "tamilName": "கலர் காகட்டன் செடி", "category": "Jasmine Varieties", "categoryId": "cat-jasmine", "price": 30, "mrp": 50, "desc": "Multi-colored star flowering jasmine plant."},
+    {"num": 66, "name": "Ramar Malli Double Jasmine", "tamilName": "ராமர் மல்லி செடி", "category": "Jasmine Varieties", "categoryId": "cat-jasmine", "price": 50, "mrp": 60, "desc": "Heavy scented double petal Ramar Malli."},
+    {"num": 67, "name": "Naatu Rose Pink Tamil", "tamilName": "நாட்டு பன்னீர் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 80, "mrp": 100, "desc": "Sweet scented native Tamil Nadu pink rose."},
+    {"num": 68, "name": "Pearl Orange Rose", "tamilName": "பர்ல் ஆரஞ்ச் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 80, "mrp": 100, "desc": "Vibrant glowing pearl orange hybrid rose variety."},
+    {"num": 69, "name": "Yellow Miniature Rose Bush", "tamilName": "மஞ்சள் மினியேச்சர் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 80, "mrp": 100, "desc": "Lush bright yellow miniature rose in grow bag."},
+    {"num": 70, "name": "7 Days Rose (Seven Day Rose)", "tamilName": "ஏழு நாள் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 100, "mrp": 120, "desc": "Long-lasting rose variety whose blooms stay fresh for up to 7 days on plant."},
+    {"num": 71, "name": "Damascus Panneer Rose", "tamilName": "டமாஸ்க் பன்னீர் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 80, "mrp": 100, "desc": "Authentic Damask rose used for pure rose water extraction."},
+    {"num": 72, "name": "British Queen Rose", "tamilName": "பிரிட்டிஷ் குயின் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 120, "mrp": 150, "desc": "Royal pink English rose with intense antique perfume."},
+    {"num": 73, "name": "Mango Yellow Rose", "tamilName": "மேங்கோ எல்லோ ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 80, "mrp": 100, "desc": "Warm mango-yellow shaded hybrid rose variety."},
+    {"num": 74, "name": "Priyatama Pink Rose", "tamilName": "பிரியதமா ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 150, "mrp": 180, "desc": "Exquisite high petal count romantic pink rose plant."},
+    {"num": 75, "name": "Dr. Panneer Rose (8 Inch Pot)", "tamilName": "டாக்டர் பன்னீர் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 180, "mrp": 200, "desc": "Large specimen Dr. Panneer Rose in large 8-inch container pot."},
+    {"num": 76, "name": "Black Magic Rose Dark Velvet", "tamilName": "கருப்பு ரோஜா (Black Magic)", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 119, "mrp": 139, "desc": "Deep velvety black-red rose for garden luxury."},
+    {"num": 77, "name": "Midnight Blue Rose", "tamilName": "மிட்நைட் ப்ளூ ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 99, "mrp": 119, "desc": "Rare purple-violet Midnight Blue rose variety with clove fragrance."},
+    {"num": 78, "name": "Andhra Panneer Rose", "tamilName": "ஆந்திரா பன்னீர் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 89, "mrp": 109, "desc": "Popular regional Andhra pink panneer rose variety."},
+    {"num": 79, "name": "Any Pink Rose Bush", "tamilName": "பிங்க் ரோஜா செடி", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 89, "mrp": 109, "desc": "Lush evergreen pink rose bush."},
+    {"num": 80, "name": "Button Pink Rose Cluster", "tamilName": "பட்டன் பிங்க் ரோஸ்", "category": "Rose Varieties", "categoryId": "cat-rose", "price": 89, "mrp": 109, "desc": "Cluster-blooming miniature pink button rose."}
+]
+
+formatted_products = []
+for p in plants_raw:
+    num = p["num"]
+    img_name = f"/products/new_plant_{num:02d}.jpg"
+    prod_id = f"prod-new-plant-{num:02d}"
+    sku = f"VRG-NEW-{num:02d}"
+    
+    item = {
+        "id": prod_id,
+        "sku": sku,
+        "name": p["name"],
+        "nameTamil": p["tamilName"],
+        "scientificName": f"Rosa / Plant spp. VRG-{num:02d}",
+        "category": p["category"],
+        "categoryId": p["categoryId"],
+        "price": float(p["price"]),
+        "originalPrice": float(p["mrp"]),
+        "rating": 4.8,
+        "reviewsCount": 0,
+        "image": img_name,
+        "images": [img_name],
+        "inStock": True,
+        "potSize": "6-8 inch Grow Bag",
+        "bloomType": "Continuous",
+        "fragrance": "High Fragrance",
+        "careSunlight": "Full Direct Sun (5-6 hours)",
+        "careWatering": "Water Daily in Morning",
+        "careSoil": "Well-draining red soil mixed with organic compost",
+        "careFertilizer": "Vermicompost & bone meal monthly",
+        "description": p["desc"],
+        "isBestSeller": (num % 5 == 0),
+        "isFeatured": (num % 3 == 0)
+    }
+    formatted_products.append(item)
+
+out_json = r"d:\intern\flower\scratch\new_80_products.json"
+with open(out_json, "w", encoding="utf-8") as f:
+    json.dump(formatted_products, f, ensure_ascii=False, indent=2)
+
+print(f"Generated {len(formatted_products)} product entries in {out_json}!")

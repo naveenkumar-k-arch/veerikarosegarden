@@ -85,8 +85,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 onChange={(e) => setPreviewState(e.target.value)}
                 className="bg-white border border-emerald-300 text-emerald-900 rounded font-bold px-1 py-0.5 text-[11px] focus:outline-none cursor-pointer"
               >
-                <option value="Tamil Nadu">TN / Kerala / Karnataka (₹50 base)</option>
-                <option value="Other State">Other States (₹100 base)</option>
+                <option value="Tamil Nadu">Tamil Nadu (₹60 base)</option>
+                <option value="Karnataka">KA / KL / AP / PY (₹100 base)</option>
               </select>
             </div>
           </div>

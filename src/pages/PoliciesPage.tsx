@@ -86,8 +86,8 @@ export const PoliciesPage: React.FC<PoliciesPageProps> = ({ initialTab = 'shippi
               <p>• Village & Rural Locations: 2 to 4 Days via ST Courier or India Post Speed Post.</p>
 
               <h4 className="font-bold text-slate-900 pt-2">3. Shipping Charges</h4>
-              <p>• Orders above ₹499 qualify for <strong>100% FREE SHIPPING</strong>.</p>
-              <p>• Flat rate of ₹50 applies for orders below ₹499.</p>
+              <p>• <strong>Tamil Nadu:</strong> ₹60 base delivery charge (+₹20 per additional plant).</p>
+              <p>• <strong>Karnataka, Kerala, Andhra Pradesh & Puducherry:</strong> ₹100 base delivery charge (+₹20 per additional plant).</p>
             </div>
           </div>
         )}
