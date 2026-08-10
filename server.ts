@@ -53,7 +53,7 @@ async function startServer() {
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Verify', 'X-Merchant-Id', 'X-Admin-Email', 'X-Admin-Role']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Verify', 'X-Merchant-Id']
   }));
 
   // Body size limit — 15mb to support payment proof screenshot uploads

@@ -1031,7 +1031,14 @@ apiRouter.get('/settings', async (req, res) => {
 apiRouter.get('/admin/settings', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const settings = await db.getSettings();
-    res.json({ success: true, settings });
+    const SALT_MASK = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
+    // Mask sensitive PhonePe credentials — they are write-only from the admin UI
+    const safeSettings = {
+      ...settings,
+      phonepeSaltKey: (settings as any).phonepeSaltKey ? SALT_MASK : '',
+      phonepeMerchantId: (settings as any).phonepeMerchantId ? SALT_MASK : ''
+    };
+    res.json({ success: true, settings: safeSettings });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
@@ -1039,8 +1046,24 @@ apiRouter.get('/admin/settings', requireAdmin, async (req: AuthenticatedRequest,
 
 apiRouter.put('/settings', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
-    const updated = await db.updateSettings(req.body);
-    res.json({ success: true, settings: updated, message: 'Settings updated successfully' });
+    const SALT_MASK = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
+    const body = { ...req.body };
+    // If the client sends back the mask placeholder, strip those fields so the
+    // existing DB secret is preserved rather than overwritten with literal dots.
+    if (body.phonepeSaltKey === SALT_MASK || body.phonepeSaltKey === '') {
+      delete body.phonepeSaltKey;
+    }
+    if (body.phonepeMerchantId === SALT_MASK || body.phonepeMerchantId === '') {
+      delete body.phonepeMerchantId;
+    }
+    const updated = await db.updateSettings(body);
+    // Return masked version so we never round-trip the real secret back to the client
+    const safeUpdated = {
+      ...updated,
+      phonepeSaltKey: (updated as any).phonepeSaltKey ? SALT_MASK : '',
+      phonepeMerchantId: (updated as any).phonepeMerchantId ? SALT_MASK : ''
+    };
+    res.json({ success: true, settings: safeUpdated, message: 'Settings updated successfully' });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }

@@ -85,10 +85,9 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // Site Settings (Public Read, Admin Write)
+    // Site Settings (Admin Read/Write only — sensitive keys like phonepeSaltKey may be stored here)
     match /settings/{settingId} {
-      allow read: if true;
-      allow write: if isAdmin();
+      allow read, write: if isAdmin();
     }
   }
 }

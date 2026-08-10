@@ -250,32 +250,21 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
     tags: ['Rose', 'Plant']
   });
 
-  const authFetch = (url: string, options: RequestInit = {}) => {
-    // Include admin identity in header as fallback (for local-auth admins without session cookie)
-    let adminEmail = adminUser?.email || localStorage.getItem('vrg_admin_email');
-    let adminRole = adminUser?.role || localStorage.getItem('vrg_admin_role');
-    if (!adminEmail) {
-      try {
-        const storedUser = JSON.parse(localStorage.getItem('vrg_user') || '{}');
-        if (storedUser?.email && (storedUser?.role === 'SUPER_ADMIN' || storedUser?.role === 'ADMIN' || storedUser?.role === 'MANAGER')) {
-          adminEmail = storedUser.email;
-          adminRole = storedUser.role;
-        }
-      } catch {}
-    }
-    if (!adminEmail) adminEmail = 'nv01110612@gmail.com';
-    if (!adminRole) adminRole = 'SUPER_ADMIN';
-
-    return fetch(url, {
+  const authFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
+    const res = await fetch(url, {
       ...options,
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        'X-Admin-Email': adminEmail,
-        'X-Admin-Role': adminRole,
         ...(options.headers || {})
       }
     });
+    // If session expired or cookie missing, redirect to login
+    if (res.status === 401) {
+      alert('Your admin session has expired. Please log in again.');
+      window.location.href = '/';
+    }
+    return res;
   };
 
   const fetchData = async () => {
@@ -451,10 +440,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
   // Handle Delete Single Product
   const handleDeleteProduct = async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to delete product "${name}"?`)) return;
-    const delSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_products') || '[]'));
-    delSet.add(id);
-    localStorage.setItem('vrg_deleted_products', JSON.stringify([...delSet]));
-
     setProducts(prev => prev.filter(p => p.id !== id));
     try {
       await authFetch(`/api/products/${id}`, { method: 'DELETE' }).catch(() => null);
@@ -466,10 +451,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
   // Handle Delete All Products
   const handleDeleteAllProducts = async () => {
     if (!confirm('⚠️ WARNING: Are you sure you want to delete ALL products from the catalog? This action cannot be undone.')) return;
-    const delSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_products') || '[]'));
-    products.forEach(p => delSet.add(p.id));
-    localStorage.setItem('vrg_deleted_products', JSON.stringify([...delSet]));
-
     setProducts([]);
     try {
       await authFetch('/api/products/all', { method: 'DELETE' }).catch(() => null);
@@ -520,10 +501,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
   // Handle Delete Single Category with Product Reassignment Check
   const handleDeleteCategory = async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to delete category "${name}"?`)) return;
-    const delSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_categories') || '[]'));
-    delSet.add(id);
-    localStorage.setItem('vrg_deleted_categories', JSON.stringify([...delSet]));
-
     setCategories(prev => prev.filter(c => c.id !== id));
     try {
       const res = await authFetch(`/api/admin/categories/${id}`, { method: 'DELETE' });

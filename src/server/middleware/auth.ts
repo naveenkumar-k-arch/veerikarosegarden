@@ -47,22 +47,6 @@ export function parseAuthUser(req: AuthenticatedRequest, res: Response, next: Ne
     }
   }
 
-  // 3. Fallback for Admin sessions sending X-Admin-Email & X-Admin-Role
-  if (!req.user) {
-    const adminEmail = (req.headers['x-admin-email'] as string || '').trim().toLowerCase();
-    const adminRole = (req.headers['x-admin-role'] as string || '').trim().toUpperCase();
-
-    if (adminEmail && (adminRole === 'SUPER_ADMIN' || adminRole === 'ADMIN' || adminRole === 'MANAGER')) {
-      req.user = {
-        id: 'usr-admin-01',
-        email: adminEmail,
-        name: 'Veerika Nursery Admin',
-        role: adminRole as Role,
-        isVerified: true
-      };
-    }
-  }
-
   next();
 }
 
