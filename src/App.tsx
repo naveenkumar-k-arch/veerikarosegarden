@@ -13,6 +13,7 @@ import { SplashScreen } from './components/SplashScreen';
 import { HomePage } from './pages/HomePage';
 import { ShopPage } from './pages/ShopPage';
 import { ProductDetailsPage } from './pages/ProductDetailsPage';
+import { CartPage } from './pages/CartPage';
 import { CheckoutPage } from './pages/CheckoutPage';
 import { OrderStatusPage } from './pages/OrderStatusPage';
 import { AccountPage } from './pages/AccountPage';
@@ -37,6 +38,7 @@ export const App: React.FC = () => {
       return { page: 'order-status', paramId: decodeURIComponent(path.replace('/order-status/', '')) };
     }
     if (path === '/checkout') return { page: 'checkout' };
+    if (path === '/cart') return { page: 'cart' };
     if (path === '/shop') return { page: 'shop' };
     if (path === '/account') return { page: 'account' };
     if (path === '/policies') return { page: 'policies' };
@@ -54,6 +56,7 @@ export const App: React.FC = () => {
       case 'product-detail':
         return extra?.product ? `/product/${encodeURIComponent(extra.product.id)}` : '/shop';
       case 'checkout': return '/checkout';
+      case 'cart': return '/cart';
       case 'order-status':
         return extra?.orderId ? `/order-status/${encodeURIComponent(extra.orderId)}` : '/order-status';
       case 'account': return '/account';
@@ -71,7 +74,7 @@ export const App: React.FC = () => {
     if (initialUrlState.page) return initialUrlState.page;
     try {
       const saved = sessionStorage.getItem('vrg_current_page');
-      if (saved && ['home', 'shop', 'product-detail', 'checkout', 'order-status', 'account', 'policies', 'admin'].includes(saved)) {
+      if (saved && ['home', 'shop', 'product-detail', 'cart', 'checkout', 'order-status', 'account', 'policies', 'admin'].includes(saved)) {
         return saved;
       }
     } catch {}
@@ -744,7 +747,7 @@ export const App: React.FC = () => {
         <Header
           cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
           wishlistCount={wishlist.length}
-          onOpenCart={() => setIsCartOpen(true)}
+          onOpenCart={() => navigateTo('cart')}
           onNavigate={(page, params) => {
             navigateTo(page, params);
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -826,11 +829,33 @@ export const App: React.FC = () => {
           />
         )}
 
+        {currentPage === 'cart' && (
+          <CartPage
+            items={cart}
+            user={user}
+            onUpdateQuantity={handleUpdateCartQty}
+            onRemoveItem={handleRemoveFromCart}
+            onProceedToCheckout={() => {
+              if (!user) {
+                alert('🔑 Login or Sign Up Required:\nPlease login to your account before placing an order.');
+                navigateTo('account');
+              } else {
+                navigateTo('checkout');
+              }
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onContinueShopping={() => navigateTo('shop')}
+            appliedCoupon={appliedCoupon}
+            onApplyCoupon={handleApplyCoupon}
+            onRemoveCoupon={() => setAppliedCoupon(null)}
+          />
+        )}
+
         {currentPage === 'checkout' && (
           <CheckoutPage
             items={cart}
             user={user}
-            onBackToCart={() => setIsCartOpen(true)}
+            onBackToCart={() => navigateTo('cart')}
             appliedCoupon={appliedCoupon}
             onPlaceOrder={handlePlaceOrder}
           />
@@ -960,12 +985,12 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* Floating Sticky Cart Button — hidden on mobile (bottom nav replaces it) */}
+      {/* Floating Sticky Cart Button */}
       <button
-        onClick={() => setIsCartOpen(true)}
+        onClick={() => navigateTo('cart')}
         className="fixed bottom-6 left-6 z-40 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white px-4 py-3 rounded-full shadow-2xl transition-all duration-200 items-center gap-2.5 border-2 border-emerald-500/40 cursor-pointer hidden sm:flex"
-        title="Open Shopping Cart"
-        aria-label="Open Shopping Cart"
+        title="Open Shopping Cart Page"
+        aria-label="Open Shopping Cart Page"
       >
         <div className="relative flex items-center justify-center">
           <ShoppingBag className="w-5 h-5 text-emerald-400" />
@@ -1008,7 +1033,7 @@ export const App: React.FC = () => {
           <Store />
           <span>Shop</span>
         </button>
-        <button className="nav-item cart-btn" onClick={() => setIsCartOpen(true)} aria-label="Open cart">
+        <button className={`nav-item ${currentPage === 'cart' ? 'active' : ''} cart-btn`} onClick={() => navigateTo('cart')} aria-label="Open cart page">
           {cartCount > 0 && <span className="cart-badge">{cartCount > 9 ? '9+' : cartCount}</span>}
           <ShoppingCart />
           <span>Cart</span>
