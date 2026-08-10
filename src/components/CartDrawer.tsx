@@ -3,6 +3,8 @@ import { CartItem } from '../types';
 import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Tag, Truck, ShieldCheck, MapPin } from 'lucide-react';
 import { calculateDeliveryFee } from '../utils/delivery';
 
+import { computeOrderTotals } from '../utils/orderTotals';
+
 interface CartDrawerProps {
   isOpen: boolean;
   onClose: () => void;
@@ -33,11 +35,17 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
   if (!isOpen) return null;
 
-  const subtotal = items.reduce((sum, item) => sum + item.product.sellingPrice * item.quantity, 0);
-  const totalPlantCount = items.reduce((sum, item) => sum + item.quantity, 0);
-  const shippingFee = calculateDeliveryFee(items, previewState);
-  const couponDiscount = appliedCoupon ? appliedCoupon.discountAmount : 0;
-  const grandTotal = Math.max(0, subtotal + shippingFee - couponDiscount);
+  const {
+    subtotal,
+    totalPlantCount,
+    shippingFee,
+    discountAmount: couponDiscount,
+    grandTotal
+  } = computeOrderTotals({
+    items,
+    state: previewState,
+    appliedCoupon
+  });
 
   const handleCouponSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

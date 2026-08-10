@@ -23,7 +23,10 @@ const firebaseConfig = {
   measurementId: env.VITE_FIREBASE_MEASUREMENT_ID || ''
 };
 
-const isConfigured = Boolean(firebaseConfig.apiKey || firebaseConfig.projectId);
+const isConfigured = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);
+if (env.DEV && (!firebaseConfig.apiKey || firebaseConfig.apiKey.includes('YOUR_'))) {
+  console.info('[Firebase] VITE_FIREBASE_API_KEY is not set or uses demo values. Running with local auth/demo mode.');
+}
 const app = getApps().length === 0 ? initializeApp(isConfigured ? firebaseConfig : { apiKey: "DEMO_KEY", projectId: "demo-project" }) : getApp();
 
 export const auth = getAuth(app);

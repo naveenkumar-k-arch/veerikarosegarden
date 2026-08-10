@@ -95,6 +95,9 @@ apiRouter.put('/products/:id', requireAdmin, validateBody(productSchema.partial(
 
 apiRouter.delete('/products/all', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
+    if (req.query.confirm !== 'CONFIRM_DELETE_ALL') {
+      return res.status(400).json({ success: false, message: 'Bulk deletion requires explicit confirmation parameter (?confirm=CONFIRM_DELETE_ALL).' });
+    }
     await db.deleteAllProducts();
     res.json({ success: true, message: 'All products removed successfully' });
   } catch (error: any) {
@@ -221,6 +224,9 @@ apiRouter.put('/admin/categories/:id', requireAdmin, async (req: AuthenticatedRe
 
 apiRouter.delete('/admin/categories/all', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
+    if (req.query.confirm !== 'CONFIRM_DELETE_ALL') {
+      return res.status(400).json({ success: false, message: 'Bulk deletion requires explicit confirmation parameter (?confirm=CONFIRM_DELETE_ALL).' });
+    }
     await db.deleteAllCategories();
     res.json({ success: true, message: 'All categories removed successfully' });
   } catch (error: any) {
@@ -890,7 +896,7 @@ apiRouter.post('/phonepe/webhook', async (req, res) => {
 // PhonePe Sandbox Test Callback Endpoint (no auth required - sandbox only)
 apiRouter.post('/phonepe/simulate-callback', async (req: AuthenticatedRequest, res) => {
   // Block in production - sandbox simulation only
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === 'production' || process.env.PHONEPE_ENV === 'PRODUCTION') {
     return res.status(403).json({ success: false, message: 'Simulated callbacks are disabled in production. Use real PhonePe gateway.' });
   }
 

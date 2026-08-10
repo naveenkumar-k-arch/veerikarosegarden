@@ -57,6 +57,22 @@ export const AccountPage: React.FC<AccountPageProps> = ({
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
+  // Check for reset token in URL parameters or hash link on mount
+  React.useEffect(() => {
+    try {
+      const hash = window.location.hash || '';
+      const search = window.location.search || '';
+      const params = new URLSearchParams(hash.includes('?') ? hash.split('?')[1] : search);
+      const tokenFromUrl = params.get('token') || params.get('resetToken');
+      if (tokenFromUrl) {
+        setResetToken(tokenFromUrl);
+        setAuthMode('FORGOT');
+        setResetStep(2);
+        setSuccessMsg('Reset code detected from link. Enter your new password below.');
+      }
+    } catch {}
+  }, []);
+
   // Clear messages on mode switch
   const switchMode = (mode: 'LOGIN' | 'REGISTER' | 'OTP' | 'FORGOT') => {
     setAuthMode(mode);
@@ -548,14 +564,18 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                 ) : (
                   <form onSubmit={handleResetPass} className="space-y-3">
                     <div>
-                      <label className="text-xs font-bold text-slate-700 block mb-1">Reset Token:</label>
+                      <label className="text-xs font-bold text-slate-700 block mb-1">Reset Code / Token:</label>
                       <input
                         type="text"
                         required
+                        placeholder="Paste 64-char reset token or click reset link from email"
                         value={resetToken}
                         onChange={(e) => setResetToken(e.target.value)}
                         className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono font-bold focus:outline-none focus:ring-2 focus:ring-emerald-600"
                       />
+                      <p className="text-[10px] text-slate-500 mt-1">
+                        Enter the reset code sent to your registered email address or click your reset link.
+                      </p>
                     </div>
 
                     <div>

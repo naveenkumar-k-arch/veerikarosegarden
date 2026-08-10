@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { CartItem, ShippingAddress, PaymentMethod, User, SiteSettings } from '../types';
 import { ShieldCheck, Truck, ArrowLeft, Check, Lock, Smartphone, Home, MapPin, Building2, CreditCard, QrCode, Upload, Copy, CheckCircle2, AlertCircle, Image as ImageIcon } from 'lucide-react';
 import { calculateDeliveryFee, INDIAN_STATES, isSouthState, isTamilNadu, isGrapeItem } from '../utils/delivery';
+import { computeOrderTotals } from '../utils/orderTotals';
 
 interface CheckoutPageProps {
   items: CartItem[];
@@ -85,13 +86,20 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       .catch(() => {});
   }, []);
 
-  const subtotal = items.reduce((sum, i) => sum + i.product.sellingPrice * i.quantity, 0);
-  const totalPlantCount = items.reduce((sum, i) => sum + i.quantity, 0);
-  const shippingCharge = selectedPot !== 'NONE' ? 0 : calculateDeliveryFee(items, address.state);
-  const potUnitFee = selectedPot === '6_INCH' ? 99 : selectedPot === '8_INCH' ? 199 : 0;
-  const potCharge = potUnitFee * totalPlantCount;
-  const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
-  const grandTotal = Math.max(0, subtotal + potCharge + shippingCharge - discountAmount);
+  const {
+    subtotal,
+    totalPlantCount,
+    potUnitFee,
+    potCharge,
+    shippingFee: shippingCharge,
+    discountAmount,
+    grandTotal
+  } = computeOrderTotals({
+    items,
+    state: address.state,
+    selectedPot,
+    appliedCoupon
+  });
 
 const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000, quality = 0.75): Promise<string> => {
   return new Promise((resolve) => {
@@ -149,25 +157,32 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
     }
 
     setUploadingImage(true);
+    setErrorMsg(null);
     const reader = new FileReader();
     reader.onload = async () => {
       const rawBase64 = (reader.result as string) || '';
-      // Immediately set rawBase64 so paymentProofUrl is 100% populated in state
-      setPaymentProofUrl(rawBase64);
-      setProofPreview(rawBase64);
-      setPaymentMethod('QR_PAYMENT');
 
       try {
         const compressedBase64 = await compressImageBase64(rawBase64);
-        if (compressedBase64 && compressedBase64.length > 50) {
-          setPaymentProofUrl(compressedBase64);
-          setProofPreview(compressedBase64);
+        const finalBase64 = (compressedBase64 && compressedBase64.length > 50) ? compressedBase64 : rawBase64;
+        
+        // Enforce 4MB max string size limit (~3MB payload limit to prevent database overload)
+        const MAX_BASE64_BYTES = 4 * 1024 * 1024;
+        if (finalBase64.length > MAX_BASE64_BYTES) {
+          setErrorMsg('The payment proof image is too large even after compression. Please select a smaller photo or screenshot under 3MB.');
+          setPaymentProofUrl('');
+          setProofPreview(null);
+          return;
         }
+
+        setPaymentProofUrl(finalBase64);
+        setProofPreview(finalBase64);
+        setPaymentMethod('QR_PAYMENT');
       } catch (err) {
-        console.warn('Image compression notice:', err);
+        console.warn('Image compression error:', err);
+        setErrorMsg('Failed to compress image. Please try another screenshot.');
       } finally {
         setUploadingImage(false);
-        setErrorMsg(null);
       }
     };
     reader.onerror = () => {

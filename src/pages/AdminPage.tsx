@@ -340,6 +340,20 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
     localStorage.removeItem('vrg_deleted_coupons');
     localStorage.removeItem('vrg_deleted_finances');
 
+    // Security Re-validation: Verify session token server-side on mount
+    fetch('/api/auth/me', { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.success || !data.user || !['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(data.user.role)) {
+          console.warn('[SECURITY] Unauthenticated or unauthorized access to Admin Dashboard. Redirecting.');
+          localStorage.removeItem('vrg_user');
+          onBackToStore();
+        }
+      })
+      .catch(() => {
+        // If backend auth check fails, fallback to standard error handling in authFetch
+      });
+
     fetchData();
     // Poll every 30 seconds
     const interval = setInterval(() => {
@@ -453,7 +467,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
     if (!confirm('⚠️ WARNING: Are you sure you want to delete ALL products from the catalog? This action cannot be undone.')) return;
     setProducts([]);
     try {
-      await authFetch('/api/products/all', { method: 'DELETE' }).catch(() => null);
+      await authFetch('/api/products/all?confirm=CONFIRM_DELETE_ALL', { method: 'DELETE' }).catch(() => null);
     } catch (err) {
       console.error(err);
     }
@@ -545,7 +559,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
   const handleDeleteAllCategories = async () => {
     if (!confirm('⚠️ WARNING: Are you sure you want to delete ALL categories? This action cannot be undone.')) return;
     try {
-      const res = await authFetch('/api/admin/categories/all', { method: 'DELETE' });
+      const res = await authFetch('/api/admin/categories/all?confirm=CONFIRM_DELETE_ALL', { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
         alert('All categories removed successfully.');
