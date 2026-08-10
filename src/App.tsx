@@ -27,15 +27,56 @@ export const App: React.FC = () => {
   const [showSplash, setShowSplash] = useState<boolean>(true);
   const handleSplashComplete = useCallback(() => setShowSplash(false), []);
 
-  // Page Navigation State
-  const [currentPage, setCurrentPage] = useState<string>('home');
-  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [policyTab, setPolicyTab] = useState<string>('shipping');
+  // Page Navigation State — restored from sessionStorage so refresh keeps the user on the same page
+  const [currentPage, setCurrentPage] = useState<string>(() => {
+    try {
+      const saved = sessionStorage.getItem('vrg_current_page');
+      if (saved && ['home', 'shop', 'product-detail', 'checkout', 'order-status', 'account', 'policies', 'admin'].includes(saved)) {
+        return saved;
+      }
+    } catch {}
+    return 'home';
+  });
+  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(() => {
+    try {
+      const saved = sessionStorage.getItem('vrg_selected_category');
+      if (saved) return JSON.parse(saved) || undefined;
+    } catch {}
+    return undefined;
+  });
+  const [searchQuery, setSearchQuery] = useState<string>(() => {
+    try {
+      const saved = sessionStorage.getItem('vrg_search_query');
+      if (saved) return JSON.parse(saved) || '';
+    } catch {}
+    return '';
+  });
+  const [policyTab, setPolicyTab] = useState<string>(() => {
+    try {
+      const saved = sessionStorage.getItem('vrg_policy_tab');
+      if (saved) return JSON.parse(saved) || 'shipping';
+    } catch {}
+    return 'shipping';
+  });
 
-  // Selected Entities for Views
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  // Selected Entities for Views — restored from sessionStorage
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(() => {
+    try {
+      const saved = sessionStorage.getItem('vrg_selected_product');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.id) return parsed;
+      }
+    } catch {}
+    return null;
+  });
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(() => {
+    try {
+      const saved = sessionStorage.getItem('vrg_selected_order_id');
+      if (saved) return JSON.parse(saved) || null;
+    } catch {}
+    return null;
+  });
   const [careGuideProduct, setCareGuideProduct] = useState<Product | null>(null);
   const [isExpertAdviceOpen, setIsExpertAdviceOpen] = useState<boolean>(false);
 
@@ -264,6 +305,62 @@ export const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('vrg_cart', JSON.stringify(cart));
   }, [cart]);
+
+  // Persist current page to sessionStorage so refresh keeps user on the same page (e.g. checkout)
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('vrg_current_page', currentPage);
+    } catch {}
+  }, [currentPage]);
+
+  // Persist page-specific state to sessionStorage for all pages
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('vrg_selected_category', JSON.stringify(selectedCategory ?? null));
+    } catch {}
+  }, [selectedCategory]);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('vrg_search_query', JSON.stringify(searchQuery));
+    } catch {}
+  }, [searchQuery]);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('vrg_policy_tab', JSON.stringify(policyTab));
+    } catch {}
+  }, [policyTab]);
+
+  useEffect(() => {
+    try {
+      if (selectedProduct) {
+        sessionStorage.setItem('vrg_selected_product', JSON.stringify(selectedProduct));
+      } else {
+        sessionStorage.removeItem('vrg_selected_product');
+      }
+    } catch {}
+  }, [selectedProduct]);
+
+  useEffect(() => {
+    try {
+      if (selectedOrderId) {
+        sessionStorage.setItem('vrg_selected_order_id', JSON.stringify(selectedOrderId));
+      } else {
+        sessionStorage.removeItem('vrg_selected_order_id');
+      }
+    } catch {}
+  }, [selectedOrderId]);
+
+  // Fallback: if restored page requires state that is missing, redirect to home
+  useEffect(() => {
+    if (currentPage === 'product-detail' && !selectedProduct) {
+      setCurrentPage('home');
+    }
+    if (currentPage === 'order-status' && !selectedOrderId) {
+      setCurrentPage('home');
+    }
+  }, []);
 
   useEffect(() => {
     if (user) {

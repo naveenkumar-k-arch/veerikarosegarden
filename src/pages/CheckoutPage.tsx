@@ -29,14 +29,26 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   appliedCoupon,
   onPlaceOrder
 }) => {
-  const [step, setStep] = useState<1 | 2>(1); // 1: Address, 2: Payment
+  // Helper to safely read sessionStorage JSON
+  const getSessionItem = <T,>(key: string, fallback: T): T => {
+    try {
+      const saved = sessionStorage.getItem(key);
+      if (saved) return JSON.parse(saved) as T;
+    } catch {}
+    return fallback;
+  };
+
+  const [step, setStep] = useState<1 | 2>(() => {
+    const saved = getSessionItem<number>('vrg_checkout_step', 1);
+    return (saved === 2 ? 2 : 1);
+  });
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
 
   // QR Payment & Proof Upload States
   const [paymentProofUrl, setPaymentProofUrl] = useState<string>('');
-  const [transactionId, setTransactionId] = useState<string>('');
+  const [transactionId, setTransactionId] = useState<string>(() => getSessionItem<string>('vrg_checkout_txnId', ''));
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [proofPreview, setProofPreview] = useState<string | null>(null);
 
@@ -48,23 +60,35 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     return clean;
   };
 
-  // Clean Address State
-  const [address, setAddress] = useState<ShippingAddress>(() => ({
-    fullName: user?.name || '',
-    phone: getInitialPhone(user?.phone),
-    alternatePhone: '',
-    houseNo: '',
-    street: '',
-    villageTown: '',
-    district: '',
-    state: 'Tamil Nadu',
-    pincode: '',
-    landmark: '',
-    addressType: 'Home'
-  }));
+  // Clean Address State — restore from sessionStorage if available
+  const [address, setAddress] = useState<ShippingAddress>(() => {
+    const saved = getSessionItem<ShippingAddress | null>('vrg_checkout_address', null);
+    if (saved && saved.fullName) return saved;
+    return {
+      fullName: user?.name || '',
+      phone: getInitialPhone(user?.phone),
+      alternatePhone: '',
+      houseNo: '',
+      street: '',
+      villageTown: '',
+      district: '',
+      state: 'Tamil Nadu',
+      pincode: '',
+      landmark: '',
+      addressType: 'Home'
+    };
+  });
 
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('PHONEPE');
-  const [selectedPot, setSelectedPot] = useState<'NONE' | '6_INCH' | '8_INCH'>('NONE');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(() => {
+    const saved = getSessionItem<string>('vrg_checkout_payment', '');
+    if (['PHONEPE', 'QR_PAYMENT', 'COD'].includes(saved)) return saved as PaymentMethod;
+    return 'PHONEPE';
+  });
+  const [selectedPot, setSelectedPot] = useState<'NONE' | '6_INCH' | '8_INCH'>(() => {
+    const saved = getSessionItem<string>('vrg_checkout_pot', '');
+    if (['NONE', '6_INCH', '8_INCH'].includes(saved)) return saved as 'NONE' | '6_INCH' | '8_INCH';
+    return 'NONE';
+  });
 
   // Fetch settings to check enabled payment methods
   useEffect(() => {
@@ -73,18 +97,32 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       .then(data => {
         if (data.success && data.settings) {
           setSiteSettings(data.settings);
-          // Auto-select first available payment method
-          if (data.settings.enablePhonePe !== false) {
-            setPaymentMethod('PHONEPE');
-          } else if (data.settings.enableQrPayment) {
-            setPaymentMethod('QR_PAYMENT');
-          } else if (data.settings.enableCod !== false) {
-            setPaymentMethod('COD');
+          // Auto-select first available payment method ONLY if not restored from session
+          const savedPayment = getSessionItem<string>('vrg_checkout_payment', '');
+          if (!savedPayment) {
+            if (data.settings.enablePhonePe !== false) {
+              setPaymentMethod('PHONEPE');
+            } else if (data.settings.enableQrPayment) {
+              setPaymentMethod('QR_PAYMENT');
+            } else if (data.settings.enableCod !== false) {
+              setPaymentMethod('COD');
+            }
           }
         }
       })
       .catch(() => {});
   }, []);
+
+  // Persist checkout state to sessionStorage so refresh preserves progress
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('vrg_checkout_step', JSON.stringify(step));
+      sessionStorage.setItem('vrg_checkout_address', JSON.stringify(address));
+      sessionStorage.setItem('vrg_checkout_payment', JSON.stringify(paymentMethod));
+      sessionStorage.setItem('vrg_checkout_pot', JSON.stringify(selectedPot));
+      sessionStorage.setItem('vrg_checkout_txnId', JSON.stringify(transactionId));
+    } catch {}
+  }, [step, address, paymentMethod, selectedPot, transactionId]);
 
   const {
     subtotal,
@@ -263,7 +301,16 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
       });
 
       setLoading(false);
-      if (!res.success) {
+      if (res.success) {
+        // Clear checkout session data after successful order
+        try {
+          sessionStorage.removeItem('vrg_checkout_step');
+          sessionStorage.removeItem('vrg_checkout_address');
+          sessionStorage.removeItem('vrg_checkout_payment');
+          sessionStorage.removeItem('vrg_checkout_pot');
+          sessionStorage.removeItem('vrg_checkout_txnId');
+        } catch {}
+      } else {
         setErrorMsg(res.message || 'Failed to place order.');
       }
     } catch (err: any) {
