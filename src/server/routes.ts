@@ -512,19 +512,42 @@ apiRouter.get('/reviews', async (req, res) => {
   }
 });
 
-apiRouter.post('/reviews', validateBody(reviewSchema), async (req, res) => {
+apiRouter.post('/reviews', async (req, res) => {
   try {
-    const review = await db.addReview({
-      productId: req.body.productId,
-      productName: req.body.productName,
-      userName: req.body.userName,
-      rating: Number(req.body.rating),
-      title: req.body.title,
-      comment: req.body.comment
-    });
+    const review = await db.addReview(req.body);
     res.status(201).json({ success: true, review, message: 'Review submitted successfully!' });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+apiRouter.post('/admin/reviews', requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const review = await db.addReview(req.body);
+    res.status(201).json({ success: true, review, message: 'Review created successfully' });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+apiRouter.put('/admin/reviews/:id', requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const review = await db.updateReview(req.params.id, req.body);
+    if (!review) {
+      return res.status(404).json({ success: false, message: 'Review not found' });
+    }
+    res.json({ success: true, review, message: 'Review updated successfully' });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+apiRouter.delete('/admin/reviews/:id', requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    await db.deleteReview(req.params.id);
+    res.json({ success: true, message: 'Review deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
 

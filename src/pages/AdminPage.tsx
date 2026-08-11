@@ -237,7 +237,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
     reader.readAsDataURL(file);
   };
 
-  const handleSaveReview = (e: React.FormEvent) => {
+  const handleSaveReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reviewForm.userName.trim() || !reviewForm.comment.trim()) {
       alert('Please fill customer name and review comment');
@@ -245,8 +245,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
     }
 
     if (editingReview) {
-      const updated = reviews.map(r => r.id === editingReview.id ? {
-        ...r,
+      const payload = {
         userName: reviewForm.userName,
         location: reviewForm.location,
         rating: reviewForm.rating,
@@ -257,8 +256,19 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
         imageUrl: reviewForm.imageUrl,
         status: reviewForm.status,
         featured: reviewForm.featured,
-      } : r);
+      };
+
+      const updated = reviews.map(r => r.id === editingReview.id ? { ...r, ...payload } : r);
       saveReviewsState(updated);
+
+      try {
+        await authFetch(`/api/admin/reviews/${editingReview.id}`, {
+          method: 'PUT',
+          body: JSON.stringify(payload)
+        });
+      } catch (err) {
+        console.error('API update review error:', err);
+      }
     } else {
       const newReview: Review = {
         id: 'rev-' + Date.now(),
@@ -275,7 +285,17 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
         isVerified: true,
         featured: reviewForm.featured,
       };
+
       saveReviewsState([newReview, ...reviews]);
+
+      try {
+        await authFetch('/api/admin/reviews', {
+          method: 'POST',
+          body: JSON.stringify(newReview)
+        });
+      } catch (err) {
+        console.error('API add review error:', err);
+      }
     }
 
     setShowReviewModal(false);
@@ -311,28 +331,68 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
     setShowReviewModal(true);
   };
 
-  const handleDeleteReview = (id: string) => {
+  const handleDeleteReview = async (id: string) => {
     if (!confirm('Are you sure you want to delete this customer review?')) return;
     const updated = reviews.filter(r => r.id !== id);
     saveReviewsState(updated);
+
+    try {
+      await authFetch(`/api/admin/reviews/${id}`, { method: 'DELETE' });
+    } catch (err) {
+      console.error('API delete review error:', err);
+    }
   };
 
-  const handleToggleReviewStatus = (id: string) => {
-    const updated = reviews.map(r => r.id === id ? { ...r, status: r.status === 'APPROVED' ? ('PENDING' as const) : ('APPROVED' as const) } : r);
+  const handleToggleReviewStatus = async (id: string) => {
+    const target = reviews.find(r => r.id === id);
+    if (!target) return;
+    const newStatus = target.status === 'APPROVED' ? ('PENDING' as const) : ('APPROVED' as const);
+    const updated = reviews.map(r => r.id === id ? { ...r, status: newStatus } : r);
     saveReviewsState(updated);
+
+    try {
+      await authFetch(`/api/admin/reviews/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: newStatus })
+      });
+    } catch (err) {
+      console.error('API toggle review status error:', err);
+    }
   };
 
-  const handleToggleReviewFeatured = (id: string) => {
-    const updated = reviews.map(r => r.id === id ? { ...r, featured: !r.featured } : r);
+  const handleToggleReviewFeatured = async (id: string) => {
+    const target = reviews.find(r => r.id === id);
+    if (!target) return;
+    const newFeatured = !target.featured;
+    const updated = reviews.map(r => r.id === id ? { ...r, featured: newFeatured } : r);
     saveReviewsState(updated);
+
+    try {
+      await authFetch(`/api/admin/reviews/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ featured: newFeatured })
+      });
+    } catch (err) {
+      console.error('API toggle review featured error:', err);
+    }
   };
 
-  const handleSaveReviewReply = (id: string) => {
+  const handleSaveReviewReply = async (id: string) => {
     if (!replyText.trim()) return;
-    const updated = reviews.map(r => r.id === id ? { ...r, reply: replyText.trim() } : r);
+    const text = replyText.trim();
+    const updated = reviews.map(r => r.id === id ? { ...r, reply: text } : r);
     saveReviewsState(updated);
     setReplyingReviewId(null);
     setReplyText('');
+
+    try {
+      await authFetch(`/api/admin/reviews/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ reply: text })
+      });
+    } catch (err) {
+      console.error('API save review reply error:', err);
+    }
   };
   const [settings, setSettings] = useState<SiteSettings | null>({} as SiteSettings);
   const [settingsSaving, setSettingsSaving] = useState(false);
