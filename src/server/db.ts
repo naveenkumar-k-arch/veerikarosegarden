@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { Product, Category, Order, Coupon, Banner, Review, SiteSettings, PaymentLog, OrderItemSnapshot, PaymentMethod, FinancialEntry, Combo } from '../types.js';
 
 import { getPrismaClient, executeInTransaction } from './prisma.js';
@@ -18,6 +20,94 @@ function parseShippingAddress(val: any): any {
     }
   }
   return {};
+}
+
+const REVIEWS_STORE_FILE = path.resolve(process.cwd(), 'src/data/reviews_store.json');
+
+const DEFAULT_REVIEWS_SEED: Review[] = [
+  {
+    id: 'rev-1',
+    userName: 'Kavitha R.',
+    location: 'Pennagaram, Dharmapuri',
+    rating: 5,
+    title: 'Flourishing Red Rose Bush!',
+    comment: 'Ordered 3 grafted rose plants. Received them with fresh moist soil packing. Within 2 weeks, beautiful red blooms started appearing!',
+    productName: 'Dutch Hybrid Red Rose',
+    productId: 'prod-rose-red',
+    imageUrl: '/products/red-rose-plant.jpeg',
+    status: 'APPROVED',
+    createdAt: '2026-08-01',
+    isVerified: true,
+    featured: true
+  },
+  {
+    id: 'rev-2',
+    userName: 'Senthil Kumar',
+    location: 'Salem, Tamil Nadu',
+    rating: 5,
+    title: 'Huge Sweet Pink Guavas!',
+    comment: 'The pink guava sapling arrived healthy. Grafting joint was strong and well rooted. Highly recommend Veerika Rose Garden!',
+    productName: 'Thai Pink Guava Sapling',
+    productId: 'prod-pink-guava',
+    imageUrl: '/products/pink-guava-plant.jpeg',
+    status: 'APPROVED',
+    createdAt: '2026-08-03',
+    isVerified: true,
+    featured: true
+  },
+  {
+    id: 'rev-3',
+    userName: 'Anitha S.',
+    location: 'Hosur, Krishnagiri',
+    rating: 5,
+    title: 'Fresh Mango Sapling Delivered Safe',
+    comment: 'Fast delivery to Hosur. Plant was packed securely in a moisture-lock bag. Leaves are glossy green and healthy.',
+    productName: 'Hybrid All-Season Mango Sapling',
+    productId: 'prod-mango-sapling',
+    imageUrl: '/products/mango-sapling-plant.jpeg',
+    status: 'APPROVED',
+    createdAt: '2026-08-05',
+    isVerified: true,
+    featured: true
+  },
+  {
+    id: 'rev-4',
+    userName: 'Rajesh Kannan',
+    location: 'Coimbatore, Tamil Nadu',
+    rating: 5,
+    title: 'Superb Quality Water Apple Sapling',
+    comment: 'First time ordering live fruit trees online. Packaged extremely well with water crystals around the roots.',
+    productName: 'Red Water Apple Plant (Rose Apple)',
+    productId: 'prod-water-apple',
+    imageUrl: '/products/water-apple-plant.jpeg',
+    status: 'APPROVED',
+    createdAt: '2026-08-08',
+    isVerified: true,
+    featured: true
+  }
+];
+
+function loadDiskReviews(): Review[] {
+  try {
+    if (fs.existsSync(REVIEWS_STORE_FILE)) {
+      const data = fs.readFileSync(REVIEWS_STORE_FILE, 'utf-8');
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (err) {
+    console.error('Error reading reviews_store.json:', err);
+  }
+  return DEFAULT_REVIEWS_SEED;
+}
+
+function saveDiskReviews(reviews: Review[]) {
+  try {
+    const dir = path.dirname(REVIEWS_STORE_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(REVIEWS_STORE_FILE, JSON.stringify(reviews, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error writing reviews_store.json:', err);
+  }
 }
 
 // Default Fallback Data matching WhatsApp Catalogue
@@ -5095,121 +5185,18 @@ class Store {
     return true;
   }
 
-
-
-
   // REVIEWS
-  private deletedReviewIds = new Set<string>();
-  private memoryReviews: Review[] = [
-    {
-      id: 'rev-1',
-      userName: 'Kavitha R.',
-      location: 'Pennagaram, Dharmapuri',
-      rating: 5,
-      title: 'Flourishing Red Rose Bush!',
-      comment: 'Ordered 3 grafted rose plants. Received them with fresh moist soil packing. Within 2 weeks, beautiful red blooms started appearing!',
-      productName: 'Dutch Hybrid Red Rose',
-      productId: 'prod-rose-red',
-      imageUrl: '/products/red-rose-plant.jpeg',
-      status: 'APPROVED',
-      createdAt: '2026-08-01',
-      isVerified: true,
-      featured: true
-    },
-    {
-      id: 'rev-2',
-      userName: 'Senthil Kumar',
-      location: 'Salem, Tamil Nadu',
-      rating: 5,
-      title: 'Huge Sweet Pink Guavas!',
-      comment: 'The pink guava sapling arrived healthy. Grafting joint was strong and well rooted. Highly recommend Veerika Rose Garden!',
-      productName: 'Thai Pink Guava Sapling',
-      productId: 'prod-pink-guava',
-      imageUrl: '/products/pink-guava-plant.jpeg',
-      status: 'APPROVED',
-      createdAt: '2026-08-03',
-      isVerified: true,
-      featured: true
-    },
-    {
-      id: 'rev-3',
-      userName: 'Anitha S.',
-      location: 'Hosur, Krishnagiri',
-      rating: 5,
-      title: 'Fresh Mango Sapling Delivered Safe',
-      comment: 'Fast delivery to Hosur. Plant was packed securely in a moisture-lock bag. Leaves are glossy green and healthy.',
-      productName: 'Hybrid All-Season Mango Sapling',
-      productId: 'prod-mango-sapling',
-      imageUrl: '/products/mango-sapling-plant.jpeg',
-      status: 'APPROVED',
-      createdAt: '2026-08-05',
-      isVerified: true,
-      featured: true
-    },
-    {
-      id: 'rev-4',
-      userName: 'Rajesh Kannan',
-      location: 'Coimbatore, Tamil Nadu',
-      rating: 5,
-      title: 'Superb Quality Water Apple Sapling',
-      comment: 'First time ordering live fruit trees online. Packaged extremely well with water crystals around the roots.',
-      productName: 'Red Water Apple Plant (Rose Apple)',
-      productId: 'prod-water-apple',
-      imageUrl: '/products/water-apple-plant.jpeg',
-      status: 'APPROVED',
-      createdAt: '2026-08-08',
-      isVerified: true,
-      featured: true
-    }
-  ];
+  private memoryReviews: Review[] = loadDiskReviews();
 
   async getReviews(productId?: string): Promise<Review[]> {
-    const prisma = getPrismaClient();
-    let result: Review[] = [];
-
-    if (!prisma) {
-      result = this.memoryReviews;
-    } else {
-      try {
-        const items = await prisma.review.findMany({
-          where: productId ? { productId } : {},
-          include: { product: true },
-          orderBy: { createdAt: 'desc' }
-        });
-
-        const dbReviews: Review[] = items.map(r => ({
-          id: r.id,
-          productId: r.productId,
-          productName: r.product?.name || 'Plant',
-          userName: r.userName,
-          rating: r.rating,
-          title: `${r.rating} Star Review`,
-          comment: r.comment,
-          status: 'APPROVED',
-          isVerified: r.isVerified,
-          createdAt: r.createdAt.toISOString()
-        }));
-
-        const map = new Map<string, Review>();
-        dbReviews.forEach(r => map.set(r.id, r));
-        this.memoryReviews.forEach(r => map.set(r.id, r));
-        result = Array.from(map.values());
-      } catch (err) {
-        console.error('Prisma getReviews error:', err);
-        result = this.memoryReviews;
-      }
-    }
-
-    const filtered = result.filter(r => r && r.id && !this.deletedReviewIds.has(r.id));
     if (productId) {
-      return filtered.filter(r => r.productId === productId);
+      return this.memoryReviews.filter(r => r && r.productId === productId);
     }
-    return filtered;
+    return this.memoryReviews;
   }
 
   async addReview(reviewData: Partial<Review>): Promise<Review> {
     const id = reviewData.id || 'rev-' + Date.now();
-    this.deletedReviewIds.delete(id);
     const newReview: Review = {
       id,
       productId: reviewData.productId || 'custom',
@@ -5228,32 +5215,7 @@ class Store {
     };
 
     this.memoryReviews = [newReview, ...this.memoryReviews.filter(r => r.id !== id)];
-
-    const prisma = getPrismaClient();
-    if (prisma) {
-      try {
-        await prisma.review.upsert({
-          where: { id },
-          update: {
-            userName: newReview.userName,
-            rating: newReview.rating,
-            comment: newReview.comment,
-            isVerified: newReview.isVerified
-          },
-          create: {
-            id,
-            productId: newReview.productId && newReview.productId !== 'custom' ? newReview.productId : 'prod-rose-red',
-            userName: newReview.userName,
-            rating: newReview.rating,
-            comment: newReview.comment,
-            isVerified: newReview.isVerified
-          }
-        }).catch(() => null);
-      } catch (err) {
-        console.error('Prisma addReview error:', err);
-      }
-    }
-
+    saveDiskReviews(this.memoryReviews);
     return newReview;
   }
 
@@ -5261,27 +5223,14 @@ class Store {
     const idx = this.memoryReviews.findIndex(r => r.id === id);
     if (idx !== -1) {
       this.memoryReviews[idx] = { ...this.memoryReviews[idx], ...updates };
-    } else {
-      const existing = await this.getReviews();
-      const target = existing.find(r => r.id === id);
-      if (target) {
-        const updated = { ...target, ...updates };
-        this.memoryReviews.push(updated);
-      }
+      saveDiskReviews(this.memoryReviews);
     }
-
     return this.memoryReviews.find(r => r.id === id) || null;
   }
 
   async deleteReview(id: string): Promise<boolean> {
-    this.deletedReviewIds.add(id);
     this.memoryReviews = this.memoryReviews.filter(r => r.id !== id);
-    const prisma = getPrismaClient();
-    if (prisma) {
-      try {
-        await prisma.review.delete({ where: { id } }).catch(() => null);
-      } catch {}
-    }
+    saveDiskReviews(this.memoryReviews);
     return true;
   }
 
