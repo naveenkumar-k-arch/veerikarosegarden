@@ -2475,60 +2475,136 @@ const silentRefresh = async (): Promise<boolean> => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
                 {/* Razorpay Toggle */}
-                <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
-                  <div>
-                    <span className="font-bold text-slate-900 block text-xs">Razorpay Gateway</span>
-                    <span className="text-[10px] text-slate-500">GPay / PhonePe / Paytm / BHIM / Navi / Cards</span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={settings?.enableRazorpay !== false}
-                    onChange={(e) => setSettings({ ...settings, enableRazorpay: e.target.checked } as any)}
-                    className="w-5 h-5 accent-blue-600 rounded cursor-pointer"
-                  />
-                </div>
+                {(() => {
+                  const isRazorpayOn = settings?.enableRazorpay !== false;
+                  return (
+                    <div
+                      onClick={() => setSettings({ ...settings, enableRazorpay: !isRazorpayOn } as any)}
+                      className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer select-none flex items-center justify-between gap-2 ${
+                        isRazorpayOn
+                          ? 'bg-blue-50/70 border-blue-500 text-blue-950 shadow-xs'
+                          : 'bg-rose-50/70 border-rose-300 text-rose-950 opacity-90'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-extrabold text-xs">Razorpay Gateway</span>
+                          <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full ${
+                            isRazorpayOn ? 'bg-blue-600 text-white' : 'bg-rose-600 text-white'
+                          }`}>
+                            {isRazorpayOn ? 'ON' : 'OFF'}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-slate-500 block mt-0.5">GPay / PhonePe / Paytm / Cards</span>
+                      </div>
+
+                      <div className={`w-11 h-6 rounded-full p-0.5 transition-colors shrink-0 flex items-center ${
+                        isRazorpayOn ? 'bg-blue-600 justify-end' : 'bg-slate-300 justify-start'
+                      }`}>
+                        <div className="w-5 h-5 rounded-full bg-white shadow-md transform transition-transform" />
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* PhonePe Toggle */}
-                <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
-                  <div>
-                    <span className="font-bold text-slate-900 block text-xs">PhonePe Gateway</span>
-                    <span className="text-[10px] text-slate-500">Online PG Payments</span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={settings?.enablePhonePe !== false}
-                    onChange={(e) => setSettings({ ...settings, enablePhonePe: e.target.checked } as any)}
-                    className="w-5 h-5 accent-emerald-600 rounded cursor-pointer"
-                  />
-                </div>
+                {(() => {
+                  const isPhonePeOn = settings?.enablePhonePe !== false;
+                  return (
+                    <div
+                      onClick={() => setSettings({ ...settings, enablePhonePe: !isPhonePeOn } as any)}
+                      className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer select-none flex items-center justify-between gap-2 ${
+                        isPhonePeOn
+                          ? 'bg-purple-50/70 border-purple-500 text-purple-950 shadow-xs'
+                          : 'bg-rose-50/70 border-rose-300 text-rose-950 opacity-90'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-extrabold text-xs">PhonePe Gateway</span>
+                          <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full ${
+                            isPhonePeOn ? 'bg-purple-600 text-white' : 'bg-rose-600 text-white'
+                          }`}>
+                            {isPhonePeOn ? 'ON' : 'OFF'}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-slate-500 block mt-0.5">Online PG Payments</span>
+                      </div>
+
+                      <div className={`w-11 h-6 rounded-full p-0.5 transition-colors shrink-0 flex items-center ${
+                        isPhonePeOn ? 'bg-purple-600 justify-end' : 'bg-slate-300 justify-start'
+                      }`}>
+                        <div className="w-5 h-5 rounded-full bg-white shadow-md transform transition-transform" />
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* COD Toggle */}
-                <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
-                  <div>
-                    <span className="font-bold text-slate-900 block text-xs">Cash on Delivery (COD)</span>
-                    <span className="text-[10px] text-slate-500">Pay on Delivery</span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={settings?.enableCod !== false}
-                    onChange={(e) => setSettings({ ...settings, enableCod: e.target.checked } as any)}
-                    className="w-5 h-5 accent-emerald-600 rounded cursor-pointer"
-                  />
-                </div>
+                {(() => {
+                  const isCodOn = settings?.enableCod !== false;
+                  return (
+                    <div
+                      onClick={() => setSettings({ ...settings, enableCod: !isCodOn } as any)}
+                      className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer select-none flex items-center justify-between gap-2 ${
+                        isCodOn
+                          ? 'bg-emerald-50/70 border-emerald-500 text-emerald-950 shadow-xs'
+                          : 'bg-rose-50/70 border-rose-300 text-rose-950 opacity-90'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-extrabold text-xs">Cash on Delivery (COD)</span>
+                          <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full ${
+                            isCodOn ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
+                          }`}>
+                            {isCodOn ? 'ON' : 'OFF'}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-slate-500 block mt-0.5">Pay on Delivery</span>
+                      </div>
+
+                      <div className={`w-11 h-6 rounded-full p-0.5 transition-colors shrink-0 flex items-center ${
+                        isCodOn ? 'bg-emerald-600 justify-end' : 'bg-slate-300 justify-start'
+                      }`}>
+                        <div className="w-5 h-5 rounded-full bg-white shadow-md transform transition-transform" />
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Scan QR Code Toggle */}
-                <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
-                  <div>
-                    <span className="font-bold text-slate-900 block text-xs">Scan QR & Upload Proof</span>
-                    <span className="text-[10px] text-slate-500">Manual UPI Payment</span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={settings?.enableQrPayment !== false}
-                    onChange={(e) => setSettings({ ...settings, enableQrPayment: e.target.checked } as any)}
-                    className="w-5 h-5 accent-emerald-600 rounded cursor-pointer"
-                  />
-                </div>
+                {(() => {
+                  const isQrOn = settings?.enableQrPayment !== false;
+                  return (
+                    <div
+                      onClick={() => setSettings({ ...settings, enableQrPayment: !isQrOn } as any)}
+                      className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer select-none flex items-center justify-between gap-2 ${
+                        isQrOn
+                          ? 'bg-indigo-50/70 border-indigo-500 text-indigo-950 shadow-xs'
+                          : 'bg-rose-50/70 border-rose-300 text-rose-950 opacity-90'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-extrabold text-xs">Scan QR & Proof</span>
+                          <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full ${
+                            isQrOn ? 'bg-indigo-600 text-white' : 'bg-rose-600 text-white'
+                          }`}>
+                            {isQrOn ? 'ON' : 'OFF'}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-slate-500 block mt-0.5">Manual UPI Payment</span>
+                      </div>
+
+                      <div className={`w-11 h-6 rounded-full p-0.5 transition-colors shrink-0 flex items-center ${
+                        isQrOn ? 'bg-indigo-600 justify-end' : 'bg-slate-300 justify-start'
+                      }`}>
+                        <div className="w-5 h-5 rounded-full bg-white shadow-md transform transition-transform" />
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* SCAN QR CONFIGURATION */}

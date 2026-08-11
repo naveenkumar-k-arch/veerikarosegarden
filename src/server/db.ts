@@ -5203,20 +5203,16 @@ class Store {
         phonepeSaltKey: s.phonepeSaltKey,
         phonepeSaltIndex: s.phonepeSaltIndex,
         phonepeEnv: s.phonepeEnv as 'SANDBOX' | 'PRODUCTION',
-        enableRazorpay: (s as any).enableRazorpay ?? meta.enableRazorpay ?? true,
-        razorpayKeyId: (s as any).razorpayKeyId ?? meta.razorpayKeyId ?? '',
-        razorpayKeySecret: (s as any).razorpayKeySecret ?? meta.razorpayKeySecret ?? '',
-        // Meta fields packed inside workingHours JSON — always override memory/defaults
-        ...(meta.enableRazorpay !== undefined && { enableRazorpay: meta.enableRazorpay }),
-        ...(meta.enablePhonePe !== undefined && { enablePhonePe: meta.enablePhonePe }),
-        ...(meta.enableCod !== undefined && { enableCod: meta.enableCod }),
-        ...(meta.enableQrPayment !== undefined && { enableQrPayment: meta.enableQrPayment }),
-        ...(meta.upiId !== undefined && { upiId: meta.upiId }),
-        ...(meta.upiName !== undefined && { upiName: meta.upiName }),
-        ...(meta.qrCodeImageUrl !== undefined && { qrCodeImageUrl: meta.qrCodeImageUrl }),
-        ...(meta.qrInstructions !== undefined && { qrInstructions: meta.qrInstructions }),
-        ...(meta.razorpayKeyId !== undefined && { razorpayKeyId: meta.razorpayKeyId }),
-        ...(meta.razorpayKeySecret !== undefined && { razorpayKeySecret: meta.razorpayKeySecret }),
+        enableRazorpay: meta.enableRazorpay !== undefined ? meta.enableRazorpay : ((s as any).enableRazorpay ?? true),
+        enablePhonePe: meta.enablePhonePe !== undefined ? meta.enablePhonePe : true,
+        enableCod: meta.enableCod !== undefined ? meta.enableCod : true,
+        enableQrPayment: meta.enableQrPayment !== undefined ? meta.enableQrPayment : true,
+        upiId: meta.upiId ?? '7200826129@ybl',
+        upiName: meta.upiName ?? 'Veerika Rose Garden Nursery',
+        qrCodeImageUrl: meta.qrCodeImageUrl ?? '/nursery-qr.svg',
+        qrInstructions: meta.qrInstructions ?? DEFAULT_SETTINGS.qrInstructions,
+        razorpayKeyId: meta.razorpayKeyId ?? '',
+        razorpayKeySecret: meta.razorpayKeySecret ?? ''
       };
 
       (globalThis as any)._globalMemorySettings = merged;
