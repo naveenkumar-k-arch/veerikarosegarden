@@ -478,6 +478,36 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
         </div>
       )}
 
+      {/* Interactive High-Priority Error Popup Modal Overlay */}
+      {errorMsg && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white max-w-md w-full rounded-3xl p-6 shadow-2xl border-2 border-rose-500 space-y-4 text-center">
+            <div className="w-16 h-16 bg-rose-100 rounded-2xl flex items-center justify-center mx-auto text-rose-600 shadow-inner">
+              <AlertCircle className="w-9 h-9 animate-bounce" />
+            </div>
+            
+            <h3 className="text-base font-black text-slate-900 uppercase tracking-wide">
+              ⚠️ Attention Required
+            </h3>
+
+            <div className="bg-rose-50 border border-rose-200 p-4 rounded-2xl text-xs font-extrabold text-rose-900 leading-relaxed text-left whitespace-pre-line shadow-xs">
+              {errorMsg}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setErrorMsg(null);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="w-full py-3.5 bg-rose-600 hover:bg-rose-700 active:scale-98 text-white font-black text-xs rounded-xl shadow-md transition-all cursor-pointer uppercase tracking-wider"
+            >
+              OK, I UNDERSTAND & WILL FIX THIS
+            </button>
+          </div>
+        </div>
+      )}
+
       {errorMsg && (
         <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-2xl flex items-center gap-2">
           <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
