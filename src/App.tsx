@@ -1039,23 +1039,23 @@ export const App: React.FC = () => {
         </span>
       </a>
 
-      {/* ===== MOBILE BOTTOM NAVIGATION BAR for Home Page ===== */}
-      {currentPage === 'home' && (
+      {/* ===== MOBILE BOTTOM NAVIGATION BAR ===== */}
+      {currentPage !== 'admin' && (
         <nav className={`mobile-bottom-nav ${isCartOpen ? '!hidden' : ''}`} role="navigation" aria-label="Mobile bottom navigation">
-          <button className="nav-item active" onClick={() => navigateTo('home')}>
+          <button className={`nav-item ${currentPage === 'home' ? 'active' : ''}`} onClick={() => navigateTo('home')}>
             <Home />
             <span>Home</span>
           </button>
-          <button className="nav-item" onClick={() => navigateTo('shop')}>
+          <button className={`nav-item ${currentPage === 'shop' ? 'active' : ''}`} onClick={() => navigateTo('shop')}>
             <Store />
             <span>Shop</span>
           </button>
-          <button className="nav-item cart-btn" onClick={() => navigateTo('cart')} aria-label="Open cart page">
+          <button className={`nav-item ${currentPage === 'cart' ? 'active' : ''} cart-btn`} onClick={() => navigateTo('cart')} aria-label="Open cart page">
             {cartCount > 0 && <span className="cart-badge">{cartCount > 9 ? '9+' : cartCount}</span>}
             <ShoppingCart />
             <span>Cart</span>
           </button>
-          <button className="nav-item" onClick={() => navigateTo('account')}>
+          <button className={`nav-item ${currentPage === 'account' ? 'active' : ''}`} onClick={() => navigateTo('account')}>
             <UserIcon />
             <span>{user ? user.name?.split(' ')[0] : 'Account'}</span>
           </button>
