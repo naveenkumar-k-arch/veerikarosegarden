@@ -3894,9 +3894,10 @@ function extractMetaFromWorkingHours(rawWorkingHours?: string): { workingHours: 
   const parts = rawWorkingHours.split(META_DELIMITER);
   const workingHours = parts[0] || DEFAULT_SETTINGS.workingHours;
   let meta: CustomMetaSettings = {};
-  if (parts[1]) {
+  const lastPart = parts.length > 1 ? parts[parts.length - 1] : null;
+  if (lastPart) {
     try {
-      meta = JSON.parse(parts[1]);
+      meta = JSON.parse(lastPart);
     } catch (e) {
       meta = {};
     }
@@ -3905,7 +3906,8 @@ function extractMetaFromWorkingHours(rawWorkingHours?: string): { workingHours: 
 }
 
 function packMetaIntoWorkingHours(cleanWorkingHours: string, meta: CustomMetaSettings): string {
-  return `${cleanWorkingHours || DEFAULT_SETTINGS.workingHours}${META_DELIMITER}${JSON.stringify(meta)}`;
+  const pureHours = (cleanWorkingHours || DEFAULT_SETTINGS.workingHours).split(META_DELIMITER)[0];
+  return `${pureHours}${META_DELIMITER}${JSON.stringify(meta)}`;
 }
 
 class Store {
