@@ -580,9 +580,12 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
       return res.status(400).json({ success: false, message: 'Scan QR Code payment method is currently disabled by admin.' });
     }
 
-    // Enforce mandatory payment screenshot proof for all orders
-    if (!paymentProofUrl || typeof paymentProofUrl !== 'string' || !paymentProofUrl.trim()) {
-      return res.status(400).json({ success: false, message: 'Payment screenshot/proof is strictly mandatory. Please upload your GPay/PhonePe receipt photo before placing an order.' });
+    // Enforce mandatory payment screenshot ONLY for manual QR/UPI transfers
+    // PhonePe, Razorpay, COD use gateway verification — screenshot is not required
+    if (paymentMethod === 'QR_PAYMENT' || paymentMethod === 'UPI_DIRECT') {
+      if (!paymentProofUrl || typeof paymentProofUrl !== 'string' || !paymentProofUrl.trim()) {
+        return res.status(400).json({ success: false, message: 'Payment screenshot/proof is mandatory for QR Code / UPI payment. Please upload your GPay or PhonePe receipt photo.' });
+      }
     }
 
     let calculatedSubtotal = 0;

@@ -268,10 +268,12 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
 
     const effectivePaymentMethod = (paymentMethod === 'QR_PAYMENT' || Boolean(paymentProofUrl)) ? 'QR_PAYMENT' : paymentMethod;
 
-    // MANDATORY PROOF VALIDATION FOR PAYMENT SCREENSHOT
-    if (!paymentProofUrl || !paymentProofUrl.trim()) {
-      setErrorMsg('📸 MANDATORY PAYMENT SCREENSHOT: You must select and upload your GPay / PhonePe / UPI payment screenshot image before placing an order.');
-      return;
+    // MANDATORY SCREENSHOT: Only for manual QR/UPI transfers. PhonePe & Razorpay are gateway-verified.
+    if (effectivePaymentMethod === 'QR_PAYMENT' || effectivePaymentMethod === 'UPI_DIRECT') {
+      if (!paymentProofUrl || !paymentProofUrl.trim()) {
+        setErrorMsg('📸 MANDATORY PAYMENT SCREENSHOT: You must upload your GPay / PhonePe / UPI payment screenshot before placing a QR payment order.');
+        return;
+      }
     }
 
     setLoading(true);
