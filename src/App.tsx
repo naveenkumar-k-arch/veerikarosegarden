@@ -3,6 +3,7 @@ import { ShoppingBag, Home, Store, User as UserIcon, ShoppingCart } from 'lucide
 import { Product, Category, CartItem, Order, User, Banner, Review, PaymentMethod } from './types';
 import { auth, onAuthStateChanged, signOut } from './lib/firebase';
 import { Header } from './components/Header';
+import { SecondaryNavbar } from './components/SecondaryNavbar';
 import { Footer } from './components/Footer';
 import { CartDrawer } from './components/CartDrawer';
 import { PlantCareModal } from './components/PlantCareModal';
@@ -742,8 +743,8 @@ export const App: React.FC = () => {
           <span className="particle-3d-3">🌿</span>
         </div>
 
-      {/* Primary Header for all store pages (hidden only in Admin view) */}
-      {currentPage !== 'admin' && (
+      {/* Primary Header for Home page */}
+      {currentPage === 'home' && (
         <Header
           cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
           wishlistCount={wishlist.length}
@@ -759,10 +760,25 @@ export const App: React.FC = () => {
           onSelectCategory={(catId) => {
             navigateTo('shop', { category: catId });
           }}
-          isAdmin={currentPage === 'admin'}
-          onToggleAdmin={() => navigateTo(currentPage === 'admin' ? 'home' : 'admin')}
+          isAdmin={false}
+          onToggleAdmin={() => navigateTo('admin')}
           user={user}
           onOpenExpertAdvice={() => setIsExpertAdviceOpen(true)}
+        />
+      )}
+
+      {/* Secondary Navbar for non-Home store pages */}
+      {currentPage !== 'home' && currentPage !== 'admin' && (
+        <SecondaryNavbar
+          currentPage={currentPage}
+          cartCount={cartCount}
+          user={user}
+          searchQuery={searchQuery}
+          onSearchChange={(q) => setSearchQuery(q)}
+          onNavigate={(page, params) => {
+            navigateTo(page, params);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
         />
       )}
 
@@ -1023,23 +1039,23 @@ export const App: React.FC = () => {
         </span>
       </a>
 
-      {/* ===== MOBILE BOTTOM NAVIGATION BAR ===== */}
-      {currentPage !== 'admin' && (
+      {/* ===== MOBILE BOTTOM NAVIGATION BAR for Home Page ===== */}
+      {currentPage === 'home' && (
         <nav className={`mobile-bottom-nav ${isCartOpen ? '!hidden' : ''}`} role="navigation" aria-label="Mobile bottom navigation">
-          <button className={`nav-item ${currentPage === 'home' ? 'active' : ''}`} onClick={() => navigateTo('home')}>
+          <button className="nav-item active" onClick={() => navigateTo('home')}>
             <Home />
             <span>Home</span>
           </button>
-          <button className={`nav-item ${currentPage === 'shop' ? 'active' : ''}`} onClick={() => navigateTo('shop')}>
+          <button className="nav-item" onClick={() => navigateTo('shop')}>
             <Store />
             <span>Shop</span>
           </button>
-          <button className={`nav-item ${currentPage === 'cart' ? 'active' : ''} cart-btn`} onClick={() => navigateTo('cart')} aria-label="Open cart page">
+          <button className="nav-item cart-btn" onClick={() => navigateTo('cart')} aria-label="Open cart page">
             {cartCount > 0 && <span className="cart-badge">{cartCount > 9 ? '9+' : cartCount}</span>}
             <ShoppingCart />
             <span>Cart</span>
           </button>
-          <button className={`nav-item ${currentPage === 'account' ? 'active' : ''}`} onClick={() => navigateTo('account')}>
+          <button className="nav-item" onClick={() => navigateTo('account')}>
             <UserIcon />
             <span>{user ? user.name?.split(' ')[0] : 'Account'}</span>
           </button>
