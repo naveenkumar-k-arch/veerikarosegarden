@@ -2478,7 +2478,7 @@ const silentRefresh = async (): Promise<boolean> => {
                 <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
                   <div>
                     <span className="font-bold text-slate-900 block text-xs">Razorpay Gateway</span>
-                    <span className="text-[10px] text-slate-500">Cards / UPI / NetBanking</span>
+                    <span className="text-[10px] text-slate-500">GPay / PhonePe / Paytm / BHIM / Navi / Cards</span>
                   </div>
                   <input
                     type="checkbox"

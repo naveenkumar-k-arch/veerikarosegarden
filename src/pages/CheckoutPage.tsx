@@ -645,13 +645,13 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
 
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
-                        <h4 className="font-bold text-slate-900 text-sm">Razorpay Payment Gateway</h4>
-                        <span className="bg-blue-200 text-blue-900 font-bold text-[10px] px-2 py-0.5 rounded-full">
-                          ⚡ Cards, UPI, NetBanking, Wallets
+                        <h4 className="font-bold text-slate-900 text-sm">Razorpay Online Gateway</h4>
+                        <span className="bg-blue-100 text-blue-900 font-bold text-[10px] px-2.5 py-0.5 rounded-full">
+                          ⚡ GPay, PhonePe, Paytm, Cards & NetBanking
                         </span>
                       </div>
-                      <p className="text-slate-600 text-[11px] mt-1">
-                        Pay instantly via Debit/Credit Card, Google Pay, PhonePe, Paytm & All Major Indian Banks.
+                      <p className="text-slate-600 text-[11px] mt-1 font-medium">
+                        Pay instantly via <strong className="text-blue-900">Google Pay, PhonePe, Paytm, BHIM, Navi, Cred UPI</strong>, Cards (Visa, RuPay, Mastercard) & NetBanking.
                       </p>
                     </div>
                   </div>
