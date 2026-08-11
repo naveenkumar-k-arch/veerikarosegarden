@@ -3813,7 +3813,7 @@ const DEFAULT_SETTINGS: SiteSettings = {
   enablePhonePe: true,
   enableQrPayment: true,
   qrCodeImageUrl: '/nursery-qr.svg',
-  upiId: process.env.UPI_ID || '',
+  upiId: process.env.UPI_ID || '7200826129@ybl',
   upiName: process.env.UPI_NAME || 'Veerika Rose Garden Nursery',
   qrInstructions: '1. Scan the QR code using GPay, PhonePe, Paytm or any UPI app.\n2. Enter the exact order total amount and pay.\n3. Take a screenshot of the successful payment receipt.\n4. Upload the screenshot below to place your order.',
   phonepeMerchantId: process.env.PHONEPE_MERCHANT_ID || '',

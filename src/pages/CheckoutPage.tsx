@@ -233,8 +233,7 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
   };
 
   const handleCopyUpi = () => {
-    const upi = siteSettings?.upiId || '';
-    if (!upi) return;
+    const upi = siteSettings?.upiId || '7200826129@ybl';
     navigator.clipboard.writeText(upi);
     setCopiedUpi(true);
     setTimeout(() => setCopiedUpi(false), 3000);
@@ -418,7 +417,7 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
   const isCodEnabled = siteSettings ? siteSettings.enableCod !== false : true;
   const isQrEnabled = siteSettings ? siteSettings.enableQrPayment !== false : true;
 
-  const upiId = siteSettings?.upiId || '';
+  const upiId = siteSettings?.upiId || '7200826129@ybl';
   const upiName = siteSettings?.upiName || 'Veerika Rose Garden Nursery';
   const dynamicQrUrl = upiId ? `https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=10&data=${encodeURIComponent(`upi://pay?pa=${upiId}&pn=${upiName}&cu=INR`)}` : '/nursery-qr.svg';
   const qrCodeImg = dynamicQrUrl;
@@ -763,7 +762,7 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
                         <span className="text-[10px] font-bold text-slate-400 uppercase block">Merchant UPI ID:</span>
                         <div className="flex items-center gap-2 mt-0.5">
                           <code className="bg-indigo-50 text-indigo-900 font-mono font-bold text-sm px-3 py-1.5 rounded-xl border border-indigo-200">
-                            {siteSettings?.upiId || 'Nursery UPI ID'}
+                            {siteSettings?.upiId || '7200826129@ybl'}
                           </code>
                           <button
                             type="button"
