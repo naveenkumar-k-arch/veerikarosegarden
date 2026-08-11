@@ -2565,9 +2565,16 @@ const silentRefresh = async (): Promise<boolean> => {
                 <div className="text-center shrink-0">
                   <img
                     key={`${settings?.upiId}-${settings?.upiName}`}
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=${encodeURIComponent(`upi://pay?pa=${settings?.upiId || ''}&pn=${settings?.upiName || ''}&cu=INR`)}`}
+                    src={`https://quickchart.io/qr?size=300&text=${encodeURIComponent(`upi://pay?pa=${settings?.upiId || '7200826129@ybl'}&pn=${settings?.upiName || 'Veerika Rose Garden Nursery'}&cu=INR`)}`}
                     alt="Live QR Preview"
-                    className="w-32 h-32 rounded-xl border-2 border-indigo-300 bg-white shadow-sm mx-auto"
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      if (!target.dataset.retried) {
+                        target.dataset.retried = 'true';
+                        target.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=${encodeURIComponent(`upi://pay?pa=${settings?.upiId || '7200826129@ybl'}&pn=${settings?.upiName || 'Veerika Rose Garden Nursery'}&cu=INR`)}`;
+                      }
+                    }}
+                    className="w-32 h-32 rounded-xl border-2 border-indigo-300 bg-white shadow-sm mx-auto object-contain p-1"
                   />
                   <p className="text-[10px] font-bold text-indigo-900 mt-1.5">📱 Live QR Preview</p>
                   <p className="text-[10px] text-slate-500">What customer sees at checkout</p>

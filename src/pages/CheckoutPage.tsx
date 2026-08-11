@@ -419,8 +419,9 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
 
   const upiId = siteSettings?.upiId || '7200826129@ybl';
   const upiName = siteSettings?.upiName || 'Veerika Rose Garden Nursery';
-  const dynamicQrUrl = upiId ? `https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=10&data=${encodeURIComponent(`upi://pay?pa=${upiId}&pn=${upiName}&cu=INR`)}` : '/nursery-qr.svg';
-  const qrCodeImg = dynamicQrUrl;
+  const upiDeepLink = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(upiName)}&am=${grandTotal}&cu=INR`;
+  const primaryQrUrl = `https://quickchart.io/qr?size=400&text=${encodeURIComponent(`upi://pay?pa=${upiId}&pn=${upiName}&cu=INR`)}`;
+  const qrCodeImg = primaryQrUrl;
 
   return (
     <div className="max-w-4xl mx-auto px-4 pt-6 pb-32 sm:pb-8 space-y-6">
@@ -746,14 +747,30 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
                 <div className="p-5 bg-gradient-to-br from-indigo-50/80 to-purple-50/80 rounded-3xl border-2 border-indigo-200 space-y-4">
                   <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-4 rounded-2xl border border-indigo-100 shadow-xs">
                     {/* QR Code Image */}
-                    <div className="text-center shrink-0">
-                      <img
-                        src={qrCodeImg}
-                        alt="Nursery UPI QR Code"
-                        className="w-48 h-48 object-contain rounded-xl border-2 border-indigo-200 bg-white shadow-sm mx-auto"
-                      />
-                      <p className="text-[11px] font-bold text-indigo-900 mt-2">📱 Scan to pay ₹{grandTotal}</p>
-                      <p className="text-[10px] text-slate-500 font-medium">{upiId}</p>
+                    <div className="text-center shrink-0 space-y-2.5">
+                      <div className="bg-white p-2 rounded-2xl border-2 border-indigo-200 shadow-md inline-block">
+                        <img
+                          src={qrCodeImg}
+                          alt="Nursery UPI QR Code"
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            if (!target.dataset.retried) {
+                              target.dataset.retried = 'true';
+                              target.src = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=10&data=${encodeURIComponent(`upi://pay?pa=${upiId}&pn=${upiName}&cu=INR`)}`;
+                            }
+                          }}
+                          className="w-48 h-48 object-contain rounded-xl"
+                        />
+                      </div>
+                      <p className="text-[11px] font-extrabold text-indigo-950 block">📱 Scan to pay ₹{grandTotal}</p>
+                      
+                      {/* Mobile Direct Pay Button */}
+                      <a
+                        href={upiDeepLink}
+                        className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-xs transition-all cursor-pointer"
+                      >
+                        <span>⚡ Pay ₹{grandTotal} via GPay/PhonePe App</span>
+                      </a>
                     </div>
 
                     {/* UPI Details & Copy Button */}
