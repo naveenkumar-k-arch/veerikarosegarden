@@ -2468,7 +2468,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
                   </div>
                   <input
                     type="checkbox"
-                    checked={settings?.enableRazorpay === true}
+                    checked={settings?.enableRazorpay !== false}
                     onChange={(e) => setSettings({ ...settings, enableRazorpay: e.target.checked } as any)}
                     className="w-5 h-5 accent-blue-600 rounded cursor-pointer"
                   />

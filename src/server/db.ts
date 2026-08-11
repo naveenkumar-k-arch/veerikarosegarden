@@ -3808,6 +3808,7 @@ const DEFAULT_SETTINGS: SiteSettings = {
   taxRate: 0,
   shippingFee: 50,
   freeShippingThreshold: 999,
+  enableRazorpay: true,
   enableCod: true,
   enablePhonePe: true,
   enableQrPayment: true,
@@ -3878,6 +3879,7 @@ const globalMemorySettings: SiteSettings = (globalThis as any)._globalMemorySett
 const META_DELIMITER = '|||JSON_META|||';
 
 interface CustomMetaSettings {
+  enableRazorpay?: boolean;
   enablePhonePe?: boolean;
   enableCod?: boolean;
   enableQrPayment?: boolean;
@@ -5198,13 +5200,14 @@ class Store {
         phonepeSaltIndex: s.phonepeSaltIndex,
         phonepeEnv: s.phonepeEnv as 'SANDBOX' | 'PRODUCTION',
         // Meta fields packed inside workingHours JSON — always override memory/defaults
+        ...(meta.enableRazorpay !== undefined && { enableRazorpay: meta.enableRazorpay }),
         ...(meta.enablePhonePe !== undefined && { enablePhonePe: meta.enablePhonePe }),
         ...(meta.enableCod !== undefined && { enableCod: meta.enableCod }),
         ...(meta.enableQrPayment !== undefined && { enableQrPayment: meta.enableQrPayment }),
-        ...(meta.upiId && { upiId: meta.upiId }),
-        ...(meta.upiName && { upiName: meta.upiName }),
-        ...(meta.qrCodeImageUrl && { qrCodeImageUrl: meta.qrCodeImageUrl }),
-        ...(meta.qrInstructions && { qrInstructions: meta.qrInstructions }),
+        ...(meta.upiId !== undefined && { upiId: meta.upiId }),
+        ...(meta.upiName !== undefined && { upiName: meta.upiName }),
+        ...(meta.qrCodeImageUrl !== undefined && { qrCodeImageUrl: meta.qrCodeImageUrl }),
+        ...(meta.qrInstructions !== undefined && { qrInstructions: meta.qrInstructions }),
       };
 
       (globalThis as any)._globalMemorySettings = merged;
@@ -5229,6 +5232,7 @@ class Store {
     if (prisma) {
       try {
         const metaToStore: CustomMetaSettings = {
+          enableRazorpay: merged.enableRazorpay,
           enablePhonePe: merged.enablePhonePe,
           enableCod: merged.enableCod,
           enableQrPayment: merged.enableQrPayment,
