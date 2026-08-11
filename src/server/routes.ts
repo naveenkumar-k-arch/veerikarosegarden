@@ -1,6 +1,7 @@
 import express from 'express';
 import { db } from './db.js';
 import { PhonePeService } from './phonepe.js';
+import { RazorpayService } from './razorpay.js';
 import { authRouter } from './routes/authRoutes.js';
 import {
   parseAuthUser,
@@ -537,6 +538,9 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
     if (paymentMethod === 'PHONEPE' && settings.enablePhonePe === false) {
       return res.status(400).json({ success: false, message: 'PhonePe payment method is currently disabled by admin.' });
     }
+    if (paymentMethod === 'RAZORPAY' && settings.enableRazorpay === false) {
+      return res.status(400).json({ success: false, message: 'Razorpay payment method is currently disabled by admin.' });
+    }
     if (paymentMethod === 'COD' && settings.enableCod === false) {
       return res.status(400).json({ success: false, message: 'Cash on Delivery (COD) is currently disabled by admin.' });
     }
@@ -682,6 +686,43 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
         phonepe: phonepeRes,
         phonepePayUrl: phonepeRes?.payUrl,
         message: 'Order created. Proceed to PhonePe payment.'
+      });
+    }
+
+    if (paymentMethod === 'RAZORPAY') {
+      const rzpRes = await RazorpayService.createOrder(
+        {
+          amount: calculatedGrandTotal,
+          receipt: newOrder.id,
+          notes: {
+            orderId: newOrder.id,
+            merchantTransactionId,
+            customerPhone: finalPhone,
+            customerName: finalName
+          }
+        },
+        settings.razorpayKeyId || process.env.RAZORPAY_KEY_ID || '',
+        settings.razorpayKeySecret || process.env.RAZORPAY_KEY_SECRET || ''
+      );
+
+      if (!rzpRes.success || !rzpRes.razorpayOrderId) {
+        return res.status(400).json({
+          success: false,
+          message: rzpRes.message || 'Failed to initialize Razorpay payment order. Please verify your Razorpay Key ID and Secret in Admin Panel.'
+        });
+      }
+
+      return res.json({
+        success: true,
+        order: newOrder,
+        orderId: newOrder.id,
+        razorpayOrderId: rzpRes.razorpayOrderId,
+        razorpayKeyId: settings.razorpayKeyId || process.env.RAZORPAY_KEY_ID || '',
+        amount: calculatedGrandTotal,
+        customerName: finalName,
+        customerEmail: finalEmail,
+        customerPhone: finalPhone,
+        message: 'Order created. Proceed to Razorpay payment.'
       });
     }
 
@@ -967,8 +1008,63 @@ apiRouter.post('/phonepe/simulate-callback', async (req: AuthenticatedRequest, r
 // Admin PhonePe Refund
 apiRouter.post('/phonepe/refund', requireAdmin, async (req: AuthenticatedRequest, res) => {
   const { merchantTransactionId, amount } = req.body;
+  if (!merchantTransactionId || !amount) {
+    return res.status(400).json({ success: false, message: 'merchantTransactionId and amount required' });
+  }
   const refundResult = await PhonePeService.initiateRefund(merchantTransactionId, Number(amount));
   res.json(refundResult);
+});
+
+// ================= RAZORPAY VERIFY API =================
+apiRouter.post('/razorpay/verify', checkoutLimiter, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { orderId, razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
+
+    if (!orderId || !razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+      return res.status(400).json({ success: false, message: 'Missing required Razorpay payment verification parameters.' });
+    }
+
+    const order = await db.getOrderById(orderId);
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found.' });
+    }
+
+    const settings = await db.getSettings();
+    const keySecret = settings?.razorpayKeySecret || process.env.RAZORPAY_KEY_SECRET || '';
+
+    const isValid = RazorpayService.verifySignature(razorpayOrderId, razorpayPaymentId, razorpaySignature, keySecret);
+
+    if (!isValid) {
+      console.warn('[Razorpay Verify] Invalid signature for order:', orderId);
+      return res.status(400).json({ success: false, message: 'Invalid Razorpay payment signature. Payment verification failed.' });
+    }
+
+    // Update order status to PAID / CONFIRMED
+    const updatedOrder = await db.updateOrder(orderId, {
+      paymentStatus: 'SUCCESS',
+      orderStatus: 'CONFIRMED',
+      transactionId: razorpayPaymentId
+    });
+
+    await db.recordPaymentLog({
+      merchantTransactionId: order.merchantTransactionId,
+      orderId,
+      amount: order.grandTotal,
+      status: 'SUCCESS',
+      checksum: razorpaySignature,
+      payload: JSON.stringify({ razorpayOrderId, razorpayPaymentId })
+    }).catch(() => {});
+
+    return res.json({
+      success: true,
+      message: 'Razorpay payment verified successfully!',
+      orderId,
+      order: updatedOrder
+    });
+  } catch (err: any) {
+    console.error('[Razorpay Verify] Error:', err);
+    return res.status(500).json({ success: false, message: err.message || 'Razorpay verification error' });
+  }
 });
 
 // ================= ADMIN DASHBOARD & LOGS =================
@@ -1057,7 +1153,7 @@ apiRouter.get('/settings', async (req, res) => {
     }
 
     // Strip sensitive merchant salt keys and internal credentials from public view
-    const { phonepeSaltKey, phonepeMerchantId, ...publicSettings } = settings as any;
+    const { phonepeSaltKey, phonepeMerchantId, razorpayKeySecret, ...publicSettings } = settings as any;
     res.json({ success: true, settings: publicSettings });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
@@ -1067,12 +1163,13 @@ apiRouter.get('/settings', async (req, res) => {
 apiRouter.get('/admin/settings', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const settings = await db.getSettings();
-    const SALT_MASK = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
-    // Mask sensitive PhonePe credentials — they are write-only from the admin UI
+    const SALT_MASK = '••••••••';
+    // Mask sensitive PhonePe & Razorpay credentials — they are write-only from the admin UI
     const safeSettings = {
       ...settings,
       phonepeSaltKey: (settings as any).phonepeSaltKey ? SALT_MASK : '',
-      phonepeMerchantId: (settings as any).phonepeMerchantId ? SALT_MASK : ''
+      phonepeMerchantId: (settings as any).phonepeMerchantId ? SALT_MASK : '',
+      razorpayKeySecret: (settings as any).razorpayKeySecret ? SALT_MASK : ''
     };
     res.json({ success: true, settings: safeSettings });
   } catch (error: any) {
@@ -1082,7 +1179,7 @@ apiRouter.get('/admin/settings', requireAdmin, async (req: AuthenticatedRequest,
 
 apiRouter.put('/settings', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
-    const SALT_MASK = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
+    const SALT_MASK = '••••••••';
     const body = { ...req.body };
     // If the client sends back the mask placeholder, strip those fields so the
     // existing DB secret is preserved rather than overwritten with literal dots.
@@ -1092,12 +1189,16 @@ apiRouter.put('/settings', requireAdmin, async (req: AuthenticatedRequest, res) 
     if (body.phonepeMerchantId === SALT_MASK || body.phonepeMerchantId === '') {
       delete body.phonepeMerchantId;
     }
+    if (body.razorpayKeySecret === SALT_MASK || body.razorpayKeySecret === '') {
+      delete body.razorpayKeySecret;
+    }
     const updated = await db.updateSettings(body);
     // Return masked version so we never round-trip the real secret back to the client
     const safeUpdated = {
       ...updated,
       phonepeSaltKey: (updated as any).phonepeSaltKey ? SALT_MASK : '',
-      phonepeMerchantId: (updated as any).phonepeMerchantId ? SALT_MASK : ''
+      phonepeMerchantId: (updated as any).phonepeMerchantId ? SALT_MASK : '',
+      razorpayKeySecret: (updated as any).razorpayKeySecret ? SALT_MASK : ''
     };
     res.json({ success: true, settings: safeUpdated, message: 'Settings updated successfully' });
   } catch (error: any) {

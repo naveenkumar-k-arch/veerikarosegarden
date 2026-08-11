@@ -19,7 +19,7 @@ interface CheckoutPageProps {
     transactionId?: string;
     potCharge?: number;
     potOption?: string;
-  }) => Promise<{ success: boolean; orderId?: string; phonepePayUrl?: string; merchantTransactionId?: string; message?: string }>;
+  }) => Promise<{ success: boolean; orderId?: string; phonepePayUrl?: string; merchantTransactionId?: string; razorpayOrderId?: string; razorpayKeyId?: string; amount?: number; message?: string }>;
 }
 
 export const CheckoutPage: React.FC<CheckoutPageProps> = ({
@@ -81,7 +81,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(() => {
     const saved = getSessionItem<string>('vrg_checkout_payment', '');
-    if (['PHONEPE', 'QR_PAYMENT', 'COD'].includes(saved)) return saved as PaymentMethod;
+    if (['PHONEPE', 'RAZORPAY', 'QR_PAYMENT', 'COD'].includes(saved)) return saved as PaymentMethod;
     return 'PHONEPE';
   });
   const [selectedPot, setSelectedPot] = useState<'NONE' | '6_INCH' | '8_INCH'>(() => {
@@ -100,7 +100,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           // Auto-select first available payment method ONLY if not restored from session
           const savedPayment = getSessionItem<string>('vrg_checkout_payment', '');
           if (!savedPayment) {
-            if (data.settings.enablePhonePe !== false) {
+            if (data.settings.enableRazorpay) {
+              setPaymentMethod('RAZORPAY');
+            } else if (data.settings.enablePhonePe !== false) {
               setPaymentMethod('PHONEPE');
             } else if (data.settings.enableQrPayment) {
               setPaymentMethod('QR_PAYMENT');
@@ -310,6 +312,12 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
           sessionStorage.removeItem('vrg_checkout_pot');
           sessionStorage.removeItem('vrg_checkout_txnId');
         } catch {}
+
+        // Handle Razorpay Checkout Popup if Razorpay order created
+        if (effectivePaymentMethod === 'RAZORPAY' && res.razorpayOrderId) {
+          handleRazorpayPayment(res);
+          return;
+        }
       } else {
         setErrorMsg(res.message || 'Failed to place order.');
       }
@@ -319,6 +327,93 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
     }
   };
 
+  // Dynamically load Razorpay SDK script if not loaded
+  const loadRazorpayScript = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if ((window as any).Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handleRazorpayPayment = async (orderRes: any) => {
+    setLoading(true);
+    const loaded = await loadRazorpayScript();
+    if (!loaded) {
+      setErrorMsg('Failed to load Razorpay SDK. Please check your internet connection and try again.');
+      setLoading(false);
+      return;
+    }
+
+    const options = {
+      key: orderRes.razorpayKeyId,
+      amount: Math.round(orderRes.amount * 100), // in paise
+      currency: 'INR',
+      name: siteSettings?.businessName || 'Veerika Rose Garden',
+      description: `Plant Order #${orderRes.orderId}`,
+      image: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=200&q=80',
+      order_id: orderRes.razorpayOrderId,
+      handler: async function (response: any) {
+        setLoading(true);
+        try {
+          const verifyRes = await fetch('/api/razorpay/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orderId: orderRes.orderId,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature
+            })
+          });
+          const verifyData = await verifyRes.json();
+          setLoading(false);
+          if (verifyData.success) {
+            window.location.hash = `#/order-status/${orderRes.orderId}`;
+          } else {
+            setErrorMsg(verifyData.message || 'Razorpay payment verification failed.');
+          }
+        } catch (err: any) {
+          setLoading(false);
+          setErrorMsg('Error verifying Razorpay payment.');
+        }
+      },
+      prefill: {
+        name: orderRes.customerName || address.fullName,
+        email: orderRes.customerEmail,
+        contact: orderRes.customerPhone || address.phone
+      },
+      theme: {
+        color: '#16a34a'
+      },
+      modal: {
+        ondismiss: function () {
+          setLoading(false);
+          setErrorMsg('Razorpay payment popup was closed before completing payment.');
+        }
+      }
+    };
+
+    try {
+      const rzp = new (window as any).Razorpay(options);
+      rzp.on('payment.failed', function (response: any) {
+        setLoading(false);
+        setErrorMsg(`Razorpay Payment Failed: ${response.error?.description || 'Transaction declined'}`);
+      });
+      rzp.open();
+    } catch (err: any) {
+      setLoading(false);
+      setErrorMsg('Failed to open Razorpay payment modal.');
+    }
+  };
+
+  const isRazorpayEnabled = siteSettings ? siteSettings.enableRazorpay === true : false;
   const isPhonePeEnabled = siteSettings ? siteSettings.enablePhonePe !== false : true;
   const isCodEnabled = siteSettings ? siteSettings.enableCod !== false : true;
   const isQrEnabled = siteSettings ? siteSettings.enableQrPayment !== false : true;
@@ -534,6 +629,34 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
 
               {/* Payment Methods */}
               <div className="space-y-3">
+                {/* Razorpay Option */}
+                {isRazorpayEnabled && (
+                  <div
+                    onClick={() => setPaymentMethod('RAZORPAY')}
+                    className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 ${
+                      paymentMethod === 'RAZORPAY'
+                        ? 'border-blue-600 bg-blue-50/70 ring-2 ring-blue-500/20'
+                        : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                      <CreditCard className="w-4 h-4" />
+                    </div>
+
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-slate-900 text-sm">Razorpay Payment Gateway</h4>
+                        <span className="bg-blue-200 text-blue-900 font-bold text-[10px] px-2 py-0.5 rounded-full">
+                          ⚡ Cards, UPI, NetBanking, Wallets
+                        </span>
+                      </div>
+                      <p className="text-slate-600 text-[11px] mt-1">
+                        Pay instantly via Debit/Credit Card, Google Pay, PhonePe, Paytm & All Major Indian Banks.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* PhonePe Option */}
                 {isPhonePeEnabled && (
                   <div

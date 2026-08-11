@@ -48,6 +48,7 @@ enum PaymentMethod {
   COD
   CARD
   UPI
+  RAZORPAY
 }
 
 model User {
@@ -519,6 +520,9 @@ model SiteSetting {
   phonepeSaltKey        String   @default("099eb0cd-02fe-4e8b-a782-142a3d8e0d5c")
   phonepeSaltIndex      String   @default("1")
   phonepeEnv            String   @default("SANDBOX")
+  enableRazorpay        Boolean  @default(false)
+  razorpayKeyId         String   @default("")
+  razorpayKeySecret     String   @default("")
   updatedAt             DateTime @updatedAt
 }
 

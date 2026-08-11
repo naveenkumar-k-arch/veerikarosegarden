@@ -28,7 +28,7 @@ export const createOrderSchema = z.object({
   shippingAddress: addressSchema,
   items: z.array(orderItemSchema).min(1, 'Order must contain at least one product item'),
   couponCode: z.string().optional(),
-  paymentMethod: z.enum(['PHONEPE', 'COD', 'QR_PAYMENT', 'UPI_DIRECT']),
+  paymentMethod: z.enum(['PHONEPE', 'COD', 'QR_PAYMENT', 'UPI_DIRECT', 'RAZORPAY']),
   // Payment proof URL validation — accepts data URIs (base64 image), HTTP URLs, or relative paths
   paymentProofUrl: z.string()
     .optional()

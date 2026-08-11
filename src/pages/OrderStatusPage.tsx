@@ -167,7 +167,7 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
             <CheckCircle2 className="w-5 h-5 text-emerald-700" />
             <p className="font-bold">1. Order Confirmed</p>
             <p className="text-[10px] text-emerald-700">
-              {isCod ? 'Cash on Delivery' : (order.paymentMethod === 'QR_PAYMENT' || order.paymentMethod === 'UPI_DIRECT') ? 'Scan QR Paid' : 'PhonePe PG Paid'}
+              {isCod ? 'Cash on Delivery' : order.paymentMethod === 'RAZORPAY' ? 'Razorpay PG Paid' : (order.paymentMethod === 'QR_PAYMENT' || order.paymentMethod === 'UPI_DIRECT') ? 'Scan QR Paid' : 'PhonePe PG Paid'}
             </p>
           </div>
 
@@ -250,7 +250,7 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
         </div>
 
         <div className="pt-3 border-t border-slate-200 flex justify-between items-center text-sm font-bold text-slate-900">
-          <span>{isCod ? 'Total Payable via Cash on Delivery:' : 'Total Paid via PhonePe:'}</span>
+          <span>{isCod ? 'Total Payable via Cash on Delivery:' : order.paymentMethod === 'RAZORPAY' ? 'Total Paid via Razorpay:' : 'Total Paid Online:'}</span>
           <span className="text-emerald-800 text-base">₹{order.grandTotal}</span>
         </div>
       </div>

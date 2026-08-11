@@ -1,6 +1,6 @@
 export type PaymentStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'REFUNDED' | 'CANCELLED';
 export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PROCESSING' | 'PACKED' | 'DISPATCHED' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED' | 'RETURNED';
-export type PaymentMethod = 'PHONEPE' | 'COD' | 'UPI_DIRECT' | 'QR_PAYMENT';
+export type PaymentMethod = 'PHONEPE' | 'COD' | 'UPI_DIRECT' | 'QR_PAYMENT' | 'RAZORPAY';
 
 export interface Product {
   id: string;
@@ -194,6 +194,9 @@ export interface SiteSettings {
   enableCod: boolean;
   enablePhonePe: boolean;
   enableQrPayment: boolean;
+  enableRazorpay?: boolean;
+  razorpayKeyId?: string;
+  razorpayKeySecret?: string;
   qrCodeImageUrl?: string;
   upiId?: string;
   upiName?: string;
