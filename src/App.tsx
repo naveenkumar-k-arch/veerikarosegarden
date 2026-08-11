@@ -243,21 +243,9 @@ export const App: React.FC = () => {
         setCategories(cRes.categories);
       }
       if (rRes.success && Array.isArray(rRes.reviews)) {
-        const localSaved = localStorage.getItem('vrg_reviews');
-        let localReviews: Review[] = [];
-        if (localSaved) {
-          try {
-            const parsed = JSON.parse(localSaved);
-            if (Array.isArray(parsed)) localReviews = parsed;
-          } catch {}
-        }
-        const reviewMap = new Map<string, Review>();
-        rRes.reviews.forEach((r: Review) => { if (r && r.id) reviewMap.set(r.id, r); });
-        localReviews.forEach((r: Review) => { if (r && r.id) reviewMap.set(r.id, r); });
-        const merged = Array.from(reviewMap.values());
-        setReviews(merged);
+        setReviews(rRes.reviews);
         try {
-          localStorage.setItem('vrg_reviews', JSON.stringify(merged));
+          localStorage.setItem('vrg_reviews', JSON.stringify(rRes.reviews));
         } catch {}
       }
     } catch (err) {

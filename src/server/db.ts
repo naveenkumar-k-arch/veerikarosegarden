@@ -5099,6 +5099,7 @@ class Store {
 
 
   // REVIEWS
+  private deletedReviewIds = new Set<string>();
   private memoryReviews: Review[] = [
     {
       id: 'rev-1',
@@ -5164,43 +5165,51 @@ class Store {
 
   async getReviews(productId?: string): Promise<Review[]> {
     const prisma = getPrismaClient();
+    let result: Review[] = [];
+
     if (!prisma) {
-      if (productId) return this.memoryReviews.filter(r => r.productId === productId);
-      return this.memoryReviews;
+      result = this.memoryReviews;
+    } else {
+      try {
+        const items = await prisma.review.findMany({
+          where: productId ? { productId } : {},
+          include: { product: true },
+          orderBy: { createdAt: 'desc' }
+        });
+
+        const dbReviews: Review[] = items.map(r => ({
+          id: r.id,
+          productId: r.productId,
+          productName: r.product?.name || 'Plant',
+          userName: r.userName,
+          rating: r.rating,
+          title: `${r.rating} Star Review`,
+          comment: r.comment,
+          status: 'APPROVED',
+          isVerified: r.isVerified,
+          createdAt: r.createdAt.toISOString()
+        }));
+
+        const map = new Map<string, Review>();
+        dbReviews.forEach(r => map.set(r.id, r));
+        this.memoryReviews.forEach(r => map.set(r.id, r));
+        result = Array.from(map.values());
+      } catch (err) {
+        console.error('Prisma getReviews error:', err);
+        result = this.memoryReviews;
+      }
     }
 
-    try {
-      const items = await prisma.review.findMany({
-        where: productId ? { productId } : {},
-        include: { product: true },
-        orderBy: { createdAt: 'desc' }
-      });
-
-      const dbReviews: Review[] = items.map(r => ({
-        id: r.id,
-        productId: r.productId,
-        productName: r.product?.name || 'Plant',
-        userName: r.userName,
-        rating: r.rating,
-        title: `${r.rating} Star Review`,
-        comment: r.comment,
-        status: 'APPROVED',
-        isVerified: r.isVerified,
-        createdAt: r.createdAt.toISOString()
-      }));
-
-      const map = new Map<string, Review>();
-      dbReviews.forEach(r => map.set(r.id, r));
-      this.memoryReviews.forEach(r => map.set(r.id, r));
-      return Array.from(map.values());
-    } catch (err) {
-      console.error('Prisma getReviews error:', err);
-      return this.memoryReviews;
+    const filtered = result.filter(r => r && r.id && !this.deletedReviewIds.has(r.id));
+    if (productId) {
+      return filtered.filter(r => r.productId === productId);
     }
+    return filtered;
   }
 
   async addReview(reviewData: Partial<Review>): Promise<Review> {
     const id = reviewData.id || 'rev-' + Date.now();
+    this.deletedReviewIds.delete(id);
     const newReview: Review = {
       id,
       productId: reviewData.productId || 'custom',
@@ -5265,6 +5274,7 @@ class Store {
   }
 
   async deleteReview(id: string): Promise<boolean> {
+    this.deletedReviewIds.add(id);
     this.memoryReviews = this.memoryReviews.filter(r => r.id !== id);
     const prisma = getPrismaClient();
     if (prisma) {
