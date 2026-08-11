@@ -50,7 +50,12 @@ export async function firestoreSaveOrder(order: any): Promise<void> {
   try {
     const docId = order.id.replace(/[^a-zA-Z0-9_-]/g, '_');
     const fields: Record<string, any> = {};
-    for (const [k, v] of Object.entries(order)) fields[k] = toFirestoreValue(v);
+
+    // IMPORTANT: Strip paymentProofUrl (base64 image, can be 500KB–2MB) before saving to Firestore.
+    // Firestore has a 1MB document size limit — storing base64 images causes silent failures.
+    // The screenshot is already persisted safely in Postgres via the |||PROOF||| notes column.
+    const { paymentProofUrl: _stripped, ...safeOrder } = order;
+    for (const [k, v] of Object.entries(safeOrder)) fields[k] = toFirestoreValue(v);
 
     const url = `${FIRESTORE_BASE}/orders/${docId}`;
     await fetch(url, {

@@ -3694,56 +3694,83 @@ const silentRefresh = async (): Promise<boolean> => {
 
       {/* Payment Proof Lightbox Modal */}
       {selectedProofOrder && (
-        <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 border border-slate-200 shadow-2xl text-xs max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 space-y-4 border border-slate-200 shadow-2xl text-xs max-h-[92vh] flex flex-col">
             <div className="flex justify-between items-center border-b border-slate-200 pb-3">
               <div>
                 <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
                   <Camera className="w-5 h-5 text-indigo-600" />
-                  <span>Uploaded Payment Receipt Proof</span>
+                  <span>Customer Payment Receipt Proof</span>
                 </h3>
-                <p className="text-[11px] text-slate-500 font-mono">Order #{selectedProofOrder.id} • Txn: {selectedProofOrder.merchantTransactionId}</p>
+                <p className="text-[11px] text-slate-500 font-mono">
+                  Order #{selectedProofOrder.id} • Txn: {selectedProofOrder.merchantTransactionId}
+                </p>
               </div>
-              <button onClick={() => setSelectedProofOrder(null)} className="p-1 text-slate-400 hover:text-slate-800 cursor-pointer">
+              <button 
+                onClick={() => setSelectedProofOrder(null)} 
+                className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full cursor-pointer transition-colors"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-1">
-              <p className="font-bold text-slate-800">Customer: {selectedProofOrder.customerName} (+91 {selectedProofOrder.customerPhone})</p>
-              <p className="font-bold text-emerald-800">Amount Paid: ₹{selectedProofOrder.grandTotal}</p>
+            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-1.5 shrink-0">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-bold text-slate-800 text-xs">
+                  Customer: <span className="text-slate-950 font-black">{selectedProofOrder.customerName}</span> (+91 {selectedProofOrder.customerPhone})
+                </p>
+                <p className="font-black text-emerald-800 text-sm">
+                  Amount Paid: ₹{selectedProofOrder.grandTotal}
+                </p>
+              </div>
               {selectedProofOrder.transactionId && (
-                <p className="font-mono text-indigo-900 font-bold bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-200">
+                <p className="font-mono text-indigo-900 font-bold bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200 text-xs inline-block">
                   UTR / Ref: {selectedProofOrder.transactionId}
                 </p>
               )}
               {selectedProofOrder.paymentProofUploadedAt && (
-                <p className="text-[10px] text-slate-400 font-medium">Uploaded at: {new Date(selectedProofOrder.paymentProofUploadedAt).toLocaleString()}</p>
+                <p className="text-[10px] text-slate-400 font-medium">
+                  Uploaded at: {new Date(selectedProofOrder.paymentProofUploadedAt).toLocaleString()}
+                </p>
               )}
             </div>
 
-            {selectedProofOrder.paymentProofUrl ? (
-              <div className="text-center bg-slate-900 p-2 rounded-2xl overflow-hidden border border-slate-700">
+            <div className="flex-1 overflow-y-auto bg-slate-950 rounded-2xl p-3 flex items-center justify-center min-h-[280px]">
+              {selectedProofOrder.paymentProofUrl ? (
                 <img
                   src={selectedProofOrder.paymentProofUrl}
-                  alt="Uploaded Payment Receipt"
-                  className="w-full max-h-[50vh] object-contain rounded-xl mx-auto"
+                  alt="Customer Payment Receipt Proof"
+                  className="max-w-full max-h-[55vh] object-contain rounded-xl shadow-lg mx-auto"
                 />
-              </div>
-            ) : (
-              <div className="p-8 text-center bg-slate-100 rounded-2xl text-slate-500 font-semibold">
-                No image proof uploaded for this order.
-              </div>
-            )}
+              ) : (
+                <div className="p-8 text-center bg-slate-900 rounded-2xl text-slate-400 font-semibold space-y-1">
+                  <p className="text-sm">⚠️ No screenshot photo attached to this order.</p>
+                  <p className="text-[11px] text-slate-500 font-normal">This payment was placed via direct gateway or manual UTR reference.</p>
+                </div>
+              )}
+            </div>
 
-            {/* Verification Actions */}
-            <div className="flex gap-3 pt-2 border-t border-slate-200">
+            {/* Verification Actions & Download */}
+            <div className="flex flex-wrap gap-2.5 pt-2 border-t border-slate-200 shrink-0">
+              {selectedProofOrder.paymentProofUrl && (
+                <a
+                  href={selectedProofOrder.paymentProofUrl}
+                  download={`payment-receipt-${selectedProofOrder.id}.jpg`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl border border-indigo-200 flex items-center justify-center gap-1.5 cursor-pointer text-xs transition-colors"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>Download / View Full</span>
+                </a>
+              )}
+
               <button
                 onClick={async () => {
-                  await handleUpdateOrderStatus(selectedProofOrder.id, selectedProofOrder.orderStatus, 'SUCCESS');
+                  await handleUpdateOrderStatus(selectedProofOrder.id, selectedProofOrder.orderStatus === 'PENDING' ? 'PROCESSING' : selectedProofOrder.orderStatus, 'SUCCESS');
                   setSelectedProofOrder(null);
                 }}
-                className="flex-1 py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                className="flex-1 py-2.5 px-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-xs transition-colors"
               >
                 <Check className="w-4 h-4" />
                 <span>Approve & Mark Paid</span>
@@ -3754,10 +3781,18 @@ const silentRefresh = async (): Promise<boolean> => {
                   await handleUpdateOrderStatus(selectedProofOrder.id, selectedProofOrder.orderStatus, 'FAILED');
                   setSelectedProofOrder(null);
                 }}
-                className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                className="flex-1 py-2.5 px-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-xs transition-colors"
               >
                 <X className="w-4 h-4" />
                 <span>Reject Payment</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedProofOrder(null)}
+                className="py-2.5 px-4 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl transition-colors cursor-pointer text-xs"
+              >
+                Close
               </button>
             </div>
           </div>
@@ -4705,79 +4740,6 @@ const silentRefresh = async (): Promise<boolean> => {
                 {editingReview ? 'Save Review Changes' : 'Publish Review & Photo to Store'}
               </button>
             </form>
-          </div>
-        </div>
-      )}
-      {/* Zoom Receipt Screenshot Modal */}
-      {selectedProofOrder && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white max-w-2xl w-full rounded-3xl p-6 border border-slate-200 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <div>
-                <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
-                  <Camera className="w-5 h-5 text-indigo-600" />
-                  <span>Customer Payment Receipt Screenshot</span>
-                </h3>
-                <p className="text-slate-500 text-xs mt-0.5">
-                  Order ID: <span className="font-mono font-bold text-slate-800">{selectedProofOrder.id}</span> • Customer: <span className="font-bold text-slate-800">{selectedProofOrder.customerName}</span> ({selectedProofOrder.customerPhone})
-                </p>
-              </div>
-              <button
-                onClick={() => setSelectedProofOrder(null)}
-                className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto bg-slate-950 rounded-2xl p-4 flex items-center justify-center min-h-[300px]">
-              {selectedProofOrder.paymentProofUrl ? (
-                <img
-                  src={selectedProofOrder.paymentProofUrl}
-                  alt="Customer Payment Receipt Proof"
-                  className="max-w-full max-h-[60vh] object-contain rounded-xl shadow-lg"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    const parent = e.currentTarget.parentElement;
-                    if (parent && !parent.querySelector('.error-fallback')) {
-                      const fallback = document.createElement('div');
-                      fallback.className = 'error-fallback text-center text-white p-6 space-y-2';
-                      fallback.innerHTML = `<p class="font-bold text-rose-400">⚠️ Unable to render inline image preview</p><p class="text-xs text-slate-300">Click the Download / View Full Image button below to view the receipt photo.</p>`;
-                      parent.appendChild(fallback);
-                    }
-                  }}
-                />
-              ) : (
-                <p className="text-slate-400 text-xs font-bold">No receipt photo attached to this order.</p>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-              <span className="text-xs font-extrabold text-indigo-950">
-                Amount Paid: ₹{selectedProofOrder.grandTotal} {selectedProofOrder.transactionId ? `(UTR: ${selectedProofOrder.transactionId})` : ''}
-              </span>
-              
-              <div className="flex items-center gap-2">
-                {selectedProofOrder.paymentProofUrl && (
-                  <a
-                    href={selectedProofOrder.paymentProofUrl}
-                    download={`payment-receipt-${selectedProofOrder.id}.jpg`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <span>Download / View Full Image</span>
-                  </a>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setSelectedProofOrder(null)}
-                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs rounded-xl transition-colors cursor-pointer"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       )}
