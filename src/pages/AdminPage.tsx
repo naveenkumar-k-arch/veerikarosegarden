@@ -342,6 +342,20 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
 
   const handleDeleteReview = async (id: string) => {
     if (!confirm('Are you sure you want to delete this customer review?')) return;
+
+    try {
+      const savedDeleted = localStorage.getItem('vrg_deleted_reviews');
+      let deletedList: string[] = [];
+      if (savedDeleted) {
+        const parsed = JSON.parse(savedDeleted);
+        if (Array.isArray(parsed)) deletedList = parsed;
+      }
+      if (!deletedList.includes(id)) {
+        deletedList.push(id);
+      }
+      localStorage.setItem('vrg_deleted_reviews', JSON.stringify(deletedList));
+    } catch {}
+
     const updated = reviews.filter(r => r.id !== id);
     saveReviewsState(updated);
 

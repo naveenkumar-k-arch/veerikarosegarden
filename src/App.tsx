@@ -139,14 +139,26 @@ export const App: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
   const [banners, setBanners] = useState<Banner[]>([]);
   const getInitialReviews = (): Review[] => {
+    let deletedIds: string[] = [];
+    try {
+      const dSaved = localStorage.getItem('vrg_deleted_reviews');
+      if (dSaved) {
+        const dParsed = JSON.parse(dSaved);
+        if (Array.isArray(dParsed)) deletedIds = dParsed;
+      }
+    } catch {}
+
+    const deletedSet = new Set(deletedIds);
+
     try {
       const saved = localStorage.getItem('vrg_reviews');
       if (saved !== null) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) return parsed.filter((r: Review) => r && r.id && !deletedSet.has(r.id));
       }
     } catch {}
-    return INITIAL_REVIEWS;
+
+    return INITIAL_REVIEWS.filter(r => !deletedSet.has(r.id));
   };
 
   const [reviews, setReviews] = useState<Review[]>(getInitialReviews);
@@ -243,9 +255,21 @@ export const App: React.FC = () => {
         setCategories(cRes.categories);
       }
       if (rRes.success && Array.isArray(rRes.reviews)) {
-        setReviews(rRes.reviews);
+        let deletedIds: string[] = [];
         try {
-          localStorage.setItem('vrg_reviews', JSON.stringify(rRes.reviews));
+          const dSaved = localStorage.getItem('vrg_deleted_reviews');
+          if (dSaved) {
+            const dParsed = JSON.parse(dSaved);
+            if (Array.isArray(dParsed)) deletedIds = dParsed;
+          }
+        } catch {}
+
+        const deletedSet = new Set(deletedIds);
+        const cleanReviews = rRes.reviews.filter((r: Review) => r && r.id && !deletedSet.has(r.id));
+
+        setReviews(cleanReviews);
+        try {
+          localStorage.setItem('vrg_reviews', JSON.stringify(cleanReviews));
         } catch {}
       }
     } catch (err) {
