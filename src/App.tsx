@@ -242,8 +242,24 @@ export const App: React.FC = () => {
       if (cRes?.success && Array.isArray(cRes.categories) && cRes.categories.length > 0) {
         setCategories(cRes.categories);
       }
-      if (bRes.success) setBanners(bRes.banners);
-      if (rRes.success) setReviews(rRes.reviews);
+      if (rRes.success && Array.isArray(rRes.reviews)) {
+        const localSaved = localStorage.getItem('vrg_reviews');
+        let localReviews: Review[] = [];
+        if (localSaved) {
+          try {
+            const parsed = JSON.parse(localSaved);
+            if (Array.isArray(parsed)) localReviews = parsed;
+          } catch {}
+        }
+        const reviewMap = new Map<string, Review>();
+        rRes.reviews.forEach((r: Review) => { if (r && r.id) reviewMap.set(r.id, r); });
+        localReviews.forEach((r: Review) => { if (r && r.id) reviewMap.set(r.id, r); });
+        const merged = Array.from(reviewMap.values());
+        setReviews(merged);
+        try {
+          localStorage.setItem('vrg_reviews', JSON.stringify(merged));
+        } catch {}
+      }
     } catch (err) {
       console.error('Error fetching core catalog:', err);
     }
@@ -301,7 +317,14 @@ export const App: React.FC = () => {
     fetchUserOrders();
 
     const handleSync = () => fetchUserOrders();
+    const handleSyncReviews = (e: any) => {
+      if (e.detail && Array.isArray(e.detail)) {
+        setReviews(e.detail);
+      }
+    };
+
     window.addEventListener('orderStatusUpdated', handleSync);
+    window.addEventListener('vrg_reviews_updated', handleSyncReviews);
     window.addEventListener('storage', handleSync);
 
     // Verify backend auth session — skip if user is already an admin (local-auth login)

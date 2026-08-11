@@ -345,12 +345,12 @@ export const HomePage: React.FC<HomePageProps> = ({
                   }}>
                     {/* Photo Header with Zoom Lightbox trigger */}
                     {review.imageUrl ? (
-                      <div style={{ height: 200, position: 'relative', overflow: 'hidden', cursor: 'pointer' }} onClick={() => setSelectedReviewPhoto(review)}>
+                      <div style={{ height: 260, background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', cursor: 'pointer' }} onClick={() => setSelectedReviewPhoto(review)}>
                         <img
                           src={review.imageUrl}
                           alt={review.userName}
                           loading="lazy"
-                          style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}
+                          style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', objectFit: 'contain', transition: 'transform 0.5s ease' }}
                           className="group-hover-scale"
                           onError={e => {
                             (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80';
