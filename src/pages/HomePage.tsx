@@ -56,7 +56,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   }, []);
 
   const getLiveReviews = (): Review[] => {
-    if (Array.isArray(reviewsList) && reviewsList.length > 0) return reviewsList;
+    if (Array.isArray(reviewsList)) return reviewsList;
     if (Array.isArray(reviews)) return reviews;
     try {
       const saved = localStorage.getItem('vrg_reviews');
