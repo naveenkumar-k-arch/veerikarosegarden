@@ -4,7 +4,6 @@ import { Product, Category, CartItem, Order, User, Banner, Review, PaymentMethod
 import { auth, onAuthStateChanged, signOut } from './lib/firebase';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
-import { SecondaryNavbar } from './components/SecondaryNavbar';
 import { CartDrawer } from './components/CartDrawer';
 import { PlantCareModal } from './components/PlantCareModal';
 import { PhonePeModal } from './components/PhonePeModal';
@@ -743,8 +742,8 @@ export const App: React.FC = () => {
           <span className="particle-3d-3">🌿</span>
         </div>
 
-      {/* Show header ONLY on Home page */}
-      {currentPage === 'home' && (
+      {/* Primary Header for all store pages (hidden only in Admin view) */}
+      {currentPage !== 'admin' && (
         <Header
           cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
           wishlistCount={wishlist.length}
@@ -767,23 +766,8 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* Secondary Navbar for all non-home pages (Web Top Navbar + Mobile Bottom Floating Tab Bar) */}
-      {currentPage !== 'home' && (
-        <SecondaryNavbar
-          currentPage={currentPage}
-          cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
-          onNavigate={(page, params) => {
-            navigateTo(page, params);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-          user={user}
-          searchQuery={searchQuery}
-          onSearchChange={(q) => setSearchQuery(q)}
-        />
-      )}
-
       {/* Primary Page Router */}
-      <main className={`flex-1 ${currentPage !== 'home' ? 'pb-16 md:pb-0' : ''}`}>
+      <main className="flex-1">
         {currentPage === 'home' && (
           <HomePage
             products={products}
@@ -935,8 +919,8 @@ export const App: React.FC = () => {
         )}
       </main>
 
-      {/* Show footer ONLY on Home page */}
-      {currentPage === 'home' && (
+      {/* Primary Footer for all store pages (hidden only in Admin view) */}
+      {currentPage !== 'admin' && (
         <Footer
           onNavigate={(page, params) => {
             navigateTo(page, params);
