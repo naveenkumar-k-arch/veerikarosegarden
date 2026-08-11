@@ -186,13 +186,19 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validate file type
     if (!file.type.startsWith('image/')) {
-      setErrorMsg('Please select a valid image file (JPG, PNG, WebP) for the payment proof.');
+      setErrorMsg('📸 INVALID FILE FORMAT\n\nPlease select a valid image file (JPG, JPEG, PNG, WebP) for the payment proof screenshot. PDF or documents are not supported.');
+      e.target.value = '';
       return;
     }
 
-    if (file.size > 20 * 1024 * 1024) {
-      setErrorMsg('Image size should be less than 20MB.');
+    // Limit maximum raw file size to 10 MB
+    const MAX_UPLOAD_MB = 10;
+    if (file.size > MAX_UPLOAD_MB * 1024 * 1024) {
+      const fileMb = (file.size / (1024 * 1024)).toFixed(1);
+      setErrorMsg(`📸 SCREENSHOT SIZE LIMIT EXCEEDED (${fileMb} MB)\n\nYour selected payment screenshot is ${fileMb} MB, which exceeds the ${MAX_UPLOAD_MB} MB maximum upload limit.\n\nPlease select a smaller image or capture a quick phone screenshot from your UPI app (GPay / PhonePe) and re-upload.`);
+      e.target.value = '';
       return;
     }
 
@@ -206,12 +212,14 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
         const compressedBase64 = await compressImageBase64(rawBase64);
         const finalBase64 = (compressedBase64 && compressedBase64.length > 50) ? compressedBase64 : rawBase64;
         
-        // Enforce 4MB max string size limit (~3MB payload limit to prevent database overload)
-        const MAX_BASE64_BYTES = 4 * 1024 * 1024;
+        // Enforce 3.5MB max base64 size limit
+        const MAX_BASE64_BYTES = 3.5 * 1024 * 1024;
         if (finalBase64.length > MAX_BASE64_BYTES) {
-          setErrorMsg('The payment proof image is too large even after compression. Please select a smaller photo or screenshot under 3MB.');
+          const compMb = (finalBase64.length / (1024 * 1024)).toFixed(1);
+          setErrorMsg(`📸 IMAGE COMPRESSION OVERSIZE (${compMb} MB)\n\nThe payment proof image is too large (${compMb} MB) to upload reliably.\n\nPlease choose a normal phone screenshot under 5 MB.`);
           setPaymentProofUrl('');
           setProofPreview(null);
+          e.target.value = '';
           return;
         }
 
@@ -220,14 +228,16 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
         setPaymentMethod('QR_PAYMENT');
       } catch (err) {
         console.warn('Image compression error:', err);
-        setErrorMsg('Failed to compress image. Please try another screenshot.');
+        setErrorMsg('📸 COMPRESSION ERROR\n\nFailed to process screenshot image. Please choose another screenshot from your gallery.');
+        e.target.value = '';
       } finally {
         setUploadingImage(false);
       }
     };
     reader.onerror = () => {
       setUploadingImage(false);
-      setErrorMsg('Failed to process image file. Please try another screenshot.');
+      setErrorMsg('📸 UPLOAD ERROR\n\nFailed to read image file. Please try selecting the screenshot again.');
+      e.target.value = '';
     };
     reader.readAsDataURL(file);
   };

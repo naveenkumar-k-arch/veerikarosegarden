@@ -586,6 +586,10 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
       if (!paymentProofUrl || typeof paymentProofUrl !== 'string' || !paymentProofUrl.trim()) {
         return res.status(400).json({ success: false, message: 'Payment screenshot/proof is mandatory for QR Code / UPI payment. Please upload your GPay or PhonePe receipt photo.' });
       }
+      // Check maximum screenshot payload size (5MB base64 string)
+      if (paymentProofUrl.length > 5 * 1024 * 1024) {
+        return res.status(400).json({ success: false, message: 'Payment screenshot image file size exceeds the 5MB limit. Please upload a smaller image or screenshot.' });
+      }
     }
 
     let calculatedSubtotal = 0;
