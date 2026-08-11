@@ -742,8 +742,8 @@ export const App: React.FC = () => {
           <span className="particle-3d-3">🌿</span>
         </div>
 
-      {/* Primary Header for all store pages (hidden only in Admin view) */}
-      {currentPage !== 'admin' && (
+      {/* Primary Header - rendered only on Home page */}
+      {currentPage === 'home' && (
         <Header
           cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
           wishlistCount={wishlist.length}
@@ -759,8 +759,8 @@ export const App: React.FC = () => {
           onSelectCategory={(catId) => {
             navigateTo('shop', { category: catId });
           }}
-          isAdmin={currentPage === 'admin'}
-          onToggleAdmin={() => navigateTo(currentPage === 'admin' ? 'home' : 'admin')}
+          isAdmin={false}
+          onToggleAdmin={() => navigateTo('admin')}
           user={user}
           onOpenExpertAdvice={() => setIsExpertAdviceOpen(true)}
         />
@@ -919,8 +919,8 @@ export const App: React.FC = () => {
         )}
       </main>
 
-      {/* Primary Footer for all store pages (hidden only in Admin view) */}
-      {currentPage !== 'admin' && (
+      {/* Primary Footer - rendered only on Home page */}
+      {currentPage === 'home' && (
         <Footer
           onNavigate={(page, params) => {
             navigateTo(page, params);
@@ -1023,26 +1023,28 @@ export const App: React.FC = () => {
         </span>
       </a>
 
-      {/* ===== MOBILE BOTTOM NAVIGATION BAR ===== */}
-      <nav className={`mobile-bottom-nav ${isCartOpen ? '!hidden' : ''}`} role="navigation" aria-label="Mobile bottom navigation">
-        <button className={`nav-item ${currentPage === 'home' ? 'active' : ''}`} onClick={() => navigateTo('home')}>
-          <Home />
-          <span>Home</span>
-        </button>
-        <button className={`nav-item ${currentPage === 'shop' ? 'active' : ''}`} onClick={() => navigateTo('shop')}>
-          <Store />
-          <span>Shop</span>
-        </button>
-        <button className={`nav-item ${currentPage === 'cart' ? 'active' : ''} cart-btn`} onClick={() => navigateTo('cart')} aria-label="Open cart page">
-          {cartCount > 0 && <span className="cart-badge">{cartCount > 9 ? '9+' : cartCount}</span>}
-          <ShoppingCart />
-          <span>Cart</span>
-        </button>
-        <button className={`nav-item ${currentPage === 'account' ? 'active' : ''}`} onClick={() => navigateTo('account')}>
-          <UserIcon />
-          <span>{user ? user.name?.split(' ')[0] : 'Account'}</span>
-        </button>
-      </nav>
+      {/* ===== MOBILE BOTTOM NAVIGATION BAR — rendered only on Home page ===== */}
+      {currentPage === 'home' && (
+        <nav className={`mobile-bottom-nav ${isCartOpen ? '!hidden' : ''}`} role="navigation" aria-label="Mobile bottom navigation">
+          <button className="nav-item active" onClick={() => navigateTo('home')}>
+            <Home />
+            <span>Home</span>
+          </button>
+          <button className="nav-item" onClick={() => navigateTo('shop')}>
+            <Store />
+            <span>Shop</span>
+          </button>
+          <button className="nav-item cart-btn" onClick={() => navigateTo('cart')} aria-label="Open cart page">
+            {cartCount > 0 && <span className="cart-badge">{cartCount > 9 ? '9+' : cartCount}</span>}
+            <ShoppingCart />
+            <span>Cart</span>
+          </button>
+          <button className="nav-item" onClick={() => navigateTo('account')}>
+            <UserIcon />
+            <span>{user ? user.name?.split(' ')[0] : 'Account'}</span>
+          </button>
+        </nav>
+      )}
     </div>
     </>
   );

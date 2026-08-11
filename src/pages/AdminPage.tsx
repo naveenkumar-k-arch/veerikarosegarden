@@ -978,7 +978,7 @@ const silentRefresh = async (): Promise<boolean> => {
         <div className="lg:col-span-4 space-y-6">
           {/* TAB 1: DASHBOARD */}
           {activeTab === 'dashboard' && (() => {
-            const paidOrders = orders.filter(o => o.paymentStatus === 'SUCCESS' || o.paymentStatus === 'PAID' || (o.paymentMethod === 'COD' && o.orderStatus === 'DELIVERED'));
+            const paidOrders = orders.filter(o => (o.paymentStatus as string) === 'SUCCESS' || (o.paymentStatus as string) === 'PAID' || (o.paymentMethod === 'COD' && o.orderStatus === 'DELIVERED'));
             const realTotalRevenue = stats?.totalRevenue !== undefined && stats?.totalRevenue !== null
               ? stats.totalRevenue
               : paidOrders.reduce((sum, o) => sum + o.grandTotal, 0);
@@ -1102,7 +1102,7 @@ const silentRefresh = async (): Promise<boolean> => {
                   {[
                     { label: 'Products', value: products.length, icon: '🌿', bg: 'bg-emerald-50', text: 'text-emerald-800' },
                     { label: 'Categories', value: categories.length, icon: '📁', bg: 'bg-blue-50', text: 'text-blue-800' },
-                    { label: 'Active Coupons', value: coupons.filter(c => c.isActive !== false).length, icon: '🏷️', bg: 'bg-amber-50', text: 'text-amber-800' },
+                    { label: 'Active Coupons', value: coupons.filter(c => (c.active ?? (c as any).isActive) !== false).length, icon: '🏷️', bg: 'bg-amber-50', text: 'text-amber-800' },
                     { label: 'Catalog Value', value: `₹${products.reduce((s, p) => s + p.sellingPrice, 0)}`, icon: '💰', bg: 'bg-purple-50', text: 'text-purple-800' },
                   ].map(c => (
                     <div key={c.label} className={`${c.bg} p-4 rounded-2xl border border-slate-200 flex items-center gap-3`}>
@@ -1995,14 +1995,14 @@ const silentRefresh = async (): Promise<boolean> => {
                         <div>
                           <p className="font-black text-slate-900 text-sm font-mono">{c.code}</p>
                           <p className="text-slate-500 text-[10px]">
-                            {c.discountType === 'PERCENTAGE' ? `${c.discountValue}% off` : `₹${c.discountValue} off`}
-                            {c.minOrderAmount ? ` · Min ₹${c.minOrderAmount}` : ''}
+                            {(c.type || (c as any).discountType) === 'PERCENT' || (c as any).discountType === 'PERCENTAGE' ? `${c.value ?? (c as any).discountValue}% off` : `₹${c.value ?? (c as any).discountValue} off`}
+                            {(c.minOrder ?? (c as any).minOrderAmount) ? ` · Min ₹${c.minOrder ?? (c as any).minOrderAmount}` : ''}
                             {c.expiryDate ? ` · Expires ${new Date(c.expiryDate).toLocaleDateString('en-IN')}` : ''}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${c.isActive !== false ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'}`}>
-                            {c.isActive !== false ? 'ACTIVE' : 'INACTIVE'}
+                          <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${(c.active ?? (c as any).isActive) !== false ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'}`}>
+                            {(c.active ?? (c as any).isActive) !== false ? 'ACTIVE' : 'INACTIVE'}
                           </span>
                           <button
                             onClick={async () => {
