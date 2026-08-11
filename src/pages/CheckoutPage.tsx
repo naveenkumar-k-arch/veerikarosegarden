@@ -268,12 +268,10 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
 
     const effectivePaymentMethod = (paymentMethod === 'QR_PAYMENT' || Boolean(paymentProofUrl)) ? 'QR_PAYMENT' : paymentMethod;
 
-    // MANDATORY PROOF VALIDATION FOR QR PAYMENT
-    if (effectivePaymentMethod === 'QR_PAYMENT') {
-      if (!paymentProofUrl) {
-        setErrorMsg('📸 MANDATORY: Please upload your payment screenshot / receipt image before confirming your order.');
-        return;
-      }
+    // MANDATORY PROOF VALIDATION FOR PAYMENT SCREENSHOT
+    if (!paymentProofUrl || !paymentProofUrl.trim()) {
+      setErrorMsg('📸 MANDATORY PAYMENT SCREENSHOT: You must select and upload your GPay / PhonePe / UPI payment screenshot image before placing an order.');
+      return;
     }
 
     setLoading(true);
