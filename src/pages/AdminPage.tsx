@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Product, Category, Order, Coupon, Banner, Review, SiteSettings, PaymentLog, FinancialEntry, Combo } from '../types';
-import { LayoutDashboard, Package, ShoppingBag, FolderTree, Tag, Image, Star, Settings as SettingsIcon, ShieldCheck, Plus, Edit, Trash2, Check, X, RefreshCw, Printer, AlertTriangle, Search, Lock, ExternalLink, DollarSign, TrendingUp, TrendingDown, Camera, CreditCard } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, FolderTree, Tag, Image, Star, Settings as SettingsIcon, ShieldCheck, Plus, Edit, Trash2, Check, X, RefreshCw, Printer, AlertTriangle, Search, Lock, ExternalLink, DollarSign, TrendingUp, TrendingDown, Camera, CreditCard, ChevronDown, User, Phone, MapPin } from 'lucide-react';
 
 import { INITIAL_PRODUCTS, INITIAL_CATEGORIES } from '../data/catalogData';
 
@@ -1560,56 +1560,92 @@ const silentRefresh = async (): Promise<boolean> => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-700 bg-slate-50/50 p-3 rounded-xl">
-                    <p><strong>Customer Name & Phone:</strong> {o.customerName} (+91 {o.customerPhone})</p>
-                    <p><strong>Delivery Address:</strong> {typeof o.shippingAddress === 'string' ? o.shippingAddress : `${o.shippingAddress?.houseNo || ''}, ${o.shippingAddress?.street || ''}, ${o.shippingAddress?.villageTown || ''}, ${o.shippingAddress?.district || ''}, ${o.shippingAddress?.pincode || ''}`}</p>
-                  </div>
-
-                  {/* Ordered Product Names & Item Snapshot List */}
-                  <div className="bg-slate-50/90 rounded-2xl p-4 border border-slate-200 space-y-3">
-                    <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
-                      <span className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
-                        <span>📦 Ordered Products ({o.items?.length || 0})</span>
-                      </span>
-                      <span className="text-[11px] text-emerald-800 font-bold truncate max-w-[250px] bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200">
-                        {o.items?.map(i => i.name).join(', ') || 'Nursery Products'}
+                  {/* Highlighted Customer Details Section */}
+                  <div className="bg-amber-50/90 border-2 border-amber-300 rounded-2xl p-4 space-y-3 shadow-xs">
+                    <div className="flex items-center gap-2 border-b border-amber-200/80 pb-2">
+                      <span className="bg-amber-600 text-white px-2.5 py-0.5 rounded-lg text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-2xs">
+                        <User className="w-3.5 h-3.5" /> 👤 CUSTOMER DETAILS
                       </span>
                     </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div className="bg-white p-3 rounded-xl border border-amber-200/80 shadow-2xs space-y-1.5">
+                        <div className="flex items-center gap-1.5 font-bold text-amber-950 text-[11px]">
+                          <User className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                          <span>Customer Name & Phone:</span>
+                        </div>
+                        <p className="font-extrabold text-slate-900 text-sm">
+                          {o.customerName}
+                        </p>
+                        <div className="flex items-center gap-1.5 text-slate-700 font-bold text-xs">
+                          <Phone className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <span>+91 {o.customerPhone}</span>
+                        </div>
+                      </div>
 
-                    <div className="space-y-2">
-                      {o.items && o.items.length > 0 ? (
-                        o.items.map((item, idx) => (
-                          <div key={idx} className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
-                            <div className="flex items-center gap-3">
-                              <img
-                                src={item.image || '/products/eq.jpeg'}
-                                alt={item.name}
-                                className="w-11 h-11 object-cover rounded-lg border border-slate-200 shrink-0"
-                              />
-                              <div>
-                                <p className="font-bold text-slate-900 text-xs">{item.name}</p>
-                                {item.tamilName && (
-                                  <p className="text-emerald-800 font-semibold text-[11px]">{item.tamilName}</p>
-                                )}
-                                {item.sku && (
-                                  <span className="font-mono text-[10px] text-slate-400">SKU: {item.sku}</span>
+                      <div className="bg-white p-3 rounded-xl border border-amber-200/80 shadow-2xs space-y-1.5">
+                        <div className="flex items-center gap-1.5 font-bold text-amber-950 text-[11px]">
+                          <MapPin className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                          <span>Delivery Address:</span>
+                        </div>
+                        <p className="font-bold text-slate-800 text-xs leading-relaxed">
+                          {typeof o.shippingAddress === 'string'
+                            ? o.shippingAddress
+                            : `${o.shippingAddress?.houseNo || ''}, ${o.shippingAddress?.street || ''}, ${o.shippingAddress?.villageTown || ''}, ${o.shippingAddress?.district || ''}, ${o.shippingAddress?.pincode || ''}`}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Collapsible Ordered Products Dropdown */}
+                  <details className="bg-slate-50/90 rounded-2xl border border-slate-200 group transition-all">
+                    <summary className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-100/80 transition-colors select-none">
+                      <div className="flex items-center gap-2">
+                        <ChevronDown className="w-4 h-4 text-slate-600 transition-transform duration-200 group-open:rotate-180 shrink-0" />
+                        <span className="font-extrabold text-slate-900 text-xs flex items-center gap-1.5">
+                          📦 Ordered Products ({o.items?.length || 0})
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-emerald-800 font-bold truncate max-w-[220px] sm:max-w-[320px] bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200">
+                        {o.items?.map(i => i.name).join(', ') || 'Nursery Products'}
+                      </span>
+                    </summary>
+
+                    <div className="p-4 pt-0 space-y-2 border-t border-slate-200/80">
+                      <div className="pt-2 space-y-2">
+                        {o.items && o.items.length > 0 ? (
+                          o.items.map((item, idx) => (
+                            <div key={idx} className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                              <div className="flex items-center gap-3">
+                                <img
+                                  src={item.image || '/products/eq.jpeg'}
+                                  alt={item.name}
+                                  className="w-11 h-11 object-cover rounded-lg border border-slate-200 shrink-0"
+                                />
+                                <div>
+                                  <p className="font-bold text-slate-900 text-xs">{item.name}</p>
+                                  {item.tamilName && (
+                                    <p className="text-emerald-800 font-semibold text-[11px]">{item.tamilName}</p>
+                                  )}
+                                  {item.sku && (
+                                    <span className="font-mono text-[10px] text-slate-400">SKU: {item.sku}</span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <span className="font-bold text-slate-900 text-xs">Qty: {item.quantity}</span>
+                                <span className="text-emerald-800 font-bold block text-xs">₹{item.price * item.quantity}</span>
+                                {item.quantity > 1 && (
+                                  <span className="text-[10px] text-slate-400 block">(₹{item.price} each)</span>
                                 )}
                               </div>
                             </div>
-                            <div className="text-right shrink-0">
-                              <span className="font-bold text-slate-900 text-xs">Qty: {item.quantity}</span>
-                              <span className="text-emerald-800 font-bold block text-xs">₹{item.price * item.quantity}</span>
-                              {item.quantity > 1 && (
-                                <span className="text-[10px] text-slate-400 block">(₹{item.price} each)</span>
-                              )}
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-slate-400 italic text-[11px]">No product items recorded</p>
-                      )}
+                          ))
+                        ) : (
+                          <p className="text-slate-400 italic text-[11px]">No product items recorded</p>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  </details>
 
                   {/* Manual Online & Scan QR Payment Verification Box */}
                   {!isCod && (
