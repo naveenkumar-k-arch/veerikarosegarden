@@ -4708,6 +4708,79 @@ const silentRefresh = async (): Promise<boolean> => {
           </div>
         </div>
       )}
+      {/* Zoom Receipt Screenshot Modal */}
+      {selectedProofOrder && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white max-w-2xl w-full rounded-3xl p-6 border border-slate-200 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
+                  <Camera className="w-5 h-5 text-indigo-600" />
+                  <span>Customer Payment Receipt Screenshot</span>
+                </h3>
+                <p className="text-slate-500 text-xs mt-0.5">
+                  Order ID: <span className="font-mono font-bold text-slate-800">{selectedProofOrder.id}</span> • Customer: <span className="font-bold text-slate-800">{selectedProofOrder.customerName}</span> ({selectedProofOrder.customerPhone})
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedProofOrder(null)}
+                className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto bg-slate-950 rounded-2xl p-4 flex items-center justify-center min-h-[300px]">
+              {selectedProofOrder.paymentProofUrl ? (
+                <img
+                  src={selectedProofOrder.paymentProofUrl}
+                  alt="Customer Payment Receipt Proof"
+                  className="max-w-full max-h-[60vh] object-contain rounded-xl shadow-lg"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    const parent = e.currentTarget.parentElement;
+                    if (parent && !parent.querySelector('.error-fallback')) {
+                      const fallback = document.createElement('div');
+                      fallback.className = 'error-fallback text-center text-white p-6 space-y-2';
+                      fallback.innerHTML = `<p class="font-bold text-rose-400">⚠️ Unable to render inline image preview</p><p class="text-xs text-slate-300">Click the Download / View Full Image button below to view the receipt photo.</p>`;
+                      parent.appendChild(fallback);
+                    }
+                  }}
+                />
+              ) : (
+                <p className="text-slate-400 text-xs font-bold">No receipt photo attached to this order.</p>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+              <span className="text-xs font-extrabold text-indigo-950">
+                Amount Paid: ₹{selectedProofOrder.grandTotal} {selectedProofOrder.transactionId ? `(UTR: ${selectedProofOrder.transactionId})` : ''}
+              </span>
+              
+              <div className="flex items-center gap-2">
+                {selectedProofOrder.paymentProofUrl && (
+                  <a
+                    href={selectedProofOrder.paymentProofUrl}
+                    download={`payment-receipt-${selectedProofOrder.id}.jpg`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>Download / View Full Image</span>
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setSelectedProofOrder(null)}
+                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
