@@ -250,6 +250,27 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
     tags: ['Rose', 'Plant']
   });
 
+// Shared promise lock to deduplicate concurrent refresh requests across parallel fetch calls
+let sharedRefreshPromise: Promise<boolean> | null = null;
+
+const silentRefresh = async (): Promise<boolean> => {
+  if (sharedRefreshPromise) {
+    return sharedRefreshPromise;
+  }
+  sharedRefreshPromise = (async () => {
+    try {
+      const refreshRes = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' });
+      const refreshData = await refreshRes.json();
+      return refreshData.success === true;
+    } catch {
+      return false;
+    } finally {
+      sharedRefreshPromise = null;
+    }
+  })();
+  return sharedRefreshPromise;
+};
+
   const authFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
     let res = await fetch(url, {
       ...options,
@@ -260,31 +281,24 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
       }
     });
 
-    // If session expired (401), attempt silent token refresh automatically
+    // If session expired (401), attempt silent token refresh automatically with deduplication lock
     if (res.status === 401) {
-      try {
-        const refreshRes = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' });
-        const refreshData = await refreshRes.json();
-        if (refreshData.success) {
-          // Retry original request with new session cookie
-          res = await fetch(url, {
-            ...options,
-            credentials: 'include',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(options.headers || {})
-            }
-          });
-        }
-      } catch (err) {
-        console.error('Silent token refresh failed:', err);
+      const refreshed = await silentRefresh();
+      if (refreshed) {
+        // Retry original request with newly issued session cookie
+        res = await fetch(url, {
+          ...options,
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(options.headers || {})
+          }
+        });
       }
     }
 
-    // If still 401 after refresh attempt, redirect to login
     if (res.status === 401) {
-      alert('Your admin session has expired. Please log in again.');
-      window.location.href = '/';
+      console.warn('[SECURITY] Admin session unauthorized for endpoint:', url);
     }
     return res;
   };
