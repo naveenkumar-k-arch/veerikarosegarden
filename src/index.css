@@ -1181,19 +1181,14 @@ body {
   display: none;
 }
 
+/* ===== MOBILE VS DESKTOP VISIBILITY ===== */
 @media (max-width: 640px) {
   .desktop-only-products {
     display: none !important;
   }
-  .mobile-only-products {
-    display: block !important;
-  }
 }
 
 @media (min-width: 641px) {
-  .desktop-only-products {
-    display: block !important;
-  }
   .mobile-only-products {
     display: none !important;
   }

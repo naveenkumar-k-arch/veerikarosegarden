@@ -124,7 +124,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       </section>
 
       {/* ===== MOBILE ONLY: CATEGORY HORIZONTAL PRODUCT PULL SECTIONS ===== */}
-      <div className="mobile-only-products" style={{ padding: '16px 0 0' }}>
+      <div className="block sm:hidden" style={{ padding: '16px 0 0' }}>
         {/* Horizontal Category Filter Pills */}
         <div className="scroll-x-touch" style={{ display: 'flex', gap: 8, padding: '4px 16px 14px', background: 'white', borderBottom: '1px solid #e5f0e0', marginBottom: 16 }}>
           <button
@@ -224,7 +224,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       </div>
 
       {/* ===== DESKTOP ONLY: ALL PRODUCTS GRID ===== */}
-      <section className="section-container desktop-only-products" style={{ padding: '32px 24px 0' }}>
+      <section className="section-container hidden sm:block" style={{ padding: '32px 24px 0' }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 18 }}>
           <div>
             <span className="section-label">Our Collection</span>
@@ -410,7 +410,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
       {/* ===== BEST SELLERS (DESKTOP) ===== */}
       {bestSellers.length > 0 && (
-        <section className="section-container desktop-only-products" style={{ padding: '64px 24px 0' }}>
+        <section className="section-container hidden sm:block" style={{ padding: '64px 24px 0' }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 28 }}>
             <div>
               <span className="section-label">★ Top Rated</span>
@@ -430,7 +430,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       )}
 
       {/* ===== FEATURED PRODUCTS (DESKTOP) ===== */}
-      <section className="section-container desktop-only-products" style={{ padding: '64px 24px 0' }}>
+      <section className="section-container hidden sm:block" style={{ padding: '64px 24px 0' }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 28 }}>
           <div>
             <span className="section-label">Handpicked Selection</span>

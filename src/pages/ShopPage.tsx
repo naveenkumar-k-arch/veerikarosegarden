@@ -133,7 +133,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
       </div>
 
       {/* Mobile Category Filter Chips (horizontal scroll) */}
-      <div className="mobile-only-products" style={{ marginBottom: 4 }}>
+      <div className="block sm:hidden" style={{ marginBottom: 4 }}>
         <div className="scroll-x-touch" style={{ display: 'flex', gap: 8, padding: '4px 0 10px' }}>
           <button
             onClick={() => onSelectCategory(undefined)}
@@ -324,9 +324,9 @@ export const ShopPage: React.FC<ShopPageProps> = ({
             </div>
           ) : (
             <>
-              {/* Mobile View: Category Horizontal Pull Rows when viewing all products */}
+              {/* Mobile View ONLY: Category Horizontal Pull Rows when viewing all products */}
               {!selectedCategory && !searchQuery && (
-                <div className="mobile-only-products space-y-6">
+                <div className="block sm:hidden space-y-6 mb-6">
                   {categories.map((cat) => {
                     const catProds = products.filter((p) => p.status === 'ACTIVE' && isProductInCat(p, cat.id));
                     if (catProds.length === 0) return null;
@@ -359,8 +359,8 @@ export const ShopPage: React.FC<ShopPageProps> = ({
                 </div>
               )}
 
-              {/* Mobile View / Desktop View Grid */}
-              <div className={`grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 ${!selectedCategory && !searchQuery ? 'desktop-only-products' : ''}`}>
+              {/* Standard Grid (Desktop & Filtered Mobile) */}
+              <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 ${!selectedCategory && !searchQuery ? 'hidden sm:grid' : ''}`}>
                 {filtered.map((product) => (
                   <ProductCard
                     key={product.id}
