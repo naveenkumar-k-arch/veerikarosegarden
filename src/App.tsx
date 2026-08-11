@@ -946,7 +946,17 @@ export const App: React.FC = () => {
 
         {currentPage === 'admin' && (
           user && (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN' || user.role === 'MANAGER') ? (
-            <AdminPage onBackToStore={() => navigateTo('home')} adminUser={user} />
+            <AdminPage
+              onBackToStore={() => navigateTo('home')}
+              adminUser={user}
+              reviews={reviews}
+              onUpdateReviews={(updated) => {
+                setReviews(updated);
+                try {
+                  localStorage.setItem('vrg_reviews', JSON.stringify(updated));
+                } catch {}
+              }}
+            />
           ) : (
             <AdminLoginForm
               onLoginSuccess={(adminUser) => {

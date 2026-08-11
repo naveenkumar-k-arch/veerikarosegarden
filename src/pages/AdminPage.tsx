@@ -100,13 +100,13 @@ const CouponForm: React.FC<{ categories: Category[]; onSave: (data: any) => Prom
 interface AdminPageProps {
   onBackToStore: () => void;
   adminUser?: { id: string; name: string; email: string; role: string } | null;
+  reviews?: Review[];
+  onUpdateReviews?: (updated: Review[]) => void;
 }
 
-export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }) => {
+export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, reviews: propsReviews, onUpdateReviews }) => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'categories' | 'orders' | 'inventory' | 'coupons' | 'banners' | 'reviews' | 'settings' | 'audit' | 'finances'>('dashboard');
   const [orderFilterStage, setOrderFilterStage] = useState<'all' | 'pending' | 'packing' | 'dispatched' | 'delivered'>('all');
-
-
 
   const getInitialAdminOrders = (): Order[] => {
     let localOrders: Order[] = [];
@@ -165,10 +165,19 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
   };
 
   const [banners, setBanners] = useState<Banner[]>([]);
-  const [reviews, setReviews] = useState<Review[]>(getInitialAdminReviews);
+  const [reviews, setReviews] = useState<Review[]>(propsReviews || getInitialAdminReviews());
+
+  useEffect(() => {
+    if (propsReviews && Array.isArray(propsReviews)) {
+      setReviews(propsReviews);
+    }
+  }, [propsReviews]);
 
   const saveReviewsState = (updated: Review[]) => {
     setReviews(updated);
+    if (onUpdateReviews) {
+      onUpdateReviews(updated);
+    }
     try {
       localStorage.setItem('vrg_reviews', JSON.stringify(updated));
       window.dispatchEvent(new CustomEvent('vrg_reviews_updated', { detail: updated }));
