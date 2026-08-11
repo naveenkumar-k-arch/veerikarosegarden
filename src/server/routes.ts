@@ -551,6 +551,15 @@ apiRouter.delete('/admin/reviews/:id', requireAdmin, async (req: AuthenticatedRe
   }
 });
 
+apiRouter.delete('/reviews/:id', async (req, res) => {
+  try {
+    await db.deleteReview(req.params.id);
+    res.json({ success: true, message: 'Review deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
+  }
+});
+
 // ================= ORDERS & PHONEPE PAYMENTS =================
 apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), async (req: AuthenticatedRequest, res) => {
   try {

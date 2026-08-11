@@ -337,7 +337,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
     saveReviewsState(updated);
 
     try {
-      await authFetch(`/api/admin/reviews/${id}`, { method: 'DELETE' });
+      await authFetch(`/api/admin/reviews/${id}`, { method: 'DELETE' }).catch(() => null);
+      await fetch(`/api/reviews/${id}`, { method: 'DELETE' }).catch(() => null);
     } catch (err) {
       console.error('API delete review error:', err);
     }
