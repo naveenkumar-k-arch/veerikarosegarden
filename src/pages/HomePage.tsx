@@ -1,6 +1,6 @@
 import React from 'react';
 import { Product, Category, Banner } from '../types';
-import { ProductCard, CompactProductCard } from '../components/ProductCard';
+import { ProductCard, CompactProductCard, HorizontalScrollRow } from '../components/ProductCard';
 import { CombosSection } from '../components/CombosSection';
 import {
   ShieldCheck, Truck, Sprout, HeartHandshake, Star, ArrowRight,
@@ -161,7 +161,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 More <ChevronRight style={{ width: 14, height: 14 }} />
               </button>
             </div>
-            <div className="mobile-horizontal-scroll">
+            <HorizontalScrollRow>
               {bestSellers.map(product => (
                 <CompactProductCard
                   key={product.id}
@@ -170,7 +170,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   onViewDetails={onViewDetails}
                 />
               ))}
-            </div>
+            </HorizontalScrollRow>
           </div>
         )}
 
@@ -208,7 +208,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </button>
               </div>
 
-              <div className="mobile-horizontal-scroll">
+              <HorizontalScrollRow>
                 {catProducts.map(product => (
                   <CompactProductCard
                     key={product.id}
@@ -217,7 +217,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     onViewDetails={onViewDetails}
                   />
                 ))}
-              </div>
+              </HorizontalScrollRow>
             </div>
           );
         })}

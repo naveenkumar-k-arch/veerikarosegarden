@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Product } from '../types';
-import { Heart, ShoppingBag, Star, Leaf, Plus, Check } from 'lucide-react';
+import { Heart, ShoppingBag, Star, Leaf, Plus, Check, ChevronRight, ChevronLeft } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
@@ -41,17 +41,17 @@ export const CompactProductCard: React.FC<CompactProductCardProps> = ({
       className="compact-product-card"
       onClick={() => onViewDetails(product)}
       style={{
-        width: 144,
-        minWidth: 144,
-        maxWidth: 144,
+        width: 118,
+        minWidth: 118,
+        maxWidth: 118,
         background: 'white',
-        border: '1.5px solid #e5f0e0',
-        borderRadius: 16,
+        border: '1px solid #e2e8f0',
+        borderRadius: 14,
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
         cursor: 'pointer',
-        boxShadow: '0 2px 8px rgba(22,163,74,0.06)',
+        boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
         position: 'relative',
         scrollSnapAlign: 'start',
         flexShrink: 0,
@@ -60,17 +60,17 @@ export const CompactProductCard: React.FC<CompactProductCardProps> = ({
       }}
     >
       {/* Top Left Category Tag Pill */}
-      <div style={{ position: 'absolute', top: 6, left: 6, zIndex: 10, display: 'flex', gap: 4 }}>
+      <div style={{ position: 'absolute', top: 4, left: 4, zIndex: 10, display: 'flex', gap: 3 }}>
         <span style={{
           background: 'linear-gradient(135deg, #16a34a, #15803d)',
           color: 'white',
-          fontSize: 9,
+          fontSize: 8,
           fontWeight: 700,
-          padding: '2px 7px',
+          padding: '1px 5px',
           borderRadius: 999,
-          boxShadow: '0 2px 6px rgba(22,163,74,0.3)',
+          boxShadow: '0 1px 4px rgba(22,163,74,0.3)',
           whiteSpace: 'nowrap',
-          maxWidth: 95,
+          maxWidth: 80,
           overflow: 'hidden',
           textOverflow: 'ellipsis'
         }}>
@@ -83,19 +83,19 @@ export const CompactProductCard: React.FC<CompactProductCardProps> = ({
         <button
           onClick={e => { e.stopPropagation(); onToggleWishlist(product); }}
           style={{
-            position: 'absolute', top: 6, right: 6, zIndex: 10,
-            width: 24, height: 24, borderRadius: '50%',
+            position: 'absolute', top: 4, right: 4, zIndex: 10,
+            width: 20, height: 20, borderRadius: '50%',
             background: isWishlisted ? '#ffe4e6' : 'rgba(255,255,255,0.85)',
             border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer'
           }}
         >
-          <Heart style={{ width: 11, height: 11, color: '#e11d48', fill: isWishlisted ? '#e11d48' : 'none' }} />
+          <Heart style={{ width: 10, height: 10, color: '#e11d48', fill: isWishlisted ? '#e11d48' : 'none' }} />
         </button>
       )}
 
       {/* Image Container */}
-      <div style={{ position: 'relative', height: 115, overflow: 'hidden', background: '#f8fafc', flexShrink: 0 }}>
+      <div style={{ position: 'relative', height: 90, overflow: 'hidden', background: '#f8fafc', flexShrink: 0 }}>
         <img
           src={displayImg}
           alt={product.name}
@@ -105,40 +105,40 @@ export const CompactProductCard: React.FC<CompactProductCardProps> = ({
         />
         {product.stock === 0 && (
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ color: 'white', fontSize: 10, fontWeight: 800, background: 'rgba(0,0,0,0.6)', padding: '2px 8px', borderRadius: 999 }}>Sold Out</span>
+            <span style={{ color: 'white', fontSize: 9, fontWeight: 800, background: 'rgba(0,0,0,0.6)', padding: '1px 6px', borderRadius: 999 }}>Sold Out</span>
           </div>
         )}
       </div>
 
       {/* Body */}
-      <div style={{ padding: '8px 9px 10px', display: 'flex', flexDirection: 'column', flex: 1, gap: 3, justifyContent: 'space-between' }}>
+      <div style={{ padding: '6px 7px 8px', display: 'flex', flexDirection: 'column', flex: 1, gap: 2, justifyContent: 'space-between' }}>
         <div>
           <h3 style={{
-            fontFamily: 'var(--font-display)', fontSize: 12, fontWeight: 700,
-            color: '#1e293b', margin: 0, lineHeight: 1.25, height: 30, overflow: 'hidden',
+            fontFamily: 'var(--font-display)', fontSize: 11, fontWeight: 700,
+            color: '#1e293b', margin: 0, lineHeight: 1.2, height: 26, overflow: 'hidden',
             display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical'
           }}>
             {product.name}
           </h3>
           {product.tamilName ? (
-            <p style={{ fontFamily: 'var(--font-tamil)', fontSize: 9, color: '#94a3b8', margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <p style={{ fontFamily: 'var(--font-tamil)', fontSize: 8.5, color: '#94a3b8', margin: '1px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {product.tamilName}
             </p>
           ) : (
-            <p style={{ fontSize: 9, color: '#94a3b8', margin: '2px 0 0' }}>Live Plant</p>
+            <p style={{ fontSize: 8.5, color: '#94a3b8', margin: '1px 0 0' }}>Live Plant</p>
           )}
         </div>
 
         {/* Price & Green Plus Button */}
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 2 }}>
           <div>
-            <span style={{ fontSize: 9, color: '#94a3b8', display: 'block', fontWeight: 500, lineHeight: 1 }}>From</span>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, marginTop: 1 }}>
-              <span style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 800, color: '#15803d', lineHeight: 1 }}>
+            <span style={{ fontSize: 8, color: '#94a3b8', display: 'block', fontWeight: 500, lineHeight: 1 }}>From</span>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 2, marginTop: 1 }}>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 800, color: '#15803d', lineHeight: 1 }}>
                 ₹{product.sellingPrice}
               </span>
               {product.mrp > product.sellingPrice && (
-                <span style={{ fontSize: 9, color: '#94a3b8', textDecoration: 'line-through' }}>
+                <span style={{ fontSize: 8, color: '#94a3b8', textDecoration: 'line-through' }}>
                   ₹{product.mrp}
                 </span>
               )}
@@ -150,7 +150,7 @@ export const CompactProductCard: React.FC<CompactProductCardProps> = ({
             onClick={handleAddToCart}
             disabled={product.stock <= 0}
             style={{
-              width: 30, height: 30, borderRadius: '50%',
+              width: 26, height: 26, borderRadius: '50%',
               background: product.stock <= 0
                 ? '#e2e8f0'
                 : added
@@ -159,16 +159,91 @@ export const CompactProductCard: React.FC<CompactProductCardProps> = ({
               color: product.stock <= 0 ? '#94a3b8' : 'white',
               border: 'none', cursor: product.stock <= 0 ? 'not-allowed' : 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: product.stock > 0 ? '0 3px 8px rgba(16,185,129,0.35)' : 'none',
+              boxShadow: product.stock > 0 ? '0 2px 6px rgba(16,185,129,0.35)' : 'none',
               transition: 'all 0.15s ease',
               flexShrink: 0,
             }}
             title="Add to Cart"
           >
-            {added ? <Check style={{ width: 14, height: 14, strokeWidth: 3 }} /> : <Plus style={{ width: 16, height: 16, strokeWidth: 3 }} />}
+            {added ? <Check style={{ width: 12, height: 12, strokeWidth: 3 }} /> : <Plus style={{ width: 14, height: 14, strokeWidth: 3 }} />}
           </button>
         </div>
       </div>
+    </div>
+  );
+};
+
+export const HorizontalScrollRow: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const checkScroll = () => {
+    if (containerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = containerRef.current;
+      setCanScrollLeft(scrollLeft > 5);
+      setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 5);
+    }
+  };
+
+  useEffect(() => {
+    checkScroll();
+  }, [children]);
+
+  const scrollRight = () => {
+    if (containerRef.current) {
+      containerRef.current.scrollBy({ left: 200, behavior: 'smooth' });
+    }
+  };
+
+  const scrollLeft = () => {
+    if (containerRef.current) {
+      containerRef.current.scrollBy({ left: -200, behavior: 'smooth' });
+    }
+  };
+
+  return (
+    <div style={{ position: 'relative' }}>
+      {/* Left Scroll Arrow */}
+      {canScrollLeft && (
+        <button
+          onClick={scrollLeft}
+          style={{
+            position: 'absolute', left: 2, top: '50%', transform: 'translateY(-50%)', zIndex: 20,
+            width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.95)',
+            border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'
+          }}
+          aria-label="Scroll Left"
+        >
+          <ChevronLeft style={{ width: 16, height: 16, color: '#1e293b' }} />
+        </button>
+      )}
+
+      {/* Horizontal Scroll Row */}
+      <div
+        ref={containerRef}
+        onScroll={checkScroll}
+        className="mobile-horizontal-scroll"
+      >
+        {children}
+      </div>
+
+      {/* Right Scroll Arrow */}
+      {canScrollRight && (
+        <button
+          onClick={scrollRight}
+          style={{
+            position: 'absolute', right: 2, top: '50%', transform: 'translateY(-50%)', zIndex: 20,
+            width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg, #10b981, #059669)',
+            border: 'none', boxShadow: '0 2px 10px rgba(16,185,129,0.4)',
+            color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'
+          }}
+          aria-label="Scroll Right"
+        >
+          <ChevronRight style={{ width: 16, height: 16, strokeWidth: 3 }} />
+        </button>
+      )}
     </div>
   );
 };

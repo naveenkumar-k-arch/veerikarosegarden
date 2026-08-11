@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Product, Category } from '../types';
-import { ProductCard, CompactProductCard } from '../components/ProductCard';
+import { ProductCard, CompactProductCard, HorizontalScrollRow } from '../components/ProductCard';
 import { Filter, SlidersHorizontal, Search, X, Check, ChevronRight } from 'lucide-react';
 
 interface ShopPageProps {
@@ -343,7 +343,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
                             More <ChevronRight className="w-3.5 h-3.5" />
                           </button>
                         </div>
-                        <div className="mobile-horizontal-scroll">
+                        <HorizontalScrollRow>
                           {catProds.map((product) => (
                             <CompactProductCard
                               key={product.id}
@@ -352,7 +352,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
                               onViewDetails={onViewDetails}
                             />
                           ))}
-                        </div>
+                        </HorizontalScrollRow>
                       </div>
                     );
                   })}
