@@ -7,6 +7,21 @@ interface CombosSectionProps {
   onSelectProduct?: (product: Product) => void;
 }
 
+const getAggregatedProducts = (productsList?: Product[]) => {
+  if (!productsList || productsList.length === 0) return [];
+  const map = new Map<string, { product: Product; count: number }>();
+  productsList.forEach(p => {
+    if (!p || !p.id) return;
+    const existing = map.get(p.id);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      map.set(p.id, { product: p, count: 1 });
+    }
+  });
+  return Array.from(map.values());
+};
+
 export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSelectProduct }) => {
   const [combos, setCombos] = useState<Combo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,6 +114,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
               const discount = combo.discountPercent || (combo.originalPrice > 0 ? Math.round(((combo.originalPrice - combo.comboPrice) / combo.originalPrice) * 100) : 0);
               const savings = combo.originalPrice > combo.comboPrice ? combo.originalPrice - combo.comboPrice : 0;
               const isJustAdded = addedComboId === combo.id;
+              const aggregated = getAggregatedProducts(combo.products);
 
               return (
                 <div
@@ -164,27 +180,33 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
 
                     {/* Included Plants Section */}
                     <div className="p-5 space-y-4">
-                      {combo.products && combo.products.length > 0 && (
+                      {aggregated.length > 0 && (
                         <div className="bg-amber-50/80 border border-amber-200/60 rounded-2xl p-3.5 space-y-2">
-                          <p className="text-[11px] font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
-                            <span>🌿 Included in this Bundle ({combo.products.length} Plants):</span>
+                          <p className="text-[11px] font-bold text-amber-900 uppercase tracking-wider flex items-center justify-between gap-1.5">
+                            <span>🌿 Included in Bundle ({combo.products?.length || 0} Plants):</span>
                           </p>
                           <div className="space-y-1.5">
-                            {combo.products.map((p) => (
+                            {aggregated.map(({ product: p, count }) => (
                               <div
                                 key={p.id}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   if (onSelectProduct) onSelectProduct(p);
                                 }}
-                                className="flex items-center justify-between text-xs font-semibold text-slate-800 hover:text-emerald-800 cursor-pointer group/item"
+                                className="flex items-center justify-between text-xs font-semibold text-slate-800 hover:text-emerald-800 cursor-pointer group/item py-0.5"
                               >
                                 <span className="flex items-center gap-2 truncate">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 group-hover/item:scale-125 transition-transform" />
+                                  {count > 1 ? (
+                                    <span className="bg-gradient-to-r from-emerald-700 to-amber-700 text-white font-black text-[10px] px-2 py-0.5 rounded-md shadow-2xs shrink-0 font-mono">
+                                      {count}×
+                                    </span>
+                                  ) : (
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 group-hover/item:scale-125 transition-transform shrink-0" />
+                                  )}
                                   <span className="truncate">{p.name}</span>
                                 </span>
                                 <span className="text-[11px] text-slate-500 font-bold bg-white px-2 py-0.5 rounded-md border border-slate-200 ml-2 shrink-0">
-                                  ₹{p.sellingPrice}
+                                  {count > 1 ? `₹${p.sellingPrice * count} (${count}×₹${p.sellingPrice})` : `₹${p.sellingPrice}`}
                                 </span>
                               </div>
                             ))}
@@ -341,15 +363,20 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                   </h4>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {modalCombo.products?.map(p => (
+                    {getAggregatedProducts(modalCombo.products).map(({ product: p, count }) => (
                       <div
                         key={p.id}
                         onClick={() => {
                           if (onSelectProduct) onSelectProduct(p);
                           setModalCombo(null);
                         }}
-                        className="bg-slate-50 hover:bg-emerald-50/60 p-3 rounded-2xl border border-slate-200 hover:border-emerald-300 transition-all flex items-center gap-3 cursor-pointer group"
+                        className="bg-slate-50 hover:bg-emerald-50/60 p-3 rounded-2xl border border-slate-200 hover:border-emerald-300 transition-all flex items-center gap-3 cursor-pointer group relative"
                       >
+                        {count > 1 && (
+                          <span className="absolute top-2 right-2 bg-gradient-to-r from-amber-500 to-emerald-700 text-white font-black text-[11px] px-2.5 py-0.5 rounded-full shadow-xs font-mono z-10">
+                            {count}× Saplings Bundle
+                          </span>
+                        )}
                         <img
                           src={p.images?.[0] || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=200&q=80'}
                           alt={p.name}
@@ -362,7 +389,9 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                             <span className="text-[10px] text-emerald-700 font-bold bg-white px-2 py-0.5 rounded border border-slate-200">
                               {p.potSize || 'Bag Plant'}
                             </span>
-                            <span className="font-mono font-bold text-slate-900 text-xs">₹{p.sellingPrice}</span>
+                            <span className="font-mono font-bold text-slate-900 text-xs">
+                              {count > 1 ? `${count} × ₹${p.sellingPrice} = ₹${p.sellingPrice * count}` : `₹${p.sellingPrice}`}
+                            </span>
                           </div>
                         </div>
                       </div>
