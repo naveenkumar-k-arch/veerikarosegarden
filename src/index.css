@@ -1163,4 +1163,39 @@ body {
 
 /* ===== NO SCROLLBAR UTILITY ===== */
 .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
-.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* ===== MOBILE HORIZONTAL PRODUCT PULL ===== */
+.mobile-horizontal-scroll {
+  display: flex;
+  flex-direction: row;
+  overflow-x: auto;
+  gap: 10px;
+  padding: 4px 16px 14px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.mobile-horizontal-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .desktop-only-products {
+    display: none !important;
+  }
+  .mobile-only-products {
+    display: block !important;
+  }
+}
+
+@media (min-width: 641px) {
+  .desktop-only-products {
+    display: block !important;
+  }
+  .mobile-only-products {
+    display: none !important;
+  }
+}
+

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Product } from '../types';
-import { Heart, ShoppingBag, Star, Leaf } from 'lucide-react';
+import { Heart, ShoppingBag, Star, Leaf, Plus, Check } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
@@ -10,6 +10,168 @@ interface ProductCardProps {
   isWishlisted?: boolean;
   onToggleWishlist?: (product: Product) => void;
 }
+
+export interface CompactProductCardProps {
+  product: Product;
+  onAddToCart: (product: Product) => void;
+  onViewDetails: (product: Product) => void;
+  isWishlisted?: boolean;
+  onToggleWishlist?: (product: Product) => void;
+}
+
+export const CompactProductCard: React.FC<CompactProductCardProps> = ({
+  product, onAddToCart, onViewDetails, isWishlisted = false, onToggleWishlist
+}) => {
+  const [imgError, setImgError] = useState(false);
+  const [added, setAdded] = useState(false);
+
+  const defaultImg = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=400&q=80';
+  const displayImg = imgError || !product.images[0] ? defaultImg : product.images[0];
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (product.stock <= 0) return;
+    setAdded(true);
+    onAddToCart(product);
+    setTimeout(() => setAdded(false), 900);
+  };
+
+  return (
+    <div
+      className="compact-product-card"
+      onClick={() => onViewDetails(product)}
+      style={{
+        width: 144,
+        minWidth: 144,
+        maxWidth: 144,
+        background: 'white',
+        border: '1.5px solid #e5f0e0',
+        borderRadius: 16,
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        cursor: 'pointer',
+        boxShadow: '0 2px 8px rgba(22,163,74,0.06)',
+        position: 'relative',
+        scrollSnapAlign: 'start',
+        flexShrink: 0,
+        WebkitTapHighlightColor: 'transparent',
+        transition: 'transform 0.15s ease',
+      }}
+    >
+      {/* Top Left Category Tag Pill */}
+      <div style={{ position: 'absolute', top: 6, left: 6, zIndex: 10, display: 'flex', gap: 4 }}>
+        <span style={{
+          background: 'linear-gradient(135deg, #16a34a, #15803d)',
+          color: 'white',
+          fontSize: 9,
+          fontWeight: 700,
+          padding: '2px 7px',
+          borderRadius: 999,
+          boxShadow: '0 2px 6px rgba(22,163,74,0.3)',
+          whiteSpace: 'nowrap',
+          maxWidth: 95,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis'
+        }}>
+          {product.categoryName || 'Plant'}
+        </span>
+      </div>
+
+      {/* Wishlist Button top-right if enabled */}
+      {onToggleWishlist && (
+        <button
+          onClick={e => { e.stopPropagation(); onToggleWishlist(product); }}
+          style={{
+            position: 'absolute', top: 6, right: 6, zIndex: 10,
+            width: 24, height: 24, borderRadius: '50%',
+            background: isWishlisted ? '#ffe4e6' : 'rgba(255,255,255,0.85)',
+            border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer'
+          }}
+        >
+          <Heart style={{ width: 11, height: 11, color: '#e11d48', fill: isWishlisted ? '#e11d48' : 'none' }} />
+        </button>
+      )}
+
+      {/* Image Container */}
+      <div style={{ position: 'relative', height: 115, overflow: 'hidden', background: '#f8fafc', flexShrink: 0 }}>
+        <img
+          src={displayImg}
+          alt={product.name}
+          onError={() => setImgError(true)}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          loading="lazy"
+        />
+        {product.stock === 0 && (
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ color: 'white', fontSize: 10, fontWeight: 800, background: 'rgba(0,0,0,0.6)', padding: '2px 8px', borderRadius: 999 }}>Sold Out</span>
+          </div>
+        )}
+      </div>
+
+      {/* Body */}
+      <div style={{ padding: '8px 9px 10px', display: 'flex', flexDirection: 'column', flex: 1, gap: 3, justifyContent: 'space-between' }}>
+        <div>
+          <h3 style={{
+            fontFamily: 'var(--font-display)', fontSize: 12, fontWeight: 700,
+            color: '#1e293b', margin: 0, lineHeight: 1.25, height: 30, overflow: 'hidden',
+            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical'
+          }}>
+            {product.name}
+          </h3>
+          {product.tamilName ? (
+            <p style={{ fontFamily: 'var(--font-tamil)', fontSize: 9, color: '#94a3b8', margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {product.tamilName}
+            </p>
+          ) : (
+            <p style={{ fontSize: 9, color: '#94a3b8', margin: '2px 0 0' }}>Live Plant</p>
+          )}
+        </div>
+
+        {/* Price & Green Plus Button */}
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 4 }}>
+          <div>
+            <span style={{ fontSize: 9, color: '#94a3b8', display: 'block', fontWeight: 500, lineHeight: 1 }}>From</span>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, marginTop: 1 }}>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 800, color: '#15803d', lineHeight: 1 }}>
+                ₹{product.sellingPrice}
+              </span>
+              {product.mrp > product.sellingPrice && (
+                <span style={{ fontSize: 9, color: '#94a3b8', textDecoration: 'line-through' }}>
+                  ₹{product.mrp}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Plus Add Button */}
+          <button
+            onClick={handleAddToCart}
+            disabled={product.stock <= 0}
+            style={{
+              width: 30, height: 30, borderRadius: '50%',
+              background: product.stock <= 0
+                ? '#e2e8f0'
+                : added
+                ? 'linear-gradient(135deg, #22c55e, #16a34a)'
+                : 'linear-gradient(135deg, #10b981, #059669)',
+              color: product.stock <= 0 ? '#94a3b8' : 'white',
+              border: 'none', cursor: product.stock <= 0 ? 'not-allowed' : 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: product.stock > 0 ? '0 3px 8px rgba(16,185,129,0.35)' : 'none',
+              transition: 'all 0.15s ease',
+              flexShrink: 0,
+            }}
+            title="Add to Cart"
+          >
+            {added ? <Check style={{ width: 14, height: 14, strokeWidth: 3 }} /> : <Plus style={{ width: 16, height: 16, strokeWidth: 3 }} />}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const ProductCard: React.FC<ProductCardProps> = ({
   product, onAddToCart, onViewDetails, onOpenCareGuide,
@@ -206,3 +368,4 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     </div>
   );
 };
+

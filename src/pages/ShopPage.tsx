@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Product, Category } from '../types';
-import { ProductCard } from '../components/ProductCard';
-import { Filter, SlidersHorizontal, Search, X, Check } from 'lucide-react';
+import { ProductCard, CompactProductCard } from '../components/ProductCard';
+import { Filter, SlidersHorizontal, Search, X, Check, ChevronRight } from 'lucide-react';
 
 interface ShopPageProps {
   products: Product[];
@@ -130,6 +130,43 @@ export const ShopPage: React.FC<ShopPageProps> = ({
             ? currentCategoryObj.description
             : 'Browse healthy rose varieties, flowering saplings, fruit trees, and organic soil fertilizers direct from our Hosur nursery.'}
         </p>
+      </div>
+
+      {/* Mobile Category Filter Chips (horizontal scroll) */}
+      <div className="mobile-only-products" style={{ marginBottom: 4 }}>
+        <div className="scroll-x-touch" style={{ display: 'flex', gap: 8, padding: '4px 0 10px' }}>
+          <button
+            onClick={() => onSelectCategory(undefined)}
+            style={{
+              background: selectedCategory === undefined ? 'linear-gradient(135deg, #16a34a, #15803d)' : '#ffffff',
+              color: selectedCategory === undefined ? 'white' : '#334155',
+              border: selectedCategory === undefined ? 'none' : '1px solid #cbd5e1',
+              borderRadius: 999, padding: '6px 14px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
+              boxShadow: selectedCategory === undefined ? '0 2px 6px rgba(22,163,74,0.3)' : 'none'
+            }}
+          >
+            All Categories
+          </button>
+          {categories.map(cat => {
+            const isSel = selectedCategory === cat.id || selectedCategory === cat.slug;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => onSelectCategory(cat.id)}
+                style={{
+                  background: isSel ? 'linear-gradient(135deg, #16a34a, #15803d)' : '#ffffff',
+                  color: isSel ? 'white' : '#334155',
+                  border: isSel ? 'none' : '1px solid #cbd5e1',
+                  borderRadius: 999, padding: '6px 14px', fontSize: 12, fontWeight: isSel ? 700 : 600,
+                  whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4,
+                  boxShadow: isSel ? '0 2px 6px rgba(22,163,74,0.3)' : 'none'
+                }}
+              >
+                <span>🌱</span> {cat.name}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Main Grid + Filter Layout */}
@@ -269,7 +306,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
             </div>
           </div>
 
-          {/* Product Cards Grid */}
+          {/* Product Cards Listing */}
           {filtered.length === 0 ? (
             <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 space-y-3">
               <p className="text-slate-500 text-sm">No plants matched your current filters or search terms.</p>
@@ -286,17 +323,55 @@ export const ShopPage: React.FC<ShopPageProps> = ({
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filtered.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onAddToCart={onAddToCart}
-                  onViewDetails={onViewDetails}
-                  onOpenCareGuide={onOpenCareGuide}
-                />
-              ))}
-            </div>
+            <>
+              {/* Mobile View: Category Horizontal Pull Rows when viewing all products */}
+              {!selectedCategory && !searchQuery && (
+                <div className="mobile-only-products space-y-6">
+                  {categories.map((cat) => {
+                    const catProds = products.filter((p) => p.status === 'ACTIVE' && isProductInCat(p, cat.id));
+                    if (catProds.length === 0) return null;
+                    return (
+                      <div key={cat.id} className="space-y-2">
+                        <div className="flex items-center justify-between px-1">
+                          <div className="flex items-center gap-1.5 font-bold text-slate-900 text-sm">
+                            <span>🌱</span> {cat.name}
+                          </div>
+                          <button
+                            onClick={() => onSelectCategory(cat.id)}
+                            className="text-xs font-bold text-emerald-700 hover:underline flex items-center gap-0.5"
+                          >
+                            More <ChevronRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <div className="mobile-horizontal-scroll">
+                          {catProds.map((product) => (
+                            <CompactProductCard
+                              key={product.id}
+                              product={product}
+                              onAddToCart={onAddToCart}
+                              onViewDetails={onViewDetails}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Mobile View / Desktop View Grid */}
+              <div className={`grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 ${!selectedCategory && !searchQuery ? 'desktop-only-products' : ''}`}>
+                {filtered.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onAddToCart={onAddToCart}
+                    onViewDetails={onViewDetails}
+                    onOpenCareGuide={onOpenCareGuide}
+                  />
+                ))}
+              </div>
+            </>
           )}
         </div>
       </div>

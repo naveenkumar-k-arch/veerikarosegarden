@@ -1,6 +1,6 @@
 import React from 'react';
 import { Product, Category, Banner } from '../types';
-import { ProductCard } from '../components/ProductCard';
+import { ProductCard, CompactProductCard } from '../components/ProductCard';
 import { CombosSection } from '../components/CombosSection';
 import {
   ShieldCheck, Truck, Sprout, HeartHandshake, Star, ArrowRight,
@@ -123,8 +123,108 @@ export const HomePage: React.FC<HomePageProps> = ({
         )}
       </section>
 
-      {/* ===== ALL PRODUCTS ===== */}
-      <section className="section-container" style={{ padding: '32px 24px 0' }}>
+      {/* ===== MOBILE ONLY: CATEGORY HORIZONTAL PRODUCT PULL SECTIONS ===== */}
+      <div className="mobile-only-products" style={{ padding: '16px 0 0' }}>
+        {/* Horizontal Category Filter Pills */}
+        <div className="scroll-x-touch" style={{ display: 'flex', gap: 8, padding: '4px 16px 14px', background: 'white', borderBottom: '1px solid #e5f0e0', marginBottom: 16 }}>
+          <button
+            onClick={() => onNavigate('shop')}
+            style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)', color: 'white', border: 'none', borderRadius: 999, padding: '6px 14px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', boxShadow: '0 2px 6px rgba(22,163,74,0.3)' }}
+          >
+            All Products
+          </button>
+          {activeCategories.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => { onSelectCategory(cat.id); onNavigate('shop'); }}
+              style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', borderRadius: 999, padding: '6px 14px', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}
+            >
+              <span>🌱</span> {cat.name}
+            </button>
+          ))}
+        </div>
+
+        {/* Best Sellers Horizontal Pull Section */}
+        {bestSellers.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 16 }}>🌱</span>
+                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 800, color: '#1a2e1a', margin: 0 }}>
+                  Best Sellers
+                </h2>
+              </div>
+              <button
+                onClick={() => onNavigate('shop')}
+                style={{ background: 'none', border: 'none', color: '#16a34a', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2 }}
+              >
+                More <ChevronRight style={{ width: 14, height: 14 }} />
+              </button>
+            </div>
+            <div className="mobile-horizontal-scroll">
+              {bestSellers.map(product => (
+                <CompactProductCard
+                  key={product.id}
+                  product={product}
+                  onAddToCart={onAddToCart}
+                  onViewDetails={onViewDetails}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Category-by-Category Horizontal Pull Sections */}
+        {activeCategories.map(cat => {
+          const catProducts = products.filter(p => {
+            if (p.status !== 'ACTIVE') return false;
+            const cName = (cat.name || '').toLowerCase();
+            const cSlug = (cat.slug || '').toLowerCase();
+            const cId = (cat.id || '').toLowerCase();
+            const pCatId = (p.categoryId || '').toLowerCase();
+            const pCatName = (p.categoryName || '').toLowerCase();
+            return (
+              (pCatId && (pCatId === cId || pCatId === cSlug)) ||
+              (pCatName && (pCatName === cName || cName.includes(pCatName) || pCatName.includes(cName)))
+            );
+          });
+
+          if (catProducts.length === 0) return null;
+
+          return (
+            <div key={cat.id} style={{ marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', marginBottom: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 16 }}>🌱</span>
+                  <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 800, color: '#1a2e1a', margin: 0 }}>
+                    {cat.name}
+                  </h2>
+                </div>
+                <button
+                  onClick={() => { onSelectCategory(cat.id); onNavigate('shop'); }}
+                  style={{ background: 'none', border: 'none', color: '#16a34a', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2 }}
+                >
+                  More <ChevronRight style={{ width: 14, height: 14 }} />
+                </button>
+              </div>
+
+              <div className="mobile-horizontal-scroll">
+                {catProducts.map(product => (
+                  <CompactProductCard
+                    key={product.id}
+                    product={product}
+                    onAddToCart={onAddToCart}
+                    onViewDetails={onViewDetails}
+                  />
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ===== DESKTOP ONLY: ALL PRODUCTS GRID ===== */}
+      <section className="section-container desktop-only-products" style={{ padding: '32px 24px 0' }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 18 }}>
           <div>
             <span className="section-label">Our Collection</span>
@@ -308,9 +408,9 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* ===== BEST SELLERS ===== */}
+      {/* ===== BEST SELLERS (DESKTOP) ===== */}
       {bestSellers.length > 0 && (
-        <section className="section-container" style={{ padding: '64px 24px 0' }}>
+        <section className="section-container desktop-only-products" style={{ padding: '64px 24px 0' }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 28 }}>
             <div>
               <span className="section-label">★ Top Rated</span>
@@ -329,8 +429,8 @@ export const HomePage: React.FC<HomePageProps> = ({
         </section>
       )}
 
-      {/* ===== FEATURED PRODUCTS ===== */}
-      <section className="section-container" style={{ padding: '64px 24px 0' }}>
+      {/* ===== FEATURED PRODUCTS (DESKTOP) ===== */}
+      <section className="section-container desktop-only-products" style={{ padding: '64px 24px 0' }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 28 }}>
           <div>
             <span className="section-label">Handpicked Selection</span>
