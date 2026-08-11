@@ -3887,6 +3887,8 @@ interface CustomMetaSettings {
   upiName?: string;
   qrCodeImageUrl?: string;
   qrInstructions?: string;
+  razorpayKeyId?: string;
+  razorpayKeySecret?: string;
 }
 
 function extractMetaFromWorkingHours(rawWorkingHours?: string): { workingHours: string; meta: CustomMetaSettings } {
@@ -5201,9 +5203,9 @@ class Store {
         phonepeSaltKey: s.phonepeSaltKey,
         phonepeSaltIndex: s.phonepeSaltIndex,
         phonepeEnv: s.phonepeEnv as 'SANDBOX' | 'PRODUCTION',
-        enableRazorpay: (s as any).enableRazorpay ?? meta.enableRazorpay,
-        razorpayKeyId: (s as any).razorpayKeyId ?? '',
-        razorpayKeySecret: (s as any).razorpayKeySecret ?? '',
+        enableRazorpay: (s as any).enableRazorpay ?? meta.enableRazorpay ?? true,
+        razorpayKeyId: (s as any).razorpayKeyId ?? meta.razorpayKeyId ?? '',
+        razorpayKeySecret: (s as any).razorpayKeySecret ?? meta.razorpayKeySecret ?? '',
         // Meta fields packed inside workingHours JSON — always override memory/defaults
         ...(meta.enableRazorpay !== undefined && { enableRazorpay: meta.enableRazorpay }),
         ...(meta.enablePhonePe !== undefined && { enablePhonePe: meta.enablePhonePe }),
@@ -5213,6 +5215,8 @@ class Store {
         ...(meta.upiName !== undefined && { upiName: meta.upiName }),
         ...(meta.qrCodeImageUrl !== undefined && { qrCodeImageUrl: meta.qrCodeImageUrl }),
         ...(meta.qrInstructions !== undefined && { qrInstructions: meta.qrInstructions }),
+        ...(meta.razorpayKeyId !== undefined && { razorpayKeyId: meta.razorpayKeyId }),
+        ...(meta.razorpayKeySecret !== undefined && { razorpayKeySecret: meta.razorpayKeySecret }),
       };
 
       (globalThis as any)._globalMemorySettings = merged;
@@ -5244,7 +5248,9 @@ class Store {
           upiId: merged.upiId,
           upiName: merged.upiName,
           qrCodeImageUrl: merged.qrCodeImageUrl,
-          qrInstructions: merged.qrInstructions
+          qrInstructions: merged.qrInstructions,
+          razorpayKeyId: merged.razorpayKeyId,
+          razorpayKeySecret: merged.razorpayKeySecret
         };
 
         const packedWorkingHours = packMetaIntoWorkingHours(merged.workingHours, metaToStore);
@@ -5266,10 +5272,7 @@ class Store {
             phonepeMerchantId: merged.phonepeMerchantId,
             phonepeSaltKey: merged.phonepeSaltKey,
             phonepeSaltIndex: merged.phonepeSaltIndex,
-            phonepeEnv: merged.phonepeEnv,
-            ...(merged.enableRazorpay !== undefined && { enableRazorpay: merged.enableRazorpay }),
-            ...(merged.razorpayKeyId !== undefined && { razorpayKeyId: merged.razorpayKeyId }),
-            ...(merged.razorpayKeySecret !== undefined && { razorpayKeySecret: merged.razorpayKeySecret })
+            phonepeEnv: merged.phonepeEnv
           },
           create: {
             id: 'default',
@@ -5287,10 +5290,7 @@ class Store {
             phonepeMerchantId: merged.phonepeMerchantId,
             phonepeSaltKey: merged.phonepeSaltKey,
             phonepeSaltIndex: merged.phonepeSaltIndex,
-            phonepeEnv: merged.phonepeEnv,
-            ...(merged.enableRazorpay !== undefined && { enableRazorpay: merged.enableRazorpay }),
-            ...(merged.razorpayKeyId !== undefined && { razorpayKeyId: merged.razorpayKeyId }),
-            ...(merged.razorpayKeySecret !== undefined && { razorpayKeySecret: merged.razorpayKeySecret })
+            phonepeEnv: merged.phonepeEnv
           }
         });
 
