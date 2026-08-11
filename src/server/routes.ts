@@ -1040,13 +1040,9 @@ apiRouter.post('/razorpay/verify', checkoutLimiter, async (req: AuthenticatedReq
     }
 
     // Update order status to PAID / CONFIRMED
-    const updatedOrder = await db.updateOrder(orderId, {
-      paymentStatus: 'SUCCESS',
-      orderStatus: 'CONFIRMED',
-      transactionId: razorpayPaymentId
-    });
+    const updatedOrder = await db.updateOrderStatus(orderId, 'CONFIRMED', undefined, undefined, 'SUCCESS');
 
-    await db.recordPaymentLog({
+    await db.addPaymentLog({
       merchantTransactionId: order.merchantTransactionId,
       orderId,
       amount: order.grandTotal,
@@ -1163,13 +1159,16 @@ apiRouter.get('/settings', async (req, res) => {
 apiRouter.get('/admin/settings', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const settings = await db.getSettings();
+    if (!settings) {
+      return res.json({ success: true, settings: {} });
+    }
     const SALT_MASK = '••••••••';
     // Mask sensitive PhonePe & Razorpay credentials — they are write-only from the admin UI
     const safeSettings = {
       ...settings,
-      phonepeSaltKey: (settings as any).phonepeSaltKey ? SALT_MASK : '',
-      phonepeMerchantId: (settings as any).phonepeMerchantId ? SALT_MASK : '',
-      razorpayKeySecret: (settings as any).razorpayKeySecret ? SALT_MASK : ''
+      phonepeSaltKey: (settings as any)?.phonepeSaltKey ? SALT_MASK : '',
+      phonepeMerchantId: (settings as any)?.phonepeMerchantId ? SALT_MASK : '',
+      razorpayKeySecret: (settings as any)?.razorpayKeySecret ? SALT_MASK : ''
     };
     res.json({ success: true, settings: safeSettings });
   } catch (error: any) {

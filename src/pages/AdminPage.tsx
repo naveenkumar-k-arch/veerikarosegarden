@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Product, Category, Order, Coupon, Banner, Review, SiteSettings, PaymentLog, FinancialEntry, Combo } from '../types';
-import { LayoutDashboard, Package, ShoppingBag, FolderTree, Tag, Image, Star, Settings as SettingsIcon, ShieldCheck, Plus, Edit, Trash2, Check, X, RefreshCw, Printer, AlertTriangle, Search, Lock, ExternalLink, DollarSign, TrendingUp, TrendingDown, Camera } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, FolderTree, Tag, Image, Star, Settings as SettingsIcon, ShieldCheck, Plus, Edit, Trash2, Check, X, RefreshCw, Printer, AlertTriangle, Search, Lock, ExternalLink, DollarSign, TrendingUp, TrendingDown, Camera, CreditCard } from 'lucide-react';
 
 import { INITIAL_PRODUCTS, INITIAL_CATEGORIES } from '../data/catalogData';
 
@@ -251,7 +251,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
   });
 
   const authFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
-    const res = await fetch(url, {
+    let res = await fetch(url, {
       ...options,
       credentials: 'include',
       headers: {
@@ -259,7 +259,29 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
         ...(options.headers || {})
       }
     });
-    // If session expired or cookie missing, redirect to login
+
+    // If session expired (401), attempt silent token refresh automatically
+    if (res.status === 401) {
+      try {
+        const refreshRes = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' });
+        const refreshData = await refreshRes.json();
+        if (refreshData.success) {
+          // Retry original request with new session cookie
+          res = await fetch(url, {
+            ...options,
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(options.headers || {})
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Silent token refresh failed:', err);
+      }
+    }
+
+    // If still 401 after refresh attempt, redirect to login
     if (res.status === 401) {
       alert('Your admin session has expired. Please log in again.');
       window.location.href = '/';
@@ -340,19 +362,29 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
     localStorage.removeItem('vrg_deleted_coupons');
     localStorage.removeItem('vrg_deleted_finances');
 
-    // Security Re-validation: Verify session token server-side on mount
-    fetch('/api/auth/me', { credentials: 'include' })
-      .then(res => res.json())
-      .then(data => {
+    // Security Re-validation: Verify session token server-side on mount with auto-refresh support
+    const verifySession = async () => {
+      try {
+        let res = await fetch('/api/auth/me', { credentials: 'include' });
+        let data = await res.json();
+        if (!data.success) {
+          const refreshRes = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' });
+          const refreshData = await refreshRes.json();
+          if (refreshData.success) {
+            res = await fetch('/api/auth/me', { credentials: 'include' });
+            data = await res.json();
+          }
+        }
         if (!data.success || !data.user || !['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(data.user.role)) {
           console.warn('[SECURITY] Unauthenticated or unauthorized access to Admin Dashboard. Redirecting.');
           localStorage.removeItem('vrg_user');
           onBackToStore();
         }
-      })
-      .catch(() => {
+      } catch {
         // If backend auth check fails, fallback to standard error handling in authFetch
-      });
+      }
+    };
+    verifySession();
 
     fetchData();
     // Poll every 30 seconds
@@ -877,12 +909,26 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
           </div>
         </div>
 
-        <button
-          onClick={onBackToStore}
-          className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors"
-        >
-          Exit Admin to Store
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              activeTab === 'settings'
+                ? 'bg-amber-500 text-slate-950 shadow-sm'
+                : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+            }`}
+          >
+            <SettingsIcon className="w-4 h-4" />
+            <span>Settings</span>
+          </button>
+
+          <button
+            onClick={onBackToStore}
+            className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors"
+          >
+            Exit Admin to Store
+          </button>
+        </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -909,7 +955,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
               }`}
             >
               {icon}
-              <span className="hidden sm:inline lg:inline">{label}</span>
+              <span className="inline-block">{label}</span>
             </button>
           ))}
         </div>

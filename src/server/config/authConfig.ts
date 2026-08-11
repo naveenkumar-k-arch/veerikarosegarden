@@ -15,7 +15,7 @@ export const AUTH_CONFIG = {
   jwtAccessSecret: getOrGenerateSecret('JWT_ACCESS_SECRET', 'access_key'),
   jwtRefreshSecret: getOrGenerateSecret('JWT_REFRESH_SECRET', 'refresh_key'),
   cookieSecret: getOrGenerateSecret('COOKIE_SECRET', 'cookie_key'),
-  accessTokenExpiresIn: '15m', // 15 minutes short-lived
+  accessTokenExpiresIn: '7d', // 7 days access token
   refreshTokenExpiresDays: 7,   // 7 days refresh token
   maxFailedLoginAttempts: 5,
   lockoutDurationMinutes: 15,

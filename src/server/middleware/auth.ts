@@ -87,7 +87,7 @@ export function requireRole(...allowedRoles: Role[]) {
   };
 }
 
-export const requireAdmin = requireRole('SUPER_ADMIN', 'ADMIN');
+export const requireAdmin = requireRole('SUPER_ADMIN', 'ADMIN', 'MANAGER');
 
 export function requireSelfOrAdmin(getParamUserId: (req: Request) => string) {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
