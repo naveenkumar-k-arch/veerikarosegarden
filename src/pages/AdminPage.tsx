@@ -156,9 +156,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
   const getInitialAdminReviews = (): Review[] => {
     try {
       const saved = localStorage.getItem('vrg_reviews');
-      if (saved) {
+      if (saved !== null) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch {}
     return INITIAL_REVIEWS;
