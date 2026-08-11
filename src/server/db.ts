@@ -5229,7 +5229,9 @@ class Store {
   }
 
   async deleteReview(id: string): Promise<boolean> {
-    this.memoryReviews = this.memoryReviews.filter(r => r.id !== id);
+    this.memoryReviews = this.memoryReviews.filter(r => r && r.id !== id);
+    const defIdx = DEFAULT_REVIEWS_SEED.findIndex(r => r.id === id);
+    if (defIdx !== -1) DEFAULT_REVIEWS_SEED.splice(defIdx, 1);
     saveDiskReviews(this.memoryReviews);
     return true;
   }
