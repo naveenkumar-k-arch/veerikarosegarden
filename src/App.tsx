@@ -742,8 +742,8 @@ export const App: React.FC = () => {
           <span className="particle-3d-3">🌿</span>
         </div>
 
-      {/* Hide standard header in Admin view */}
-      {currentPage !== 'admin' && (
+      {/* Show header ONLY on Home page */}
+      {currentPage === 'home' && (
         <Header
           cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
           wishlistCount={wishlist.length}
@@ -919,8 +919,8 @@ export const App: React.FC = () => {
         )}
       </main>
 
-      {/* Hide footer in Admin view */}
-      {currentPage !== 'admin' && (
+      {/* Show footer ONLY on Home page */}
+      {currentPage === 'home' && (
         <Footer
           onNavigate={(page, params) => {
             navigateTo(page, params);
