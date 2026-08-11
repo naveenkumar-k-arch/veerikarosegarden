@@ -156,16 +156,21 @@ export interface Banner {
 
 export interface Review {
   id: string;
-  productId: string;
-  productName: string;
+  productId?: string;
+  productName?: string;
   userId?: string;
   userName: string;
+  userAvatar?: string;
   rating: number;
-  title: string;
+  title?: string;
   comment: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED';
   reply?: string;
   createdAt: string;
+  imageUrl?: string;
+  location?: string;
+  isVerified?: boolean;
+  featured?: boolean;
 }
 
 export interface User {

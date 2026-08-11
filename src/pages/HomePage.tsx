@@ -1,16 +1,19 @@
-import React from 'react';
-import { Product, Category, Banner } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Product, Category, Banner, Review } from '../types';
 import { ProductCard, CompactProductCard, HorizontalScrollRow } from '../components/ProductCard';
 import { CombosSection } from '../components/CombosSection';
+import { Card3D } from '../components/Card3D';
+import { INITIAL_REVIEWS } from '../data/reviewsData';
 import {
   ShieldCheck, Truck, Sprout, HeartHandshake, Star, ArrowRight,
-  MapPin, MessageSquare, Phone, Leaf, Sparkles, Package, ChevronRight
+  MapPin, MessageSquare, Phone, Leaf, Sparkles, Package, ChevronRight, X, ZoomIn, Camera
 } from 'lucide-react';
 
 interface HomePageProps {
   products: Product[];
   categories: Category[];
   banners: Banner[];
+  reviews?: Review[];
   onAddToCart: (product: Product) => void;
   onViewDetails: (product: Product) => void;
   onOpenCareGuide: (product: Product) => void;
@@ -35,10 +38,37 @@ const TESTIMONIALS = [
 ];
 
 export const HomePage: React.FC<HomePageProps> = ({
-  products, categories, banners,
+  products, categories, banners, reviews,
   onAddToCart, onViewDetails, onOpenCareGuide,
   onNavigate, onSelectCategory, onSearchTag, onOpenExpertAdvice,
 }) => {
+  const [selectedReviewPhoto, setSelectedReviewPhoto] = useState<Review | null>(null);
+  const [reviewsList, setReviewsList] = useState<Review[]>(reviews || []);
+
+  useEffect(() => {
+    const handleReviewsUpdated = (e: CustomEvent) => {
+      if (e.detail && Array.isArray(e.detail)) {
+        setReviewsList(e.detail);
+      }
+    };
+    window.addEventListener('vrg_reviews_updated' as any, handleReviewsUpdated);
+    return () => window.removeEventListener('vrg_reviews_updated' as any, handleReviewsUpdated);
+  }, []);
+
+  const getLiveReviews = (): Review[] => {
+    if (reviewsList && reviewsList.length > 0) return reviewsList;
+    if (reviews && reviews.length > 0) return reviews;
+    try {
+      const saved = localStorage.getItem('vrg_reviews');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return INITIAL_REVIEWS;
+  };
+
+  const approvedReviews = getLiveReviews().filter(r => r.status === 'APPROVED');
   const featuredProducts = products.filter(p => p.featured).slice(0, 8);
   const bestSellers = products.filter(p => p.bestSeller).slice(0, 8);
   const activeCategories = categories.filter(c => c.isActive !== false).sort((a, b) => (a.order ?? 1) - (b.order ?? 1));
@@ -249,6 +279,163 @@ export const HomePage: React.FC<HomePageProps> = ({
             </button>
           </div>
         )}
+      </section>
+
+      {/* ===== 3D CUSTOMER PHOTO REVIEWS SECTION (BELOW OUR COLLECTION / ALL PLANTS) ===== */}
+      <section className="section-container" style={{ padding: '48px 24px 24px' }}>
+        <div style={{
+          background: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 50%, #fff7f7 100%)',
+          borderRadius: 32,
+          padding: 'clamp(24px, 4vw, 40px)',
+          border: '2px solid #bbf7d0',
+          boxShadow: '0 20px 50px -15px rgba(22, 163, 74, 0.15), 0 8px 20px rgba(0, 0, 0, 0.04)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          {/* Ambient 3D Glow Blobs */}
+          <div style={{ position: 'absolute', top: -50, right: -50, width: 250, height: 250, borderRadius: '50%', background: 'radial-gradient(circle, rgba(245,158,11,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', bottom: -50, left: -50, width: 250, height: 250, borderRadius: '50%', background: 'radial-gradient(circle, rgba(22,163,74,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+          {/* Section Header */}
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 28 }}>
+            <div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#fef3c7', color: '#b45309', padding: '4px 12px', borderRadius: 999, fontSize: 11, fontWeight: 800, border: '1px solid #fde68a', marginBottom: 8 }}>
+                <Camera style={{ width: 13, height: 13 }} /> VERIFIED BUYER PLANT PHOTOS
+              </div>
+              <h2 className="section-title" style={{ fontSize: 'clamp(22px, 3.5vw, 36px)' }}>
+                Customer Photo <em>Reviews</em>
+              </h2>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '4px 0 0', maxWidth: 500 }}>
+                Real photos & feedback uploaded by plant lovers directly from their home & terrace gardens.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'white', padding: '8px 16px', borderRadius: 20, border: '1.5px solid #e5f0e0', boxShadow: '0 4px 12px rgba(22,163,74,0.08)' }}>
+              <div style={{ display: 'flex', gap: 2 }}>
+                {[1, 2, 3, 4, 5].map(i => (
+                  <Star key={i} style={{ width: 16, height: 16, color: '#f59e0b', fill: '#f59e0b' }} />
+                ))}
+              </div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--text-dark)' }}>4.9 / 5.0 Rating</div>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>500+ Verified Sapling Deliveries</div>
+              </div>
+            </div>
+          </div>
+
+          {/* 3D Review Cards Grid */}
+          {approvedReviews.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 20px', background: 'white', borderRadius: 24, border: '2px dashed #bbf7d0' }}>
+              <Camera style={{ width: 36, height: 36, color: 'var(--color-green)', margin: '0 auto 10px', opacity: 0.5 }} />
+              <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>No customer photo reviews yet. Add photos in Admin Panel!</p>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+              {approvedReviews.map(review => (
+                <Card3D key={review.id} maxDegree={10} scale={1.02}>
+                  <div style={{
+                    background: 'white',
+                    borderRadius: 24,
+                    overflow: 'hidden',
+                    border: '1.5px solid #e5f0e0',
+                    boxShadow: '0 10px 30px -10px rgba(22, 163, 74, 0.12), 0 4px 10px rgba(0,0,0,0.03)',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column'
+                  }}>
+                    {/* Photo Header with Zoom Lightbox trigger */}
+                    {review.imageUrl ? (
+                      <div style={{ height: 200, position: 'relative', overflow: 'hidden', cursor: 'pointer' }} onClick={() => setSelectedReviewPhoto(review)}>
+                        <img
+                          src={review.imageUrl}
+                          alt={review.userName}
+                          loading="lazy"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}
+                          className="group-hover-scale"
+                          onError={e => {
+                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80';
+                          }}
+                        />
+                        {/* 3D Glass overlay tag */}
+                        <div style={{
+                          position: 'absolute', top: 10, left: 10,
+                          background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(8px)',
+                          padding: '4px 10px', borderRadius: 999,
+                          display: 'flex', alignItems: 'center', gap: 4,
+                          fontSize: 10, fontWeight: 800, color: 'var(--color-green-dark)',
+                          border: '1px solid rgba(255,255,255,0.8)',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                        }}>
+                          <Sparkles style={{ width: 11, height: 11, color: '#f59e0b' }} /> Customer Photo
+                        </div>
+
+                        <div style={{
+                          position: 'absolute', bottom: 10, right: 10,
+                          background: 'rgba(0,0,0,0.65)', color: 'white',
+                          padding: '5px 10px', borderRadius: 999,
+                          fontSize: 10, fontWeight: 700,
+                          display: 'flex', alignItems: 'center', gap: 4
+                        }}>
+                          <ZoomIn style={{ width: 12, height: 12 }} /> View Photo
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ padding: '16px 20px 0', display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'linear-gradient(135deg, #16a34a, #15803d)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 18 }}>
+                          {review.userName[0]}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-dark)' }}>{review.userName}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{review.location || 'Tamil Nadu'}</div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Card Content Body */}
+                    <div style={{ padding: 20, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                      <div>
+                        {/* Rating Stars & Verified Pill */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
+                          <div style={{ display: 'flex', gap: 2 }}>
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <Star key={i} style={{ width: 14, height: 14, color: i < review.rating ? '#f59e0b' : '#d1d5db', fill: i < review.rating ? '#f59e0b' : 'none' }} />
+                            ))}
+                          </div>
+                          {review.isVerified && (
+                            <span style={{ fontSize: 9, fontWeight: 800, color: '#15803d', background: '#dcfce7', padding: '2px 8px', borderRadius: 999, border: '1px solid #bbf7d0' }}>
+                              ✓ Verified Buyer
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Plant Tag */}
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', padding: '3px 9px', borderRadius: 8, fontSize: 11, fontWeight: 700, marginBottom: 10 }}>
+                          <span>🌱</span> {review.productName || 'Nursery Sapling'}
+                        </div>
+
+                        {review.title && (
+                          <h4 style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 700, color: 'var(--text-dark)', margin: '0 0 6px', lineHeight: 1.3 }}>
+                            "{review.title}"
+                          </h4>
+                        )}
+
+                        <p style={{ fontSize: 13, color: 'var(--text-body)', lineHeight: 1.6, margin: 0, fontStyle: 'italic' }}>
+                          "{review.comment}"
+                        </p>
+                      </div>
+
+                      {/* Footer Info */}
+                      <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid #f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)' }}>
+                        <span style={{ fontWeight: 700, color: 'var(--text-dark)' }}>{review.userName}</span>
+                        <span>{review.location || 'Pennagaram'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </Card3D>
+              ))}
+            </div>
+          )}
+        </div>
       </section>
 
       {/* ===== HERO ===== */}
@@ -686,6 +873,78 @@ export const HomePage: React.FC<HomePageProps> = ({
           `}</style>
         </div>
       </section>
+
+      {/* 3D Lightbox Modal for Full Resolution Photo View */}
+      {selectedReviewPhoto && (
+        <div
+          onClick={() => setSelectedReviewPhoto(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 999,
+            background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(16px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 20
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: 'white', borderRadius: 28, maxWidth: 640, width: '100%',
+              overflow: 'hidden', border: '2px solid #bbf7d0',
+              boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
+              maxHeight: '90vh', display: 'flex', flexDirection: 'column'
+            }}
+          >
+            <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e5f0e0', background: '#f8faf6' }}>
+              <div>
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 800, color: '#1a2e1a', margin: 0 }}>
+                  📸 Customer Garden Photo
+                </h3>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>
+                  Uploaded by {selectedReviewPhoto.userName} ({selectedReviewPhoto.location || 'Tamil Nadu'})
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedReviewPhoto(null)}
+                style={{ background: '#e2e8f0', border: 'none', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              >
+                <X style={{ width: 16, height: 16, color: '#334155' }} />
+              </button>
+            </div>
+
+            <div style={{ background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12, maxHeight: '55vh', overflow: 'hidden' }}>
+              <img
+                src={selectedReviewPhoto.imageUrl}
+                alt={selectedReviewPhoto.userName}
+                style={{ maxWidth: '100%', maxHeight: '50vh', objectFit: 'contain', borderRadius: 16, boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}
+              />
+            </div>
+
+            <div style={{ padding: 20, overflowY: 'auto' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div style={{ display: 'flex', gap: 3 }}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={i} style={{ width: 16, height: 16, color: i < selectedReviewPhoto.rating ? '#f59e0b' : '#d1d5db', fill: i < selectedReviewPhoto.rating ? '#f59e0b' : 'none' }} />
+                  ))}
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 800, color: '#15803d', background: '#dcfce7', padding: '3px 10px', borderRadius: 999, border: '1px solid #bbf7d0' }}>
+                  ✓ Verified Buyer
+                </span>
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 800, color: '#15803d', marginBottom: 6 }}>
+                🌱 Plant: {selectedReviewPhoto.productName || 'Nursery Plant'}
+              </div>
+              {selectedReviewPhoto.title && (
+                <h4 style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 700, margin: '0 0 6px', color: '#1a2e1a' }}>
+                  "{selectedReviewPhoto.title}"
+                </h4>
+              )}
+              <p style={{ fontSize: 14, color: '#334155', lineHeight: 1.6, margin: 0 }}>
+                "{selectedReviewPhoto.comment}"
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

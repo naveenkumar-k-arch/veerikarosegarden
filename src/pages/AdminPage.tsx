@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Product, Category, Order, Coupon, Banner, Review, SiteSettings, PaymentLog, FinancialEntry, Combo } from '../types';
-import { LayoutDashboard, Package, ShoppingBag, FolderTree, Tag, Image, Star, Settings as SettingsIcon, ShieldCheck, Plus, Edit, Trash2, Check, X, RefreshCw, Printer, AlertTriangle, Search, Lock, ExternalLink, DollarSign, TrendingUp, TrendingDown, Camera, CreditCard, ChevronDown, User, Phone, MapPin } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, FolderTree, Tag, Image, Star, Settings as SettingsIcon, ShieldCheck, Plus, Edit, Trash2, Check, X, RefreshCw, Printer, AlertTriangle, Search, Lock, ExternalLink, DollarSign, TrendingUp, TrendingDown, Camera, CreditCard, ChevronDown, User, Phone, MapPin, Upload, MessageSquare, ThumbsUp, Eye, EyeOff } from 'lucide-react';
 
 import { INITIAL_PRODUCTS, INITIAL_CATEGORIES } from '../data/catalogData';
+import { INITIAL_REVIEWS } from '../data/reviewsData';
 
 // ── Inline Coupon Creation Form ──────────────────────────────────────────────
 const CouponForm: React.FC<{ categories: Category[]; onSave: (data: any) => Promise<void> }> = ({ onSave }) => {
@@ -151,8 +152,156 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
     active: true,
     freeDelivery: false
   });
+  const getInitialAdminReviews = (): Review[] => {
+    try {
+      const saved = localStorage.getItem('vrg_reviews');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return INITIAL_REVIEWS;
+  };
+
   const [banners, setBanners] = useState<Banner[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviews, setReviews] = useState<Review[]>(getInitialAdminReviews);
+
+  const saveReviewsState = (updated: Review[]) => {
+    setReviews(updated);
+    try {
+      localStorage.setItem('vrg_reviews', JSON.stringify(updated));
+      window.dispatchEvent(new CustomEvent('vrg_reviews_updated', { detail: updated }));
+    } catch {}
+  };
+
+  // Review Section Form & Modal State
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [editingReview, setEditingReview] = useState<Review | null>(null);
+  const [reviewFilter, setReviewFilter] = useState<'all' | 'approved' | 'pending' | 'photos'>('all');
+  const [reviewSearch, setReviewSearch] = useState('');
+  const [replyingReviewId, setReplyingReviewId] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState('');
+
+  const [reviewForm, setReviewForm] = useState({
+    userName: '',
+    location: 'Pennagaram, TN',
+    rating: 5,
+    title: '',
+    comment: '',
+    productId: '',
+    productName: 'Dutch Hybrid Red Rose',
+    imageUrl: '',
+    status: 'APPROVED' as 'APPROVED' | 'PENDING' | 'REJECTED',
+    featured: true
+  });
+
+  const handleReviewPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setReviewForm(prev => ({ ...prev, imageUrl: reader.result as string }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveReview = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewForm.userName.trim() || !reviewForm.comment.trim()) {
+      alert('Please fill customer name and review comment');
+      return;
+    }
+
+    if (editingReview) {
+      const updated = reviews.map(r => r.id === editingReview.id ? {
+        ...r,
+        userName: reviewForm.userName,
+        location: reviewForm.location,
+        rating: reviewForm.rating,
+        title: reviewForm.title,
+        comment: reviewForm.comment,
+        productId: reviewForm.productId,
+        productName: reviewForm.productName,
+        imageUrl: reviewForm.imageUrl,
+        status: reviewForm.status,
+        featured: reviewForm.featured,
+      } : r);
+      saveReviewsState(updated);
+    } else {
+      const newReview: Review = {
+        id: 'rev-' + Date.now(),
+        userName: reviewForm.userName,
+        location: reviewForm.location || 'Tamil Nadu',
+        rating: reviewForm.rating,
+        title: reviewForm.title || `${reviewForm.rating} Star Review`,
+        comment: reviewForm.comment,
+        productId: reviewForm.productId || 'custom',
+        productName: reviewForm.productName || 'Nursery Plant',
+        imageUrl: reviewForm.imageUrl,
+        status: reviewForm.status,
+        createdAt: new Date().toISOString().split('T')[0],
+        isVerified: true,
+        featured: reviewForm.featured,
+      };
+      saveReviewsState([newReview, ...reviews]);
+    }
+
+    setShowReviewModal(false);
+    setEditingReview(null);
+    setReviewForm({
+      userName: '',
+      location: 'Pennagaram, TN',
+      rating: 5,
+      title: '',
+      comment: '',
+      productId: '',
+      productName: 'Dutch Hybrid Red Rose',
+      imageUrl: '',
+      status: 'APPROVED',
+      featured: true
+    });
+  };
+
+  const handleOpenEditReview = (r: Review) => {
+    setEditingReview(r);
+    setReviewForm({
+      userName: r.userName || '',
+      location: r.location || '',
+      rating: r.rating || 5,
+      title: r.title || '',
+      comment: r.comment || '',
+      productId: r.productId || '',
+      productName: r.productName || '',
+      imageUrl: r.imageUrl || '',
+      status: r.status || 'APPROVED',
+      featured: r.featured ?? true,
+    });
+    setShowReviewModal(true);
+  };
+
+  const handleDeleteReview = (id: string) => {
+    if (!confirm('Are you sure you want to delete this customer review?')) return;
+    const updated = reviews.filter(r => r.id !== id);
+    saveReviewsState(updated);
+  };
+
+  const handleToggleReviewStatus = (id: string) => {
+    const updated = reviews.map(r => r.id === id ? { ...r, status: r.status === 'APPROVED' ? ('PENDING' as const) : ('APPROVED' as const) } : r);
+    saveReviewsState(updated);
+  };
+
+  const handleToggleReviewFeatured = (id: string) => {
+    const updated = reviews.map(r => r.id === id ? { ...r, featured: !r.featured } : r);
+    saveReviewsState(updated);
+  };
+
+  const handleSaveReviewReply = (id: string) => {
+    if (!replyText.trim()) return;
+    const updated = reviews.map(r => r.id === id ? { ...r, reply: replyText.trim() } : r);
+    saveReviewsState(updated);
+    setReplyingReviewId(null);
+    setReplyText('');
+  };
   const [settings, setSettings] = useState<SiteSettings | null>({} as SiteSettings);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsMsg, setSettingsMsg] = useState<string | null>(null);
@@ -956,6 +1105,7 @@ const silentRefresh = async (): Promise<boolean> => {
             { key: 'categories', icon: <FolderTree className="w-4 h-4" />, label: 'Categories' },
             { key: 'inventory', icon: <AlertTriangle className="w-4 h-4 text-amber-500" />, label: 'Inventory' },
             { key: 'coupons', icon: <Tag className="w-4 h-4" />, label: 'Coupons' },
+            { key: 'reviews', icon: <Star className="w-4 h-4 text-amber-500 fill-amber-500" />, label: `Reviews (${reviews.length})` },
             { key: 'finances', icon: <DollarSign className="w-4 h-4 text-emerald-500" />, label: 'Expenses & Profit' },
             { key: 'settings', icon: <SettingsIcon className="w-4 h-4" />, label: 'Settings' },
             { key: 'audit', icon: <ShieldCheck className="w-4 h-4 text-purple-600" />, label: 'Audit Logs' },
@@ -2937,6 +3087,279 @@ const silentRefresh = async (): Promise<boolean> => {
             );
           })()}
 
+          {/* TAB: REVIEWS SECTION */}
+          {activeTab === 'reviews' && (() => {
+            const filteredReviews = reviews.filter(r => {
+              const matchesSearch = !reviewSearch.trim() || 
+                r.userName.toLowerCase().includes(reviewSearch.toLowerCase()) || 
+                (r.productName || '').toLowerCase().includes(reviewSearch.toLowerCase()) ||
+                r.comment.toLowerCase().includes(reviewSearch.toLowerCase());
+              
+              if (!matchesSearch) return false;
+              if (reviewFilter === 'approved') return r.status === 'APPROVED';
+              if (reviewFilter === 'pending') return r.status === 'PENDING';
+              if (reviewFilter === 'photos') return Boolean(r.imageUrl);
+              return true;
+            });
+
+            const photoCount = reviews.filter(r => r.imageUrl).length;
+            const approvedCount = reviews.filter(r => r.status === 'APPROVED').length;
+            const pendingCount = reviews.filter(r => r.status === 'PENDING').length;
+
+            return (
+              <div className="space-y-6">
+                {/* Header Banner */}
+                <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-emerald-700 p-6 rounded-3xl text-white shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-black tracking-wider uppercase">
+                        ★ Live Review Management
+                      </span>
+                    </div>
+                    <h2 className="text-2xl font-black font-display">Customer Reviews & Photo Section</h2>
+                    <p className="text-xs text-amber-100 mt-1 max-w-xl">
+                      Upload live customer plant photos from your local computer. Approved reviews render directly on the homepage below <strong>Our Collection All Plants</strong>.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setEditingReview(null);
+                      setReviewForm({
+                        userName: '',
+                        location: 'Pennagaram, TN',
+                        rating: 5,
+                        title: '',
+                        comment: '',
+                        productId: '',
+                        productName: 'Dutch Hybrid Red Rose',
+                        imageUrl: '',
+                        status: 'APPROVED',
+                        featured: true
+                      });
+                      setShowReviewModal(true);
+                    }}
+                    className="px-5 py-3 bg-white text-slate-900 hover:bg-slate-100 font-extrabold text-xs rounded-2xl shadow-md flex items-center gap-2 cursor-pointer shrink-0"
+                  >
+                    <Plus className="w-4 h-4 text-amber-600" />
+                    <span>Upload Photo & Add Review</span>
+                  </button>
+                </div>
+
+                {/* Stats Cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-bold">
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+                    <p className="text-slate-400 uppercase text-[10px]">Total Reviews</p>
+                    <p className="text-2xl font-black text-slate-900">{reviews.length}</p>
+                    <p className="text-[10px] text-slate-500">Submitted Feedback</p>
+                  </div>
+                  <div className="bg-white p-4 rounded-2xl border border-emerald-200 shadow-2xs space-y-1">
+                    <p className="text-emerald-700 uppercase text-[10px]">Approved & Live</p>
+                    <p className="text-2xl font-black text-emerald-800">{approvedCount}</p>
+                    <p className="text-[10px] text-emerald-600">Visible on Store Front</p>
+                  </div>
+                  <div className="bg-white p-4 rounded-2xl border border-amber-200 shadow-2xs space-y-1">
+                    <p className="text-amber-700 uppercase text-[10px]">With Plant Photos 📸</p>
+                    <p className="text-2xl font-black text-amber-800">{photoCount}</p>
+                    <p className="text-[10px] text-amber-600">Local & Buyer Uploads</p>
+                  </div>
+                  <div className="bg-white p-4 rounded-2xl border border-purple-200 shadow-2xs space-y-1">
+                    <p className="text-purple-700 uppercase text-[10px]">Pending Approval ⏳</p>
+                    <p className="text-2xl font-black text-purple-800">{pendingCount}</p>
+                    <p className="text-[10px] text-purple-600">Awaiting Admin Action</p>
+                  </div>
+                </div>
+
+                {/* Filters & Search */}
+                <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                  <div className="flex gap-2 overflow-x-auto w-full sm:w-auto">
+                    {[
+                      { key: 'all', label: `All (${reviews.length})` },
+                      { key: 'approved', label: `Approved ✅ (${approvedCount})` },
+                      { key: 'pending', label: `Pending ⏳ (${pendingCount})` },
+                      { key: 'photos', label: `With Photos 📸 (${photoCount})` },
+                    ].map(f => (
+                      <button
+                        key={f.key}
+                        onClick={() => setReviewFilter(f.key as any)}
+                        className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap ${
+                          reviewFilter === f.key ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="relative w-full sm:w-64">
+                    <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Search reviews..."
+                      value={reviewSearch}
+                      onChange={e => setReviewSearch(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs"
+                    />
+                  </div>
+                </div>
+
+                {/* Review Cards List */}
+                {filteredReviews.length === 0 ? (
+                  <div className="bg-white p-12 rounded-3xl text-center border border-dashed border-slate-300 space-y-3">
+                    <Star className="w-12 h-12 text-slate-300 mx-auto" />
+                    <h3 className="font-extrabold text-slate-700 text-base">No reviews match your filter</h3>
+                    <p className="text-slate-400 text-xs">Click "Upload Photo & Add Review" to create your first customer review!</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {filteredReviews.map(r => (
+                      <div
+                        key={r.id}
+                        className={`bg-white rounded-3xl p-5 border transition-all space-y-3 relative ${
+                          r.status === 'APPROVED' ? 'border-emerald-200 shadow-2xs' : 'border-amber-300 bg-amber-50/20'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            {r.imageUrl ? (
+                              <img
+                                src={r.imageUrl}
+                                alt={r.userName}
+                                className="w-14 h-14 rounded-2xl object-cover border-2 border-emerald-500 shadow-xs shrink-0"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-600 to-amber-600 text-white font-black text-lg flex items-center justify-center shadow-xs shrink-0">
+                                {r.userName[0]}
+                              </div>
+                            )}
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-extrabold text-slate-900 text-sm">{r.userName}</h4>
+                                {r.isVerified && (
+                                  <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full font-bold text-[9px] border border-emerald-300">
+                                    ✓ Verified Buyer
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-slate-400 font-medium">{r.location || 'Tamil Nadu'} • {r.createdAt}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1 bg-amber-50 px-2.5 py-1 rounded-xl border border-amber-200">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <Star
+                                key={i}
+                                className={`w-3.5 h-3.5 ${i < r.rating ? 'text-amber-500 fill-amber-500' : 'text-slate-300'}`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Plant Tag */}
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-800 rounded-xl text-xs font-bold">
+                          <span>🌱 Plant:</span>
+                          <span className="text-emerald-800">{r.productName || 'Nursery Plant'}</span>
+                        </div>
+
+                        <div>
+                          {r.title && <h5 className="font-bold text-slate-900 text-xs mb-1">"{r.title}"</h5>}
+                          <p className="text-slate-600 text-xs leading-relaxed font-normal">{r.comment}</p>
+                        </div>
+
+                        {/* Admin Reply */}
+                        {r.reply && (
+                          <div className="bg-emerald-50 border-l-4 border-emerald-600 p-3 rounded-r-2xl space-y-1 text-xs">
+                            <span className="font-bold text-emerald-950 block">🌿 Veerika Rose Garden Team Reply:</span>
+                            <p className="text-emerald-800">{r.reply}</p>
+                          </div>
+                        )}
+
+                        {/* Reply Form toggle */}
+                        {replyingReviewId === r.id && (
+                          <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-2">
+                            <textarea
+                              rows={2}
+                              placeholder="Write nursery response to customer review..."
+                              value={replyText}
+                              onChange={e => setReplyText(e.target.value)}
+                              className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-medium"
+                            />
+                            <div className="flex gap-2 justify-end">
+                              <button
+                                onClick={() => setReplyingReviewId(null)}
+                                className="px-3 py-1 bg-slate-200 text-slate-700 font-bold rounded-lg text-xs"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={() => handleSaveReviewReply(r.id)}
+                                className="px-3 py-1 bg-emerald-700 text-white font-bold rounded-lg text-xs"
+                              >
+                                Save Reply
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleToggleReviewStatus(r.id)}
+                              className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                                r.status === 'APPROVED'
+                                  ? 'bg-emerald-100 text-emerald-900 hover:bg-emerald-200 border border-emerald-300'
+                                  : 'bg-amber-100 text-amber-900 hover:bg-amber-200 border border-amber-300'
+                              }`}
+                            >
+                              {r.status === 'APPROVED' ? <Check className="w-3.5 h-3.5" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                              <span>{r.status === 'APPROVED' ? 'Approved (Live)' : 'Approve Review'}</span>
+                            </button>
+
+                            <button
+                              onClick={() => handleToggleReviewFeatured(r.id)}
+                              className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                                r.featured
+                                  ? 'bg-amber-500 text-white shadow-xs'
+                                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                              }`}
+                            >
+                              <Star className="w-3.5 h-3.5" />
+                              <span>{r.featured ? 'Featured ★' : 'Feature'}</span>
+                            </button>
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => { setReplyingReviewId(r.id); setReplyText(r.reply || ''); }}
+                              className="p-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl border border-blue-200 cursor-pointer"
+                              title="Reply to Customer"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleOpenEditReview(r)}
+                              className="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl border border-emerald-200 cursor-pointer"
+                              title="Edit Review"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteReview(r.id)}
+                              className="p-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl border border-rose-200 cursor-pointer"
+                              title="Delete Review"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
         </div>
       </div>
 
@@ -3880,6 +4303,178 @@ const silentRefresh = async (): Promise<boolean> => {
                 className="w-full py-3 bg-gradient-to-r from-emerald-700 to-amber-700 hover:from-emerald-800 hover:to-amber-800 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer"
               >
                 {editingCombo ? 'Save Combo Package Changes' : 'Publish Combo Package to Homepage'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Upload Photo & Create/Edit Review Modal */}
+      {showReviewModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white max-w-xl w-full rounded-3xl p-6 border border-slate-200 shadow-2xl space-y-4 my-8">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
+                  <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+                  <span>{editingReview ? 'Edit Customer Review & Photo' : 'Upload Local Photo & Add Customer Review'}</span>
+                </h3>
+                <p className="text-slate-500 text-xs mt-0.5">Upload a photo directly from your local computer and set review details.</p>
+              </div>
+              <button
+                onClick={() => setShowReviewModal(false)}
+                className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveReview} className="space-y-4 text-xs">
+              {/* Local File Uploader */}
+              <div className="p-4 bg-emerald-50/70 border-2 border-dashed border-emerald-300 rounded-2xl space-y-3">
+                <div className="flex items-center gap-2 text-emerald-950 font-bold">
+                  <Upload className="w-4 h-4 text-emerald-700" />
+                  <span>Upload Plant Photo from Local System</span>
+                </div>
+                
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleReviewPhotoUpload}
+                  className="w-full text-xs text-slate-700 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-extrabold file:bg-emerald-700 file:text-white hover:file:bg-emerald-800 cursor-pointer"
+                />
+
+                {reviewForm.imageUrl ? (
+                  <div className="relative w-full h-44 rounded-2xl overflow-hidden border-2 border-emerald-500 shadow-md">
+                    <img src={reviewForm.imageUrl} alt="Review upload preview" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setReviewForm(prev => ({ ...prev, imageUrl: '' }))}
+                      className="absolute top-2 right-2 bg-rose-600 text-white rounded-full p-1.5 shadow-md hover:bg-rose-700 cursor-pointer"
+                      title="Remove uploaded image"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-slate-500 italic">No image selected yet. Selecting a photo will store it as a base64 Data URL.</p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Customer Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Kavitha R."
+                    value={reviewForm.userName}
+                    onChange={e => setReviewForm({ ...reviewForm, userName: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">City / Location</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Pennagaram, Tamil Nadu"
+                    value={reviewForm.location}
+                    onChange={e => setReviewForm({ ...reviewForm, location: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-medium"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Star Rating (1 to 5) *</label>
+                  <div className="flex items-center gap-1.5 bg-amber-50/60 p-2 rounded-xl border border-amber-200">
+                    {[1, 2, 3, 4, 5].map(star => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setReviewForm({ ...reviewForm, rating: star })}
+                        className="p-1 hover:scale-125 transition-transform cursor-pointer"
+                      >
+                        <Star className={`w-5 h-5 ${star <= reviewForm.rating ? 'text-amber-500 fill-amber-500' : 'text-slate-300'}`} />
+                      </button>
+                    ))}
+                    <span className="font-black text-amber-900 ml-2 text-sm">{reviewForm.rating} / 5</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Select Plant / Product</label>
+                  <select
+                    value={reviewForm.productName}
+                    onChange={e => {
+                      const selProd = products.find(p => p.name === e.target.value);
+                      setReviewForm({
+                        ...reviewForm,
+                        productName: e.target.value,
+                        productId: selProd?.id || 'custom'
+                      });
+                    }}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900"
+                  >
+                    <option value="Dutch Hybrid Red Rose">Dutch Hybrid Red Rose</option>
+                    {products.map(p => (
+                      <option key={p.id} value={p.name}>{p.name} ({p.tamilName})</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Review Headline / Title</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Beautiful blooming roses delivered safe!"
+                  value={reviewForm.title}
+                  onChange={e => setReviewForm({ ...reviewForm, title: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Detailed Customer Review / Comment *</label>
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="Write the review content..."
+                  value={reviewForm.comment}
+                  onChange={e => setReviewForm({ ...reviewForm, comment: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-medium"
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-200">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={reviewForm.status === 'APPROVED'}
+                    onChange={e => setReviewForm({ ...reviewForm, status: e.target.checked ? 'APPROVED' : 'PENDING' })}
+                    className="w-4 h-4 text-emerald-600 rounded"
+                  />
+                  <span className="font-bold text-slate-900">Approve & Make Live on Homepage</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={reviewForm.featured}
+                    onChange={e => setReviewForm({ ...reviewForm, featured: e.target.checked })}
+                    className="w-4 h-4 text-amber-600 rounded"
+                  />
+                  <span className="font-bold text-amber-900">★ Feature on Homepage</span>
+                </label>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3 bg-gradient-to-r from-emerald-700 to-amber-600 hover:from-emerald-800 hover:to-amber-700 text-white font-extrabold text-xs rounded-xl shadow-md cursor-pointer"
+              >
+                {editingReview ? 'Save Review Changes' : 'Publish Review & Photo to Store'}
               </button>
             </form>
           </div>

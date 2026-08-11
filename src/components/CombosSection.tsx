@@ -11,6 +11,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
   const [combos, setCombos] = useState<Combo[]>([]);
   const [loading, setLoading] = useState(true);
   const [addedComboId, setAddedComboId] = useState<string | null>(null);
+  const [modalCombo, setModalCombo] = useState<Combo | null>(null);
 
   useEffect(() => {
     fetchCombos();
@@ -30,7 +31,8 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
     }
   };
 
-  const handleAddComboToCart = (combo: Combo) => {
+  const handleAddComboToCart = (combo: Combo, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     if (!combo.products || combo.products.length === 0) return;
 
     combo.products.forEach(product => {
@@ -101,7 +103,8 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
               return (
                 <div
                   key={combo.id}
-                  className="group bg-white/90 backdrop-blur-md border border-amber-200/70 hover:border-amber-400 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between relative transform hover:-translate-y-1"
+                  onClick={() => setModalCombo(combo)}
+                  className="group bg-white/90 backdrop-blur-md border border-amber-200/70 hover:border-amber-400 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between relative transform hover:-translate-y-1 cursor-pointer"
                 >
                   {/* Top Discount Badge */}
                   <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 flex-wrap">
@@ -170,7 +173,10 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                             {combo.products.map((p) => (
                               <div
                                 key={p.id}
-                                onClick={() => onSelectProduct && onSelectProduct(p)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (onSelectProduct) onSelectProduct(p);
+                                }}
                                 className="flex items-center justify-between text-xs font-semibold text-slate-800 hover:text-emerald-800 cursor-pointer group/item"
                               >
                                 <span className="flex items-center gap-2 truncate">
@@ -219,7 +225,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                   {/* Add Bundle to Cart CTA Button */}
                   <div className="p-5 pt-0">
                     <button
-                      onClick={() => handleAddComboToCart(combo)}
+                      onClick={(e) => handleAddComboToCart(combo, e)}
                       disabled={isJustAdded}
                       className={`w-full py-3.5 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all shadow-md active:scale-95 ${
                         isJustAdded
@@ -247,6 +253,165 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
           </div>
         )}
       </div>
+
+      {/* ===== COMBO PACKAGE DETAILS MODAL ===== */}
+      {modalCombo && (() => {
+        const discount = modalCombo.discountPercent || (modalCombo.originalPrice > 0 ? Math.round(((modalCombo.originalPrice - modalCombo.comboPrice) / modalCombo.originalPrice) * 100) : 0);
+        const savings = modalCombo.originalPrice > modalCombo.comboPrice ? modalCombo.originalPrice - modalCombo.comboPrice : 0;
+        const isJustAdded = addedComboId === modalCombo.id;
+
+        return (
+          <div
+            onClick={() => setModalCombo(null)}
+            className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              className="bg-white rounded-3xl max-w-2xl w-full overflow-hidden border-2 border-emerald-300 shadow-2xl space-y-0 my-8 relative max-h-[90vh] flex flex-col"
+            >
+              {/* Cover Image & Close */}
+              <div className="relative h-64 bg-slate-900 shrink-0">
+                {modalCombo.imageUrl ? (
+                  <img src={modalCombo.imageUrl} alt={modalCombo.title} className="w-full h-full object-cover" />
+                ) : modalCombo.products && modalCombo.products.length > 0 ? (
+                  <div className="grid grid-cols-2 h-full gap-1 bg-slate-800">
+                    {modalCombo.products.slice(0, 4).map((p, idx) => (
+                      <img key={p.id || idx} src={p.images?.[0] || ''} alt={p.name} className="w-full h-full object-cover" />
+                    ))}
+                  </div>
+                ) : null}
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent" />
+
+                <button
+                  onClick={() => setModalCombo(null)}
+                  className="absolute top-3 right-3 bg-slate-950/60 hover:bg-slate-950 text-white rounded-full p-2 backdrop-blur-md cursor-pointer transition-transform hover:scale-110"
+                >
+                  <span className="font-bold text-base leading-none">✕</span>
+                </button>
+
+                <div className="absolute bottom-4 left-6 right-6 text-white space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className="bg-amber-500 text-white font-black text-xs px-3 py-1 rounded-full uppercase tracking-wider">
+                      {modalCombo.badge || 'COMBO OFFER'}
+                    </span>
+                    {modalCombo.freeDelivery && (
+                      <span className="bg-emerald-600 text-white font-black text-xs px-3 py-1 rounded-full">
+                        🚚 FREE DELIVERY INCLUDED
+                      </span>
+                    )}
+                    {discount > 0 && (
+                      <span className="bg-rose-600 text-white font-black text-xs px-3 py-1 rounded-full">
+                        {discount}% OFF
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-2xl sm:text-3xl font-black font-display drop-shadow-md">
+                    {modalCombo.title}
+                  </h3>
+                  {modalCombo.subtitle && (
+                    <p className="text-xs text-amber-200 font-medium">
+                      {modalCombo.subtitle}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 overflow-y-auto space-y-5 flex-1 text-xs">
+                {/* Savings Callout */}
+                {savings > 0 && (
+                  <div className="bg-gradient-to-r from-emerald-500 to-emerald-700 text-white p-4 rounded-2xl shadow-md flex items-center justify-between font-bold">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">🎉</span>
+                      <div>
+                        <p className="text-sm font-black">Nursery Direct Special Discount!</p>
+                        <p className="text-xs text-emerald-100 font-medium">You save ₹{savings} compared to buying saplings individually</p>
+                      </div>
+                    </div>
+                    <span className="text-xl font-black bg-white/20 px-3 py-1.5 rounded-xl border border-white/30 shrink-0">
+                      {discount}% OFF
+                    </span>
+                  </div>
+                )}
+
+                {/* Included Plants Section */}
+                <div className="space-y-3">
+                  <h4 className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
+                    <span>🌿 Included Saplings in this Package ({modalCombo.products?.length || 0})</span>
+                  </h4>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {modalCombo.products?.map(p => (
+                      <div
+                        key={p.id}
+                        onClick={() => {
+                          if (onSelectProduct) onSelectProduct(p);
+                          setModalCombo(null);
+                        }}
+                        className="bg-slate-50 hover:bg-emerald-50/60 p-3 rounded-2xl border border-slate-200 hover:border-emerald-300 transition-all flex items-center gap-3 cursor-pointer group"
+                      >
+                        <img
+                          src={p.images?.[0] || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=200&q=80'}
+                          alt={p.name}
+                          className="w-14 h-14 rounded-xl object-cover border border-slate-200 shrink-0 group-hover:scale-105 transition-transform"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <h5 className="font-bold text-slate-900 text-xs truncate group-hover:text-emerald-800">{p.name}</h5>
+                          <p className="text-[10px] text-slate-400 font-medium truncate">{p.tamilName}</p>
+                          <div className="flex items-center justify-between mt-1">
+                            <span className="text-[10px] text-emerald-700 font-bold bg-white px-2 py-0.5 rounded border border-slate-200">
+                              {p.potSize || 'Bag Plant'}
+                            </span>
+                            <span className="font-mono font-bold text-slate-900 text-xs">₹{p.sellingPrice}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Benefits List */}
+                <div className="grid grid-cols-2 gap-3 pt-2 text-[11px] font-bold text-slate-700">
+                  <div className="flex items-center gap-2 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200">
+                    <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
+                    <span>7-Day Root Moisture Moisturelock</span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-amber-50 p-2.5 rounded-xl border border-amber-200">
+                    <Truck className="w-4 h-4 text-amber-700 shrink-0" />
+                    <span>Safe All-India Express Delivery</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer CTA */}
+              <div className="p-4 bg-slate-50 border-t border-slate-200 shrink-0 flex items-center justify-between gap-4">
+                <div>
+                  <span className="text-[11px] text-slate-500 font-bold block">Combo Package Price</span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-2xl font-black text-slate-900">₹{modalCombo.comboPrice}</span>
+                    {modalCombo.originalPrice > modalCombo.comboPrice && (
+                      <span className="text-xs text-slate-400 font-bold line-through">₹{modalCombo.originalPrice}</span>
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  onClick={(e) => {
+                    handleAddComboToCart(modalCombo, e);
+                    setModalCombo(null);
+                  }}
+                  disabled={isJustAdded}
+                  className="py-3 px-6 bg-gradient-to-r from-emerald-700 via-emerald-800 to-amber-700 hover:from-emerald-800 hover:to-amber-800 text-white font-extrabold text-xs rounded-2xl shadow-md flex items-center gap-2 cursor-pointer transition-all active:scale-95"
+                >
+                  <ShoppingBag className="w-4 h-4" />
+                  <span>Add All {modalCombo.products?.length || 0} Saplings to Cart</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </section>
   );
 };

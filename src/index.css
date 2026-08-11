@@ -1,5 +1,5 @@
-@import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;1,400;1,600&family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Tamil:wght@400;500;600&display=swap');
+@import "tailwindcss";
 
 /* ============================================================
    VEERIKA ROSE GARDEN — BRIGHT BOTANICAL DESIGN SYSTEM
@@ -1193,4 +1193,115 @@ body {
     display: none !important;
   }
 }
+
+/* ============================================================
+   3D VISUAL SYSTEM & EFFECTS
+   ============================================================ */
+
+.card-3d-wrapper {
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+.shadow-3d-emerald {
+  box-shadow: 
+    0 10px 30px -10px rgba(22, 163, 74, 0.25),
+    0 4px 12px rgba(22, 163, 74, 0.12),
+    0 20px 40px -15px rgba(0, 0, 0, 0.08);
+}
+
+.shadow-3d-rose {
+  box-shadow: 
+    0 10px 30px -10px rgba(244, 63, 94, 0.3),
+    0 4px 12px rgba(244, 63, 94, 0.15),
+    0 20px 40px -15px rgba(0, 0, 0, 0.1);
+}
+
+.shadow-3d-amber {
+  box-shadow: 
+    0 10px 30px -10px rgba(245, 158, 11, 0.35),
+    0 4px 12px rgba(245, 158, 11, 0.15);
+}
+
+.shadow-3d-depth {
+  box-shadow: 
+    0 20px 40px -15px rgba(15, 23, 42, 0.12),
+    0 8px 16px -6px rgba(15, 23, 42, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.glass-card-3d {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 
+    0 20px 50px rgba(22, 163, 74, 0.12),
+    inset 0 1px 1px rgba(255, 255, 255, 0.8);
+}
+
+.btn-3d-emerald {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.35), 0 2px 0 #14532d;
+  transition: all 0.15s ease;
+  transform: translateY(0);
+}
+.btn-3d-emerald:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 20px rgba(22, 163, 74, 0.45), 0 3px 0 #14532d;
+}
+.btn-3d-emerald:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.3), 0 0 0 #14532d;
+}
+
+.btn-3d-rose {
+  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 14px rgba(244, 63, 94, 0.35), 0 2px 0 #9f1239;
+  transition: all 0.15s ease;
+  transform: translateY(0);
+}
+.btn-3d-rose:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 20px rgba(244, 63, 94, 0.45), 0 3px 0 #9f1239;
+}
+.btn-3d-rose:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 6px rgba(244, 63, 94, 0.3), 0 0 0 #9f1239;
+}
+
+.badge-3d-gold {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+  transform: translateZ(20px);
+}
+
+.badge-3d-emerald {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+  transform: translateZ(20px);
+}
+
+@keyframes float3D {
+  0%, 100% {
+    transform: translateY(0px) rotateX(0deg) rotateY(0deg) translateZ(0px);
+  }
+  50% {
+    transform: translateY(-10px) rotateX(4deg) rotateY(-4deg) translateZ(20px);
+  }
+}
+
+.animate-float-3d {
+  animation: float3D 6s ease-in-out infinite;
+  transform-style: preserve-3d;
+}
+
 

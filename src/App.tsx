@@ -22,6 +22,7 @@ import { PoliciesPage } from './pages/PoliciesPage';
 import { AdminPage } from './pages/AdminPage';
 import { AdminLoginForm } from './components/AdminLoginForm';
 import { INITIAL_PRODUCTS, INITIAL_CATEGORIES } from './data/catalogData';
+import { INITIAL_REVIEWS } from './data/reviewsData';
 import { calculateDeliveryFee } from './utils/delivery';
 
 export const App: React.FC = () => {
@@ -137,7 +138,18 @@ export const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
   const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
   const [banners, setBanners] = useState<Banner[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const getInitialReviews = (): Review[] => {
+    try {
+      const saved = localStorage.getItem('vrg_reviews');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return INITIAL_REVIEWS;
+  };
+
+  const [reviews, setReviews] = useState<Review[]>(getInitialReviews);
   const getInitialUserOrders = (): Order[] => {
     let localOrders: Order[] = [];
     const keysToRead = ['vrg_user_orders', 'veerika_customer_orders'];
@@ -789,6 +801,7 @@ export const App: React.FC = () => {
             products={products}
             categories={categories}
             banners={banners}
+            reviews={reviews}
             onAddToCart={handleAddToCart}
             onViewDetails={(product) => {
               navigateTo('product-detail', { product });
