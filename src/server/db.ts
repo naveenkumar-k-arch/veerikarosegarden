@@ -5201,6 +5201,9 @@ class Store {
         phonepeSaltKey: s.phonepeSaltKey,
         phonepeSaltIndex: s.phonepeSaltIndex,
         phonepeEnv: s.phonepeEnv as 'SANDBOX' | 'PRODUCTION',
+        enableRazorpay: (s as any).enableRazorpay ?? meta.enableRazorpay,
+        razorpayKeyId: (s as any).razorpayKeyId ?? '',
+        razorpayKeySecret: (s as any).razorpayKeySecret ?? '',
         // Meta fields packed inside workingHours JSON — always override memory/defaults
         ...(meta.enableRazorpay !== undefined && { enableRazorpay: meta.enableRazorpay }),
         ...(meta.enablePhonePe !== undefined && { enablePhonePe: meta.enablePhonePe }),
@@ -5263,7 +5266,10 @@ class Store {
             phonepeMerchantId: merged.phonepeMerchantId,
             phonepeSaltKey: merged.phonepeSaltKey,
             phonepeSaltIndex: merged.phonepeSaltIndex,
-            phonepeEnv: merged.phonepeEnv
+            phonepeEnv: merged.phonepeEnv,
+            ...(merged.enableRazorpay !== undefined && { enableRazorpay: merged.enableRazorpay }),
+            ...(merged.razorpayKeyId !== undefined && { razorpayKeyId: merged.razorpayKeyId }),
+            ...(merged.razorpayKeySecret !== undefined && { razorpayKeySecret: merged.razorpayKeySecret })
           },
           create: {
             id: 'default',
@@ -5281,7 +5287,10 @@ class Store {
             phonepeMerchantId: merged.phonepeMerchantId,
             phonepeSaltKey: merged.phonepeSaltKey,
             phonepeSaltIndex: merged.phonepeSaltIndex,
-            phonepeEnv: merged.phonepeEnv
+            phonepeEnv: merged.phonepeEnv,
+            ...(merged.enableRazorpay !== undefined && { enableRazorpay: merged.enableRazorpay }),
+            ...(merged.razorpayKeyId !== undefined && { razorpayKeyId: merged.razorpayKeyId }),
+            ...(merged.razorpayKeySecret !== undefined && { razorpayKeySecret: merged.razorpayKeySecret })
           }
         });
 

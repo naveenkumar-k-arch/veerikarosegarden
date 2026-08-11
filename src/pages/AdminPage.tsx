@@ -747,9 +747,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser }
         body: JSON.stringify(settings)
       });
       const data = await res.json();
-      if (data.success) {
+      if (data.success && data.settings) {
         setSettingsMsg('✅ Settings saved successfully!');
-        fetchData();
+        setSettings(data.settings);
       } else {
         setSettingsMsg(`❌ ${data.message || 'Failed to save settings'}`);
       }
