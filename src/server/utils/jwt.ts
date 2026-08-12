@@ -26,7 +26,7 @@ export function generateAccessToken(user: { id: string; email: string; role: Rol
   };
 
   const token = jwt.sign(payload, AUTH_CONFIG.jwtAccessSecret as jwt.Secret, {
-    expiresIn: '15m',
+    expiresIn: '7d',
     issuer: AUTH_CONFIG.issuer,
     audience: AUTH_CONFIG.audience
   });

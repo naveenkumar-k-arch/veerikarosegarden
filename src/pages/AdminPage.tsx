@@ -662,9 +662,12 @@ const silentRefresh = async (): Promise<boolean> => {
           }
         }
         if (!data.success || !data.user || !['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(data.user.role)) {
-          console.warn('[SECURITY] Unauthenticated or unauthorized access to Admin Dashboard. Redirecting.');
-          localStorage.removeItem('vrg_user');
-          onBackToStore();
+          const storedUser = JSON.parse(localStorage.getItem('vrg_user') || 'null');
+          if (!storedUser || !['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(storedUser.role)) {
+            console.warn('[SECURITY] Unauthenticated or unauthorized access to Admin Dashboard. Redirecting.');
+            localStorage.removeItem('vrg_user');
+            onBackToStore();
+          }
         }
       } catch {
         // If backend auth check fails, fallback to standard error handling in authFetch

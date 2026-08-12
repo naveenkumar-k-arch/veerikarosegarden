@@ -31,6 +31,7 @@ export const AdminLoginForm: React.FC<AdminLoginFormProps> = ({ onLoginSuccess, 
       const data = await res.json();
 
       if (data.success && data.user && (data.user.role === 'SUPER_ADMIN' || data.user.role === 'ADMIN' || data.user.role === 'MANAGER')) {
+        localStorage.setItem('vrg_user', JSON.stringify(data.user));
         if (rememberMe) {
           localStorage.setItem('vrg_admin_email', data.user.email);
           localStorage.setItem('vrg_admin_role', data.user.role);
