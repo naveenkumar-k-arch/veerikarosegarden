@@ -68,6 +68,7 @@ export interface MobileAdminWorkflowProps {
   onSaveCoupon?: (coupon: any) => Promise<void>;
   onDeleteCoupon?: (id: string) => Promise<void>;
   onSaveSettings?: (settings: any) => Promise<void>;
+  onOpenDesktopTab?: (tabKey: string) => void;
   onBackToStore: () => void;
   onLogout?: () => void;
 }
@@ -111,6 +112,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   onSaveCoupon,
   onDeleteCoupon,
   onSaveSettings,
+  onOpenDesktopTab,
   onBackToStore,
   onLogout
 }) => {
