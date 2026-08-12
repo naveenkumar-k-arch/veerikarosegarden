@@ -538,10 +538,14 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
         const dataUrl = await processLocalImageFile(files[i]);
         if (dataUrl) newImages.push(dataUrl);
       }
-      setProdForm(prev => ({
-        ...prev,
-        images: [...(prev.images || []), ...newImages]
-      }));
+      setProdForm(prev => {
+        const currentImgs = prev.images || [];
+        const isDefaultOnly = currentImgs.length === 1 && currentImgs[0].includes('unsplash.com');
+        return {
+          ...prev,
+          images: isDefaultOnly ? newImages : [...currentImgs, ...newImages]
+        };
+      });
     } catch (err: any) {
       alert(err?.message || 'Failed to process local image file');
     } finally {
@@ -552,10 +556,14 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
 
   const handleAddProdUrlImage = () => {
     if (!prodUrlInput.trim()) return;
-    setProdForm(prev => ({
-      ...prev,
-      images: [...(prev.images || []), prodUrlInput.trim()]
-    }));
+    setProdForm(prev => {
+      const currentImgs = prev.images || [];
+      const isDefaultOnly = currentImgs.length === 1 && currentImgs[0].includes('unsplash.com');
+      return {
+        ...prev,
+        images: isDefaultOnly ? [prodUrlInput.trim()] : [...currentImgs, prodUrlInput.trim()]
+      };
+    });
     setProdUrlInput('');
   };
 
