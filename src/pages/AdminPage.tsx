@@ -3865,18 +3865,18 @@ const silentRefresh = async (): Promise<boolean> => {
 
       {/* Add / Edit Product Modal */}
       {showProductModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-6 space-y-4 my-8 border border-slate-200 shadow-2xl">
-            <div className="flex justify-between items-center border-b border-slate-200 pb-3">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-4 sm:p-6 my-auto border border-slate-200 shadow-2xl max-h-[92vh] sm:max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="flex justify-between items-center border-b border-slate-200 pb-3 shrink-0">
               <h3 className="font-bold text-base text-slate-900">
                 {editingProduct ? 'Edit Nursery Plant' : 'Add New Nursery Plant'}
               </h3>
-              <button onClick={() => setShowProductModal(false)} className="p-1 text-slate-400 hover:text-slate-800">
+              <button onClick={() => setShowProductModal(false)} className="p-1 text-slate-400 hover:text-slate-800 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveProduct} className="space-y-3 text-xs">
+            <form onSubmit={handleSaveProduct} className="space-y-3.5 text-xs overflow-y-auto pr-1 flex-1">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">Plant English Name *</label>

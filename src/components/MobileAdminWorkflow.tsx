@@ -3162,13 +3162,13 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
       {/* 14. ADD/EDIT PRODUCT MODAL                                 */}
       {/* ========================================================= */}
       {showProductModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden border border-slate-200 max-h-[90vh] flex flex-col">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden border border-slate-200 max-h-[92vh] sm:max-h-[90vh] flex flex-col">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between shrink-0">
               <h3 className="font-extrabold text-sm text-slate-900">
                 {editingProduct ? 'Edit Plant' : 'Add New Plant'}
               </h3>
-              <button onClick={() => setShowProductModal(false)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100">
+              <button onClick={() => setShowProductModal(false)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
