@@ -638,8 +638,10 @@ const silentRefresh = async (): Promise<boolean> => {
     return res;
   };
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (isInitial = false) => {
+    if (isInitial && orders.length === 0 && products.length === 0) {
+      setLoading(true);
+    }
     try {
       const bRes = await authFetch('/api/admin/bootstrap').then((r) => r.json()).catch(() => null);
 
@@ -710,6 +712,8 @@ const silentRefresh = async (): Promise<boolean> => {
     localStorage.removeItem('vrg_deleted_coupons');
     localStorage.removeItem('vrg_deleted_finances');
 
+    fetchData(true);
+
     // Security Re-validation: Verify session token server-side on mount with auto-refresh support
     const verifySession = async () => {
       try {
@@ -737,7 +741,6 @@ const silentRefresh = async (): Promise<boolean> => {
     };
     verifySession();
 
-    fetchData();
     // Poll every 30 seconds
     const interval = setInterval(() => {
       fetchData();

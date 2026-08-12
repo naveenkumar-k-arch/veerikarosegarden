@@ -821,11 +821,11 @@ apiRouter.get('/admin/dashboard', requireAdmin, async (req: AuthenticatedRequest
 
 apiRouter.get('/admin/bootstrap', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
+    const orders = await db.getOrders().catch(() => []);
     const [
       stats,
       products,
       categories,
-      orders,
       coupons,
       banners,
       reviews,
@@ -834,10 +834,9 @@ apiRouter.get('/admin/bootstrap', requireAdmin, async (req: AuthenticatedRequest
       finances,
       combos
     ] = await Promise.all([
-      db.getDashboardStats().catch(() => null),
+      db.getDashboardStats(orders).catch(() => null),
       db.getProducts().catch(() => []),
       db.getCategories().catch(() => []),
-      db.getOrders().catch(() => []),
       db.getCoupons().catch(() => []),
       db.getBanners().catch(() => []),
       db.getReviews().catch(() => []),

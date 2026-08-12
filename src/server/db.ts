@@ -5880,7 +5880,7 @@ class Store {
   }
 
   // DASHBOARD STATS
-  async getDashboardStats() {
+  async getDashboardStats(existingOrders?: Order[]) {
     const isRevenueOrder = (o: any) => {
       const pStatus = (o.paymentStatus || '').toString().toUpperCase();
       const oStatus = (o.orderStatus || o.status || '').toString().toUpperCase();
@@ -5889,7 +5889,7 @@ class Store {
 
     const prisma = getPrismaClient();
     if (!prisma) {
-      const allOrders = this.memoryOrders;
+      const allOrders = existingOrders || this.memoryOrders;
       const paidOrders = allOrders.filter(isRevenueOrder);
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
@@ -5910,15 +5910,16 @@ class Store {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
 
-      // Execute all 7 DB queries concurrently in parallel
+      const recentOrdersList = existingOrders || await this.getOrders();
+
+      // Execute all 6 DB queries concurrently in parallel
       const [
         totalOrders,
         revenueAgg,
         todayAgg,
         pendingOrders,
         completedOrders,
-        lowStockInventories,
-        recentOrdersList
+        lowStockInventories
       ] = await Promise.all([
         prisma.order.count(),
         prisma.order.aggregate({
@@ -5949,8 +5950,7 @@ class Store {
         prisma.inventory.findMany({
           where: { quantity: { lte: 10 } },
           include: { product: true }
-        }),
-        this.getOrders()
+        })
       ]);
 
       let totalRevenue = revenueAgg._sum.totalAmount || 0;
