@@ -4786,6 +4786,30 @@ class Store {
     }
   }
 
+  async deleteBanner(id: string): Promise<boolean> {
+    const prisma = getPrismaClient();
+    if (prisma) {
+      try {
+        await prisma.banner.delete({
+          where: { id }
+        });
+        return true;
+      } catch (err) {
+        // Fallback: mark active = false if delete by id fails
+        try {
+          await prisma.banner.update({
+            where: { id },
+            data: { active: false }
+          });
+          return true;
+        } catch (e2) {
+          console.error('Prisma deleteBanner error:', err);
+        }
+      }
+    }
+    return false;
+  }
+
   // COUPONS
   async getCoupons(): Promise<Coupon[]> {
     const prisma = getPrismaClient();

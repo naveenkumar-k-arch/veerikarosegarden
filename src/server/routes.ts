@@ -314,6 +314,24 @@ apiRouter.post('/banners', requireAdmin, async (req: AuthenticatedRequest, res) 
   }
 });
 
+apiRouter.delete('/banners/:id', requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    await db.deleteBanner(req.params.id);
+    res.json({ success: true, message: 'Banner deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+apiRouter.delete('/admin/banners/:id', requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    await db.deleteBanner(req.params.id);
+    res.json({ success: true, message: 'Banner deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // Admin: Seed default banners and sample coupons into DB
 apiRouter.post('/admin/seed', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
