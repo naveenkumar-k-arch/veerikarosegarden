@@ -28,8 +28,10 @@ import {
   Settings as SettingsIcon,
   ShieldCheck,
   LogOut,
-  Monitor,
-  X
+  X,
+  Send,
+  Box,
+  CheckCircle
 } from 'lucide-react';
 import { A4LabelSheetPrint } from './A4LabelSheetPrint';
 
@@ -38,20 +40,18 @@ export interface MobileAdminWorkflowProps {
   products: Product[];
   categories: Category[];
   reviews: Review[];
-  adminUser?: { id: string; name: string; email: string; role: string } | null;
-  onUpdateOrderStatus: (orderId: string, newStatus: string, paymentStatus?: string) => Promise<void>;
-  onSaveTracking: (orderId: string, trackingData: { courierName: string; trackingNumber: string; deliveryNotes?: string }) => Promise<void>;
+  adminUser?: any;
+  onUpdateOrderStatus: (orderId: string, status: string, paymentStatus?: string) => Promise<void>;
+  onSaveTracking: (orderId: string, data: { courierName: string; trackingNumber: string; trackingLink?: string }) => Promise<void>;
   onBackToStore: () => void;
   onOpenDesktopTab?: (tabKey: string) => void;
   onLogout?: () => void;
 }
 
-type ScreenType =
+export type ScreenType =
   | 'dashboard'
-  | 'orders_new'
-  | 'orders_confirmed'
-  | 'verify_payment'
-  | 'confirm_order'
+  | 'orders_list'
+  | 'order_details'
   | 'generate_labels'
   | 'dispatch_order'
   | 'order_timeline'
@@ -60,6 +60,8 @@ type ScreenType =
 export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   orders,
   products,
+  categories,
+  reviews,
   adminUser,
   onUpdateOrderStatus,
   onSaveTracking,
@@ -71,77 +73,95 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('dashboard');
   const [activeBottomTab, setActiveBottomTab] = useState<'dashboard' | 'orders' | 'labels' | 'menu'>('dashboard');
   
-  // Selected order for detailed workflow screens (Verify Payment, Confirm, Dispatch, Timeline)
+  // Selected order for detail views
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   
-  // Orders filter states
-  const [orderListFilter, setOrderListFilter] = useState<'new' | 'pending_payment' | 'all'>('new');
-  const [confirmedFilter, setConfirmedFilter] = useState<'all' | 'packing' | 'dispatched'>('all');
+  // 4 Stage Filter: 'all' | 'confirmed' | 'packing' | 'dispatched' | 'delivered'
+  const [orderStageFilter, setOrderStageFilter] = useState<'all' | 'confirmed' | 'packing' | 'dispatched' | 'delivered'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Label Generation State
   const [selectedLabelOrderIds, setSelectedLabelOrderIds] = useState<string[]>([]);
   const [showLabelPrintPreview, setShowLabelPrintPreview] = useState(false);
 
-  // WhatsApp Modal State (For Screen 6 & 11)
+  // WhatsApp Modal State
   const [whatsAppModal, setWhatsAppModal] = useState<{
     open: boolean;
-    type: 'confirmation' | 'tracking';
+    stage: 'confirmed' | 'packing' | 'dispatched' | 'delivered';
     order: Order | null;
     message: string;
     phone: string;
   } | null>(null);
   const [copiedToast, setCopiedToast] = useState(false);
 
-  // Dispatch Form State (Screen 10)
+  // Dispatch Tracking Form State
   const [dispatchForm, setDispatchForm] = useState({
     courierName: 'Delhivery',
-    dispatchId: '',
-    trackingId: '',
+    awbNumber: '',
     trackingLink: ''
   });
   const [savingDispatch, setSavingDispatch] = useState(false);
 
-  // Quick stats calculation
+  // 4-Stage Stats Calculation directly from real orders
   const stats = useMemo(() => {
-    const newOrders = orders.filter(o => o.orderStatus === 'PENDING' || !o.orderStatus);
-    const pendingPayment = orders.filter(o => o.paymentStatus === 'PENDING' || !o.paymentStatus);
     const confirmedOrders = orders.filter(o => 
       o.orderStatus === 'CONFIRMED' || 
-      o.orderStatus === 'PROCESSING' || 
-      (o.orderStatus as any) === 'PACKING' || 
-      (o.orderStatus as any) === 'PACKED'
+      o.orderStatus === 'PENDING' || 
+      !o.orderStatus
     );
-    const dispatchedOrders = orders.filter(o => o.orderStatus === 'DISPATCHED');
+    const packingOrders = orders.filter(o => 
+      o.orderStatus === 'PACKED' || 
+      o.orderStatus === 'PROCESSING'
+    );
+    const dispatchedOrders = orders.filter(o => 
+      o.orderStatus === 'DISPATCHED' || 
+      o.orderStatus === 'OUT_FOR_DELIVERY'
+    );
+    const deliveredOrders = orders.filter(o => 
+      o.orderStatus === 'DELIVERED'
+    );
 
     return {
-      newOrdersCount: newOrders.length,
-      pendingPaymentCount: pendingPayment.length,
       confirmedCount: confirmedOrders.length,
-      dispatchedCount: dispatchedOrders.length
+      packingCount: packingOrders.length,
+      dispatchedCount: dispatchedOrders.length,
+      deliveredCount: deliveredOrders.length,
+      totalCount: orders.length
     };
   }, [orders]);
 
   // Helpers for formatted dates & addresses
   const formatDate = (dateStr?: string) => {
-    const d = dateStr ? new Date(dateStr) : new Date();
-    return d.toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    });
+    if (!dateStr) return 'Recent';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return d.toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      });
+    } catch {
+      return dateStr;
+    }
   };
 
   const formatDateTime = (dateStr?: string) => {
-    const d = dateStr ? new Date(dateStr) : new Date();
-    return d.toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    });
+    if (!dateStr) return 'Just now';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return d.toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch {
+      return dateStr;
+    }
   };
 
   const formatAddress = (address: any) => {
@@ -155,12 +175,12 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
       address.state,
       address.pincode
     ].filter(Boolean);
-    return parts.join(', ');
+    return parts.length > 0 ? parts.join(', ') : 'Address not specified';
   };
 
-  // WhatsApp Message Generator (Screen 6 & 11)
-  const generateConfirmationMessage = (order: Order) => {
-    const customerName = order.customerName || order.shippingAddress?.fullName || 'Customer';
+  // WhatsApp Message Generator for 4 Stages
+  const generateWhatsAppMessage = (order: Order, stage: 'confirmed' | 'packing' | 'dispatched' | 'delivered') => {
+    const customerName = order.customerName || order.shippingAddress?.fullName || 'Valued Customer';
     const dateStr = formatDate(order.createdAt);
     
     let itemsList = '';
@@ -168,71 +188,92 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
       itemsList = order.items
         .map((item, idx) => `${idx + 1}. ${item.name} - ${item.quantity || 1} No`)
         .join('\n');
-    } else {
-      itemsList = '1. Nursery Plant Sapling - 1 No';
     }
 
-    return `🚚 Dear ${customerName},
+    if (stage === 'confirmed') {
+      return `🌿 *Veerika Rose Garden (VRG Nursery)*
+Order Confirmation 📦
 
-Thank you for your order!
-Your order has been confirmed successfully.
+Dear *${customerName}*,
+Thank you for ordering with us! Your order has been *Confirmed* successfully.
 
-📦 Order ID: ${order.id}
-📅 Date: ${dateStr}
+📋 *Order ID:* ${order.id}
+📅 *Date:* ${dateStr}
+💰 *Total Amount:* ₹${order.grandTotal}
 
-Your Ordered Plants:
-${itemsList}
+🌱 *Your Ordered Plants:*
+${itemsList || '• Nursery Plants & Garden Saplings'}
 
-We will pack your plants with care and deliver safe & fresh.
+We will pack your plants with fresh cocopeat and protective wraps.
 
 Thank you! 🌿
-- VRG Nursery`;
-  };
+*Veerika Rose Garden*`;
+    }
 
-  const generateTrackingMessage = (order: Order, courier: string, trackingId: string, trackLink: string) => {
-    const customerName = order.customerName || order.shippingAddress?.fullName || 'Customer';
-    const link = trackLink || `https://${courier.toLowerCase().replace(/\s+/g, '')}.com/track/${trackingId}`;
+    if (stage === 'packing') {
+      return `📦 *Veerika Rose Garden (VRG Nursery)*
+Nursery Packing Update 🌿
 
-    return `🚚 Dear ${customerName},
+Dear *${customerName}*,
+Your plants for *Order #${order.id}* are now in the *Nursery Packing* stage!
 
-Your order has been dispatched successfully.
+🌿 Our expert team is carefully inspecting, watering, and packing your plants with moist root balls and sturdy cardboard boxes to guarantee fresh delivery.
 
-📦 Order ID: ${order.id}
-📦 Courier: ${courier}
-📦 Tracking ID: ${trackingId}
+Your package will be handed over to the courier shortly! 🚚
 
-🔗 Track your order using the link below 👇
+Thank you!
+*Veerika Rose Garden*`;
+    }
+
+    if (stage === 'dispatched') {
+      const courier = order.courierName || dispatchForm.courierName || 'Courier Partner';
+      const awb = order.trackingNumber || dispatchForm.awbNumber || 'In Transit';
+      const link = order.deliveryNotes || dispatchForm.trackingLink || `https://www.google.com/search?q=${encodeURIComponent(courier + ' ' + awb)}`;
+
+      return `🚚 *Veerika Rose Garden (VRG Nursery)*
+Courier Dispatch & Tracking Update!
+
+Dear *${customerName}*,
+Great news! Your plant order *#${order.id}* has been *Dispatched* via courier.
+
+📦 *Courier Partner:* ${courier}
+🏷️ *AWB / Tracking No:* ${awb}
+
+🔗 *Track Shipment:*
 ${link}
 
-Thank you for shopping with VRG Nursery! 🌿`;
+Please keep your phone available during delivery.
+Thank you for choosing Veerika Rose Garden! 🌿`;
+    }
+
+    // Delivered
+    return `🌸 *Veerika Rose Garden (VRG Nursery)*
+Delivered with Care! 🪴
+
+Dear *${customerName}*,
+Your order *#${order.id}* has been *Delivered* successfully!
+
+🌱 *Quick Plant Care Tips:*
+1. Unbox your plants gently in a shaded area.
+2. Water the roots moderately and allow them to rest for 24 hours before repotting.
+3. Keep away from harsh direct afternoon sunlight for the first 3 days.
+
+We would love your feedback! Please visit us again. 🌿
+*Veerika Rose Garden*`;
   };
 
-  const handleOpenWhatsAppConfirmation = (order: Order) => {
-    const msg = generateConfirmationMessage(order);
+  const handleOpenWhatsApp = (order: Order, stage: 'confirmed' | 'packing' | 'dispatched' | 'delivered') => {
+    const msg = generateWhatsAppMessage(order, stage);
     const rawPhone = order.customerPhone || order.shippingAddress?.phone || '';
     const phone = rawPhone.replace(/[^0-9]/g, '');
-    setWhatsAppModal({
-      open: true,
-      type: 'confirmation',
-      order,
-      message: msg,
-      phone: phone.startsWith('91') ? phone : `91${phone}`
-    });
-  };
+    const cleanPhone = phone.startsWith('91') ? phone : `91${phone}`;
 
-  const handleOpenWhatsAppTracking = (order: Order) => {
-    const courier = order.courierName || 'Delhivery';
-    const trackId = order.trackingNumber || '1234567890123';
-    const trackLink = order.deliveryNotes?.includes('http') ? order.deliveryNotes : `https://delhivery.com/track/${trackId}`;
-    const msg = generateTrackingMessage(order, courier, trackId, trackLink);
-    const rawPhone = order.customerPhone || order.shippingAddress?.phone || '';
-    const phone = rawPhone.replace(/[^0-9]/g, '');
     setWhatsAppModal({
       open: true,
-      type: 'tracking',
+      stage,
       order,
       message: msg,
-      phone: phone.startsWith('91') ? phone : `91${phone}`
+      phone: cleanPhone
     });
   };
 
@@ -251,148 +292,103 @@ Thank you for shopping with VRG Nursery! 🌿`;
     }
   };
 
-  // Tracking link auto-generator helper
-  const handleCourierChange = (courier: string) => {
-    setDispatchForm(prev => {
-      let link = '';
-      const tid = prev.trackingId || prev.dispatchId;
-      if (tid) {
-        if (courier === 'Delhivery') link = `https://delhivery.com/track/${tid}`;
-        else if (courier === 'ST Courier') link = `https://stcourier.com/track/${tid}`;
-        else if (courier === 'Professional Courier') link = `https://www.tpcindia.com/track.aspx?docno=${tid}`;
-        else if (courier === 'DTDC') link = `https://www.dtdc.in/tracking/tracking_results.asp?Tid=${tid}`;
-        else if (courier === 'India Post') link = `https://www.indiapost.gov.in/`;
-        else link = `https://${courier.toLowerCase().replace(/\s+/g, '')}.com/track/${tid}`;
-      }
-      return { ...prev, courierName: courier, trackingLink: link };
-    });
-  };
-
+  // Tracking link helper
   const handleAwbChange = (awb: string) => {
     setDispatchForm(prev => {
-      let link = prev.trackingLink;
+      let link = '';
       if (prev.courierName === 'Delhivery') link = `https://delhivery.com/track/${awb}`;
       else if (prev.courierName === 'ST Courier') link = `https://stcourier.com/track/${awb}`;
       else if (prev.courierName === 'Professional Courier') link = `https://www.tpcindia.com/track.aspx?docno=${awb}`;
       else if (prev.courierName === 'DTDC') link = `https://www.dtdc.in/tracking/tracking_results.asp?Tid=${awb}`;
+      else if (prev.courierName === 'India Post') link = `https://www.indiapost.gov.in/`;
       return {
         ...prev,
-        dispatchId: awb,
-        trackingId: awb,
+        awbNumber: awb,
         trackingLink: link
       };
     });
   };
 
-  // Filtering orders for Screen 3 & Screen 7
-  const filteredOrders = useMemo(() => {
-    let list = [...orders];
-
-    if (currentScreen === 'orders_new') {
-      if (orderListFilter === 'new') {
-        list = list.filter(o => o.orderStatus === 'PENDING' || !o.orderStatus);
-      } else if (orderListFilter === 'pending_payment') {
-        list = list.filter(o => o.paymentStatus === 'PENDING' || !o.paymentStatus);
-      }
-    } else if (currentScreen === 'orders_confirmed') {
-      if (confirmedFilter === 'all') {
-        list = list.filter(o => 
-          o.orderStatus === 'CONFIRMED' || 
-          o.orderStatus === 'PROCESSING' || 
-          (o.orderStatus as any) === 'PACKING' || 
-          (o.orderStatus as any) === 'PACKED' ||
-          o.orderStatus === 'DISPATCHED'
-        );
-      } else if (confirmedFilter === 'packing') {
-        list = list.filter(o => o.orderStatus === 'PROCESSING' || (o.orderStatus as any) === 'PACKING' || (o.orderStatus as any) === 'PACKED');
-      } else if (confirmedFilter === 'dispatched') {
-        list = list.filter(o => o.orderStatus === 'DISPATCHED');
-      }
-    }
-
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      list = list.filter(o => 
-        o.id?.toLowerCase().includes(q) ||
-        o.customerName?.toLowerCase().includes(q) ||
-        o.customerPhone?.includes(q)
-      );
-    }
-
-    return list;
-  }, [orders, currentScreen, orderListFilter, confirmedFilter, searchQuery]);
-
-  // Handle Verify Payment Action (Screen 4 -> Screen 5)
-  const handleVerifyPayment = async () => {
-    if (!selectedOrder) return;
-    try {
-      await onUpdateOrderStatus(selectedOrder.id, 'PROCESSING', 'SUCCESS');
-      const updatedOrder = { ...selectedOrder, paymentStatus: 'SUCCESS' as const, orderStatus: 'PROCESSING' as const };
-      setSelectedOrder(updatedOrder);
-      setCurrentScreen('confirm_order');
-    } catch (e) {
-      console.error('Failed to verify payment', e);
-    }
-  };
-
-  // Handle Confirm Order Action (Screen 5 -> Screen 7)
-  const handleConfirmOrder = async () => {
-    if (!selectedOrder) return;
-    try {
-      await onUpdateOrderStatus(selectedOrder.id, 'PROCESSING', 'SUCCESS');
-      const updatedOrder = { ...selectedOrder, orderStatus: 'PROCESSING' as const };
-      setSelectedOrder(updatedOrder);
-      // Auto preselect in label generation list
-      setSelectedLabelOrderIds(prev => Array.from(new Set([...prev, updatedOrder.id])));
-      setCurrentScreen('orders_confirmed');
-    } catch (e) {
-      console.error('Failed to confirm order', e);
-    }
-  };
-
-  // Handle Save Dispatch Action (Screen 10 -> Screen 11)
+  // Save Dispatch Tracking
   const handleSaveDispatch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedOrder) return;
     setSavingDispatch(true);
-
     try {
-      const courier = dispatchForm.courierName || 'Delhivery';
-      const tracking = dispatchForm.trackingId || dispatchForm.dispatchId || '1234567890123';
-      const link = dispatchForm.trackingLink || `https://delhivery.com/track/${tracking}`;
-
       await onSaveTracking(selectedOrder.id, {
-        courierName: courier,
-        trackingNumber: tracking,
-        deliveryNotes: link
+        courierName: dispatchForm.courierName,
+        trackingNumber: dispatchForm.awbNumber,
+        trackingLink: dispatchForm.trackingLink
       });
-
+      await onUpdateOrderStatus(selectedOrder.id, 'DISPATCHED');
+      
       const updated = {
         ...selectedOrder,
         orderStatus: 'DISPATCHED' as const,
-        courierName: courier,
-        trackingNumber: tracking,
-        deliveryNotes: link
+        courierName: dispatchForm.courierName,
+        trackingNumber: dispatchForm.awbNumber,
+        deliveryNotes: dispatchForm.trackingLink
       };
       setSelectedOrder(updated);
       setSavingDispatch(false);
 
-      // Open WhatsApp tracking preview directly (Screen 11)
-      handleOpenWhatsAppTracking(updated);
+      // Open WhatsApp Dispatched notification preview
+      handleOpenWhatsApp(updated, 'dispatched');
     } catch (e) {
       console.error('Failed to save dispatch tracking', e);
       setSavingDispatch(false);
     }
   };
 
-  // Orders selected for label printing
+  // 4 Stage Filter logic
+  const filteredOrders = useMemo(() => {
+    let list = [...orders];
+
+    if (orderStageFilter === 'confirmed') {
+      list = list.filter(o => 
+        o.orderStatus === 'CONFIRMED' || 
+        o.orderStatus === 'PENDING' || 
+        !o.orderStatus
+      );
+    } else if (orderStageFilter === 'packing') {
+      list = list.filter(o => 
+        o.orderStatus === 'PACKED' || 
+        o.orderStatus === 'PROCESSING'
+      );
+    } else if (orderStageFilter === 'dispatched') {
+      list = list.filter(o => 
+        o.orderStatus === 'DISPATCHED' || 
+        o.orderStatus === 'OUT_FOR_DELIVERY'
+      );
+    } else if (orderStageFilter === 'delivered') {
+      list = list.filter(o => 
+        o.orderStatus === 'DELIVERED'
+      );
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter(o => 
+        o.id.toLowerCase().includes(q) ||
+        (o.customerName && o.customerName.toLowerCase().includes(q)) ||
+        (o.shippingAddress?.fullName && o.shippingAddress.fullName.toLowerCase().includes(q)) ||
+        (o.customerPhone && o.customerPhone.includes(q)) ||
+        (o.shippingAddress?.phone && o.shippingAddress.phone.includes(q))
+      );
+    }
+
+    return list;
+  }, [orders, orderStageFilter, searchQuery]);
+
+  // Selected orders for label sheet printing
   const selectedLabelOrders = useMemo(() => {
     return orders.filter(o => selectedLabelOrderIds.includes(o.id));
   }, [orders, selectedLabelOrderIds]);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800 pb-20">
-      {/* Top Mobile Brand Header (matching mockups) */}
+      
+      {/* Top Mobile Clean Header */}
       <header className="bg-white border-b border-slate-200/90 px-4 py-3 sticky top-0 z-30 flex items-center justify-between shadow-2xs">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-800">
@@ -417,113 +413,129 @@ Thank you for shopping with VRG Nursery! 🌿`;
       <main className="flex-1 max-w-md w-full mx-auto px-4 py-4 space-y-4">
         
         {/* ========================================================= */}
-        {/* SCREEN 2: DASHBOARD (matching 2.jpeg)                     */}
+        {/* 1. DASHBOARD (4 Key Stages: Confirmed, Packing, Courier, Delivered) */}
         {/* ========================================================= */}
         {currentScreen === 'dashboard' && (
           <div className="space-y-5 animate-in fade-in duration-150">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-extrabold text-slate-900">Dashboard</h2>
               {adminUser && (
-                <span className="text-[11px] font-bold bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded-full">
-                  Admin: {adminUser.name?.split(' ')[0]}
+                <span className="text-[11px] font-bold bg-emerald-100 text-emerald-900 px-2.5 py-0.5 rounded-full">
+                  Admin: {adminUser.name?.split(' ')[0] || 'Admin'}
                 </span>
               )}
             </div>
 
-            {/* 4 Status KPI Metric Cards (2x2 Grid) */}
+            {/* 4 Status KPI Metric Cards (2x2 Grid matching the 4 Web Stages) */}
             <div className="grid grid-cols-2 gap-3">
-              {/* 1. New Orders */}
+              
+              {/* Stage 1: Order Confirmed */}
               <button
                 onClick={() => {
-                  setOrderListFilter('new');
-                  setCurrentScreen('orders_new');
-                  setActiveBottomTab('orders');
-                }}
-                className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-rose-300 text-left transition-all active:scale-[0.98] cursor-pointer"
-              >
-                <span className="text-xs font-semibold text-slate-600 block">New Orders</span>
-                <span className="text-2xl font-black text-rose-600 block mt-1">
-                  {stats.newOrdersCount}
-                </span>
-              </button>
-
-              {/* 2. Pending Payment */}
-              <button
-                onClick={() => {
-                  setOrderListFilter('pending_payment');
-                  setCurrentScreen('orders_new');
-                  setActiveBottomTab('orders');
-                }}
-                className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-amber-300 text-left transition-all active:scale-[0.98] cursor-pointer"
-              >
-                <span className="text-xs font-semibold text-slate-600 block">Pending Payment</span>
-                <span className="text-2xl font-black text-amber-500 block mt-1">
-                  {stats.pendingPaymentCount}
-                </span>
-              </button>
-
-              {/* 3. Confirmed Orders */}
-              <button
-                onClick={() => {
-                  setConfirmedFilter('all');
-                  setCurrentScreen('orders_confirmed');
+                  setOrderStageFilter('confirmed');
+                  setCurrentScreen('orders_list');
                   setActiveBottomTab('orders');
                 }}
                 className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-emerald-300 text-left transition-all active:scale-[0.98] cursor-pointer"
               >
-                <span className="text-xs font-semibold text-slate-600 block">Confirmed Orders</span>
-                <span className="text-2xl font-black text-emerald-600 block mt-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-600">Order Confirmed</span>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                </div>
+                <span className="text-2xl font-black text-emerald-700 block mt-1">
                   {stats.confirmedCount}
                 </span>
+                <span className="text-[10px] text-slate-400 font-medium">Ready for packing</span>
               </button>
 
-              {/* 4. Dispatched Orders */}
+              {/* Stage 2: Nursery Packing */}
               <button
                 onClick={() => {
-                  setConfirmedFilter('dispatched');
-                  setCurrentScreen('orders_confirmed');
+                  setOrderStageFilter('packing');
+                  setCurrentScreen('orders_list');
+                  setActiveBottomTab('orders');
+                }}
+                className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-amber-300 text-left transition-all active:scale-[0.98] cursor-pointer"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-600">Nursery Packing</span>
+                  <Box className="w-4 h-4 text-amber-500" />
+                </div>
+                <span className="text-2xl font-black text-amber-600 block mt-1">
+                  {stats.packingCount}
+                </span>
+                <span className="text-[10px] text-slate-400 font-medium">Packing in progress</span>
+              </button>
+
+              {/* Stage 3: Courier Dispatched */}
+              <button
+                onClick={() => {
+                  setOrderStageFilter('dispatched');
+                  setCurrentScreen('orders_list');
                   setActiveBottomTab('orders');
                 }}
                 className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-blue-300 text-left transition-all active:scale-[0.98] cursor-pointer"
               >
-                <span className="text-xs font-semibold text-slate-600 block">Dispatched Orders</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-600">Courier Dispatched</span>
+                  <Truck className="w-4 h-4 text-blue-600" />
+                </div>
                 <span className="text-2xl font-black text-blue-600 block mt-1">
                   {stats.dispatchedCount}
                 </span>
+                <span className="text-[10px] text-slate-400 font-medium">With tracking link</span>
+              </button>
+
+              {/* Stage 4: Delivered */}
+              <button
+                onClick={() => {
+                  setOrderStageFilter('delivered');
+                  setCurrentScreen('orders_list');
+                  setActiveBottomTab('orders');
+                }}
+                className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-purple-300 text-left transition-all active:scale-[0.98] cursor-pointer"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-600">Delivered</span>
+                  <CheckCircle className="w-4 h-4 text-purple-600" />
+                </div>
+                <span className="text-2xl font-black text-purple-700 block mt-1">
+                  {stats.deliveredCount}
+                </span>
+                <span className="text-[10px] text-slate-400 font-medium">Completed orders</span>
               </button>
             </div>
 
-            {/* Recent Orders Section */}
+            {/* Recent Orders List */}
             <div className="space-y-3 pt-1">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-slate-900">Recent Orders</h3>
                 <button
                   onClick={() => {
-                    setCurrentScreen('orders_new');
+                    setOrderStageFilter('all');
+                    setCurrentScreen('orders_list');
                     setActiveBottomTab('orders');
                   }}
-                  className="text-xs font-bold text-emerald-800 hover:text-emerald-950 flex items-center gap-0.5"
+                  className="text-xs font-bold text-emerald-800 hover:text-emerald-950 flex items-center gap-0.5 cursor-pointer"
                 >
-                  <span>View All</span>
+                  <span>View All ({orders.length})</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
 
               <div className="space-y-2.5">
-                {orders.slice(0, 5).map((order) => {
-                  const isNew = order.orderStatus === 'PENDING' || !order.orderStatus;
-                  const isConfirmed = order.orderStatus === 'CONFIRMED' || order.orderStatus === 'PROCESSING';
-                  const isDispatched = order.orderStatus === 'DISPATCHED';
+                {orders.slice(0, 6).map((order) => {
+                  const isPacking = order.orderStatus === 'PACKED' || order.orderStatus === 'PROCESSING';
+                  const isDispatched = order.orderStatus === 'DISPATCHED' || order.orderStatus === 'OUT_FOR_DELIVERY';
+                  const isDelivered = order.orderStatus === 'DELIVERED';
+                  const isConfirmed = !isPacking && !isDispatched && !isDelivered;
 
                   return (
                     <div
                       key={order.id}
                       onClick={() => {
                         setSelectedOrder(order);
-                        if (isNew) setCurrentScreen('verify_payment');
-                        else if (isConfirmed) setCurrentScreen('orders_confirmed');
-                        else if (isDispatched) setCurrentScreen('order_timeline');
-                        else setCurrentScreen('verify_payment');
+                        setCurrentScreen('order_details');
                       }}
                       className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-slate-300 active:scale-[0.99] transition-all cursor-pointer space-y-1.5"
                     >
@@ -538,7 +550,7 @@ Thank you for shopping with VRG Nursery! 🌿`;
 
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-semibold text-slate-700">
-                          {order.customerName || order.shippingAddress?.fullName}
+                          {order.customerName || order.shippingAddress?.fullName || 'Customer'}
                         </span>
                         <span className="text-[11px] text-slate-400 font-medium">
                           {formatDate(order.createdAt)}
@@ -547,19 +559,19 @@ Thank you for shopping with VRG Nursery! 🌿`;
 
                       <div className="flex items-center justify-between pt-1">
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                          isNew 
-                            ? 'bg-amber-100 text-amber-900 border border-amber-200' 
-                            : isConfirmed 
-                            ? 'bg-emerald-100 text-emerald-900 border border-emerald-200' 
-                            : isDispatched 
-                            ? 'bg-blue-100 text-blue-900 border border-blue-200' 
-                            : 'bg-slate-100 text-slate-700'
+                          isDelivered
+                            ? 'bg-purple-100 text-purple-900 border border-purple-200'
+                            : isDispatched
+                            ? 'bg-blue-100 text-blue-900 border border-blue-200'
+                            : isPacking
+                            ? 'bg-amber-100 text-amber-900 border border-amber-200'
+                            : 'bg-emerald-100 text-emerald-900 border border-emerald-200'
                         }`}>
-                          {isNew ? 'New' : isConfirmed ? 'Confirmed' : isDispatched ? 'Dispatched' : order.orderStatus}
+                          {isDelivered ? 'Delivered' : isDispatched ? 'Courier Dispatched' : isPacking ? 'Nursery Packing' : 'Order Confirmed'}
                         </span>
 
                         <span className="text-[11px] text-emerald-800 font-bold flex items-center gap-0.5">
-                          <span>Details</span>
+                          <span>Manage</span>
                           <ChevronRight className="w-3 h-3" />
                         </span>
                       </div>
@@ -570,7 +582,7 @@ Thank you for shopping with VRG Nursery! 🌿`;
                 {orders.length === 0 && (
                   <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-2">
                     <Package className="w-8 h-8 text-slate-300 mx-auto" />
-                    <p className="text-xs font-bold text-slate-500">No orders recorded yet</p>
+                    <p className="text-xs font-bold text-slate-500">No orders recorded in system yet</p>
                   </div>
                 )}
               </div>
@@ -579,122 +591,19 @@ Thank you for shopping with VRG Nursery! 🌿`;
         )}
 
         {/* ========================================================= */}
-        {/* SCREEN 3: NEW ORDERS RECEIVED (matching 3.jpeg)            */}
+        {/* 2. ORDERS LIST (With 4 Stage Filter Pills)                 */}
         {/* ========================================================= */}
-        {currentScreen === 'orders_new' && (
+        {currentScreen === 'orders_list' && (
           <div className="space-y-4 animate-in fade-in duration-150">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-extrabold text-slate-900">Orders</h2>
-              <span className="text-xs text-slate-500 font-medium">{filteredOrders.length} orders found</span>
-            </div>
-
-            {/* Filter Tabs Pills */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-              <button
-                onClick={() => setOrderListFilter('new')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
-                  orderListFilter === 'new'
-                    ? 'bg-emerald-50 text-emerald-800 border-2 border-emerald-600'
-                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                New ({stats.newOrdersCount})
-              </button>
-
-              <button
-                onClick={() => setOrderListFilter('pending_payment')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
-                  orderListFilter === 'pending_payment'
-                    ? 'bg-emerald-50 text-emerald-800 border-2 border-emerald-600'
-                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                Payment Pending ({stats.pendingPaymentCount})
-              </button>
-
-              <button
-                onClick={() => setOrderListFilter('all')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
-                  orderListFilter === 'all'
-                    ? 'bg-emerald-50 text-emerald-800 border-2 border-emerald-600'
-                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                All
-              </button>
-            </div>
-
-            {/* Search Input */}
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search by Order ID or Name..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-emerald-700"
-              />
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-            </div>
-
-            {/* Order Card List matching 3.jpeg */}
-            <div className="space-y-2.5">
-              {filteredOrders.map(order => (
-                <div
-                  key={order.id}
-                  onClick={() => {
-                    setSelectedOrder(order);
-                    setCurrentScreen('verify_payment');
-                  }}
-                  className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-slate-300 active:scale-[0.99] transition-all cursor-pointer space-y-1"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono font-bold text-xs text-slate-900">
-                      {order.id}
-                    </span>
-                    <span className="font-extrabold text-sm text-slate-900">
-                      ₹{order.grandTotal}
-                    </span>
-                  </div>
-
-                  <p className="text-xs font-semibold text-slate-800">
-                    {order.customerName || order.shippingAddress?.fullName}
-                  </p>
-
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-[11px] text-slate-500 font-medium">
-                      {formatDateTime(order.createdAt)}
-                    </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-200">
-                      {order.orderStatus === 'PENDING' || !order.orderStatus ? 'New' : order.orderStatus}
-                    </span>
-                  </div>
-                </div>
-              ))}
-
-              {filteredOrders.length === 0 && (
-                <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-2">
-                  <p className="text-xs font-bold text-slate-500">No matching orders in this view</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ========================================================= */}
-        {/* SCREEN 4: VERIFY PAYMENT (matching 4.jpeg)                 */}
-        {/* ========================================================= */}
-        {currentScreen === 'verify_payment' && selectedOrder && (
-          <div className="space-y-4 animate-in fade-in duration-150">
-            {/* Header with Back Arrow and Menu */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setCurrentScreen('orders_new')}
+                  onClick={() => setCurrentScreen('dashboard')}
                   className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </button>
-                <h2 className="text-base font-extrabold text-slate-900">Order Details</h2>
+                <h2 className="text-base font-extrabold text-slate-900">Orders List</h2>
               </div>
               <button
                 onClick={() => setCurrentScreen('menu_drawer')}
@@ -706,14 +615,140 @@ Thank you for shopping with VRG Nursery! 🌿`;
               </button>
             </div>
 
-            {/* Order ID Banner */}
-            <div className="flex items-center justify-between py-1">
+            {/* Search Bar */}
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search by Order ID, Name, Phone..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700"
+              />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+            </div>
+
+            {/* 4-Stage Filter Tabs Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+              {[
+                { key: 'all', label: `All (${orders.length})` },
+                { key: 'confirmed', label: `Confirmed (${stats.confirmedCount})` },
+                { key: 'packing', label: `Packing (${stats.packingCount})` },
+                { key: 'dispatched', label: `Dispatched (${stats.dispatchedCount})` },
+                { key: 'delivered', label: `Delivered (${stats.deliveredCount})` },
+              ].map(tab => (
+                <button
+                  key={tab.key}
+                  onClick={() => setOrderStageFilter(tab.key as any)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer whitespace-nowrap ${
+                    orderStageFilter === tab.key
+                      ? 'bg-emerald-800 text-white shadow-xs'
+                      : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Orders Feed */}
+            <div className="space-y-2.5">
+              {filteredOrders.map(order => {
+                const isPacking = order.orderStatus === 'PACKED' || order.orderStatus === 'PROCESSING';
+                const isDispatched = order.orderStatus === 'DISPATCHED' || order.orderStatus === 'OUT_FOR_DELIVERY';
+                const isDelivered = order.orderStatus === 'DELIVERED';
+
+                return (
+                  <div
+                    key={order.id}
+                    onClick={() => {
+                      setSelectedOrder(order);
+                      setCurrentScreen('order_details');
+                    }}
+                    className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-slate-300 active:scale-[0.99] transition-all cursor-pointer space-y-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono font-bold text-xs text-slate-900">
+                        {order.id}
+                      </span>
+                      <span className="font-extrabold text-sm text-slate-900">
+                        ₹{order.grandTotal}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold text-slate-800 truncate">
+                        {order.customerName || order.shippingAddress?.fullName || 'Customer'}
+                      </p>
+                      <span className="text-[11px] text-slate-400 font-medium shrink-0">
+                        {formatDate(order.createdAt)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                        isDelivered
+                          ? 'bg-purple-100 text-purple-900 border border-purple-200'
+                          : isDispatched
+                          ? 'bg-blue-100 text-blue-900 border border-blue-200'
+                          : isPacking
+                          ? 'bg-amber-100 text-amber-900 border border-amber-200'
+                          : 'bg-emerald-100 text-emerald-900 border border-emerald-200'
+                      }`}>
+                        {isDelivered ? 'Delivered' : isDispatched ? 'Courier Dispatched' : isPacking ? 'Nursery Packing' : 'Order Confirmed'}
+                      </span>
+
+                      <span className="text-[11px] text-emerald-800 font-bold flex items-center gap-0.5">
+                        <span>Details & Actions</span>
+                        <ChevronRight className="w-3 h-3" />
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {filteredOrders.length === 0 && (
+                <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-2">
+                  <p className="text-xs font-bold text-slate-500">No orders found matching this filter</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* 3. ORDER DETAILS & STAGE MANAGER (4-Stage Operations)      */}
+        {/* ========================================================= */}
+        {currentScreen === 'order_details' && selectedOrder && (
+          <div className="space-y-4 animate-in fade-in duration-150">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentScreen('orders_list')}
+                  className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                <h2 className="text-base font-extrabold text-slate-900">Manage Order</h2>
+              </div>
+              <button
+                onClick={() => setCurrentScreen('menu_drawer')}
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                aria-label="Open menu"
+                title="Open Menu"
+              >
+                <Menu className="w-5 h-5 text-slate-800" />
+              </button>
+            </div>
+
+            {/* Order ID & Current Stage Badge */}
+            <div className="flex items-center justify-between py-1 bg-white p-3 rounded-2xl border border-slate-200">
               <div className="flex items-center gap-1.5">
-                <span className="text-xs font-extrabold text-slate-900">Order ID :</span>
-                <span className="text-xs font-mono font-bold text-slate-800">{selectedOrder.id}</span>
+                <span className="text-xs font-extrabold text-slate-500">Order ID:</span>
+                <span className="text-xs font-mono font-bold text-slate-900">{selectedOrder.id}</span>
               </div>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-900 border border-emerald-200">
-                {selectedOrder.orderStatus === 'PENDING' || !selectedOrder.orderStatus ? 'New' : selectedOrder.orderStatus}
+                {selectedOrder.orderStatus || 'CONFIRMED'}
               </span>
             </div>
 
@@ -724,13 +759,13 @@ Thank you for shopping with VRG Nursery! 🌿`;
               <div className="space-y-2 text-xs">
                 <div className="flex items-center gap-2 text-slate-800">
                   <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span className="font-bold">{selectedOrder.customerName || selectedOrder.shippingAddress?.fullName}</span>
+                  <span className="font-bold">{selectedOrder.customerName || selectedOrder.shippingAddress?.fullName || 'Customer'}</span>
                 </div>
 
                 <div className="flex items-center gap-2 text-slate-800">
                   <Phone className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                   <a href={`tel:${selectedOrder.customerPhone || selectedOrder.shippingAddress?.phone}`} className="font-semibold text-emerald-800 hover:underline">
-                    +91 {selectedOrder.customerPhone || selectedOrder.shippingAddress?.phone}
+                    +91 {selectedOrder.customerPhone || selectedOrder.shippingAddress?.phone || 'Not provided'}
                   </a>
                 </div>
 
@@ -743,71 +778,195 @@ Thank you for shopping with VRG Nursery! 🌿`;
               </div>
             </div>
 
-            {/* Payment Details Card */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
-              <h3 className="text-xs font-extrabold text-slate-900">Payment Details</h3>
+            {/* Ordered Plants Itemized List */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-2.5">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-extrabold text-slate-900">
+                  Ordered Plants ({selectedOrder.items?.length || 0})
+                </h3>
+                <span className="text-xs font-extrabold text-slate-900">₹{selectedOrder.grandTotal}</span>
+              </div>
 
-              <div className="space-y-2 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-500 font-medium">Amount</span>
-                  <span className="font-extrabold text-slate-900 text-sm">₹{selectedOrder.grandTotal}</span>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-500 font-medium">Payment Method</span>
-                  <span className="font-bold text-slate-800">
-                    {selectedOrder.paymentMethod === 'COD' ? 'Cash on Delivery' : 'UPI'}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-500 font-medium">Transaction ID</span>
-                  <span className="font-mono font-bold text-slate-700 text-[11px]">
-                    {selectedOrder.transactionId || selectedOrder.merchantTransactionId || 'TXN5245123658'}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between pt-1 border-t border-slate-100">
-                  <span className="text-slate-500 font-medium">Payment Status</span>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                    selectedOrder.paymentStatus === 'SUCCESS' 
-                      ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' 
-                      : 'bg-amber-100 text-amber-900 border border-amber-300'
-                  }`}>
-                    {selectedOrder.paymentStatus === 'SUCCESS' ? 'Success' : 'Pending Verification'}
-                  </span>
-                </div>
+              <div className="divide-y divide-slate-100">
+                {selectedOrder.items && selectedOrder.items.length > 0 ? (
+                  selectedOrder.items.map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between py-2 text-xs">
+                      <div>
+                        <p className="font-bold text-slate-800">{idx + 1}. {item.name}</p>
+                        {item.tamilName && (
+                          <p className="text-[11px] text-emerald-800 font-medium">{item.tamilName}</p>
+                        )}
+                      </div>
+                      <span className="font-bold text-slate-900 shrink-0">{item.quantity || 1} No</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-slate-400 italic py-2">No individual plant items attached to this order.</p>
+                )}
               </div>
             </div>
 
-            {/* Verify Payment Action Button */}
-            <div className="pt-2">
+            {/* Payment Details Card */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-2.5 text-xs">
+              <h3 className="font-extrabold text-slate-900">Payment Details</h3>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Amount</span>
+                <span className="font-extrabold text-slate-900">₹{selectedOrder.grandTotal}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Payment Method</span>
+                <span className="font-bold text-slate-800">{selectedOrder.paymentMethod || 'Online UPI'}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Payment Status</span>
+                <span className={`font-bold px-2 py-0.5 rounded-md ${
+                  selectedOrder.paymentStatus === 'SUCCESS'
+                    ? 'bg-emerald-100 text-emerald-900'
+                    : 'bg-amber-100 text-amber-900'
+                }`}>
+                  {selectedOrder.paymentStatus || 'PENDING'}
+                </span>
+              </div>
+            </div>
+
+            {/* 4-Stage Action Controls */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+              <h3 className="text-xs font-extrabold text-slate-900">Update Order Stage</h3>
+              
+              <div className="grid grid-cols-2 gap-2">
+                {/* 1. Confirm Order */}
+                <button
+                  onClick={async () => {
+                    await onUpdateOrderStatus(selectedOrder.id, 'CONFIRMED', 'SUCCESS');
+                    setSelectedOrder({ ...selectedOrder, orderStatus: 'CONFIRMED', paymentStatus: 'SUCCESS' });
+                  }}
+                  className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    selectedOrder.orderStatus === 'CONFIRMED' || selectedOrder.orderStatus === 'PENDING' || !selectedOrder.orderStatus
+                      ? 'bg-emerald-700 text-white'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>1. Confirmed</span>
+                </button>
+
+                {/* 2. Move to Packing */}
+                <button
+                  onClick={async () => {
+                    await onUpdateOrderStatus(selectedOrder.id, 'PACKED');
+                    setSelectedOrder({ ...selectedOrder, orderStatus: 'PACKED' });
+                  }}
+                  className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    selectedOrder.orderStatus === 'PACKED' || selectedOrder.orderStatus === 'PROCESSING'
+                      ? 'bg-amber-600 text-white'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <Box className="w-3.5 h-3.5" />
+                  <span>2. Packing</span>
+                </button>
+
+                {/* 3. Courier Dispatched */}
+                <button
+                  onClick={() => {
+                    setDispatchForm({
+                      courierName: selectedOrder.courierName || 'Delhivery',
+                      awbNumber: selectedOrder.trackingNumber || '',
+                      trackingLink: selectedOrder.deliveryNotes || ''
+                    });
+                    setCurrentScreen('dispatch_order');
+                  }}
+                  className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    selectedOrder.orderStatus === 'DISPATCHED' || selectedOrder.orderStatus === 'OUT_FOR_DELIVERY'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <Truck className="w-3.5 h-3.5" />
+                  <span>3. Courier</span>
+                </button>
+
+                {/* 4. Delivered */}
+                <button
+                  onClick={async () => {
+                    await onUpdateOrderStatus(selectedOrder.id, 'DELIVERED');
+                    setSelectedOrder({ ...selectedOrder, orderStatus: 'DELIVERED' });
+                  }}
+                  className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    selectedOrder.orderStatus === 'DELIVERED'
+                      ? 'bg-purple-700 text-white'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <CheckCircle className="w-3.5 h-3.5" />
+                  <span>4. Delivered</span>
+                </button>
+              </div>
+
+              {/* WhatsApp Notification Triggers for 4 Stages */}
+              <div className="pt-2 border-t border-slate-100 space-y-2">
+                <p className="text-[11px] font-extrabold text-slate-600">Send WhatsApp Notification:</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => handleOpenWhatsApp(selectedOrder, 'confirmed')}
+                    className="py-2 px-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Send className="w-3 h-3 text-emerald-700" />
+                    <span>Confirmation</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleOpenWhatsApp(selectedOrder, 'packing')}
+                    className="py-2 px-2.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Send className="w-3 h-3 text-amber-700" />
+                    <span>Packing Update</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleOpenWhatsApp(selectedOrder, 'dispatched')}
+                    className="py-2 px-2.5 bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Send className="w-3 h-3 text-blue-700" />
+                    <span>Tracking Link</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleOpenWhatsApp(selectedOrder, 'delivered')}
+                    className="py-2 px-2.5 bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Send className="w-3 h-3 text-purple-700" />
+                    <span>Delivered + Care</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* View Timeline Button */}
               <button
-                onClick={handleVerifyPayment}
-                className="w-full py-3.5 bg-[#14532d] hover:bg-[#0f3d21] active:scale-[0.99] text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2"
+                onClick={() => setCurrentScreen('order_timeline')}
+                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
-                <Check className="w-4 h-4" />
-                <span>Verify Payment</span>
+                <Clock className="w-3.5 h-3.5 text-slate-600" />
+                <span>View Order Timeline</span>
               </button>
             </div>
           </div>
         )}
 
         {/* ========================================================= */}
-        {/* SCREEN 5: CONFIRM ORDER (matching 5.jpeg)                  */}
+        {/* 4. DISPATCH / TRACKING FORM                                */}
         {/* ========================================================= */}
-        {currentScreen === 'confirm_order' && selectedOrder && (
+        {currentScreen === 'dispatch_order' && selectedOrder && (
           <div className="space-y-4 animate-in fade-in duration-150">
-            {/* Header */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setCurrentScreen('verify_payment')}
+                  onClick={() => setCurrentScreen('order_details')}
                   className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </button>
-                <h2 className="text-base font-extrabold text-slate-900">Confirm Order</h2>
+                <h2 className="text-base font-extrabold text-slate-900">Courier Dispatch</h2>
               </div>
               <button
                 onClick={() => setCurrentScreen('menu_drawer')}
@@ -819,229 +978,89 @@ Thank you for shopping with VRG Nursery! 🌿`;
               </button>
             </div>
 
-            {/* Order ID Banner */}
-            <div className="flex items-center justify-between py-1">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-extrabold text-slate-900">Order ID :</span>
-                <span className="text-xs font-mono font-bold text-slate-800">{selectedOrder.id}</span>
-              </div>
+            {/* Order Info */}
+            <div className="bg-white p-3 rounded-2xl border border-slate-200 flex items-center justify-between text-xs">
+              <span className="font-mono font-bold text-slate-900">Order #{selectedOrder.id}</span>
+              <span className="font-semibold text-slate-600">{selectedOrder.customerName || selectedOrder.shippingAddress?.fullName}</span>
             </div>
 
-            {/* Customer Details Card */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-2.5">
-              <h3 className="text-xs font-extrabold text-slate-900">Customer Details</h3>
-              <div className="space-y-2 text-xs">
-                <div className="flex items-center gap-2 text-slate-800">
-                  <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span className="font-bold">{selectedOrder.customerName || selectedOrder.shippingAddress?.fullName}</span>
-                </div>
-                <div className="flex items-center gap-2 text-slate-800">
-                  <Phone className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span className="font-semibold">+91 {selectedOrder.customerPhone || selectedOrder.shippingAddress?.phone}</span>
-                </div>
-                <div className="flex items-start gap-2 text-slate-700">
-                  <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5" />
-                  <span className="font-medium leading-relaxed">
-                    {formatAddress(selectedOrder.shippingAddress)}
-                  </span>
-                </div>
+            {/* Form */}
+            <form onSubmit={handleSaveDispatch} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3.5">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 block">Courier Partner</label>
+                <select
+                  value={dispatchForm.courierName}
+                  onChange={e => {
+                    setDispatchForm({ ...dispatchForm, courierName: e.target.value });
+                    handleAwbChange(dispatchForm.awbNumber);
+                  }}
+                  className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700"
+                >
+                  <option value="Delhivery">Delhivery</option>
+                  <option value="ST Courier">ST Courier</option>
+                  <option value="Professional Courier">Professional Courier</option>
+                  <option value="DTDC">DTDC</option>
+                  <option value="India Post">India Post (Speed Post)</option>
+                  <option value="Amazon Shipping">Amazon Shipping</option>
+                  <option value="Porter">Porter</option>
+                  <option value="Self Delivery">Self Nursery Delivery</option>
+                  <option value="Other">Other</option>
+                </select>
               </div>
-            </div>
 
-            {/* Ordered Plants (X) Card */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-2.5">
-              <h3 className="text-xs font-extrabold text-slate-900">
-                Ordered Plants ({selectedOrder.items?.length || 1})
-              </h3>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 block">AWB / Tracking Number *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Enter courier AWB number"
+                  value={dispatchForm.awbNumber}
+                  onChange={e => handleAwbChange(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700"
+                />
+              </div>
 
-              <div className="space-y-2 text-xs">
-                {selectedOrder.items && selectedOrder.items.length > 0 ? (
-                  selectedOrder.items.map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between py-1 border-b border-slate-100 last:border-none">
-                      <span className="font-semibold text-slate-800">
-                        {idx + 1}. {item.name}
-                      </span>
-                      <span className="font-bold text-slate-900">
-                        - {item.quantity} No
-                      </span>
-                    </div>
-                  ))
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 block">Tracking URL (Auto-Generated)</label>
+                <input
+                  type="text"
+                  placeholder="https://..."
+                  value={dispatchForm.trackingLink}
+                  onChange={e => setDispatchForm({ ...dispatchForm, trackingLink: e.target.value })}
+                  className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-700"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={savingDispatch}
+                className="w-full py-3.5 bg-[#14532d] hover:bg-[#0f3d21] disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                {savingDispatch ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Saving Tracking Details...</span>
+                  </>
                 ) : (
-                  <div className="space-y-1.5 text-slate-700">
-                    <p>1. Rainy blue - 1 No</p>
-                    <p>2. Adenium (Red) - 1 No</p>
-                    <p>3. Bougainvillea (Pink) - 1 No</p>
-                    <p>4. Ixora (Red) - 1 No</p>
-                  </div>
+                  <>
+                    <Truck className="w-4 h-4" />
+                    <span>Save Tracking & Open WhatsApp Preview</span>
+                  </>
                 )}
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="space-y-2.5 pt-2">
-              <button
-                onClick={handleConfirmOrder}
-                className="w-full py-3.5 bg-[#14532d] hover:bg-[#0f3d21] active:scale-[0.99] text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2"
-              >
-                <Check className="w-4 h-4" />
-                <span>Confirm Order</span>
               </button>
-
-              <button
-                onClick={() => handleOpenWhatsAppConfirmation(selectedOrder)}
-                className="w-full py-3.5 bg-white hover:bg-slate-50 active:scale-[0.99] text-emerald-800 font-bold text-xs rounded-xl border border-emerald-600 shadow-2xs transition-all cursor-pointer flex items-center justify-center gap-2"
-              >
-                <svg className="w-4 h-4 fill-emerald-600" viewBox="0 0 24 24">
-                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
-                </svg>
-                <span>Send Order Confirmation</span>
-              </button>
-            </div>
+            </form>
           </div>
         )}
 
         {/* ========================================================= */}
-        {/* SCREEN 7: CONFIRMED ORDERS (matching 7.jpeg)               */}
+        {/* 5. GENERATE LABEL SHEET (A4 4-Per-Page Printing)          */}
         {/* ========================================================= */}
-        {currentScreen === 'orders_confirmed' && (
+        {currentScreen === 'generate_labels' && (
           <div className="space-y-4 animate-in fade-in duration-150">
-            {/* Header with Back Arrow and Label Shortcut */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setCurrentScreen('dashboard')}
-                  className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                </button>
-                <h2 className="text-base font-extrabold text-slate-900">Confirmed Orders</h2>
-              </div>
-
-              <button
-                onClick={() => {
-                  setCurrentScreen('generate_labels');
-                  setActiveBottomTab('labels');
-                }}
-                className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center justify-center hover:bg-emerald-100 transition-colors"
-                title="Generate Label Sheet"
-              >
-                <Printer className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Filter Tabs */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-              <button
-                onClick={() => setConfirmedFilter('all')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
-                  confirmedFilter === 'all'
-                    ? 'bg-emerald-50 text-emerald-800 border-2 border-emerald-600'
-                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                All ({stats.confirmedCount + stats.dispatchedCount})
-              </button>
-
-              <button
-                onClick={() => setConfirmedFilter('packing')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
-                  confirmedFilter === 'packing'
-                    ? 'bg-emerald-50 text-emerald-800 border-2 border-emerald-600'
-                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                Packing (0)
-              </button>
-
-              <button
-                onClick={() => setConfirmedFilter('dispatched')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
-                  confirmedFilter === 'dispatched'
-                    ? 'bg-emerald-50 text-emerald-800 border-2 border-emerald-600'
-                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                Dispatched ({stats.dispatchedCount})
-              </button>
-            </div>
-
-            {/* Confirmed Orders Card List matching 7.jpeg */}
-            <div className="space-y-2.5">
-              {filteredOrders.map(order => (
-                <div
-                  key={order.id}
-                  className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-2.5 hover:border-slate-300 transition-all"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <span className="font-mono font-bold text-xs text-slate-900 block">
-                        {order.id}
-                      </span>
-                      <span className="text-xs font-bold text-slate-800 mt-0.5 block">
-                        {order.customerName || order.shippingAddress?.fullName}
-                      </span>
-                      <span className="text-[11px] text-slate-500 font-medium block mt-0.5">
-                        {formatDateTime(order.createdAt)}
-                      </span>
-                    </div>
-
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-900 border border-emerald-200 shrink-0">
-                      Confirmed
-                    </span>
-                  </div>
-
-                  {/* Actions Row */}
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-                    <button
-                      onClick={() => {
-                        setSelectedOrder(order);
-                        setDispatchForm({
-                          courierName: order.courierName || 'Delhivery',
-                          dispatchId: order.trackingNumber || '',
-                          trackingId: order.trackingNumber || '',
-                          trackingLink: order.deliveryNotes || ''
-                        });
-                        setCurrentScreen('dispatch_order');
-                      }}
-                      className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-[11px] rounded-lg transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                    >
-                      <Truck className="w-3.5 h-3.5 text-slate-600" />
-                      <span>Dispatch</span>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setSelectedOrder(order);
-                        setCurrentScreen('order_timeline');
-                      }}
-                      className="flex-1 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-[11px] rounded-lg transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                    >
-                      <Clock className="w-3.5 h-3.5 text-emerald-700" />
-                      <span>Timeline</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
-
-              {filteredOrders.length === 0 && (
-                <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-2">
-                  <p className="text-xs font-bold text-slate-500">No confirmed orders in this section</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ========================================================= */}
-        {/* SCREEN 8: GENERATE LABEL SHEET (matching 8.jpeg)          */}
-        {/* ========================================================= */}
-        {currentScreen === 'generate_labels' && (
-          <div className="space-y-4 animate-in fade-in duration-150">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setCurrentScreen('orders_confirmed')}
                   className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -1072,19 +1091,19 @@ Thank you for shopping with VRG Nursery! 🌿`;
                       setSelectedLabelOrderIds(orders.slice(0, 4).map(o => o.id));
                     }
                   }}
-                  className="text-[11px] font-bold text-emerald-800 hover:underline"
+                  className="text-[11px] font-bold text-emerald-800 hover:underline cursor-pointer"
                 >
-                  {selectedLabelOrderIds.length > 0 ? 'Clear All' : 'Select 4'}
+                  {selectedLabelOrderIds.length > 0 ? 'Clear All' : 'Select First 4'}
                 </button>
               </div>
 
               <div className="space-y-2">
-                {orders.slice(0, 8).map(order => {
+                {orders.map(order => {
                   const isChecked = selectedLabelOrderIds.includes(order.id);
                   return (
                     <label
                       key={order.id}
-                      className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer select-none"
+                      className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer select-none border border-slate-100"
                     >
                       <input
                         type="checkbox"
@@ -1098,520 +1117,302 @@ Thank you for shopping with VRG Nursery! 🌿`;
                         }}
                         className="w-4 h-4 rounded text-emerald-700 focus:ring-emerald-700 border-slate-300 accent-[#14532d]"
                       />
-                      <span className="text-xs font-bold text-slate-800">
-                        {order.id} - {order.customerName || order.shippingAddress?.fullName}
-                      </span>
+                      <div className="min-w-0 flex-1">
+                        <span className="text-xs font-bold text-slate-900 block font-mono">
+                          {order.id}
+                        </span>
+                        <span className="text-[11px] text-slate-500 truncate block">
+                          {order.customerName || order.shippingAddress?.fullName || 'Customer'} • ₹{order.grandTotal}
+                        </span>
+                      </div>
                     </label>
                   );
                 })}
+
+                {orders.length === 0 && (
+                  <p className="text-xs text-slate-500 italic text-center py-4">No orders currently available to generate labels.</p>
+                )}
               </div>
             </div>
 
-            {/* Summary Row */}
+            {/* Selected Count */}
             <div className="text-xs font-extrabold text-slate-900 px-1">
-              Selected Orders : {selectedLabelOrderIds.length}
+              Selected Orders: {selectedLabelOrderIds.length}
             </div>
 
             {/* Primary Action Button */}
-            <div>
-              <button
-                onClick={() => setShowLabelPrintPreview(true)}
-                disabled={selectedLabelOrderIds.length === 0}
-                className="w-full py-3.5 bg-[#14532d] hover:bg-[#0f3d21] disabled:opacity-40 active:scale-[0.99] text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2"
-              >
-                <Printer className="w-4 h-4" />
-                <span>Generate Label Sheet (A4 PDF)</span>
-              </button>
-            </div>
+            <button
+              onClick={() => setShowLabelPrintPreview(true)}
+              disabled={selectedLabelOrderIds.length === 0}
+              className="w-full py-3.5 bg-[#14532d] hover:bg-[#0f3d21] disabled:opacity-40 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2"
+            >
+              <Printer className="w-4 h-4" />
+              <span>Generate Label Sheet (A4 PDF)</span>
+            </button>
 
             {/* Calculation Guide Box matching 8.jpeg */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs text-center text-xs font-semibold text-slate-700 space-y-1.5">
-              <p>4 Orders = 1 A4 Sheet</p>
-              <p>8 Orders = 2 A4 Sheets</p>
-              <p>12 Orders = 3 A4 Sheets</p>
-              <p className="text-slate-400 font-normal">and so on...</p>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs text-center text-xs font-semibold text-slate-700 space-y-1">
+              <p>📄 4 Orders = 1 A4 Sheet (2x2 Grid)</p>
+              <p>📄 8 Orders = 2 A4 Sheets</p>
             </div>
           </div>
         )}
 
         {/* ========================================================= */}
-        {/* SCREEN 10: DISPATCH / TRACKING (matching 10.jpeg)          */}
+        {/* 6. ORDER TIMELINE (4-Stage Vertical Stepper)               */}
         {/* ========================================================= */}
-        {currentScreen === 'dispatch_order' && selectedOrder && (
-          <div className="space-y-4 animate-in fade-in duration-150">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+        {currentScreen === 'order_timeline' && selectedOrder && (() => {
+          const isPacking = selectedOrder.orderStatus === 'PACKED' || selectedOrder.orderStatus === 'PROCESSING';
+          const isDispatched = selectedOrder.orderStatus === 'DISPATCHED' || selectedOrder.orderStatus === 'OUT_FOR_DELIVERY';
+          const isDelivered = selectedOrder.orderStatus === 'DELIVERED';
+
+          const stage1Done = true;
+          const stage2Done = isPacking || isDispatched || isDelivered;
+          const stage3Done = isDispatched || isDelivered;
+          const stage4Done = isDelivered;
+
+          return (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentScreen('order_details')}
+                    className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                  </button>
+                  <h2 className="text-base font-extrabold text-slate-900">Order Timeline</h2>
+                </div>
                 <button
-                  onClick={() => setCurrentScreen('orders_confirmed')}
-                  className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
+                  onClick={() => setCurrentScreen('menu_drawer')}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                  aria-label="Open menu"
+                  title="Open Menu"
                 >
-                  <ArrowLeft className="w-4 h-4" />
-                </button>
-                <h2 className="text-base font-extrabold text-slate-900">Dispatch / Tracking</h2>
-              </div>
-              <button
-                onClick={() => setCurrentScreen('menu_drawer')}
-                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-                aria-label="Open menu"
-                title="Open Menu"
-              >
-                <Menu className="w-5 h-5 text-slate-800" />
-              </button>
-            </div>
-
-            {/* Order ID Banner */}
-            <div className="flex items-center justify-between py-1">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-extrabold text-slate-900">Order ID :</span>
-                <span className="text-xs font-mono font-bold text-slate-800">{selectedOrder.id}</span>
-              </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-900 border border-emerald-200">
-                Confirmed
-              </span>
-            </div>
-
-            {/* Form */}
-            <form onSubmit={handleSaveDispatch} className="space-y-3.5">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700 block">Courier Name</label>
-                <select
-                  value={dispatchForm.courierName}
-                  onChange={e => handleCourierChange(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-700"
-                >
-                  <option value="Delhivery">Delhivery</option>
-                  <option value="ST Courier">ST Courier</option>
-                  <option value="Professional Courier">Professional Courier</option>
-                  <option value="DTDC">DTDC</option>
-                  <option value="India Post">India Post (Speed Post)</option>
-                  <option value="Amazon Shipping">Amazon Shipping</option>
-                  <option value="Porter">Porter</option>
-                  <option value="Self Delivery">Self Nursery Delivery</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700 block">Dispatch ID / AWB No.</label>
-                <input
-                  type="text"
-                  required
-                  value={dispatchForm.dispatchId}
-                  onChange={e => handleAwbChange(e.target.value)}
-                  placeholder="1234567890123"
-                  className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-700"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700 block">Tracking ID</label>
-                <input
-                  type="text"
-                  value={dispatchForm.trackingId}
-                  onChange={e => setDispatchForm({ ...dispatchForm, trackingId: e.target.value })}
-                  placeholder="1234567890123"
-                  className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-700"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700 block">Tracking Link (Optional)</label>
-                <input
-                  type="text"
-                  value={dispatchForm.trackingLink}
-                  onChange={e => setDispatchForm({ ...dispatchForm, trackingLink: e.target.value })}
-                  placeholder="https://delhivery.com/track/1234567890123"
-                  className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-700"
-                />
-              </div>
-
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  disabled={savingDispatch}
-                  className="w-full py-3.5 bg-[#14532d] hover:bg-[#0f3d21] disabled:opacity-50 active:scale-[0.99] text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2"
-                >
-                  {savingDispatch ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Saving Tracking...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Check className="w-4 h-4" />
-                      <span>Save Tracking Details</span>
-                    </>
-                  )}
+                  <Menu className="w-5 h-5 text-slate-800" />
                 </button>
               </div>
-            </form>
-          </div>
-        )}
 
-        {/* ========================================================= */}
-        {/* SCREEN 12: ORDER TIMELINE (matching 12.jpeg)               */}
-        {/* ========================================================= */}
-        {currentScreen === 'order_timeline' && selectedOrder && (
-          <div className="space-y-4 animate-in fade-in duration-150">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setCurrentScreen('orders_confirmed')}
-                  className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                </button>
-                <h2 className="text-base font-extrabold text-slate-900">Order Timeline</h2>
-              </div>
-              <button
-                onClick={() => setCurrentScreen('menu_drawer')}
-                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-                aria-label="Open menu"
-                title="Open Menu"
-              >
-                <Menu className="w-5 h-5 text-slate-800" />
-              </button>
-            </div>
-
-            {/* Stepper Timeline Box matching 12.jpeg */}
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-6">
-              
-              {/* Step 1: New Order */}
-              <div className="flex items-start gap-4 relative">
-                <div className="w-6 h-6 rounded-full bg-[#14532d] text-white flex items-center justify-center shrink-0 z-10">
-                  <Check className="w-3.5 h-3.5 stroke-[3]" />
-                </div>
-                <div className="space-y-0.5">
-                  <p className="text-xs font-extrabold text-slate-900">New Order</p>
-                  <p className="text-[11px] text-slate-500 font-medium">{formatDateTime(selectedOrder.createdAt)}</p>
-                </div>
-                {/* Connecting Line */}
-                <div className="absolute left-3 top-6 bottom-0 w-0.5 bg-[#14532d] -z-0 h-10" />
-              </div>
-
-              {/* Step 2: Payment Verified */}
-              <div className="flex items-start gap-4 relative">
-                <div className="w-6 h-6 rounded-full bg-[#14532d] text-white flex items-center justify-center shrink-0 z-10">
-                  <Check className="w-3.5 h-3.5 stroke-[3]" />
-                </div>
-                <div className="space-y-0.5">
-                  <p className="text-xs font-extrabold text-slate-900">Payment Verified</p>
-                  <p className="text-[11px] text-slate-500 font-medium">{formatDateTime(selectedOrder.createdAt)}</p>
-                </div>
-                <div className="absolute left-3 top-6 bottom-0 w-0.5 bg-[#14532d] -z-0 h-10" />
-              </div>
-
-              {/* Step 3: Order Confirmed */}
-              <div className="flex items-start gap-4 relative">
-                <div className="w-6 h-6 rounded-full bg-[#14532d] text-white flex items-center justify-center shrink-0 z-10">
-                  <Check className="w-3.5 h-3.5 stroke-[3]" />
-                </div>
-                <div className="space-y-0.5">
-                  <p className="text-xs font-extrabold text-slate-900">Order Confirmed</p>
-                  <p className="text-[11px] text-slate-500 font-medium">{formatDateTime(selectedOrder.createdAt)}</p>
-                </div>
-                <div className="absolute left-3 top-6 bottom-0 w-0.5 bg-[#14532d] -z-0 h-10" />
-              </div>
-
-              {/* Step 4: Packing */}
-              <div className="flex items-start gap-4 relative">
-                <div className="w-6 h-6 rounded-full bg-[#14532d] text-white flex items-center justify-center shrink-0 z-10">
-                  <Check className="w-3.5 h-3.5 stroke-[3]" />
-                </div>
-                <div className="space-y-0.5">
-                  <p className="text-xs font-extrabold text-slate-900">Packing</p>
-                  <p className="text-[11px] text-slate-500 font-medium">{formatDateTime(selectedOrder.updatedAt || selectedOrder.createdAt)}</p>
-                </div>
-                <div className="absolute left-3 top-6 bottom-0 w-0.5 bg-[#14532d] -z-0 h-10" />
-              </div>
-
-              {/* Step 5: Dispatched */}
-              <div className="flex items-start gap-4 relative">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 z-10 ${
-                  selectedOrder.orderStatus === 'DISPATCHED' || selectedOrder.orderStatus === 'DELIVERED'
-                    ? 'bg-[#14532d] text-white'
-                    : 'border-2 border-slate-300 bg-white'
-                }`}>
-                  {selectedOrder.orderStatus === 'DISPATCHED' || selectedOrder.orderStatus === 'DELIVERED' ? (
+              {/* Stepper Timeline Box matching 12.jpeg */}
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-6">
+                
+                {/* Stage 1: Order Confirmed */}
+                <div className="flex items-start gap-4 relative">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 z-10 ${
+                    stage1Done ? 'bg-[#14532d] text-white' : 'bg-slate-200 text-slate-500'
+                  }`}>
                     <Check className="w-3.5 h-3.5 stroke-[3]" />
-                  ) : null}
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-extrabold text-slate-900">1. Order Confirmed</p>
+                    <p className="text-[11px] text-slate-500 font-medium">{formatDateTime(selectedOrder.createdAt)}</p>
+                  </div>
+                  <div className={`absolute left-3 top-6 bottom-0 w-0.5 -z-0 h-10 ${stage2Done ? 'bg-[#14532d]' : 'bg-slate-200'}`} />
                 </div>
-                <div className="space-y-0.5">
-                  <p className="text-xs font-extrabold text-slate-900">Dispatched</p>
-                  <p className="text-[11px] text-slate-500 font-medium">
-                    {selectedOrder.orderStatus === 'DISPATCHED' || selectedOrder.orderStatus === 'DELIVERED'
-                      ? formatDateTime(selectedOrder.updatedAt)
-                      : 'Pending dispatch'}
-                  </p>
-                </div>
-                <div className="absolute left-3 top-6 bottom-0 w-0.5 bg-slate-200 -z-0 h-10" />
-              </div>
 
-              {/* Step 6: Delivered */}
-              <div className="flex items-start gap-4 relative">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 z-10 ${
-                  selectedOrder.orderStatus === 'DELIVERED'
-                    ? 'bg-[#14532d] text-white'
-                    : 'border-2 border-slate-300 bg-white'
-                }`}>
-                  {selectedOrder.orderStatus === 'DELIVERED' && (
-                    <Check className="w-3.5 h-3.5 stroke-[3]" />
-                  )}
+                {/* Stage 2: Nursery Packing */}
+                <div className="flex items-start gap-4 relative">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 z-10 ${
+                    stage2Done ? 'bg-[#14532d] text-white' : 'bg-slate-200 text-slate-500'
+                  }`}>
+                    {stage2Done ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : <Box className="w-3 h-3" />}
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-extrabold text-slate-900">2. Nursery Packing</p>
+                    <p className="text-[11px] text-slate-500 font-medium">
+                      {stage2Done ? 'Roots wrapped & boxed safely' : 'Pending nursery packaging'}
+                    </p>
+                  </div>
+                  <div className={`absolute left-3 top-6 bottom-0 w-0.5 -z-0 h-10 ${stage3Done ? 'bg-[#14532d]' : 'bg-slate-200'}`} />
                 </div>
-                <div className="space-y-0.5">
-                  <p className="text-xs font-extrabold text-slate-900">Delivered</p>
-                  <p className="text-[11px] text-slate-500 font-medium">
-                    {selectedOrder.orderStatus === 'DELIVERED' ? 'Delivered successfully' : 'Pending'}
-                  </p>
+
+                {/* Stage 3: Courier Dispatched */}
+                <div className="flex items-start gap-4 relative">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 z-10 ${
+                    stage3Done ? 'bg-[#14532d] text-white' : 'bg-slate-200 text-slate-500'
+                  }`}>
+                    {stage3Done ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : <Truck className="w-3 h-3" />}
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-extrabold text-slate-900">3. Courier Dispatched</p>
+                    <p className="text-[11px] text-slate-500 font-medium">
+                      {stage3Done 
+                        ? `${selectedOrder.courierName || 'Courier'} • ${selectedOrder.trackingNumber || 'Tracking Live'}` 
+                        : 'Awaiting courier dispatch'}
+                    </p>
+                  </div>
+                  <div className={`absolute left-3 top-6 bottom-0 w-0.5 -z-0 h-10 ${stage4Done ? 'bg-[#14532d]' : 'bg-slate-200'}`} />
+                </div>
+
+                {/* Stage 4: Delivered */}
+                <div className="flex items-start gap-4">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 z-10 ${
+                    stage4Done ? 'bg-[#14532d] text-white' : 'bg-slate-200 text-slate-500'
+                  }`}>
+                    {stage4Done ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : <CheckCircle className="w-3 h-3" />}
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-extrabold text-slate-900">4. Delivered</p>
+                    <p className="text-[11px] text-slate-500 font-medium">
+                      {stage4Done ? 'Delivered to customer' : 'In delivery progress'}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
+          );
+        })()}
 
-            {/* Completion Banner matching 12.jpeg */}
-            <div className="bg-emerald-50/90 border border-emerald-200 rounded-2xl p-4 text-center">
-              <p className="text-xs font-bold text-emerald-900">
-                Order completed successfully after delivery.
-              </p>
-            </div>
+      </main>
 
-            {/* Quick Action to Mark Delivered */}
-            {selectedOrder.orderStatus !== 'DELIVERED' && (
-              <button
-                onClick={async () => {
-                  await onUpdateOrderStatus(selectedOrder.id, 'DELIVERED', 'SUCCESS');
-                  setSelectedOrder({ ...selectedOrder, orderStatus: 'DELIVERED' });
-                }}
-                className="w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5"
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Mark as Delivered & Complete</span>
-              </button>
-            )}
-          </div>
-        )}
+      {/* ========================================================= */}
+      {/* 7. SLIDE-OVER DRAWER MENU                                  */}
+      {/* ========================================================= */}
+      {currentScreen === 'menu_drawer' && (
+        <div className="fixed inset-0 z-50 flex">
+          <div
+            onClick={() => setCurrentScreen('dashboard')}
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+          />
 
-        {/* ========================================================= */}
-        {/* SLIDE-OVER MENU DRAWER (Access all other store tabs)       */}
-        {/* ========================================================= */}
-        {currentScreen === 'menu_drawer' && (
-          <div className="space-y-4 animate-in fade-in duration-150">
-            {/* Header */}
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+          <div className="relative ml-auto w-full max-w-xs bg-white h-full shadow-2xl flex flex-col z-10 animate-in slide-in-from-right duration-200">
+            {/* Drawer Header */}
+            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/80">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-800">
-                  <Sprout className="w-5 h-5 text-emerald-700" />
+                <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-800">
+                  <Sprout className="w-4 h-4 text-emerald-700" />
                 </div>
-                <span className="text-sm font-extrabold text-slate-900">Nursery Admin Menu</span>
+                <span className="text-sm font-black tracking-wider text-emerald-900 uppercase">
+                  VRG NURSERY
+                </span>
               </div>
-
               <button
                 onClick={() => setCurrentScreen('dashboard')}
-                className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700"
+                className="w-8 h-8 rounded-lg text-slate-500 hover:bg-slate-200 flex items-center justify-center cursor-pointer transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Admin Profile */}
-            {adminUser && (
-              <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-emerald-800 text-white font-black flex items-center justify-center text-sm">
-                  {adminUser.name?.[0] || 'A'}
-                </div>
-                <div>
-                  <p className="text-xs font-extrabold text-slate-900">{adminUser.name}</p>
-                  <p className="text-[11px] text-slate-500">{adminUser.email}</p>
-                  <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">{adminUser.role}</span>
-                </div>
+            {/* Admin User Card */}
+            <div className="p-4 bg-emerald-950 text-white flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-800 flex items-center justify-center font-black text-sm">
+                {adminUser?.name?.charAt(0) || 'A'}
               </div>
-            )}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold truncate">{adminUser?.name || 'Admin User'}</p>
+                <p className="text-[10px] text-emerald-300 truncate">{adminUser?.email || 'nv01110612@gmail.com'}</p>
+              </div>
+            </div>
 
-            {/* Workflow Navigation Links */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs divide-y divide-slate-100 overflow-hidden">
+            {/* Navigation List */}
+            <div className="flex-1 overflow-y-auto p-3 space-y-1 text-xs font-bold">
+              <div className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-slate-400 font-extrabold">
+                4-Stage Order Workflow
+              </div>
+              
               <button
                 onClick={() => {
-                  setCurrentScreen('dashboard');
-                  setActiveBottomTab('dashboard');
+                  setOrderStageFilter('confirmed');
+                  setCurrentScreen('orders_list');
                 }}
-                className="w-full p-3 text-left flex items-center justify-between hover:bg-slate-50 text-xs font-bold text-slate-800"
+                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
               >
-                <span className="flex items-center gap-2.5">
-                  <LayoutDashboard className="w-4 h-4 text-emerald-700" />
-                  <span>Dashboard Overview</span>
-                </span>
-                <ChevronRight className="w-4 h-4 text-slate-400" />
-              </button>
-
-              <button
-                onClick={() => {
-                  setCurrentScreen('orders_new');
-                  setActiveBottomTab('orders');
-                }}
-                className="w-full p-3 text-left flex items-center justify-between hover:bg-slate-50 text-xs font-bold text-slate-800"
-              >
-                <span className="flex items-center gap-2.5">
-                  <Calendar className="w-4 h-4 text-rose-600" />
-                  <span>New & Pending Orders</span>
-                </span>
-                <span className="text-[10px] font-bold bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full">
-                  {stats.newOrdersCount}
-                </span>
-              </button>
-
-              <button
-                onClick={() => {
-                  setCurrentScreen('orders_confirmed');
-                  setActiveBottomTab('orders');
-                }}
-                className="w-full p-3 text-left flex items-center justify-between hover:bg-slate-50 text-xs font-bold text-slate-800"
-              >
-                <span className="flex items-center gap-2.5">
+                <span className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  <span>Confirmed Orders</span>
+                  <span>1. Confirmed Orders</span>
                 </span>
-                <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
-                  {stats.confirmedCount}
-                </span>
+                <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">{stats.confirmedCount}</span>
               </button>
 
               <button
                 onClick={() => {
-                  setCurrentScreen('generate_labels');
-                  setActiveBottomTab('labels');
+                  setOrderStageFilter('packing');
+                  setCurrentScreen('orders_list');
                 }}
-                className="w-full p-3 text-left flex items-center justify-between hover:bg-slate-50 text-xs font-bold text-slate-800"
+                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
               >
-                <span className="flex items-center gap-2.5">
-                  <Printer className="w-4 h-4 text-purple-600" />
-                  <span>A4 Label Sheets (4-Grid)</span>
+                <span className="flex items-center gap-2">
+                  <Box className="w-4 h-4 text-amber-500" />
+                  <span>2. Nursery Packing</span>
                 </span>
-                <ChevronRight className="w-4 h-4 text-slate-400" />
+                <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">{stats.packingCount}</span>
               </button>
-            </div>
 
-            {/* Store Management Desktop Modules */}
-            <div className="space-y-1">
-              <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider px-1">
-                Store Catalog & Administration
-              </p>
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs divide-y divide-slate-100 overflow-hidden">
-                {[
-                  { key: 'products', label: `Products Catalog (${products.length})`, icon: <Package className="w-4 h-4 text-slate-700" /> },
-                  { key: 'categories', label: 'Categories Manager', icon: <FolderTree className="w-4 h-4 text-slate-700" /> },
-                  { key: 'coupons', label: 'Coupons & Offers', icon: <Tag className="w-4 h-4 text-amber-600" /> },
-                  { key: 'inventory', label: 'Inventory Stock Alerts', icon: <Clock className="w-4 h-4 text-rose-600" /> },
-                  { key: 'reviews', label: 'Customer Reviews', icon: <Star className="w-4 h-4 text-amber-500 fill-amber-500" /> },
-                  { key: 'finances', label: 'Nursery Expenses & Profit', icon: <DollarSign className="w-4 h-4 text-emerald-600" /> },
-                  { key: 'settings', label: 'Store Settings & UPI Gateway', icon: <SettingsIcon className="w-4 h-4 text-slate-700" /> },
-                  { key: 'audit', label: 'Audit Security Logs', icon: <ShieldCheck className="w-4 h-4 text-indigo-600" /> }
-                ].map(({ key, label, icon }) => (
-                  <button
-                    key={key}
-                    onClick={() => {
-                      if (onOpenDesktopTab) onOpenDesktopTab(key);
-                    }}
-                    className="w-full p-3 text-left flex items-center justify-between hover:bg-slate-50 text-xs font-bold text-slate-700"
-                  >
-                    <span className="flex items-center gap-2.5">
-                      {icon}
-                      <span>{label}</span>
-                    </span>
-                    <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                  </button>
-                ))}
+              <button
+                onClick={() => {
+                  setOrderStageFilter('dispatched');
+                  setCurrentScreen('orders_list');
+                }}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <span className="flex items-center gap-2">
+                  <Truck className="w-4 h-4 text-blue-600" />
+                  <span>3. Courier Dispatched</span>
+                </span>
+                <span className="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">{stats.dispatchedCount}</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setOrderStageFilter('delivered');
+                  setCurrentScreen('orders_list');
+                }}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <span className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-purple-600" />
+                  <span>4. Delivered Orders</span>
+                </span>
+                <span className="text-[10px] bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">{stats.deliveredCount}</span>
+              </button>
+
+              <div className="px-3 pt-3 pb-1.5 text-[10px] uppercase tracking-wider text-slate-400 font-extrabold">
+                Nursery Catalog & Management
               </div>
+
+              {[
+                { key: 'products', label: `Products (${products.length})`, icon: <Package className="w-4 h-4" /> },
+                { key: 'categories', label: `Categories (${categories.length})`, icon: <FolderTree className="w-4 h-4" /> },
+                { key: 'inventory', label: 'Inventory & Stock Alerts', icon: <Tag className="w-4 h-4" /> },
+                { key: 'coupons', label: 'Discount Coupons', icon: <Tag className="w-4 h-4" /> },
+                { key: 'reviews', label: `Customer Reviews (${reviews.length})`, icon: <Star className="w-4 h-4 text-amber-500" /> },
+                { key: 'finances', label: 'Profit & Loss Finances', icon: <DollarSign className="w-4 h-4 text-emerald-600" /> },
+                { key: 'settings', label: 'Store & Payment Settings', icon: <SettingsIcon className="w-4 h-4" /> },
+                { key: 'audit', label: 'Security & Audit Logs', icon: <ShieldCheck className="w-4 h-4" /> },
+              ].map(item => (
+                <button
+                  key={item.key}
+                  onClick={() => {
+                    if (onOpenDesktopTab) onOpenDesktopTab(item.key);
+                    setCurrentScreen('dashboard');
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer font-semibold"
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </button>
+              ))}
             </div>
 
-            {/* Quick Actions */}
-            <div className="space-y-2 pt-2">
+            {/* Footer */}
+            <div className="p-3 border-t border-slate-200 bg-slate-50 space-y-1.5">
               <button
                 onClick={onBackToStore}
-                className="w-full py-3 bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-2 transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
               >
-                <ExternalLink className="w-4 h-4" />
-                <span>Return to Customer Store</span>
-              </button>
-
-              {onLogout && (
-                <button
-                  onClick={onLogout}
-                  className="w-full py-2.5 bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors border border-slate-200"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span>Sign Out of Admin</span>
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-      </main>
-
-      {/* ========================================================= */}
-      {/* SCREEN 6 & 11: WHATSAPP NOTIFICATION MODAL               */}
-      {/* ========================================================= */}
-      {whatsAppModal && whatsAppModal.open && (
-        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-[#e5ddd5] w-full max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-200 border border-slate-300">
-            {/* WhatsApp Top Header Bar */}
-            <div className="bg-[#075e54] text-white p-3.5 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setWhatsAppModal(null)}
-                  className="p-1 hover:bg-white/10 rounded-full"
-                >
-                  <ArrowLeft className="w-5 h-5 text-white" />
-                </button>
-
-                <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-sm overflow-hidden">
-                  <User className="w-5 h-5" />
-                </div>
-
-                <div>
-                  <p className="font-bold text-sm leading-tight">
-                    +{whatsAppModal.phone}
-                  </p>
-                  <p className="text-[11px] text-emerald-200">online</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setWhatsAppModal(null)}
-                  className="p-1 text-white/80 hover:text-white"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Chat Conversation Bubble View */}
-            <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto bg-[#e5ddd5]" style={{ backgroundImage: 'radial-gradient(#cfd8dc 1px, transparent 1px)', backgroundSize: '16px 16px' }}>
-              <div className="bg-white rounded-2xl p-3.5 shadow-sm text-xs text-slate-900 font-medium whitespace-pre-line leading-relaxed border border-slate-200/60 relative">
-                {whatsAppModal.message}
-                <div className="text-right text-[10px] text-slate-400 mt-1">11:35 AM ✓✓</div>
-              </div>
-            </div>
-
-            {/* Action Bar */}
-            <div className="bg-white p-3.5 border-t border-slate-200 flex items-center gap-2.5">
-              <button
-                onClick={handleCopyMessage}
-                className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-800 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all border border-slate-200 cursor-pointer"
-              >
-                <Copy className="w-4 h-4 text-slate-600" />
-                <span>{copiedToast ? 'Copied!' : 'Copy Text'}</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Return to Store</span>
               </button>
 
               <button
-                onClick={handleLaunchWhatsApp}
-                className="flex-2 py-3 bg-[#25d366] hover:bg-[#20bd5a] active:scale-95 text-white font-bold text-xs rounded-xl shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
+                onClick={() => {
+                  if (onLogout) onLogout();
+                }}
+                className="w-full flex items-center justify-center gap-2 py-2 bg-slate-200 hover:bg-rose-100 hover:text-rose-700 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer"
               >
-                <svg className="w-4 h-4 fill-white" viewBox="0 0 24 24">
-                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
-                </svg>
-                <span>Open in WhatsApp</span>
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Sign Out</span>
               </button>
             </div>
           </div>
@@ -1619,7 +1420,58 @@ Thank you for shopping with VRG Nursery! 🌿`;
       )}
 
       {/* ========================================================= */}
-      {/* SCREEN 9: LABEL SHEET PREVIEW (matching 9.jpeg)           */}
+      {/* 8. WHATSAPP NOTIFICATION PREVIEW MODAL                     */}
+      {/* ========================================================= */}
+      {whatsAppModal?.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden border border-slate-200 space-y-4 p-5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full bg-[#25D366] text-white flex items-center justify-center">
+                  <Send className="w-3.5 h-3.5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-xs text-slate-900">WhatsApp Notification</h3>
+                  <p className="text-[10px] text-slate-400 font-medium">To: +{whatsAppModal.phone}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setWhatsAppModal(null)}
+                className="w-7 h-7 rounded-lg text-slate-400 hover:bg-slate-100 flex items-center justify-center cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Message Bubble Preview */}
+            <div className="bg-[#E7FFDB] p-3.5 rounded-2xl border border-[#d2f3be] text-xs font-sans text-slate-800 whitespace-pre-wrap max-h-60 overflow-y-auto leading-relaxed shadow-inner">
+              {whatsAppModal.message}
+            </div>
+
+            {/* Actions */}
+            <div className="space-y-2">
+              <button
+                onClick={handleLaunchWhatsApp}
+                className="w-full py-3 bg-[#25D366] hover:bg-[#1EBE5D] text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>Open in WhatsApp & Send</span>
+              </button>
+
+              <button
+                onClick={handleCopyMessage}
+                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>{copiedToast ? 'Copied to Clipboard!' : 'Copy Message Text'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* 9. A4 PRINT LABEL SHEET MODAL                              */}
       {/* ========================================================= */}
       {showLabelPrintPreview && (
         <A4LabelSheetPrint
@@ -1629,9 +1481,10 @@ Thank you for shopping with VRG Nursery! 🌿`;
       )}
 
       {/* ========================================================= */}
-      {/* BOTTOM MOBILE NAVIGATION BAR (matching 2.jpeg / 3.jpeg)   */}
+      {/* 10. BOTTOM NAVIGATION BAR                                  */}
       {/* ========================================================= */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200/90 py-2 px-6 flex items-center justify-around shadow-lg">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-6 py-2 flex items-center justify-between shadow-lg max-w-md mx-auto">
+        
         {/* Tab 1: Dashboard */}
         <button
           onClick={() => {
@@ -1650,7 +1503,8 @@ Thank you for shopping with VRG Nursery! 🌿`;
         <button
           onClick={() => {
             setActiveBottomTab('orders');
-            setCurrentScreen('orders_new');
+            setOrderStageFilter('all');
+            setCurrentScreen('orders_list');
           }}
           className={`flex flex-col items-center gap-1 transition-colors cursor-pointer relative ${
             activeBottomTab === 'orders' ? 'text-[#14532d] font-bold' : 'text-slate-500 font-medium'
@@ -1658,8 +1512,8 @@ Thank you for shopping with VRG Nursery! 🌿`;
         >
           <Calendar className="w-5 h-5" />
           <span className="text-[10px]">Orders</span>
-          {stats.newOrdersCount > 0 && (
-            <span className="absolute -top-1 right-1 w-2 h-2 rounded-full bg-rose-500" />
+          {stats.confirmedCount > 0 && (
+            <span className="absolute -top-1 right-1 w-2 h-2 rounded-full bg-emerald-500" />
           )}
         </button>
 

@@ -1214,7 +1214,32 @@ const silentRefresh = async (): Promise<boolean> => {
           adminUser={adminUser}
           onUpdateOrderStatus={handleUpdateOrderStatus}
           onSaveTracking={async (orderId, data) => {
-            await handleDispatchOrder(data.trackingNumber, data.courierName);
+            try {
+              await authFetch(`/api/admin/orders/${orderId}/status`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                  orderStatus: 'DISPATCHED',
+                  courierName: data.courierName,
+                  trackingNumber: data.trackingNumber,
+                  deliveryNotes: data.trackingLink
+                })
+              }).catch(() => null);
+            } catch {}
+
+            setOrders(prev => {
+              const updated = prev.map(o => o.id === orderId ? {
+                ...o,
+                orderStatus: 'DISPATCHED' as const,
+                courierName: data.courierName,
+                trackingNumber: data.trackingNumber,
+                deliveryNotes: data.trackingLink
+              } : o);
+              const keysToSave = ['veerika_admin_orders', 'vrg_user_orders', 'veerika_customer_orders', 'vrg_orders'];
+              keysToSave.forEach(key => {
+                try { localStorage.setItem(key, JSON.stringify(updated)); } catch {}
+              });
+              return updated;
+            });
           }}
           onBackToStore={onBackToStore}
           onOpenDesktopTab={(tabKey) => {
