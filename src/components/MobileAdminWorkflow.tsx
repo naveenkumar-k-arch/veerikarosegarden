@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Order, Product, Category, Review, Coupon, Banner } from '../types';
+import { Order, Product, Category, Review, Coupon, Banner, Combo } from '../types';
 import {
   Sprout,
   LayoutDashboard,
@@ -52,6 +52,7 @@ export interface MobileAdminWorkflowProps {
   products: Product[];
   categories: Category[];
   reviews: Review[];
+  combos?: Combo[];
   coupons?: Coupon[];
   banners?: Banner[];
   settings?: any;
@@ -67,6 +68,8 @@ export interface MobileAdminWorkflowProps {
   onDeleteReview?: (id: string) => void;
   onSaveCoupon?: (coupon: any) => Promise<void>;
   onDeleteCoupon?: (id: string) => Promise<void>;
+  onSaveCombo?: (combo: any) => Promise<void>;
+  onDeleteCombo?: (id: string) => Promise<void>;
   onSaveSettings?: (settings: any) => Promise<void>;
   onOpenDesktopTab?: (tabKey: string) => void;
   onBackToStore: () => void;
@@ -82,6 +85,7 @@ export type ScreenType =
   | 'order_timeline'
   | 'products'
   | 'categories'
+  | 'combos'
   | 'inventory'
   | 'coupons'
   | 'banners'
@@ -96,6 +100,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   products,
   categories,
   reviews,
+  combos = [],
   coupons = [],
   banners = [],
   settings: initialSettings,
@@ -111,6 +116,8 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   onDeleteReview,
   onSaveCoupon,
   onDeleteCoupon,
+  onSaveCombo,
+  onDeleteCombo,
   onSaveSettings,
   onOpenDesktopTab,
   onBackToStore,
@@ -192,6 +199,21 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
     productName: 'Dutch Hybrid Red Rose',
     status: 'APPROVED' as 'APPROVED' | 'PENDING',
     featured: true
+  });
+
+  // ==================== COMBO MODAL STATE ====================
+  const [showComboModal, setShowComboModal] = useState(false);
+  const [editingCombo, setEditingCombo] = useState<Combo | null>(null);
+  const [comboForm, setComboForm] = useState({
+    title: '',
+    subtitle: '',
+    badge: '3-IN-1 COMBO',
+    productIds: [] as string[],
+    originalPrice: 599,
+    comboPrice: 399,
+    imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80',
+    active: true,
+    freeDelivery: true
   });
 
   // ==================== SETTINGS FORM STATE ====================
@@ -1567,6 +1589,141 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
         )}
 
         {/* ========================================================= */}
+        {/* 8.5 COMBO OFFERS SCREEN (3-in-1 Bundles)                   */}
+        {/* ========================================================= */}
+        {currentScreen === 'combos' && (
+          <div className="space-y-4 animate-in fade-in duration-150">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentScreen('dashboard')}
+                  className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                <h2 className="text-base font-extrabold text-slate-900">Plant Combos ({combos.length})</h2>
+              </div>
+              <button
+                onClick={() => {
+                  setEditingCombo(null);
+                  setComboForm({
+                    title: '',
+                    subtitle: '',
+                    badge: '3-IN-1 COMBO',
+                    productIds: products.slice(0, 3).map(p => p.id),
+                    originalPrice: 599,
+                    comboPrice: 399,
+                    imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80',
+                    active: true,
+                    freeDelivery: true
+                  });
+                  setShowComboModal(true);
+                }}
+                className="px-3 py-1.5 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl flex items-center gap-1 shadow-xs cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Combo</span>
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {combos.map(combo => {
+                const discount = combo.originalPrice > combo.comboPrice
+                  ? Math.round(((combo.originalPrice - combo.comboPrice) / combo.originalPrice) * 100)
+                  : 0;
+
+                return (
+                  <div key={combo.id} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      {combo.imageUrl && (
+                        <img
+                          src={combo.imageUrl}
+                          alt={combo.title}
+                          className="w-16 h-16 rounded-xl object-cover border border-slate-100 shrink-0"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-amber-100 text-amber-900 rounded-md">
+                            {combo.badge || 'COMBO'}
+                          </span>
+                          {combo.freeDelivery && (
+                            <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded">
+                              🚚 Free Delivery
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="font-extrabold text-xs text-slate-900 mt-1 truncate">{combo.title}</h4>
+                        {combo.subtitle && <p className="text-[11px] text-slate-500 truncate">{combo.subtitle}</p>}
+                        
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-sm font-black text-emerald-800">₹{combo.comboPrice}</span>
+                          {combo.originalPrice > combo.comboPrice && (
+                            <span className="text-xs text-slate-400 line-through">₹{combo.originalPrice}</span>
+                          )}
+                          {discount > 0 && (
+                            <span className="text-[10px] font-black text-rose-600 bg-rose-50 px-1 rounded">
+                              {discount}% OFF
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                      <span className={`font-bold text-[10px] px-2 py-0.5 rounded-full ${
+                        combo.active ? 'bg-emerald-100 text-emerald-900' : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {combo.active ? 'Active on Store' : 'Hidden'}
+                      </span>
+
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => {
+                            setEditingCombo(combo);
+                            setComboForm({
+                              title: combo.title,
+                              subtitle: combo.subtitle || '',
+                              badge: combo.badge || '3-IN-1 COMBO',
+                              productIds: combo.productIds || [],
+                              originalPrice: combo.originalPrice || 599,
+                              comboPrice: combo.comboPrice || 399,
+                              imageUrl: combo.imageUrl || '',
+                              active: combo.active !== false,
+                              freeDelivery: combo.freeDelivery || false
+                            });
+                            setShowComboModal(true);
+                          }}
+                          className="p-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 cursor-pointer"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </button>
+                        {onDeleteCombo && (
+                          <button
+                            onClick={() => onDeleteCombo(combo.id)}
+                            className="p-1.5 bg-rose-50 hover:bg-rose-100 rounded-lg text-rose-600 cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {combos.length === 0 && (
+                <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-2">
+                  <Sparkles className="w-8 h-8 text-amber-400 mx-auto" />
+                  <p className="text-xs font-bold text-slate-700">No combo packages created yet</p>
+                  <p className="text-[11px] text-slate-400">Click "+ Add Combo" to bundle 3 plants with special offer pricing.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
         {/* 9. INVENTORY & STOCK ALERTS SCREEN                         */}
         {/* ========================================================= */}
         {currentScreen === 'inventory' && (
@@ -1941,6 +2098,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
               {[
                 { screen: 'products', label: `🌿 Products Catalog (${products.length})`, icon: <Package className="w-4 h-4 text-emerald-700" /> },
+                { screen: 'combos', label: `🎁 Plant Combos & Offers (${combos.length})`, icon: <Sparkles className="w-4 h-4 text-amber-500" /> },
                 { screen: 'categories', label: `📁 Categories (${categories.length})`, icon: <FolderTree className="w-4 h-4 text-emerald-700" /> },
                 { screen: 'orders_list', label: `📦 All Orders (${orders.length})`, icon: <ShoppingBag className="w-4 h-4 text-blue-600" /> },
                 { screen: 'inventory', label: '⚠️ Inventory & Low Stock Alerts', icon: <AlertTriangle className="w-4 h-4 text-amber-500" /> },
@@ -2169,6 +2327,168 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 className="w-full py-3 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
               >
                 {editingCategory ? 'Save Category Changes' : 'Create Category'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* ADD/EDIT COMBO MODAL                                       */}
+      {/* ========================================================= */}
+      {showComboModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden border border-slate-200 max-h-[90vh] flex flex-col">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-extrabold text-sm text-slate-900">
+                {editingCombo ? 'Edit Plant Combo' : 'Create 3-in-1 Combo Offer'}
+              </h3>
+              <button onClick={() => setShowComboModal(false)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (onSaveCombo) {
+                  await onSaveCombo({
+                    id: editingCombo?.id,
+                    title: comboForm.title,
+                    subtitle: comboForm.subtitle,
+                    badge: comboForm.badge,
+                    productIds: comboForm.productIds,
+                    originalPrice: Number(comboForm.originalPrice),
+                    comboPrice: Number(comboForm.comboPrice),
+                    imageUrl: comboForm.imageUrl,
+                    active: comboForm.active,
+                    freeDelivery: comboForm.freeDelivery
+                  });
+                }
+                setShowComboModal(false);
+              }}
+              className="p-4 overflow-y-auto space-y-3 text-xs"
+            >
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Combo Title *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 3-in-1 Fragrant Rose Special"
+                  value={comboForm.title}
+                  onChange={e => setComboForm({ ...comboForm, title: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Subtitle / Description</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Damask + Kashmiri + Button Rose"
+                  value={comboForm.subtitle}
+                  onChange={e => setComboForm({ ...comboForm, subtitle: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Badge Text</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 3-IN-1 COMBO, 40% OFF"
+                  value={comboForm.badge}
+                  onChange={e => setComboForm({ ...comboForm, badge: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Original Total (₹) *</label>
+                  <input
+                    type="number"
+                    required
+                    value={comboForm.originalPrice}
+                    onChange={e => setComboForm({ ...comboForm, originalPrice: Number(e.target.value) })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Combo Offer Price (₹) *</label>
+                  <input
+                    type="number"
+                    required
+                    value={comboForm.comboPrice}
+                    onChange={e => setComboForm({ ...comboForm, comboPrice: Number(e.target.value) })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Select Plants in this Combo ({comboForm.productIds.length} Selected)</label>
+                <div className="max-h-36 overflow-y-auto space-y-1 p-2 bg-slate-50 rounded-xl border border-slate-200">
+                  {products.map(p => {
+                    const isSelected = comboForm.productIds.includes(p.id);
+                    return (
+                      <label key={p.id} className="flex items-center gap-2 p-1 hover:bg-white rounded cursor-pointer select-none text-xs">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => {
+                            if (isSelected) {
+                              setComboForm(prev => ({ ...prev, productIds: prev.productIds.filter(id => id !== p.id) }));
+                            } else {
+                              setComboForm(prev => ({ ...prev, productIds: [...prev.productIds, p.id] }));
+                            }
+                          }}
+                          className="w-3.5 h-3.5 text-emerald-700 rounded"
+                        />
+                        <span className="truncate flex-1 font-semibold">{p.name} (₹{p.sellingPrice})</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Banner Image URL</label>
+                <input
+                  type="text"
+                  value={comboForm.imageUrl}
+                  onChange={e => setComboForm({ ...comboForm, imageUrl: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-[11px]"
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-800">
+                  <input
+                    type="checkbox"
+                    checked={comboForm.active}
+                    onChange={e => setComboForm({ ...comboForm, active: e.target.checked })}
+                    className="w-4 h-4 text-emerald-700 rounded"
+                  />
+                  <span>Active on Store</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer font-bold text-emerald-800">
+                  <input
+                    type="checkbox"
+                    checked={comboForm.freeDelivery}
+                    onChange={e => setComboForm({ ...comboForm, freeDelivery: e.target.checked })}
+                    className="w-4 h-4 text-emerald-700 rounded"
+                  />
+                  <span>🚚 Free Delivery</span>
+                </label>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
+              >
+                {editingCombo ? 'Save Combo Changes' : 'Publish Combo Offer'}
               </button>
             </form>
           </div>

@@ -1211,6 +1211,11 @@ const silentRefresh = async (): Promise<boolean> => {
           products={products}
           categories={categories}
           reviews={reviews}
+          combos={combos}
+          coupons={coupons}
+          banners={banners}
+          settings={settings}
+          finances={finances}
           adminUser={adminUser}
           onUpdateOrderStatus={handleUpdateOrderStatus}
           onSaveTracking={async (orderId, data) => {
@@ -1240,6 +1245,79 @@ const silentRefresh = async (): Promise<boolean> => {
               });
               return updated;
             });
+          }}
+          onSaveProduct={async (prod) => {
+            try {
+              const url = prod.id ? `/api/products/${prod.id}` : '/api/products';
+              const method = prod.id ? 'PUT' : 'POST';
+              await authFetch(url, { method, body: JSON.stringify(prod) });
+              fetchData();
+            } catch (e) {
+              console.error(e);
+            }
+          }}
+          onDeleteProduct={handleDeleteProduct}
+          onSaveCategory={async (cat) => {
+            try {
+              const url = cat.id ? `/api/admin/categories/${cat.id}` : '/api/admin/categories';
+              const method = cat.id ? 'PUT' : 'POST';
+              await authFetch(url, { method, body: JSON.stringify(cat) });
+              fetchData();
+            } catch (e) {
+              console.error(e);
+            }
+          }}
+          onDeleteCategory={handleDeleteCategory}
+          onSaveReview={saveReviewsState ? (rev) => {
+            const updated = [rev, ...reviews.filter(r => r.id !== rev.id)];
+            saveReviewsState(updated);
+          } : undefined}
+          onDeleteReview={handleDeleteReview}
+          onSaveCoupon={async (cp) => {
+            try {
+              const url = cp.id ? `/api/admin/coupons/${cp.id}` : '/api/admin/coupons';
+              const method = cp.id ? 'PUT' : 'POST';
+              await authFetch(url, { method, body: JSON.stringify(cp) });
+              fetchData();
+            } catch (e) {
+              console.error(e);
+            }
+          }}
+          onDeleteCoupon={async (id) => {
+            if (!confirm('Are you sure you want to delete this coupon?')) return;
+            try {
+              await authFetch(`/api/admin/coupons/${id}`, { method: 'DELETE' });
+              fetchData();
+            } catch (e) {
+              console.error(e);
+            }
+          }}
+          onSaveCombo={async (comboData) => {
+            try {
+              const url = comboData.id ? `/api/admin/combos/${comboData.id}` : '/api/admin/combos';
+              const method = comboData.id ? 'PUT' : 'POST';
+              await authFetch(url, { method, body: JSON.stringify(comboData) });
+              fetchData();
+            } catch (e) {
+              console.error(e);
+            }
+          }}
+          onDeleteCombo={async (id) => {
+            if (!confirm('Are you sure you want to delete this combo offer?')) return;
+            try {
+              await authFetch(`/api/admin/combos/${id}`, { method: 'DELETE' });
+              fetchData();
+            } catch (e) {
+              console.error(e);
+            }
+          }}
+          onSaveSettings={async (st) => {
+            try {
+              await authFetch('/api/admin/settings', { method: 'POST', body: JSON.stringify(st) });
+              setSettings(st);
+            } catch (e) {
+              console.error(e);
+            }
           }}
           onBackToStore={onBackToStore}
           onOpenDesktopTab={(tabKey) => {
