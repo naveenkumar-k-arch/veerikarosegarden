@@ -89,15 +89,15 @@ export const AdminLoginForm: React.FC<AdminLoginFormProps> = ({ onLoginSuccess, 
         )}
 
         <form onSubmit={handleAdminSubmit} className="space-y-5">
-          {/* Username Field */}
+          {/* Admin Email / Phone Field */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 block">Username / Email</label>
+            <label className="text-xs font-bold text-slate-700 block">Admin Email / Mobile Number</label>
             <input
               type="text"
               required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter username or email"
+              placeholder="e.g. admin@veerikarosegarden.com or 09360931606"
               className="w-full px-3.5 py-3 bg-slate-50/70 border border-slate-300 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:bg-white focus:border-emerald-700 transition-all"
             />
           </div>
