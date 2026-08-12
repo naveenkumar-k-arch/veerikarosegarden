@@ -15,9 +15,11 @@ export default defineConfig(() => {
       port: 5173,
       hmr: process.env.DISABLE_HMR !== 'true',
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
+      // Local Dev Server Proxy — Only used during 'npm run dev' on your local computer.
+      // In production / Vercel, this server block is ignored and Vercel handles /api via api/index.ts.
       proxy: {
         '/api': {
-          target: 'http://localhost:3000',
+          target: process.env.API_URL || process.env.VITE_API_URL || 'http://localhost:3000',
           changeOrigin: true,
           secure: false,
           configure: (proxy) => {
