@@ -210,7 +210,40 @@ export const App: React.FC = () => {
       return [];
     }
   });
-  const [wishlist, setWishlist] = useState<Product[]>([]);
+
+  const [wishlist, setWishlist] = useState<Product[]>(() => {
+    try {
+      const saved = localStorage.getItem('vrg_wishlist');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('vrg_wishlist', JSON.stringify(wishlist));
+    } catch {}
+  }, [wishlist]);
+
+  const handleToggleWishlist = (product: Product) => {
+    setWishlist(prev => {
+      const exists = prev.some(p => p.id === product.id);
+      if (exists) {
+        return prev.filter(p => p.id !== product.id);
+      } else {
+        return [...prev, product];
+      }
+    });
+  };
+
+  useEffect(() => {
+    const handleCustomWishlist = (e: any) => {
+      if (e.detail) handleToggleWishlist(e.detail);
+    };
+    window.addEventListener('toggleWishlist', handleCustomWishlist as EventListener);
+    return () => window.removeEventListener('toggleWishlist', handleCustomWishlist as EventListener);
+  }, []);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountAmount: number } | null>(null);
 
@@ -899,6 +932,8 @@ export const App: React.FC = () => {
             }}
             reviews={reviews.filter((r) => r.productId === selectedProduct.id)}
             onSubmitReview={handleSubmitReview}
+            isWishlisted={wishlist.some((w) => w.id === selectedProduct.id)}
+            onToggleWishlist={handleToggleWishlist}
           />
         )}
 

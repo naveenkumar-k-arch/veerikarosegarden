@@ -12,6 +12,8 @@ interface ProductDetailsPageProps {
   onSelectProduct: (p: Product) => void;
   reviews: Review[];
   onSubmitReview: (review: { rating: number; title: string; comment: string; userName: string }) => void;
+  isWishlisted?: boolean;
+  onToggleWishlist?: (product: Product) => void;
 }
 
 export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
@@ -23,7 +25,9 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
   relatedProducts,
   onSelectProduct,
   reviews,
-  onSubmitReview
+  onSubmitReview,
+  isWishlisted = false,
+  onToggleWishlist
 }) => {
   const [selectedImg, setSelectedImg] = useState<string>(product.images[0] || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80');
   const [qty, setQty] = useState<number>(1);
@@ -98,15 +102,29 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
             <span className="absolute top-3 left-3 bg-emerald-800 text-white text-xs font-bold px-3 py-1 rounded-full shadow-xs">
               {product.categoryName}
             </span>
-            <button
-              onClick={handleShare}
-              className="absolute top-3 right-3 p-2 bg-white/90 hover:bg-white text-slate-700 rounded-full shadow-xs transition-colors"
-              title="Share Product"
-            >
-              <Share2 className="w-4 h-4" />
-            </button>
+
+            <div className="absolute top-3 right-3 flex items-center gap-2">
+              <button
+                onClick={() => {
+                  if (onToggleWishlist) onToggleWishlist(product);
+                  else window.dispatchEvent(new CustomEvent('toggleWishlist', { detail: product }));
+                }}
+                className={`p-2 rounded-full shadow-xs transition-all cursor-pointer ${isWishlisted ? 'bg-rose-100 text-rose-600' : 'bg-white/90 hover:bg-white text-slate-700'}`}
+                title={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
+              >
+                <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-rose-600 text-rose-600' : 'text-slate-700'}`} />
+              </button>
+
+              <button
+                onClick={handleShare}
+                className="p-2 bg-white/90 hover:bg-white text-slate-700 rounded-full shadow-xs transition-colors cursor-pointer"
+                title="Share Product"
+              >
+                <Share2 className="w-4 h-4" />
+              </button>
+            </div>
             {copied && (
-              <span className="absolute top-12 right-3 bg-slate-900 text-white text-[10px] font-bold px-2 py-1 rounded">
+              <span className="absolute top-14 right-3 bg-slate-900 text-white text-[10px] font-bold px-2 py-1 rounded shadow-md">
                 Link Copied!
               </span>
             )}
@@ -216,22 +234,38 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
               <button
                 onClick={handleAddToCartClick}
                 disabled={product.stock <= 0}
-                className={`py-3.5 px-4 ${addedSuccess ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-slate-900 hover:bg-slate-800'} disabled:bg-slate-300 text-white rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md active:scale-95`}
+                className={`py-3.5 px-3 ${addedSuccess ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-slate-900 hover:bg-slate-800'} disabled:bg-slate-300 text-white rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md active:scale-95 cursor-pointer`}
               >
                 {addedSuccess ? <Check className="w-4 h-4 text-white" /> : <ShoppingBag className="w-4 h-4" />}
-                <span>{addedSuccess ? '✓ ADDED TO CART!' : 'ADD TO CART'}</span>
+                <span>{addedSuccess ? '✓ ADDED!' : 'ADD TO CART'}</span>
               </button>
 
               <button
                 onClick={() => onBuyNow(product, qty)}
                 disabled={product.stock <= 0}
-                className="py-3 px-4 bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 text-white rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition-colors shadow-md"
+                className="py-3.5 px-3 bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 text-white rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition-colors shadow-md cursor-pointer"
               >
                 <span>BUY NOW (PHONEPE)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (onToggleWishlist) onToggleWishlist(product);
+                  else window.dispatchEvent(new CustomEvent('toggleWishlist', { detail: product }));
+                }}
+                className={`py-3.5 px-3 border rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer ${
+                  isWishlisted 
+                    ? 'bg-rose-50 border-rose-300 text-rose-700 hover:bg-rose-100' 
+                    : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-rose-600 text-rose-600' : 'text-rose-600'}`} />
+                <span>{isWishlisted ? 'WISHLISTED ❤️' : 'ADD TO WISHLIST'}</span>
               </button>
             </div>
           </div>

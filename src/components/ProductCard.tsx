@@ -306,22 +306,29 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         )}
       </div>
 
-      {/* Wishlist */}
-      {onToggleWishlist && (
-        <button
-          onClick={e => { e.stopPropagation(); onToggleWishlist(product); }}
-          style={{
-            position: 'absolute', top: 8, right: 8, zIndex: 10,
-            width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: isWishlisted ? '#ffe4e6' : 'rgba(255,255,255,0.9)',
-            border: `1.5px solid ${isWishlisted ? '#fecdd3' : '#e5f0e0'}`,
-            borderRadius: '50%', cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          }}
-        >
-          <Heart style={{ width: 14, height: 14, color: '#e11d48', fill: isWishlisted ? '#e11d48' : 'none' }} />
-        </button>
-      )}
+      {/* Wishlist Button top-right */}
+      <button
+        onClick={e => {
+          e.stopPropagation();
+          if (onToggleWishlist) {
+            onToggleWishlist(product);
+          } else {
+            window.dispatchEvent(new CustomEvent('toggleWishlist', { detail: product }));
+          }
+        }}
+        title={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
+        style={{
+          position: 'absolute', top: 8, right: 8, zIndex: 10,
+          width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: isWishlisted ? '#ffe4e6' : 'rgba(255,255,255,0.92)',
+          border: `1.5px solid ${isWishlisted ? '#fecdd3' : '#e5f0e0'}`,
+          borderRadius: '50%', cursor: 'pointer',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+          transition: 'all 0.2s ease',
+        }}
+      >
+        <Heart style={{ width: 15, height: 15, color: '#e11d48', fill: isWishlisted ? '#e11d48' : 'none' }} />
+      </button>
 
       {/* Image */}
       <div className="pc-img" style={{ position: 'relative', height: 160, overflow: 'hidden', flexShrink: 0 }}>
