@@ -5,7 +5,7 @@ import {
   LayoutDashboard,
   Calendar,
   FileText,
-  Sliders,
+  Menu,
   ArrowLeft,
   Check,
   Phone,
@@ -405,10 +405,11 @@ Thank you for shopping with VRG Nursery! 🌿`;
 
         <button
           onClick={() => setCurrentScreen('menu_drawer')}
-          className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-700 hover:bg-slate-100 active:scale-95 transition-all"
+          className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-700 hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
           aria-label="Open mobile navigation menu"
+          title="Open Menu"
         >
-          <Sliders className="w-5 h-5 text-slate-800" />
+          <Menu className="w-5 h-5 text-slate-800" />
         </button>
       </header>
 
@@ -684,15 +685,25 @@ Thank you for shopping with VRG Nursery! 🌿`;
         {/* ========================================================= */}
         {currentScreen === 'verify_payment' && selectedOrder && (
           <div className="space-y-4 animate-in fade-in duration-150">
-            {/* Header with Back Arrow */}
-            <div className="flex items-center gap-2">
+            {/* Header with Back Arrow and Menu */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentScreen('orders_new')}
+                  className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                <h2 className="text-base font-extrabold text-slate-900">Order Details</h2>
+              </div>
               <button
-                onClick={() => setCurrentScreen('orders_new')}
-                className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors"
+                onClick={() => setCurrentScreen('menu_drawer')}
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                aria-label="Open menu"
+                title="Open Menu"
               >
-                <ArrowLeft className="w-4 h-4" />
+                <Menu className="w-5 h-5 text-slate-800" />
               </button>
-              <h2 className="text-base font-extrabold text-slate-900">Order Details</h2>
             </div>
 
             {/* Order ID Banner */}
@@ -788,14 +799,24 @@ Thank you for shopping with VRG Nursery! 🌿`;
         {currentScreen === 'confirm_order' && selectedOrder && (
           <div className="space-y-4 animate-in fade-in duration-150">
             {/* Header */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentScreen('verify_payment')}
+                  className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                <h2 className="text-base font-extrabold text-slate-900">Confirm Order</h2>
+              </div>
               <button
-                onClick={() => setCurrentScreen('verify_payment')}
-                className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors"
+                onClick={() => setCurrentScreen('menu_drawer')}
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                aria-label="Open menu"
+                title="Open Menu"
               >
-                <ArrowLeft className="w-4 h-4" />
+                <Menu className="w-5 h-5 text-slate-800" />
               </button>
-              <h2 className="text-base font-extrabold text-slate-900">Confirm Order</h2>
             </div>
 
             {/* Order ID Banner */}
@@ -1017,14 +1038,24 @@ Thank you for shopping with VRG Nursery! 🌿`;
         {currentScreen === 'generate_labels' && (
           <div className="space-y-4 animate-in fade-in duration-150">
             {/* Header */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentScreen('orders_confirmed')}
+                  className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                <h2 className="text-base font-extrabold text-slate-900">Generate Label Sheet</h2>
+              </div>
               <button
-                onClick={() => setCurrentScreen('orders_confirmed')}
-                className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors"
+                onClick={() => setCurrentScreen('menu_drawer')}
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                aria-label="Open menu"
+                title="Open Menu"
               >
-                <ArrowLeft className="w-4 h-4" />
+                <Menu className="w-5 h-5 text-slate-800" />
               </button>
-              <h2 className="text-base font-extrabold text-slate-900">Generate Label Sheet</h2>
             </div>
 
             {/* Checklist Box */}
@@ -1109,14 +1140,24 @@ Thank you for shopping with VRG Nursery! 🌿`;
         {currentScreen === 'dispatch_order' && selectedOrder && (
           <div className="space-y-4 animate-in fade-in duration-150">
             {/* Header */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentScreen('orders_confirmed')}
+                  className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                <h2 className="text-base font-extrabold text-slate-900">Dispatch / Tracking</h2>
+              </div>
               <button
-                onClick={() => setCurrentScreen('orders_confirmed')}
-                className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors"
+                onClick={() => setCurrentScreen('menu_drawer')}
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                aria-label="Open menu"
+                title="Open Menu"
               >
-                <ArrowLeft className="w-4 h-4" />
+                <Menu className="w-5 h-5 text-slate-800" />
               </button>
-              <h2 className="text-base font-extrabold text-slate-900">Dispatch / Tracking</h2>
             </div>
 
             {/* Order ID Banner */}
@@ -1214,14 +1255,24 @@ Thank you for shopping with VRG Nursery! 🌿`;
         {currentScreen === 'order_timeline' && selectedOrder && (
           <div className="space-y-4 animate-in fade-in duration-150">
             {/* Header */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentScreen('orders_confirmed')}
+                  className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                <h2 className="text-base font-extrabold text-slate-900">Order Timeline</h2>
+              </div>
               <button
-                onClick={() => setCurrentScreen('orders_confirmed')}
-                className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors"
+                onClick={() => setCurrentScreen('menu_drawer')}
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                aria-label="Open menu"
+                title="Open Menu"
               >
-                <ArrowLeft className="w-4 h-4" />
+                <Menu className="w-5 h-5 text-slate-800" />
               </button>
-              <h2 className="text-base font-extrabold text-slate-900">Order Timeline</h2>
             </div>
 
             {/* Stepper Timeline Box matching 12.jpeg */}
@@ -1636,7 +1687,7 @@ Thank you for shopping with VRG Nursery! 🌿`;
             activeBottomTab === 'menu' ? 'text-[#14532d] font-bold' : 'text-slate-500 font-medium'
           }`}
         >
-          <Sliders className="w-5 h-5" />
+          <Menu className="w-5 h-5" />
           <span className="text-[10px]">Menu</span>
         </button>
       </nav>

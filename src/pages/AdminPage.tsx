@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Product, Category, Order, Coupon, Banner, Review, SiteSettings, PaymentLog, FinancialEntry, Combo } from '../types';
-import { LayoutDashboard, Package, ShoppingBag, FolderTree, Tag, Image, Star, Settings as SettingsIcon, ShieldCheck, Plus, Edit, Trash2, Check, X, RefreshCw, Printer, AlertTriangle, Search, Lock, ExternalLink, DollarSign, TrendingUp, TrendingDown, Camera, CreditCard, ChevronDown, User, Phone, MapPin, Upload, MessageSquare, ThumbsUp, Eye, EyeOff, Sparkles, Monitor, Sprout } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, FolderTree, Tag, Image, Star, Settings as SettingsIcon, ShieldCheck, Plus, Edit, Trash2, Check, X, RefreshCw, Printer, AlertTriangle, Search, Lock, ExternalLink, DollarSign, TrendingUp, TrendingDown, Camera, CreditCard, ChevronDown, User, Phone, MapPin, Upload, MessageSquare, ThumbsUp, Eye, EyeOff, Sparkles, Monitor, Sprout, Menu, LogOut } from 'lucide-react';
 
 import { INITIAL_PRODUCTS, INITIAL_CATEGORIES } from '../data/catalogData';
 import { INITIAL_REVIEWS } from '../data/reviewsData';
@@ -111,6 +111,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
     return 'mobile_workflow';
   });
   const [desktopLabelOrders, setDesktopLabelOrders] = useState<Order[] | null>(null);
+  const [showAdminMenuDrawer, setShowAdminMenuDrawer] = useState(false);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'categories' | 'orders' | 'inventory' | 'coupons' | 'banners' | 'reviews' | 'settings' | 'audit' | 'finances'>('dashboard');
   const [orderFilterStage, setOrderFilterStage] = useState<'all' | 'pending' | 'packing' | 'dispatched' | 'delivered'>('all');
 
@@ -1234,53 +1235,165 @@ const silentRefresh = async (): Promise<boolean> => {
   return (
 
     <div className="min-h-screen bg-slate-100 text-slate-800 pb-12">
-      {/* Top Admin Bar */}
-      <div className="bg-slate-900 text-white px-6 py-4 shadow-md flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-amber-500 rounded-xl flex items-center justify-center font-black text-slate-950 text-sm">
-            VRG
+      {/* Clean Minimal Top Admin Header */}
+      <header className="bg-white border-b border-slate-200/90 px-4 py-3 sticky top-0 z-30 flex items-center justify-between shadow-2xs">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-800 shrink-0">
+            <Sprout className="w-5 h-5 text-emerald-700" />
           </div>
           <div>
-            <h1 className="font-bold text-base">Veerika Rose Garden — Admin Panel</h1>
-            <p className="text-[11px] text-slate-400">Manage Nursery Catalog, PhonePe Payments, Dispatch & Reports</p>
+            <div className="flex items-center gap-2">
+              <span className="text-base font-black tracking-wider text-emerald-900 uppercase">
+                VRG NURSERY
+              </span>
+              <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 bg-emerald-100 text-emerald-900 rounded-full">
+                {activeTab}
+              </span>
+            </div>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={() => setAdminLayoutMode('mobile_workflow')}
-            className="px-3.5 py-2 bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs rounded-xl border border-emerald-200 transition-colors cursor-pointer"
             title="Switch to Mobile 12-Step Order Workflow"
           >
-            <Sprout className="w-4 h-4" />
-            <span>📱 Mobile Order Workflow</span>
+            <Sprout className="w-3.5 h-3.5" />
+            <span>Order Pipeline</span>
           </button>
 
           <button
-            onClick={() => setActiveTab('settings')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-              activeTab === 'settings'
-                ? 'bg-amber-500 text-slate-950 shadow-sm'
-                : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
-            }`}
+            onClick={() => setShowAdminMenuDrawer(true)}
+            className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-700 hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
+            aria-label="Open menu"
+            title="Open Admin Menu"
           >
-            <SettingsIcon className="w-4 h-4" />
-            <span>Settings</span>
-          </button>
-
-          <button
-            onClick={onBackToStore}
-            className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors"
-          >
-            Exit Admin to Store
+            <Menu className="w-5 h-5 text-slate-800" />
           </button>
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Navigation Sidebar / Mobile Tab Bar */}
-        <div className="bg-white p-3 rounded-3xl border border-slate-200/80 shadow-2xs text-xs font-bold lg:col-span-1 h-fit
-          flex flex-row lg:flex-col gap-1 overflow-x-auto lg:overflow-x-visible">
+      {/* Slide-over Drawer Menu for Full Store Modules */}
+      {showAdminMenuDrawer && (
+        <div className="fixed inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div
+            onClick={() => setShowAdminMenuDrawer(false)}
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+          />
+
+          {/* Drawer Content */}
+          <div className="relative ml-auto w-full max-w-xs bg-white h-full shadow-2xl flex flex-col z-10 animate-in slide-in-from-right duration-200">
+            {/* Drawer Header */}
+            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/80">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-800">
+                  <Sprout className="w-4 h-4 text-emerald-700" />
+                </div>
+                <span className="text-sm font-black tracking-wider text-emerald-900 uppercase">
+                  VRG NURSERY
+                </span>
+              </div>
+              <button
+                onClick={() => setShowAdminMenuDrawer(false)}
+                className="w-8 h-8 rounded-lg text-slate-500 hover:bg-slate-200 flex items-center justify-center cursor-pointer transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Admin User Info */}
+            <div className="p-4 bg-emerald-950 text-white flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-800 flex items-center justify-center font-black text-sm">
+                {adminUser?.name?.charAt(0) || 'A'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold truncate">{adminUser?.name || 'Admin'}</p>
+                <p className="text-[10px] text-emerald-300 truncate">{adminUser?.email || 'admin@vrgnursery.com'}</p>
+              </div>
+            </div>
+
+            {/* Menu Items List */}
+            <div className="flex-1 overflow-y-auto p-3 space-y-1 text-xs font-bold">
+              <div className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-slate-400 font-extrabold">
+                Order Workflow
+              </div>
+              <button
+                onClick={() => {
+                  setAdminLayoutMode('mobile_workflow');
+                  setShowAdminMenuDrawer(false);
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-emerald-50 text-emerald-900 font-extrabold hover:bg-emerald-100 transition-colors cursor-pointer"
+              >
+                <Sprout className="w-4 h-4 text-emerald-700" />
+                <span>📱 12-Step Order Pipeline</span>
+              </button>
+
+              <div className="px-3 pt-3 pb-1.5 text-[10px] uppercase tracking-wider text-slate-400 font-extrabold">
+                Nursery Catalog & Management
+              </div>
+
+              {[
+                { key: 'products', label: `Products (${products.length})`, icon: <Package className="w-4 h-4" /> },
+                { key: 'categories', label: `Categories (${categories.length})`, icon: <FolderTree className="w-4 h-4" /> },
+                { key: 'orders', label: `All Orders (${orders.length})`, icon: <ShoppingBag className="w-4 h-4" /> },
+                { key: 'inventory', label: 'Inventory & Stock Alerts', icon: <AlertTriangle className="w-4 h-4 text-amber-500" /> },
+                { key: 'coupons', label: 'Discount Coupons', icon: <Tag className="w-4 h-4" /> },
+                { key: 'banners', label: 'Homepage Banners', icon: <Image className="w-4 h-4" /> },
+                { key: 'reviews', label: `Customer Reviews (${reviews.length})`, icon: <Star className="w-4 h-4 text-amber-500" /> },
+                { key: 'finances', label: 'Profit & Loss Finances', icon: <DollarSign className="w-4 h-4 text-emerald-600" /> },
+                { key: 'settings', label: 'Store & Payment Settings', icon: <SettingsIcon className="w-4 h-4" /> },
+                { key: 'audit', label: 'Security & Audit Logs', icon: <ShieldCheck className="w-4 h-4" /> },
+              ].map(item => (
+                <button
+                  key={item.key}
+                  onClick={() => {
+                    setActiveTab(item.key as any);
+                    setShowAdminMenuDrawer(false);
+                  }}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-colors cursor-pointer ${
+                    activeTab === item.key
+                      ? 'bg-[#14532d] text-white font-extrabold shadow-xs'
+                      : 'text-slate-700 hover:bg-slate-100 font-semibold'
+                  }`}
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Drawer Footer Actions */}
+            <div className="p-3 border-t border-slate-200 bg-slate-50 space-y-1.5">
+              <button
+                onClick={onBackToStore}
+                className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Return to Public Store</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  localStorage.removeItem('vrg_user');
+                  localStorage.removeItem('vrg_admin_email');
+                  localStorage.removeItem('vrg_admin_role');
+                  onBackToStore();
+                }}
+                className="w-full flex items-center justify-center gap-2 py-2 bg-slate-200 hover:bg-rose-100 hover:text-rose-700 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Sign Out</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-7xl mx-auto px-4 py-4 grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* Navigation Sidebar (Desktop) */}
+        <div className="hidden lg:flex bg-white p-3 rounded-3xl border border-slate-200/80 shadow-2xs text-xs font-bold lg:col-span-1 h-fit flex-col gap-1">
           {[
             { key: 'dashboard', icon: <LayoutDashboard className="w-4 h-4" />, label: 'Dashboard' },
             { key: 'products', icon: <Package className="w-4 h-4" />, label: `Products (${products.length})` },
