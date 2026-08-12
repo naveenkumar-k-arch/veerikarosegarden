@@ -143,6 +143,10 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   // Selected order for detail views
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   
+  // QR Payment Receipt Zoom Modal State
+  const [selectedProofOrder, setSelectedProofOrder] = useState<Order | null>(null);
+  const [copiedUtrToast, setCopiedUtrToast] = useState(false);
+  
   // 4 Stage Filter: 'confirmed' | 'packing' | 'dispatched' | 'delivered'
   const [orderStageFilter, setOrderStageFilter] = useState<'confirmed' | 'packing' | 'dispatched' | 'delivered'>('confirmed');
   const [searchQuery, setSearchQuery] = useState('');
@@ -795,23 +799,52 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                         </span>
                       </div>
 
-                      <div className="flex items-center justify-between pt-1">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                          isDelivered
-                            ? 'bg-purple-100 text-purple-900 border border-purple-200'
-                            : isDispatched
-                            ? 'bg-blue-100 text-blue-900 border border-blue-200'
-                            : isPacking
-                            ? 'bg-amber-100 text-amber-900 border border-amber-200'
-                            : 'bg-emerald-100 text-emerald-900 border border-emerald-200'
-                        }`}>
-                          {isDelivered ? 'Delivered' : isDispatched ? 'Courier Dispatched' : isPacking ? 'Nursery Packing' : 'Order Confirmed'}
-                        </span>
+                      <div className="flex items-center justify-between pt-1 flex-wrap gap-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                            isDelivered
+                              ? 'bg-purple-100 text-purple-900 border border-purple-200'
+                              : isDispatched
+                              ? 'bg-blue-100 text-blue-900 border border-blue-200'
+                              : isPacking
+                              ? 'bg-amber-100 text-amber-900 border border-amber-200'
+                              : 'bg-emerald-100 text-emerald-900 border border-emerald-200'
+                          }`}>
+                            {isDelivered ? 'Delivered' : isDispatched ? 'Courier Dispatched' : isPacking ? 'Nursery Packing' : 'Order Confirmed'}
+                          </span>
 
-                        <span className="text-[11px] text-emerald-800 font-bold flex items-center gap-0.5">
-                          <span>Manage</span>
-                          <ChevronRight className="w-3 h-3" />
-                        </span>
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                            order.paymentStatus === 'SUCCESS' ? 'bg-emerald-100 text-emerald-900' : order.paymentStatus === 'FAILED' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-900'
+                          }`}>
+                            {order.paymentStatus === 'SUCCESS' ? '✓ Paid' : order.paymentStatus === 'FAILED' ? '✗ Failed' : '⏳ Pending'}
+                          </span>
+
+                          {(order.paymentProofUrl || order.paymentMethod === 'QR_PAYMENT' || order.paymentMethod === 'UPI_DIRECT') && (
+                            <span className="text-[9px] font-bold bg-indigo-50 text-indigo-900 px-1.5 py-0.5 rounded border border-indigo-200">
+                              📸 QR
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {order.paymentProofUrl && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedProofOrder(order);
+                              }}
+                              className="text-[10px] bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-2 py-0.5 rounded-md flex items-center gap-1 cursor-pointer"
+                            >
+                              <Camera className="w-3 h-3" />
+                              <span>Receipt</span>
+                            </button>
+                          )}
+                          <span className="text-[11px] text-emerald-800 font-bold flex items-center gap-0.5">
+                            <span>Manage</span>
+                            <ChevronRight className="w-3 h-3" />
+                          </span>
+                        </div>
                       </div>
                     </div>
                   );
@@ -924,23 +957,52 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between pt-1 border-t border-slate-100">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                        isDelivered
-                          ? 'bg-purple-100 text-purple-900 border border-purple-200'
-                          : isDispatched
-                          ? 'bg-blue-100 text-blue-900 border border-blue-200'
-                          : isPacking
-                          ? 'bg-amber-100 text-amber-900 border border-amber-200'
-                          : 'bg-emerald-100 text-emerald-900 border border-emerald-200'
-                      }`}>
-                        {isDelivered ? 'Delivered' : isDispatched ? 'Courier Dispatched' : isPacking ? 'Nursery Packing' : 'Order Confirmed'}
-                      </span>
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-100 flex-wrap gap-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                          isDelivered
+                            ? 'bg-purple-100 text-purple-900 border border-purple-200'
+                            : isDispatched
+                            ? 'bg-blue-100 text-blue-900 border border-blue-200'
+                            : isPacking
+                            ? 'bg-amber-100 text-amber-900 border border-amber-200'
+                            : 'bg-emerald-100 text-emerald-900 border border-emerald-200'
+                        }`}>
+                          {isDelivered ? 'Delivered' : isDispatched ? 'Courier Dispatched' : isPacking ? 'Nursery Packing' : 'Order Confirmed'}
+                        </span>
 
-                      <span className="text-[11px] text-emerald-800 font-bold flex items-center gap-0.5">
-                        <span>Manage Order</span>
-                        <ChevronRight className="w-3 h-3" />
-                      </span>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                          order.paymentStatus === 'SUCCESS' ? 'bg-emerald-100 text-emerald-900' : order.paymentStatus === 'FAILED' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-900'
+                        }`}>
+                          {order.paymentStatus === 'SUCCESS' ? '✓ Paid' : order.paymentStatus === 'FAILED' ? '✗ Failed' : '⏳ Pending'}
+                        </span>
+
+                        {(order.paymentProofUrl || order.paymentMethod === 'QR_PAYMENT' || order.paymentMethod === 'UPI_DIRECT') && (
+                          <span className="text-[9px] font-bold bg-indigo-50 text-indigo-900 px-1.5 py-0.5 rounded border border-indigo-200">
+                            📸 QR
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {order.paymentProofUrl && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedProofOrder(order);
+                            }}
+                            className="text-[10px] bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-2 py-0.5 rounded-md flex items-center gap-1 cursor-pointer"
+                          >
+                            <Camera className="w-3 h-3" />
+                            <span>Receipt</span>
+                          </button>
+                        )}
+                        <span className="text-[11px] text-emerald-800 font-bold flex items-center gap-0.5">
+                          <span>Manage Order</span>
+                          <ChevronRight className="w-3 h-3" />
+                        </span>
+                      </div>
                     </div>
                   </div>
                 );
@@ -1040,25 +1102,161 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               </div>
             </div>
 
-            {/* Payment Details */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-2.5 text-xs">
-              <h3 className="font-extrabold text-slate-900">Payment Details</h3>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500">Amount</span>
-                <span className="font-extrabold text-slate-900">₹{selectedOrder.grandTotal}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500">Payment Method</span>
-                <span className="font-bold text-slate-800">{selectedOrder.paymentMethod || 'Online UPI'}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500">Payment Status</span>
-                <span className={`font-bold px-2 py-0.5 rounded-md ${
-                  selectedOrder.paymentStatus === 'SUCCESS' ? 'bg-emerald-100 text-emerald-900' : 'bg-amber-100 text-amber-900'
+            {/* Payment & QR Receipt Verification Card */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3 text-xs">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                <h3 className="font-extrabold text-slate-900 flex items-center gap-1.5">
+                  <CreditCard className="w-4 h-4 text-emerald-700" />
+                  <span>Payment & Verification</span>
+                </h3>
+                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                  selectedOrder.paymentStatus === 'SUCCESS'
+                    ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                    : selectedOrder.paymentStatus === 'FAILED'
+                    ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                    : 'bg-amber-100 text-amber-900 border border-amber-300'
                 }`}>
-                  {selectedOrder.paymentStatus || 'PENDING'}
+                  {selectedOrder.paymentStatus === 'SUCCESS' ? '✅ VERIFIED & PAID' : selectedOrder.paymentStatus === 'FAILED' ? '❌ PAYMENT FAILED / REJECTED' : '⏳ PENDING MANUAL VERIFICATION'}
                 </span>
               </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 space-y-0.5">
+                  <span className="text-[10px] text-slate-500 font-medium">Grand Total</span>
+                  <p className="font-black text-sm text-slate-900">₹{selectedOrder.grandTotal}</p>
+                </div>
+                <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 space-y-0.5">
+                  <span className="text-[10px] text-slate-500 font-medium">Payment Mode</span>
+                  <p className="font-bold text-xs text-slate-800 truncate">
+                    {selectedOrder.paymentMethod === 'COD'
+                      ? '💵 Cash on Delivery'
+                      : (selectedOrder.paymentMethod === 'QR_PAYMENT' || selectedOrder.paymentMethod === 'UPI_DIRECT' || selectedOrder.paymentProofUrl)
+                      ? '📸 Direct QR / UPI'
+                      : selectedOrder.paymentMethod === 'RAZORPAY'
+                      ? '🔵 Razorpay PG'
+                      : '🟣 PhonePe PG'}
+                  </p>
+                </div>
+              </div>
+
+              {/* QR Receipt Photo & UTR Reference Box */}
+              {(selectedOrder.paymentProofUrl || selectedOrder.paymentMethod === 'QR_PAYMENT' || selectedOrder.paymentMethod === 'UPI_DIRECT') && (
+                <div className="p-3 bg-indigo-50/70 rounded-2xl border border-indigo-200 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-extrabold text-indigo-950 flex items-center gap-1 text-[11px]">
+                      <Camera className="w-3.5 h-3.5 text-indigo-700" />
+                      <span>Customer Payment Screenshot</span>
+                    </span>
+                    {selectedOrder.paymentProofUploadedAt && (
+                      <span className="text-[10px] text-indigo-700 font-mono">
+                        {formatDateTime(selectedOrder.paymentProofUploadedAt)}
+                      </span>
+                    )}
+                  </div>
+
+                  {selectedOrder.paymentProofUrl ? (
+                    <div
+                      onClick={() => setSelectedProofOrder(selectedOrder)}
+                      className="relative group cursor-pointer w-full h-36 rounded-xl overflow-hidden border-2 border-indigo-300 bg-slate-900 flex items-center justify-center shadow-xs"
+                    >
+                      <img
+                        src={selectedOrder.paymentProofUrl}
+                        alt="Customer Payment Receipt Proof"
+                        className="w-full h-full object-contain"
+                      />
+                      <div className="absolute inset-0 bg-slate-900/40 group-hover:bg-slate-900/10 flex items-center justify-center transition-opacity">
+                        <span className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-[11px] px-3 py-1.5 rounded-xl shadow-md flex items-center gap-1.5">
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Tap to Zoom Full Receipt</span>
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-2.5 bg-white rounded-xl border border-indigo-200 text-center text-[11px] text-indigo-900 font-medium">
+                      ⚠️ No screenshot image uploaded by customer (paid directly via UPI app).
+                    </div>
+                  )}
+
+                  {selectedOrder.transactionId && (
+                    <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-indigo-200">
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-bold block">Customer UTR / Ref No:</span>
+                        <span className="font-mono font-black text-xs text-indigo-950">{selectedOrder.transactionId}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(selectedOrder.transactionId || '');
+                          setCopiedUtrToast(true);
+                          setTimeout(() => setCopiedUtrToast(false), 2000);
+                        }}
+                        className="p-1.5 text-indigo-700 hover:bg-indigo-50 rounded-lg cursor-pointer"
+                        title="Copy UTR"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+
+                  {copiedUtrToast && (
+                    <p className="text-[10px] text-emerald-800 font-bold text-center">✓ UTR copied to clipboard!</p>
+                  )}
+
+                  {/* Payment Verification Buttons */}
+                  <div className="space-y-1.5 pt-1">
+                    <p className="text-[11px] font-bold text-indigo-950">⚙️ Verify Payment with Nursery UPI / Bank:</p>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await onUpdateOrderStatus(selectedOrder.id, selectedOrder.orderStatus === 'PENDING' ? 'CONFIRMED' : selectedOrder.orderStatus, 'SUCCESS');
+                          setSelectedOrder({ ...selectedOrder, paymentStatus: 'SUCCESS' });
+                        }}
+                        className={`py-2 px-1 rounded-xl text-[11px] font-black transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                          selectedOrder.paymentStatus === 'SUCCESS'
+                            ? 'bg-emerald-700 text-white shadow-xs'
+                            : 'bg-white text-emerald-800 border border-emerald-300 hover:bg-emerald-50'
+                        }`}
+                      >
+                        <Check className="w-3 h-3" />
+                        <span>Mark Paid</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await onUpdateOrderStatus(selectedOrder.id, selectedOrder.orderStatus, 'PENDING');
+                          setSelectedOrder({ ...selectedOrder, paymentStatus: 'PENDING' });
+                        }}
+                        className={`py-2 px-1 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                          selectedOrder.paymentStatus === 'PENDING' || !selectedOrder.paymentStatus
+                            ? 'bg-amber-500 text-white shadow-xs'
+                            : 'bg-white text-amber-900 border border-amber-300 hover:bg-amber-50'
+                        }`}
+                      >
+                        <Clock className="w-3 h-3" />
+                        <span>Pending</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await onUpdateOrderStatus(selectedOrder.id, selectedOrder.orderStatus, 'FAILED');
+                          setSelectedOrder({ ...selectedOrder, paymentStatus: 'FAILED' });
+                        }}
+                        className={`py-2 px-1 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                          selectedOrder.paymentStatus === 'FAILED'
+                            ? 'bg-rose-600 text-white shadow-xs'
+                            : 'bg-white text-rose-700 border border-rose-300 hover:bg-rose-50'
+                        }`}
+                      >
+                        <X className="w-3 h-3" />
+                        <span>Reject</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* 4-Stage Action Controls */}
@@ -3742,6 +3940,102 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 {editingBanner ? 'Save Banner Changes' : 'Publish Banner'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* QR PAYMENT RECEIPT FULLSCREEN ZOOM MODAL                  */}
+      {/* ========================================================= */}
+      {selectedProofOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden border border-slate-700 max-h-[92vh] flex flex-col">
+            {/* Header */}
+            <div className="p-3.5 bg-slate-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                  <Camera className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-xs">Payment Receipt Screenshot</h3>
+                  <p className="text-[10px] text-slate-400 font-mono">Order #{selectedProofOrder.id}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedProofOrder(null)}
+                className="w-7 h-7 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Receipt Image Area */}
+            <div className="flex-1 bg-slate-950 p-2 flex items-center justify-center overflow-hidden min-h-[260px] max-h-[50vh]">
+              {selectedProofOrder.paymentProofUrl ? (
+                <img
+                  src={selectedProofOrder.paymentProofUrl}
+                  alt="Customer Payment Receipt Proof"
+                  className="max-w-full max-h-[48vh] object-contain rounded-lg shadow-md"
+                />
+              ) : (
+                <div className="p-6 text-center text-slate-400 space-y-1">
+                  <AlertTriangle className="w-8 h-8 text-amber-400 mx-auto" />
+                  <p className="text-xs font-bold text-slate-300">No screenshot image attached</p>
+                  <p className="text-[10px] text-slate-500">Customer entered UTR or direct UPI transfer without uploading photo</p>
+                </div>
+              )}
+            </div>
+
+            {/* Details Strip */}
+            <div className="p-3.5 bg-slate-50 border-t border-slate-200 space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600 font-medium">Order Amount:</span>
+                <span className="font-black text-sm text-emerald-800">₹{selectedProofOrder.grandTotal}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600 font-medium">Customer:</span>
+                <span className="font-bold text-slate-800">{selectedProofOrder.customerName || selectedProofOrder.shippingAddress?.fullName}</span>
+              </div>
+              {selectedProofOrder.transactionId && (
+                <div className="flex items-center justify-between bg-white p-2 rounded-xl border border-slate-200">
+                  <span className="text-[11px] text-slate-500 font-bold">UTR / Ref:</span>
+                  <span className="font-mono font-black text-xs text-indigo-900">{selectedProofOrder.transactionId}</span>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await onUpdateOrderStatus(selectedProofOrder.id, selectedProofOrder.orderStatus === 'PENDING' ? 'CONFIRMED' : selectedProofOrder.orderStatus, 'SUCCESS');
+                    if (selectedOrder && selectedOrder.id === selectedProofOrder.id) {
+                      setSelectedOrder({ ...selectedOrder, paymentStatus: 'SUCCESS' });
+                    }
+                    setSelectedProofOrder(null);
+                  }}
+                  className="py-2.5 px-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl shadow-xs text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Approve (Paid)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await onUpdateOrderStatus(selectedProofOrder.id, selectedProofOrder.orderStatus, 'FAILED');
+                    if (selectedOrder && selectedOrder.id === selectedProofOrder.id) {
+                      setSelectedOrder({ ...selectedOrder, paymentStatus: 'FAILED' });
+                    }
+                    setSelectedProofOrder(null);
+                  }}
+                  className="py-2.5 px-3 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-xl border border-rose-200 text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  <span>Reject Payment</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
