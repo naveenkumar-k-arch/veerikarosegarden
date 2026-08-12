@@ -4956,6 +4956,45 @@ const silentRefresh = async (): Promise<boolean> => {
           onClose={() => setDesktopLabelOrders(null)}
         />
       )}
+
+      {/* Mobile Bottom Navigation Bar for All Admin Modules */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-6 py-2 flex items-center justify-between shadow-lg max-w-md mx-auto">
+        <button
+          onClick={() => setAdminLayoutMode('mobile_workflow')}
+          className="flex flex-col items-center gap-1 transition-colors cursor-pointer text-slate-500 font-medium hover:text-[#14532d]"
+        >
+          <Sprout className="w-5 h-5 text-emerald-700" />
+          <span className="text-[10px]">Pipeline</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('products')}
+          className={`flex flex-col items-center gap-1 transition-colors cursor-pointer ${
+            activeTab === 'products' ? 'text-[#14532d] font-bold' : 'text-slate-500 font-medium'
+          }`}
+        >
+          <Package className="w-5 h-5" />
+          <span className="text-[10px]">Products</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('orders')}
+          className={`flex flex-col items-center gap-1 transition-colors cursor-pointer ${
+            activeTab === 'orders' ? 'text-[#14532d] font-bold' : 'text-slate-500 font-medium'
+          }`}
+        >
+          <ShoppingBag className="w-5 h-5" />
+          <span className="text-[10px]">Orders</span>
+        </button>
+
+        <button
+          onClick={() => setShowAdminMenuDrawer(true)}
+          className="flex flex-col items-center gap-1 transition-colors cursor-pointer text-slate-500 font-medium hover:text-[#14532d]"
+        >
+          <Menu className="w-5 h-5" />
+          <span className="text-[10px]">All Modules</span>
+        </button>
+      </nav>
     </div>
   );
 };

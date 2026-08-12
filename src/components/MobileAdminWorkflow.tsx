@@ -29,6 +29,9 @@ import {
   ShieldCheck,
   LogOut,
   X,
+  ShoppingBag,
+  AlertTriangle,
+  Image as ImageIcon,
   Send,
   Box,
   CheckCircle
@@ -1372,14 +1375,16 @@ We would love your feedback! Please visit us again. 🌿
               </div>
 
               {[
-                { key: 'products', label: `Products (${products.length})`, icon: <Package className="w-4 h-4" /> },
-                { key: 'categories', label: `Categories (${categories.length})`, icon: <FolderTree className="w-4 h-4" /> },
-                { key: 'inventory', label: 'Inventory & Stock Alerts', icon: <Tag className="w-4 h-4" /> },
-                { key: 'coupons', label: 'Discount Coupons', icon: <Tag className="w-4 h-4" /> },
-                { key: 'reviews', label: `Customer Reviews (${reviews.length})`, icon: <Star className="w-4 h-4 text-amber-500" /> },
-                { key: 'finances', label: 'Profit & Loss Finances', icon: <DollarSign className="w-4 h-4 text-emerald-600" /> },
-                { key: 'settings', label: 'Store & Payment Settings', icon: <SettingsIcon className="w-4 h-4" /> },
-                { key: 'audit', label: 'Security & Audit Logs', icon: <ShieldCheck className="w-4 h-4" /> },
+                { key: 'products', label: `🌿 Products Catalog (${products.length})`, icon: <Package className="w-4 h-4 text-emerald-700" /> },
+                { key: 'categories', label: `📁 Categories (${categories.length})`, icon: <FolderTree className="w-4 h-4 text-emerald-700" /> },
+                { key: 'orders', label: `📦 All Orders (${orders.length})`, icon: <ShoppingBag className="w-4 h-4 text-blue-600" /> },
+                { key: 'inventory', label: '⚠️ Inventory & Low Stock Alerts', icon: <AlertTriangle className="w-4 h-4 text-amber-500" /> },
+                { key: 'coupons', label: '🏷️ Discount Coupons', icon: <Tag className="w-4 h-4 text-rose-500" /> },
+                { key: 'banners', label: '🖼️ Homepage Banners', icon: <ImageIcon className="w-4 h-4 text-indigo-500" /> },
+                { key: 'reviews', label: `⭐ Customer Reviews (${reviews.length})`, icon: <Star className="w-4 h-4 text-amber-500 fill-amber-500" /> },
+                { key: 'finances', label: '💰 Finances & Profit/Loss', icon: <DollarSign className="w-4 h-4 text-emerald-600" /> },
+                { key: 'settings', label: '⚙️ Store & Payment Settings', icon: <SettingsIcon className="w-4 h-4 text-slate-600" /> },
+                { key: 'audit', label: '🛡️ Security & Audit Logs', icon: <ShieldCheck className="w-4 h-4 text-purple-600" /> },
               ].map(item => (
                 <button
                   key={item.key}
@@ -1387,10 +1392,10 @@ We would love your feedback! Please visit us again. 🌿
                     if (onOpenDesktopTab) onOpenDesktopTab(item.key);
                     setCurrentScreen('dashboard');
                   }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer font-semibold"
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer font-semibold text-xs text-left"
                 >
                   {item.icon}
-                  <span>{item.label}</span>
+                  <span className="truncate">{item.label}</span>
                 </button>
               ))}
             </div>
