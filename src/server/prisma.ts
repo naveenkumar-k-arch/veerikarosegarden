@@ -18,15 +18,10 @@ export function getPrismaClient(): PrismaClient | null {
 
   if (!global.__prismaGlobal) {
     try {
-      // For Neon serverless: use pooler URL with pgbouncer
+      // For Neon serverless: append pgbouncer params if not already present
       const serverlessUrl = dbUrl.includes('pgbouncer')
         ? dbUrl
-        : dbUrl.includes('-pooler.')
-        ? `${dbUrl}${dbUrl.includes('?') ? '&' : '?'}pgbouncer=true&connect_timeout=15`
-        : dbUrl.replace(
-            /(@ep-[^.]+)(\.)/,
-            '$1-pooler$2'
-          ).replace('?sslmode=require', '?sslmode=require&pgbouncer=true&connect_timeout=15');
+        : dbUrl.replace('?sslmode=require', '?sslmode=require&pgbouncer=true&connect_timeout=15');
 
       global.__prismaGlobal = new PrismaClient({
         datasources: {
@@ -35,11 +30,6 @@ export function getPrismaClient(): PrismaClient | null {
           }
         },
         log: ['error']
-      });
-
-      // Eagerly connect to wake up Neon on cold start (free tier sleeps)
-      global.__prismaGlobal.$connect().catch(() => {
-        // Ignore initial connect error — Neon wakes up on first query
       });
     } catch (err) {
       console.error('Failed to initialize Prisma Client:', err);

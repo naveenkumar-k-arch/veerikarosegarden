@@ -351,14 +351,6 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
       o.orderStatus === 'DELIVERED'
     );
 
-    // Only count orders that are in one of the 4 active stages
-    const activeOrders = [
-      ...confirmedOrders,
-      ...packingOrders,
-      ...dispatchedOrders,
-      ...deliveredOrders
-    ];
-
     const paidOrders = orders.filter(o => o.paymentStatus === 'SUCCESS');
     const totalRevenue = paidOrders.reduce((sum, o) => sum + (o.grandTotal || 0), 0);
     const lowStockCount = products.filter(p => (p.stock || 0) <= 15).length;
@@ -368,7 +360,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
       packingCount: packingOrders.length,
       dispatchedCount: dispatchedOrders.length,
       deliveredCount: deliveredOrders.length,
-      totalCount: activeOrders.length,
+      totalCount: orders.length,
       totalRevenue,
       lowStockCount
     };
@@ -650,7 +642,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               </div>
               <p className="text-3xl font-black">₹{stats.totalRevenue.toLocaleString('en-IN')}</p>
               <div className="flex items-center justify-between text-xs pt-1 text-emerald-100 border-t border-emerald-800/60">
-                <span>📦 Total Orders: <strong>{stats.totalCount}</strong></span>
+                <span>📦 Total Orders: <strong>{orders.length}</strong></span>
                 <span>🌿 Total Plants: <strong>{products.length}</strong></span>
               </div>
             </div>
@@ -769,7 +761,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                   }}
                   className="text-xs font-bold text-emerald-800 hover:text-emerald-950 flex items-center gap-0.5 cursor-pointer"
                 >
-                  <span>View Orders ({stats.totalCount})</span>
+                  <span>View Orders ({orders.length})</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -3093,7 +3085,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 { screen: 'products', label: `🌿 Products Catalog (${products.length})`, icon: <Package className="w-4 h-4 text-emerald-700" /> },
                 { screen: 'combos', label: `🎁 Plant Combos & Offers (${combos.length})`, icon: <Sparkles className="w-4 h-4 text-amber-500" /> },
                 { screen: 'categories', label: `📁 Categories (${categories.length})`, icon: <FolderTree className="w-4 h-4 text-emerald-700" /> },
-                { screen: 'orders_list', label: `📦 All Orders (${stats.totalCount})`, icon: <ShoppingBag className="w-4 h-4 text-blue-600" /> },
+                { screen: 'orders_list', label: `📦 All Orders (${orders.length})`, icon: <ShoppingBag className="w-4 h-4 text-blue-600" /> },
                 { screen: 'inventory', label: `⚠️ Inventory & Stock (${stats.lowStockCount} Low)`, icon: <AlertTriangle className="w-4 h-4 text-amber-500" /> },
                 { screen: 'coupons', label: `🏷️ Discount Coupons (${coupons.length})`, icon: <Tag className="w-4 h-4 text-emerald-700" /> },
                 { screen: 'banners', label: `🖼️ Homepage Banners (${banners.length})`, icon: <ImageIcon className="w-4 h-4 text-indigo-600" /> },

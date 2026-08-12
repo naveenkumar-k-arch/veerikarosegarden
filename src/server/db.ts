@@ -4786,30 +4786,6 @@ class Store {
     }
   }
 
-  async deleteBanner(id: string): Promise<boolean> {
-    const prisma = getPrismaClient();
-    if (prisma) {
-      try {
-        await prisma.banner.delete({
-          where: { id }
-        });
-        return true;
-      } catch (err) {
-        // Fallback: mark active = false if delete by id fails
-        try {
-          await prisma.banner.update({
-            where: { id },
-            data: { active: false }
-          });
-          return true;
-        } catch (e2) {
-          console.error('Prisma deleteBanner error:', err);
-        }
-      }
-    }
-    return false;
-  }
-
   // COUPONS
   async getCoupons(): Promise<Coupon[]> {
     const prisma = getPrismaClient();
@@ -5580,56 +5556,7 @@ class Store {
           };
         });
       } catch (err) {
-        console.error('Prisma getOrders error, trying raw SQL fallback:', err);
-        try {
-          const rawOrders: any[] = await prisma.$queryRaw`SELECT * FROM "Order" ORDER BY "updatedAt" DESC`;
-          dbOrders = rawOrders.map(o => {
-            const addr = typeof o.addressJson === 'string' ? JSON.parse(o.addressJson) : (o.addressJson || {});
-            const orderId = o.id || 'ORD-' + Math.floor(Math.random() * 10000);
-            return {
-              id: orderId,
-              customerName: o.userName || addr.name || o.customerName || 'Customer',
-              customerPhone: addr.mobile || addr.phone || o.customerPhone || '9876543210',
-              customerEmail: o.userEmail || addr.email || o.customerEmail || '',
-              shippingAddress: {
-                fullName: o.userName || addr.name || o.customerName || 'Customer',
-                phone: addr.mobile || addr.phone || o.customerPhone || '9876543210',
-                houseNo: addr.flat || addr.houseNo || '',
-                street: addr.street || '',
-                villageTown: addr.city || addr.villageTown || '',
-                district: addr.city || addr.district || '',
-                state: addr.state || 'Tamil Nadu',
-                pincode: addr.pincode || '',
-                landmark: addr.landmark || '',
-                addressType: 'Home',
-                isDefault: false
-              },
-              items: [{
-                productId: 'prod-grapes',
-                sku: 'VRG-PROD-B',
-                name: 'Grapes',
-                tamilName: 'திராட்சை',
-                price: Number(o.subtotal || o.total || 300),
-                mrp: Number(o.subtotal || o.total || 300),
-                quantity: 1,
-                image: '/products/double-delight.jpeg'
-              }],
-              subtotal: Number(o.subtotal || o.total || 0),
-              discount: Number(o.discount || 0),
-              shippingCharge: Number(o.deliveryFee || 0),
-              grandTotal: Number(o.total || o.totalAmount || o.subtotal || 0),
-              orderStatus: (o.status || '').toUpperCase().includes('DELIVERED') ? 'DELIVERED' : (o.status || '').toUpperCase().includes('DISPATCH') ? 'DISPATCHED' : (o.status || '').toUpperCase().includes('PAID') || (o.status || '').toUpperCase().includes('PACK') ? 'PACKED' : (o.status || '').toUpperCase().includes('CANCEL') ? 'CANCELLED' : 'CONFIRMED',
-              paymentStatus: (o.paymentStatus || '').toUpperCase().includes('PAID') || (o.paymentStatus || '').toUpperCase().includes('SUCCESS') ? 'SUCCESS' : (o.paymentStatus || '').toUpperCase().includes('FAIL') ? 'FAILED' : 'PENDING',
-              paymentMethod: (o.paymentMethod || 'PHONEPE').toUpperCase().includes('COD') ? 'COD' : (o.paymentMethod || '').toUpperCase().includes('QR') || (o.paymentMethod || '').toUpperCase().includes('UPI') ? 'QR_PAYMENT' : 'PHONEPE',
-              transactionId: o.merchantTransactionId || o.razorpayPaymentId || orderId,
-              merchantTransactionId: o.merchantTransactionId || orderId,
-              createdAt: o.date ? new Date(o.date).toISOString() : o.createdAt ? new Date(o.createdAt).toISOString() : new Date().toISOString(),
-              updatedAt: o.updatedAt ? new Date(o.updatedAt).toISOString() : new Date().toISOString()
-            };
-          });
-        } catch (rawErr) {
-          console.error('Prisma raw getOrders error:', rawErr);
-        }
+        console.error('Prisma getOrders error:', err);
       }
     }
 
