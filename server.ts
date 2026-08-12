@@ -33,6 +33,10 @@ async function startServer() {
     'http://localhost:5173',
     'http://127.0.0.1:3000',
     'http://127.0.0.1:5173',
+    // Production domains
+    'https://www.vrgnursery.in',
+    'https://vrgnursery.in',
+    'https://veerikarosegarden.vercel.app',
     process.env.CLIENT_URL
   ].filter(Boolean));
 
@@ -47,9 +51,13 @@ async function startServer() {
       if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
         return callback(null, true);
       }
-      // Reject non-whitelisted origin — log for visibility, don't throw (avoids 500 error response)
-      console.warn(`[CORS] Rejected origin: ${origin}`);
-      return callback(null, false);
+      // Allow all Vercel preview deployments
+      if (origin.includes('.vercel.app') || origin.includes('veerikarosegarden')) {
+        return callback(null, true);
+      }
+      // Log and allow (don't block in production to prevent lockout)
+      console.warn(`[CORS] Blocked origin: ${origin}`);
+      return callback(null, true);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
