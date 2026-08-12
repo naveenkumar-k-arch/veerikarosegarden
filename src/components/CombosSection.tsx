@@ -58,7 +58,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
     setTimeout(() => setAddedComboId(null), 2500);
   };
 
-  if (!loading && combos.length === 0) {
+  if (combos.length === 0) {
     return null;
   }
 
