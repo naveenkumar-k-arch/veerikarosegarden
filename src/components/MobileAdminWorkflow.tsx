@@ -374,7 +374,11 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
       o.orderStatus === 'DELIVERED'
     );
 
-    const paidOrders = orders.filter(o => o.paymentStatus === 'SUCCESS');
+    const paidOrders = orders.filter(o => {
+      const pStatus = (o.paymentStatus || '').toString().toUpperCase();
+      const oStatus = (o.orderStatus || '').toString().toUpperCase();
+      return pStatus === 'SUCCESS' || pStatus === 'PAID' || pStatus === 'APPROVED' || oStatus === 'DELIVERED' || oStatus === 'COMPLETED';
+    });
     const totalRevenue = paidOrders.reduce((sum, o) => sum + (o.grandTotal || 0), 0);
     const lowStockCount = products.filter(p => (p.stock || 0) <= 15).length;
 

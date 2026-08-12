@@ -5881,13 +5881,23 @@ class Store {
 
   // DASHBOARD STATS
   async getDashboardStats() {
+    const isRevenueOrder = (o: any) => {
+      const pStatus = (o.paymentStatus || '').toString().toUpperCase();
+      const oStatus = (o.orderStatus || o.status || '').toString().toUpperCase();
+      return pStatus === 'SUCCESS' || pStatus === 'PAID' || pStatus === 'APPROVED' || oStatus === 'DELIVERED' || oStatus === 'COMPLETED';
+    };
+
     const prisma = getPrismaClient();
     if (!prisma) {
       const allOrders = this.memoryOrders;
+      const paidOrders = allOrders.filter(isRevenueOrder);
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+
       return {
         totalOrders: allOrders.length,
-        totalRevenue: allOrders.filter(o => o.paymentStatus === 'SUCCESS').reduce((sum, o) => sum + o.grandTotal, 0),
-        todaySales: allOrders.filter(o => o.paymentStatus === 'SUCCESS').reduce((sum, o) => sum + o.grandTotal, 0),
+        totalRevenue: paidOrders.reduce((sum, o) => sum + (o.grandTotal || 0), 0),
+        todaySales: paidOrders.filter(o => new Date(o.createdAt) >= todayStart).reduce((sum, o) => sum + (o.grandTotal || 0), 0),
         pendingOrders: allOrders.filter(o => o.orderStatus !== 'DELIVERED' && o.orderStatus !== 'CANCELLED').length,
         completedOrders: allOrders.filter(o => o.orderStatus === 'DELIVERED').length,
         lowStockCount: 0,
@@ -5901,18 +5911,43 @@ class Store {
 
       const revenueAgg = await prisma.order.aggregate({
         _sum: { totalAmount: true },
-        where: { paymentStatus: 'SUCCESS' }
+        where: {
+          OR: [
+            { paymentStatus: 'SUCCESS' },
+            { status: 'DELIVERED' }
+          ]
+        }
       });
-      const totalRevenue = revenueAgg._sum.totalAmount || 0;
+      let totalRevenue = revenueAgg._sum.totalAmount || 0;
 
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
 
       const todayAgg = await prisma.order.aggregate({
         _sum: { totalAmount: true },
-        where: { paymentStatus: 'SUCCESS', createdAt: { gte: todayStart } }
+        where: {
+          OR: [
+            { paymentStatus: 'SUCCESS' },
+            { status: 'DELIVERED' }
+          ],
+          createdAt: { gte: todayStart }
+        }
       });
-      const todaySales = todayAgg._sum.totalAmount || 0;
+      let todaySales = todayAgg._sum.totalAmount || 0;
+
+      const recentOrdersList = await this.getOrders();
+
+      // Backup calculation from mapped order objects if aggregate misses non-enum values or COD delivered
+      if (recentOrdersList.length > 0) {
+        const calculatedRev = recentOrdersList.filter(isRevenueOrder).reduce((sum, o) => sum + (o.grandTotal || 0), 0);
+        if (calculatedRev > totalRevenue) {
+          totalRevenue = calculatedRev;
+        }
+        const calculatedToday = recentOrdersList.filter(o => isRevenueOrder(o) && new Date(o.createdAt) >= todayStart).reduce((sum, o) => sum + (o.grandTotal || 0), 0);
+        if (calculatedToday > todaySales) {
+          todaySales = calculatedToday;
+        }
+      }
 
       const pendingOrders = await prisma.order.count({
         where: { status: { in: ['PENDING', 'PACKING', 'DISPATCHED'] } }
@@ -5932,8 +5967,6 @@ class Store {
         name: i.product.name,
         stock: i.quantity
       }));
-
-      const recentOrdersList = await this.getOrders();
 
       return {
         totalOrders,

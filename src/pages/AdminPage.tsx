@@ -1614,14 +1614,20 @@ const silentRefresh = async (): Promise<boolean> => {
         <div className="lg:col-span-4 space-y-6">
           {/* TAB 1: DASHBOARD */}
           {activeTab === 'dashboard' && (() => {
-            const paidOrders = orders.filter(o => (o.paymentStatus as string) === 'SUCCESS' || (o.paymentStatus as string) === 'PAID' || (o.paymentMethod === 'COD' && o.orderStatus === 'DELIVERED'));
-            const realTotalRevenue = stats?.totalRevenue !== undefined && stats?.totalRevenue !== null
+            const paidOrders = orders.filter(o => {
+              const pStatus = (o.paymentStatus || '').toString().toUpperCase();
+              const oStatus = (o.orderStatus || '').toString().toUpperCase();
+              return pStatus === 'SUCCESS' || pStatus === 'PAID' || pStatus === 'APPROVED' || oStatus === 'DELIVERED' || oStatus === 'COMPLETED';
+            });
+            const calculatedTotalRev = paidOrders.reduce((sum, o) => sum + (o.grandTotal || 0), 0);
+            const realTotalRevenue = stats?.totalRevenue && stats.totalRevenue > 0
               ? stats.totalRevenue
-              : paidOrders.reduce((sum, o) => sum + o.grandTotal, 0);
+              : calculatedTotalRev;
 
-            const realTodaySales = stats?.todaySales !== undefined && stats?.todaySales !== null
+            const calculatedTodaySales = paidOrders.filter(o => new Date(o.createdAt).toDateString() === new Date().toDateString()).reduce((sum, o) => sum + (o.grandTotal || 0), 0);
+            const realTodaySales = stats?.todaySales && stats.todaySales > 0
               ? stats.todaySales
-              : paidOrders.filter(o => new Date(o.createdAt).toDateString() === new Date().toDateString()).reduce((sum, o) => sum + o.grandTotal, 0);
+              : calculatedTodaySales;
 
             const realPendingOrders = stats?.pendingOrders !== undefined && stats?.pendingOrders !== null
               ? stats.pendingOrders
