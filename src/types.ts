@@ -142,6 +142,8 @@ export interface Coupon {
   expiryDate: string;
   active: boolean;
   usageCount: number;
+  maxUsageCount?: number;
+  description?: string;
 }
 
 export interface Banner {
@@ -150,6 +152,8 @@ export interface Banner {
   subtitle: string;
   imageUrl: string;
   targetCategory?: string;
+  link?: string;
+  ctaText?: string;
   active: boolean;
   order: number;
 }

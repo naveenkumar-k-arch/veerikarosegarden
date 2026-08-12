@@ -1311,6 +1311,36 @@ const silentRefresh = async (): Promise<boolean> => {
               console.error(e);
             }
           }}
+          onSaveFinance={async (fnData) => {
+            try {
+              const url = fnData.id ? `/api/admin/finances/${fnData.id}` : '/api/admin/finances';
+              const method = fnData.id ? 'PUT' : 'POST';
+              await authFetch(url, { method, body: JSON.stringify(fnData) });
+              fetchData();
+            } catch (e) {
+              console.error(e);
+            }
+          }}
+          onDeleteFinance={handleDeleteFinance}
+          onSaveBanner={async (bData) => {
+            try {
+              const url = bData.id ? `/api/admin/banners/${bData.id}` : '/api/admin/banners';
+              const method = bData.id ? 'PUT' : 'POST';
+              await authFetch(url, { method, body: JSON.stringify(bData) });
+              fetchData();
+            } catch (e) {
+              console.error(e);
+            }
+          }}
+          onDeleteBanner={async (id) => {
+            if (!confirm('Are you sure you want to delete this banner?')) return;
+            try {
+              await authFetch(`/api/admin/banners/${id}`, { method: 'DELETE' });
+              fetchData();
+            } catch (e) {
+              console.error(e);
+            }
+          }}
           onSaveSettings={async (st) => {
             try {
               await authFetch('/api/admin/settings', { method: 'POST', body: JSON.stringify(st) });

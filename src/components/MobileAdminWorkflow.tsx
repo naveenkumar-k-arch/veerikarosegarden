@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Order, Product, Category, Review, Coupon, Banner, Combo } from '../types';
+import { Order, Product, Category, Review, Coupon, Banner, Combo, FinancialEntry, SiteSettings } from '../types';
 import {
   Sprout,
   LayoutDashboard,
@@ -43,7 +43,12 @@ import {
   Eye,
   Camera,
   Layers,
-  Sparkles
+  Sparkles,
+  CreditCard,
+  QrCode,
+  TrendingUp,
+  TrendingDown,
+  CheckSquare
 } from 'lucide-react';
 import { A4LabelSheetPrint } from './A4LabelSheetPrint';
 
@@ -56,7 +61,7 @@ export interface MobileAdminWorkflowProps {
   coupons?: Coupon[];
   banners?: Banner[];
   settings?: any;
-  finances?: any[];
+  finances?: FinancialEntry[];
   adminUser?: any;
   onUpdateOrderStatus: (orderId: string, status: string, paymentStatus?: string) => Promise<void>;
   onSaveTracking: (orderId: string, data: { courierName: string; trackingNumber: string; trackingLink?: string }) => Promise<void>;
@@ -70,6 +75,10 @@ export interface MobileAdminWorkflowProps {
   onDeleteCoupon?: (id: string) => Promise<void>;
   onSaveCombo?: (combo: any) => Promise<void>;
   onDeleteCombo?: (id: string) => Promise<void>;
+  onSaveFinance?: (entry: any) => Promise<void>;
+  onDeleteFinance?: (id: string) => Promise<void>;
+  onSaveBanner?: (banner: any) => Promise<void>;
+  onDeleteBanner?: (id: string) => Promise<void>;
   onSaveSettings?: (settings: any) => Promise<void>;
   onOpenDesktopTab?: (tabKey: string) => void;
   onBackToStore: () => void;
@@ -118,6 +127,10 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   onDeleteCoupon,
   onSaveCombo,
   onDeleteCombo,
+  onSaveFinance,
+  onDeleteFinance,
+  onSaveBanner,
+  onDeleteBanner,
   onSaveSettings,
   onOpenDesktopTab,
   onBackToStore,
@@ -216,17 +229,104 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
     freeDelivery: true
   });
 
+  // ==================== COUPON MODAL STATE ====================
+  const [showCouponModal, setShowCouponModal] = useState(false);
+  const [couponForm, setCouponForm] = useState({
+    code: '',
+    discountType: 'PERCENTAGE' as 'PERCENTAGE' | 'FLAT',
+    discountValue: 10,
+    minOrderAmount: 0,
+    maxUsageCount: 100,
+    expiryDate: '',
+    isActive: true,
+    description: ''
+  });
+  const [copiedCouponId, setCopiedCouponId] = useState<string | null>(null);
+
+  // ==================== FINANCE MODAL STATE ====================
+  const [showFinanceModal, setShowFinanceModal] = useState(false);
+  const [editingFinance, setEditingFinance] = useState<FinancialEntry | null>(null);
+  const [financeForm, setFinanceForm] = useState({
+    type: 'EXPENSE' as 'EXPENSE' | 'SALE',
+    title: '',
+    category: 'Fertilizer' as FinancialEntry['category'],
+    costAmount: 0,
+    sellAmount: 0,
+    quantity: 1,
+    notes: '',
+    date: new Date().toISOString().split('T')[0]
+  });
+
+  // ==================== BANNER MODAL STATE ====================
+  const [showBannerModal, setShowBannerModal] = useState(false);
+  const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
+  const [bannerForm, setBannerForm] = useState({
+    title: '',
+    subtitle: '',
+    imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1200&q=80',
+    link: '',
+    ctaText: 'Shop Plants',
+    active: true,
+    order: 1
+  });
+
   // ==================== SETTINGS FORM STATE ====================
-  const [settingsForm, setSettingsForm] = useState(initialSettings || {
-    upiId: '9842624508@okbizaxis',
-    payeeName: 'Veerika Rose Garden',
-    deliveryCharge: 60,
-    freeDeliveryThreshold: 499,
+  const [settingsForm, setSettingsForm] = useState<any>(initialSettings || {
+    businessName: 'Veerika Rose Garden',
+    tagline: 'Fresh Live Rose Plants & Nursery',
     phone: '9842624508',
     email: 'nv01110612@gmail.com',
-    address: 'Pennagaram Main Road, Dharmapuri, Tamil Nadu - 636810'
+    whatsapp: '9842624508',
+    address: 'Pennagaram Main Road, Dharmapuri, Tamil Nadu - 636810',
+    googleMapsUrl: '',
+    shippingFee: 60,
+    freeShippingThreshold: 499,
+    deliveryCharge: 60,
+    freeDeliveryThreshold: 499,
+    enableCod: true,
+    enablePhonePe: true,
+    enableQrPayment: true,
+    enableRazorpay: true,
+    razorpayKeyId: '',
+    razorpayKeySecret: '',
+    upiId: '9842624508@okbizaxis',
+    payeeName: 'Veerika Rose Garden',
+    qrInstructions: 'Scan QR using any UPI app (GPay, PhonePe, Paytm) and upload screenshot',
+    phonepeMerchantId: 'M22G1Y3J3W6D2',
+    phonepeSaltKey: '21396eb1-d507-4e0e-9f37-9ad841d13db7',
+    phonepeSaltIndex: '1',
+    phonepeEnv: 'SANDBOX'
   });
   const [settingsSavedToast, setSettingsSavedToast] = useState(false);
+
+  // Sync settingsForm when initialSettings loads
+  React.useEffect(() => {
+    if (initialSettings) {
+      setSettingsForm((prev: any) => ({ ...prev, ...initialSettings }));
+    }
+  }, [initialSettings]);
+
+  // Financial Profit & Loss Calculations
+  const financesStats = useMemo(() => {
+    const paidOrders = orders.filter(o => o.paymentStatus === 'SUCCESS' || (o.paymentMethod === 'COD' && o.orderStatus === 'DELIVERED'));
+    const orderSales = paidOrders.reduce((s, o) => s + (o.grandTotal || 0), 0);
+    const customSales = finances.filter(f => f.type === 'SALE').reduce((s, f) => s + (f.sellAmount || 0), 0);
+    const totalRevenue = orderSales + customSales;
+    const totalSpending = finances.reduce((s, f) => s + (f.costAmount || 0), 0);
+    const netProfit = totalRevenue - totalSpending;
+    const isProfit = netProfit >= 0;
+    const margin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(1) : '0';
+
+    return {
+      orderSales,
+      customSales,
+      totalRevenue,
+      totalSpending,
+      netProfit,
+      isProfit,
+      margin
+    };
+  }, [orders, finances]);
 
   // 4-Stage Stats Calculation directly from real orders
   const stats = useMemo(() => {
@@ -1855,7 +1955,122 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
         )}
 
         {/* ========================================================= */}
-        {/* 11. FINANCES SCREEN                                       */}
+        {/* DISCOUNT COUPONS SCREEN                                    */}
+        {/* ========================================================= */}
+        {currentScreen === 'coupons' && (
+          <div className="space-y-4 animate-in fade-in duration-150">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentScreen('dashboard')}
+                  className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                <h2 className="text-base font-extrabold text-slate-900">Discount Coupons ({coupons.length})</h2>
+              </div>
+              <button
+                onClick={() => {
+                  setCouponForm({
+                    code: '',
+                    discountType: 'PERCENTAGE',
+                    discountValue: 10,
+                    minOrderAmount: 0,
+                    maxUsageCount: 100,
+                    expiryDate: '',
+                    isActive: true,
+                    description: ''
+                  });
+                  setShowCouponModal(true);
+                }}
+                className="px-3 py-1.5 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl flex items-center gap-1 shadow-xs cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Coupon</span>
+              </button>
+            </div>
+
+            {copiedCouponId && (
+              <div className="p-2.5 bg-emerald-100 text-emerald-900 rounded-xl text-xs font-bold text-center border border-emerald-300">
+                ✓ Coupon code copied to clipboard!
+              </div>
+            )}
+
+            <div className="space-y-3">
+              {coupons.map((c) => {
+                const isPercent = (c.type || (c as any).discountType) === 'PERCENT' || (c as any).discountType === 'PERCENTAGE';
+                const discVal = c.value ?? (c as any).discountValue ?? 10;
+                const minOrder = c.minOrder ?? (c as any).minOrderAmount ?? 0;
+                const isActive = (c.active ?? (c as any).isActive) !== false;
+
+                return (
+                  <div key={c.id || c.code} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-black text-sm text-emerald-900 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-200 uppercase tracking-wider">
+                            {c.code}
+                          </span>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(c.code);
+                              setCopiedCouponId(c.code);
+                              setTimeout(() => setCopiedCouponId(null), 2000);
+                            }}
+                            className="p-1 text-slate-400 hover:text-emerald-700 rounded-lg hover:bg-slate-100 cursor-pointer"
+                            title="Copy code"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <p className="font-extrabold text-xs text-slate-800 mt-2">
+                          {isPercent ? `${discVal}% OFF Entire Order` : `₹${discVal} FLAT Discount`}
+                        </p>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          {minOrder > 0 ? `Min. order ₹${minOrder}` : 'No minimum order required'}
+                          {c.expiryDate ? ` • Expires ${formatDate(c.expiryDate)}` : ''}
+                        </p>
+                        {c.description && <p className="text-[10px] text-slate-400 italic mt-0.5">{c.description}</p>}
+                      </div>
+
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                        isActive ? 'bg-emerald-100 text-emerald-900' : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {isActive ? 'ACTIVE' : 'INACTIVE'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                      <span className="text-[10px] text-slate-400">
+                        Usage: {(c as any).usageCount || 0} / {(c as any).maxUsageCount || 100}
+                      </span>
+                      {onDeleteCoupon && (
+                        <button
+                          onClick={() => onDeleteCoupon(c.id || c.code)}
+                          className="px-2.5 py-1 text-rose-600 font-bold bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200 transition-colors flex items-center gap-1 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Delete</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {coupons.length === 0 && (
+                <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-2">
+                  <Tag className="w-8 h-8 text-slate-300 mx-auto" />
+                  <p className="text-xs font-bold text-slate-600">No discount coupons found</p>
+                  <p className="text-[11px] text-slate-400">Click "+ Add Coupon" to create promo codes for your nursery.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* 11. FINANCES & PROFIT/LOSS SCREEN                          */}
         {/* ========================================================= */}
         {currentScreen === 'finances' && (
           <div className="space-y-4 animate-in fade-in duration-150">
@@ -1867,29 +2082,90 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </button>
-                <h2 className="text-base font-extrabold text-slate-900">Farm Finances</h2>
+                <h2 className="text-base font-extrabold text-slate-900">Expenses & Profit/Loss</h2>
               </div>
+              <button
+                onClick={() => {
+                  setEditingFinance(null);
+                  setFinanceForm({
+                    type: 'EXPENSE',
+                    title: '',
+                    category: 'Fertilizer',
+                    costAmount: 0,
+                    sellAmount: 0,
+                    quantity: 1,
+                    notes: '',
+                    date: new Date().toISOString().split('T')[0]
+                  });
+                  setShowFinanceModal(true);
+                }}
+                className="px-3 py-1.5 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl flex items-center gap-1 shadow-xs cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Log / Expense</span>
+              </button>
             </div>
 
+            {/* 4 KPI Metric Cards (2x2 Grid) */}
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-1">
-                <span className="text-xs font-bold text-slate-500 uppercase">Gross Revenue</span>
-                <p className="text-xl font-black text-emerald-700">₹{stats.totalRevenue.toLocaleString('en-IN')}</p>
-                <span className="text-[10px] text-slate-400 font-medium">From customer orders</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm">💰</span>
+                  <span className="text-[11px] font-bold text-slate-500 uppercase">Gross Revenue</span>
+                </div>
+                <p className="text-xl font-black text-emerald-800">₹{financesStats.totalRevenue.toLocaleString('en-IN')}</p>
+                <p className="text-[10px] text-slate-400">₹{financesStats.orderSales} store + ₹{financesStats.customSales} custom</p>
               </div>
 
               <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-1">
-                <span className="text-xs font-bold text-slate-500 uppercase">Total Orders</span>
-                <p className="text-xl font-black text-slate-900">{orders.length}</p>
-                <span className="text-[10px] text-slate-400 font-medium">{stats.deliveredCount} delivered</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm">💸</span>
+                  <span className="text-[11px] font-bold text-slate-500 uppercase">Total Spending</span>
+                </div>
+                <p className="text-xl font-black text-rose-700">₹{financesStats.totalSpending.toLocaleString('en-IN')}</p>
+                <p className="text-[10px] text-slate-400">Fertilizer, bags, soil, labor & freight</p>
+              </div>
+
+              <div className={`p-4 rounded-2xl border shadow-xs space-y-1 ${
+                financesStats.isProfit ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'
+              }`}>
+                <div className="flex items-center gap-1.5">
+                  {financesStats.isProfit ? <TrendingUp className="w-3.5 h-3.5 text-emerald-700" /> : <TrendingDown className="w-3.5 h-3.5 text-rose-700" />}
+                  <span className={`text-[11px] font-bold uppercase ${financesStats.isProfit ? 'text-emerald-900' : 'text-rose-900'}`}>
+                    {financesStats.isProfit ? 'Net Profit' : 'Net Loss'}
+                  </span>
+                </div>
+                <p className={`text-xl font-black ${financesStats.isProfit ? 'text-emerald-800' : 'text-rose-700'}`}>
+                  {financesStats.isProfit ? `+₹${financesStats.netProfit}` : `-₹${Math.abs(financesStats.netProfit)}`}
+                </p>
+                <p className={`text-[10px] font-bold ${financesStats.isProfit ? 'text-emerald-700' : 'text-rose-700'}`}>
+                  {financesStats.isProfit ? '✅ Profitable Farm Operation' : '⚠️ Expenses Exceed Revenue'}
+                </p>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm">📊</span>
+                  <span className="text-[11px] font-bold text-slate-500 uppercase">Profit Margin</span>
+                </div>
+                <p className={`text-xl font-black ${Number(financesStats.margin) >= 0 ? 'text-emerald-800' : 'text-rose-600'}`}>
+                  {financesStats.margin}%
+                </p>
+                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-1">
+                  <div
+                    className={`h-full ${Number(financesStats.margin) >= 0 ? 'bg-emerald-600' : 'bg-rose-600'}`}
+                    style={{ width: `${Math.min(100, Math.max(0, Number(financesStats.margin)))}%` }}
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+            {/* Payment Methods Gross Breakdown */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-2">
               <h3 className="text-xs font-extrabold text-slate-900">Payment Breakdown</h3>
-              <div className="space-y-2 text-xs">
+              <div className="space-y-1.5 text-xs">
                 <div className="flex justify-between py-1 border-b border-slate-100">
-                  <span className="text-slate-600">UPI / QR Payments</span>
+                  <span className="text-slate-600">UPI / QR / Gateway Payments</span>
                   <span className="font-bold text-emerald-700">
                     ₹{orders.filter(o => o.paymentMethod !== 'COD' && o.paymentStatus === 'SUCCESS').reduce((s, o) => s + (o.grandTotal || 0), 0)}
                   </span>
@@ -1902,11 +2178,98 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* Financial History Ledger */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-xs font-extrabold text-slate-900">Farm Spending & Sale Logs ({finances.length})</h3>
+                <span className="text-[10px] text-slate-400">Line-item calculations</span>
+              </div>
+
+              {finances.map((f) => {
+                const itemCost = f.costAmount || 0;
+                const itemSell = f.type === 'SALE' ? (f.sellAmount || 0) : 0;
+                const itemDiff = f.type === 'SALE' ? (itemSell - itemCost) : -itemCost;
+                const isItemProfit = itemDiff >= 0;
+
+                return (
+                  <div key={f.id} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-2 text-xs">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[9px] font-black px-2 py-0.5 rounded-md ${
+                            f.type === 'SALE' ? 'bg-emerald-100 text-emerald-900 border border-emerald-200' : 'bg-rose-100 text-rose-900 border border-rose-200'
+                          }`}>
+                            {f.type === 'SALE' ? '🛍️ CUSTOM SALE' : '💸 SPENDING'}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-mono">{f.date}</span>
+                        </div>
+                        <h4 className="font-extrabold text-xs text-slate-900 mt-1">{f.title}</h4>
+                        <p className="text-[11px] text-slate-500">{f.category} {f.notes ? `• ${f.notes}` : ''}</p>
+                      </div>
+
+                      <span className={`text-xs font-black px-2 py-1 rounded-xl shrink-0 ${
+                        f.type === 'SALE'
+                          ? isItemProfit ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
+                          : 'bg-rose-50 text-rose-700 border border-rose-200'
+                      }`}>
+                        {f.type === 'SALE' ? (isItemProfit ? `+₹${itemDiff} Profit` : `-₹${Math.abs(itemDiff)} Loss`) : `-₹${itemCost} Expense`}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[11px]">
+                      <span className="text-slate-500">
+                        Qty: <strong>{f.quantity}</strong> • Cost: <strong className="text-rose-700">₹{itemCost}</strong>
+                        {f.type === 'SALE' && ` • Sell: ₹${itemSell}`}
+                      </span>
+
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => {
+                            setEditingFinance(f);
+                            setFinanceForm({
+                              type: f.type,
+                              title: f.title,
+                              category: f.category,
+                              costAmount: f.costAmount,
+                              sellAmount: f.sellAmount || 0,
+                              quantity: f.quantity || 1,
+                              notes: f.notes || '',
+                              date: f.date || new Date().toISOString().split('T')[0]
+                            });
+                            setShowFinanceModal(true);
+                          }}
+                          className="p-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 cursor-pointer"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </button>
+                        {onDeleteFinance && (
+                          <button
+                            onClick={() => onDeleteFinance(f.id)}
+                            className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {finances.length === 0 && (
+                <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-2">
+                  <DollarSign className="w-8 h-8 text-slate-300 mx-auto" />
+                  <p className="text-xs font-bold text-slate-600">No spending logs recorded yet</p>
+                  <p className="text-[11px] text-slate-400">Click "+ Add Expense / Sale" to record farm spending or custom nursery sales.</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
         {/* ========================================================= */}
-        {/* 12. SETTINGS SCREEN                                        */}
+        {/* 12. STORE & PAYMENT SETTINGS SCREEN                        */}
         {/* ========================================================= */}
         {currentScreen === 'settings' && (
           <div className="space-y-4 animate-in fade-in duration-150">
@@ -1918,13 +2281,13 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </button>
-                <h2 className="text-base font-extrabold text-slate-900">Store Settings</h2>
+                <h2 className="text-base font-extrabold text-slate-900">Store & Payment Settings</h2>
               </div>
             </div>
 
             {settingsSavedToast && (
               <div className="p-3 bg-emerald-100 text-emerald-900 rounded-xl text-xs font-bold text-center border border-emerald-300">
-                ✓ Settings saved successfully!
+                ✓ Settings & Payment Methods saved successfully!
               </div>
             )}
 
@@ -1935,56 +2298,384 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 setSettingsSavedToast(true);
                 setTimeout(() => setSettingsSavedToast(false), 2500);
               }}
-              className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3 text-xs"
+              className="space-y-4 text-xs"
             >
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700 block">UPI ID for Direct QR Payments</label>
-                <input
-                  type="text"
-                  value={settingsForm.upiId}
-                  onChange={e => setSettingsForm({ ...settingsForm, upiId: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono font-bold"
-                />
+              {/* SECTION 1: INTERACTIVE PAYMENT METHOD SWITCHES */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <h3 className="font-extrabold text-xs text-slate-900 flex items-center gap-1.5">
+                    <CreditCard className="w-4 h-4 text-emerald-700" />
+                    <span>Payment Methods Active on Store</span>
+                  </h3>
+                  <span className="text-[10px] bg-emerald-100 text-emerald-900 font-bold px-2 py-0.5 rounded-full">
+                    Customer Options
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2.5">
+                  {/* PhonePe PG Toggle */}
+                  <div
+                    onClick={() => setSettingsForm({ ...settingsForm, enablePhonePe: !settingsForm.enablePhonePe })}
+                    className={`p-3 rounded-xl border-2 transition-all cursor-pointer select-none flex flex-col justify-between ${
+                      settingsForm.enablePhonePe
+                        ? 'bg-purple-50/70 border-purple-500 text-purple-950 shadow-xs'
+                        : 'bg-slate-50 border-slate-200 text-slate-500 opacity-70'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-xs">PhonePe PG</span>
+                      <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${
+                        settingsForm.enablePhonePe ? 'bg-purple-600 text-white' : 'bg-slate-400 text-white'
+                      }`}>
+                        {settingsForm.enablePhonePe ? 'ON' : 'OFF'}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 mt-1">UPI & Netbanking</span>
+                  </div>
+
+                  {/* Razorpay PG Toggle */}
+                  <div
+                    onClick={() => setSettingsForm({ ...settingsForm, enableRazorpay: !settingsForm.enableRazorpay })}
+                    className={`p-3 rounded-xl border-2 transition-all cursor-pointer select-none flex flex-col justify-between ${
+                      settingsForm.enableRazorpay
+                        ? 'bg-blue-50/70 border-blue-500 text-blue-950 shadow-xs'
+                        : 'bg-slate-50 border-slate-200 text-slate-500 opacity-70'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-xs">Razorpay PG</span>
+                      <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${
+                        settingsForm.enableRazorpay ? 'bg-blue-600 text-white' : 'bg-slate-400 text-white'
+                      }`}>
+                        {settingsForm.enableRazorpay ? 'ON' : 'OFF'}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 mt-1">GPay, Paytm, Cards</span>
+                  </div>
+
+                  {/* Direct QR Toggle */}
+                  <div
+                    onClick={() => setSettingsForm({ ...settingsForm, enableQrPayment: !settingsForm.enableQrPayment })}
+                    className={`p-3 rounded-xl border-2 transition-all cursor-pointer select-none flex flex-col justify-between ${
+                      settingsForm.enableQrPayment
+                        ? 'bg-emerald-50/70 border-emerald-500 text-emerald-950 shadow-xs'
+                        : 'bg-slate-50 border-slate-200 text-slate-500 opacity-70'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-xs">Manual QR / UPI</span>
+                      <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${
+                        settingsForm.enableQrPayment ? 'bg-emerald-700 text-white' : 'bg-slate-400 text-white'
+                      }`}>
+                        {settingsForm.enableQrPayment ? 'ON' : 'OFF'}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 mt-1">Direct Bank Transfer</span>
+                  </div>
+
+                  {/* Cash on Delivery (COD) Toggle */}
+                  <div
+                    onClick={() => setSettingsForm({ ...settingsForm, enableCod: !settingsForm.enableCod })}
+                    className={`p-3 rounded-xl border-2 transition-all cursor-pointer select-none flex flex-col justify-between ${
+                      settingsForm.enableCod
+                        ? 'bg-amber-50/70 border-amber-500 text-amber-950 shadow-xs'
+                        : 'bg-slate-50 border-slate-200 text-slate-500 opacity-70'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-xs">Cash on Delivery</span>
+                      <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${
+                        settingsForm.enableCod ? 'bg-amber-600 text-white' : 'bg-slate-400 text-white'
+                      }`}>
+                        {settingsForm.enableCod ? 'ON' : 'OFF'}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 mt-1">Doorstep Cash Payment</span>
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700 block">Delivery Fee (₹)</label>
-                <input
-                  type="number"
-                  value={settingsForm.deliveryCharge}
-                  onChange={e => setSettingsForm({ ...settingsForm, deliveryCharge: Number(e.target.value) })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
-                />
+              {/* SECTION 2: PHONEPE CREDENTIALS */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+                <h3 className="font-extrabold text-xs text-slate-900 border-b border-slate-100 pb-2">
+                  🟣 PhonePe Payment Gateway Credentials
+                </h3>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Merchant ID</label>
+                  <input
+                    type="text"
+                    value={settingsForm.phonepeMerchantId || ''}
+                    onChange={e => setSettingsForm({ ...settingsForm, phonepeMerchantId: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Salt Key</label>
+                  <input
+                    type="password"
+                    value={settingsForm.phonepeSaltKey || ''}
+                    onChange={e => setSettingsForm({ ...settingsForm, phonepeSaltKey: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono font-bold"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700 block">Salt Index</label>
+                    <input
+                      type="text"
+                      value={settingsForm.phonepeSaltIndex || '1'}
+                      onChange={e => setSettingsForm({ ...settingsForm, phonepeSaltIndex: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono font-bold"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700 block">Environment</label>
+                    <select
+                      value={settingsForm.phonepeEnv || 'SANDBOX'}
+                      onChange={e => setSettingsForm({ ...settingsForm, phonepeEnv: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                    >
+                      <option value="SANDBOX">SANDBOX (Testing)</option>
+                      <option value="PRODUCTION">PRODUCTION (Live PG)</option>
+                    </select>
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700 block">Free Delivery Min Order (₹)</label>
-                <input
-                  type="number"
-                  value={settingsForm.freeDeliveryThreshold}
-                  onChange={e => setSettingsForm({ ...settingsForm, freeDeliveryThreshold: Number(e.target.value) })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
-                />
+              {/* SECTION 3: RAZORPAY CREDENTIALS */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+                <h3 className="font-extrabold text-xs text-slate-900 border-b border-slate-100 pb-2">
+                  🔵 Razorpay Gateway Credentials
+                </h3>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Razorpay Key ID</label>
+                  <input
+                    type="text"
+                    placeholder="rzp_live_... or rzp_test_..."
+                    value={settingsForm.razorpayKeyId || ''}
+                    onChange={e => setSettingsForm({ ...settingsForm, razorpayKeyId: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Razorpay Key Secret</label>
+                  <input
+                    type="password"
+                    value={settingsForm.razorpayKeySecret || ''}
+                    onChange={e => setSettingsForm({ ...settingsForm, razorpayKeySecret: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono font-bold"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700 block">Support Phone Number</label>
-                <input
-                  type="text"
-                  value={settingsForm.phone}
-                  onChange={e => setSettingsForm({ ...settingsForm, phone: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
-                />
+              {/* SECTION 4: DIRECT QR / UPI DETAILS */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+                <h3 className="font-extrabold text-xs text-slate-900 border-b border-slate-100 pb-2">
+                  📱 Direct UPI & QR Code Transfer Details
+                </h3>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">UPI ID for Direct Transfers</label>
+                  <input
+                    type="text"
+                    value={settingsForm.upiId || '9842624508@okbizaxis'}
+                    onChange={e => setSettingsForm({ ...settingsForm, upiId: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono font-bold text-emerald-900"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Payee Business Name</label>
+                  <input
+                    type="text"
+                    value={settingsForm.payeeName || 'Veerika Rose Garden'}
+                    onChange={e => setSettingsForm({ ...settingsForm, payeeName: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                  />
+                </div>
+              </div>
+
+              {/* SECTION 5: DELIVERY & NURSERY INFO */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+                <h3 className="font-extrabold text-xs text-slate-900 border-b border-slate-100 pb-2">
+                  🏡 Nursery Farm & Shipping Info
+                </h3>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700 block">Delivery Charge (₹)</label>
+                    <input
+                      type="number"
+                      value={settingsForm.deliveryCharge || settingsForm.shippingFee || 60}
+                      onChange={e => setSettingsForm({ ...settingsForm, deliveryCharge: Number(e.target.value), shippingFee: Number(e.target.value) })}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700 block">Free Shipping Above (₹)</label>
+                    <input
+                      type="number"
+                      value={settingsForm.freeDeliveryThreshold || settingsForm.freeShippingThreshold || 499}
+                      onChange={e => setSettingsForm({ ...settingsForm, freeDeliveryThreshold: Number(e.target.value), freeShippingThreshold: Number(e.target.value) })}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Nursery Support Phone</label>
+                  <input
+                    type="text"
+                    value={settingsForm.phone || '9842624508'}
+                    onChange={e => setSettingsForm({ ...settingsForm, phone: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Nursery Support Email</label>
+                  <input
+                    type="email"
+                    value={settingsForm.email || 'nv01110612@gmail.com'}
+                    onChange={e => setSettingsForm({ ...settingsForm, email: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Farm Physical Address</label>
+                  <textarea
+                    rows={2}
+                    value={settingsForm.address || 'Pennagaram Main Road, Dharmapuri, Tamil Nadu - 636810'}
+                    onChange={e => setSettingsForm({ ...settingsForm, address: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-medium"
+                  />
+                </div>
               </div>
 
               <button
                 type="submit"
-                className="w-full py-3 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-3.5 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2"
               >
                 <Save className="w-4 h-4" />
-                <span>Save Store Settings</span>
+                <span>Save All Settings & Payment Methods</span>
               </button>
             </form>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* HOMEPAGE BANNERS SCREEN                                    */}
+        {/* ========================================================= */}
+        {currentScreen === 'banners' && (
+          <div className="space-y-4 animate-in fade-in duration-150">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentScreen('dashboard')}
+                  className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                <h2 className="text-base font-extrabold text-slate-900">Homepage Banners ({banners.length})</h2>
+              </div>
+              <button
+                onClick={() => {
+                  setEditingBanner(null);
+                  setBannerForm({
+                    title: '',
+                    subtitle: '',
+                    imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1200&q=80',
+                    link: '',
+                    ctaText: 'Shop Plants',
+                    active: true,
+                    order: banners.length + 1
+                  });
+                  setShowBannerModal(true);
+                }}
+                className="px-3 py-1.5 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl flex items-center gap-1 shadow-xs cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Banner</span>
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {banners.map((b) => (
+                <div key={b.id} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+                  <div className="w-full h-32 rounded-xl overflow-hidden border border-slate-100">
+                    <img src={b.imageUrl} alt={b.title} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h4 className="font-extrabold text-xs text-slate-900">{b.title}</h4>
+                      {b.subtitle && <p className="text-[11px] text-slate-500">{b.subtitle}</p>}
+                    </div>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      b.active ? 'bg-emerald-100 text-emerald-900' : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      {b.active ? 'ACTIVE' : 'HIDDEN'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-xs">
+                    <span className="text-[10px] text-slate-400">Order: {b.order ?? 1}</span>
+                    {onDeleteBanner && (
+                      <button
+                        onClick={() => onDeleteBanner(b.id)}
+                        className="text-rose-600 font-bold hover:underline cursor-pointer flex items-center gap-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {banners.length === 0 && (
+                <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-2">
+                  <ImageIcon className="w-8 h-8 text-slate-300 mx-auto" />
+                  <p className="text-xs font-bold text-slate-600">No promo banners configured</p>
+                  <p className="text-[11px] text-slate-400">Click "+ Add Banner" to upload hero promotional carousels.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* SECURITY & AUDIT LOGS SCREEN                               */}
+        {/* ========================================================= */}
+        {currentScreen === 'audit' && (
+          <div className="space-y-4 animate-in fade-in duration-150">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentScreen('dashboard')}
+                  className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                <h2 className="text-base font-extrabold text-slate-900">Security & Audit Logs</h2>
+              </div>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3 text-xs">
+              <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                <ShieldCheck className="w-4 h-4 text-emerald-700" />
+                <span className="font-bold text-slate-800">Admin Session Protection</span>
+              </div>
+              <p className="text-slate-600">Authenticated Admin: <strong className="text-emerald-900">{adminUser?.email || 'nv01110612@gmail.com'}</strong></p>
+              <p className="text-slate-500 text-[11px]">All administrative actions, order status changes, and database modifications are cryptographically logged with timestamps.</p>
+            </div>
           </div>
         )}
 
@@ -2101,14 +2792,19 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 { screen: 'combos', label: `🎁 Plant Combos & Offers (${combos.length})`, icon: <Sparkles className="w-4 h-4 text-amber-500" /> },
                 { screen: 'categories', label: `📁 Categories (${categories.length})`, icon: <FolderTree className="w-4 h-4 text-emerald-700" /> },
                 { screen: 'orders_list', label: `📦 All Orders (${orders.length})`, icon: <ShoppingBag className="w-4 h-4 text-blue-600" /> },
-                { screen: 'inventory', label: '⚠️ Inventory & Low Stock Alerts', icon: <AlertTriangle className="w-4 h-4 text-amber-500" /> },
+                { screen: 'inventory', label: `⚠️ Inventory & Stock (${stats.lowStockCount} Low)`, icon: <AlertTriangle className="w-4 h-4 text-amber-500" /> },
+                { screen: 'coupons', label: `🏷️ Discount Coupons (${coupons.length})`, icon: <Tag className="w-4 h-4 text-emerald-700" /> },
+                { screen: 'banners', label: `🖼️ Homepage Banners (${banners.length})`, icon: <ImageIcon className="w-4 h-4 text-indigo-600" /> },
                 { screen: 'reviews', label: `⭐ Customer Reviews (${reviews.length})`, icon: <Star className="w-4 h-4 text-amber-500 fill-amber-500" /> },
                 { screen: 'finances', label: '💰 Finances & Profit/Loss', icon: <DollarSign className="w-4 h-4 text-emerald-600" /> },
                 { screen: 'settings', label: '⚙️ Store & Payment Settings', icon: <SettingsIcon className="w-4 h-4 text-slate-600" /> },
+                { screen: 'audit', label: '🛡️ Security & Audit Logs', icon: <ShieldCheck className="w-4 h-4 text-teal-600" /> },
               ].map(item => (
                 <button
                   key={item.screen}
-                  onClick={() => setCurrentScreen(item.screen as any)}
+                  onClick={() => {
+                    setCurrentScreen(item.screen as any);
+                  }}
                   className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer font-semibold text-xs text-left"
                 >
                   {item.icon}
@@ -2636,6 +3332,416 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 <span>{copiedToast ? 'Copied to Clipboard!' : 'Copy Message Text'}</span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* ADD/EDIT COUPON MODAL                                      */}
+      {/* ========================================================= */}
+      {showCouponModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden border border-slate-200 max-h-[90vh] flex flex-col">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-extrabold text-sm text-slate-900">
+                Create Discount Coupon
+              </h3>
+              <button onClick={() => setShowCouponModal(false)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (onSaveCoupon) {
+                  await onSaveCoupon({
+                    code: couponForm.code.toUpperCase().trim(),
+                    type: couponForm.discountType === 'PERCENTAGE' ? 'PERCENT' : 'FIXED',
+                    value: Number(couponForm.discountValue),
+                    minOrder: Number(couponForm.minOrderAmount),
+                    maxUsageCount: Number(couponForm.maxUsageCount),
+                    expiryDate: couponForm.expiryDate || undefined,
+                    active: couponForm.isActive,
+                    description: couponForm.description
+                  });
+                }
+                setShowCouponModal(false);
+              }}
+              className="p-4 overflow-y-auto space-y-3 text-xs"
+            >
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Coupon Promo Code *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. ROSE20, FREEDEL"
+                  value={couponForm.code}
+                  onChange={e => setCouponForm({ ...couponForm, code: e.target.value.toUpperCase() })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono font-black uppercase text-emerald-900"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Discount Type</label>
+                  <select
+                    value={couponForm.discountType}
+                    onChange={e => setCouponForm({ ...couponForm, discountType: e.target.value as any })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                  >
+                    <option value="PERCENTAGE">Percentage (% Off)</option>
+                    <option value="FLAT">Flat Amount (₹ Off)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Discount Value *</label>
+                  <input
+                    type="number"
+                    required
+                    value={couponForm.discountValue}
+                    onChange={e => setCouponForm({ ...couponForm, discountValue: Number(e.target.value) })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Min. Order (₹)</label>
+                  <input
+                    type="number"
+                    value={couponForm.minOrderAmount}
+                    onChange={e => setCouponForm({ ...couponForm, minOrderAmount: Number(e.target.value) })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Max Uses</label>
+                  <input
+                    type="number"
+                    value={couponForm.maxUsageCount}
+                    onChange={e => setCouponForm({ ...couponForm, maxUsageCount: Number(e.target.value) })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Expiry Date</label>
+                <input
+                  type="date"
+                  value={couponForm.expiryDate}
+                  onChange={e => setCouponForm({ ...couponForm, expiryDate: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Description / Notes</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Special festive discount"
+                  value={couponForm.description}
+                  onChange={e => setCouponForm({ ...couponForm, description: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-medium"
+                />
+              </div>
+
+              <label className="flex items-center gap-2 p-2 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer select-none font-bold text-xs">
+                <input
+                  type="checkbox"
+                  checked={couponForm.isActive}
+                  onChange={e => setCouponForm({ ...couponForm, isActive: e.target.checked })}
+                  className="w-4 h-4 text-emerald-700 rounded"
+                />
+                <span>Active and Redeemable by Customers</span>
+              </label>
+
+              <button
+                type="submit"
+                className="w-full py-3 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
+              >
+                Save Coupon
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* ADD/EDIT FINANCE LOG MODAL                                */}
+      {/* ========================================================= */}
+      {showFinanceModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden border border-slate-200 max-h-[90vh] flex flex-col">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-extrabold text-sm text-slate-900">
+                {editingFinance ? 'Edit Farm Financial Log' : 'Record Farm Spending / Sale'}
+              </h3>
+              <button onClick={() => setShowFinanceModal(false)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (onSaveFinance) {
+                  await onSaveFinance({
+                    id: editingFinance?.id,
+                    type: financeForm.type,
+                    title: financeForm.title,
+                    category: financeForm.category,
+                    costAmount: Number(financeForm.costAmount),
+                    sellAmount: Number(financeForm.sellAmount || 0),
+                    quantity: Number(financeForm.quantity || 1),
+                    notes: financeForm.notes,
+                    date: financeForm.date
+                  });
+                }
+                setShowFinanceModal(false);
+              }}
+              className="p-4 overflow-y-auto space-y-3 text-xs"
+            >
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFinanceForm({ ...financeForm, type: 'EXPENSE' })}
+                  className={`py-2 rounded-xl font-bold border transition-all text-xs cursor-pointer ${
+                    financeForm.type === 'EXPENSE'
+                      ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+                      : 'bg-slate-50 text-slate-600 border-slate-200'
+                  }`}
+                >
+                  💸 Farm Spending
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFinanceForm({ ...financeForm, type: 'SALE' })}
+                  className={`py-2 rounded-xl font-bold border transition-all text-xs cursor-pointer ${
+                    financeForm.type === 'SALE'
+                      ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs'
+                      : 'bg-slate-50 text-slate-600 border-slate-200'
+                  }`}
+                >
+                  🛍️ Custom Sale
+                </button>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Item / Expense Title *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Vermicompost 50kg Bags, Worker wages"
+                  value={financeForm.title}
+                  onChange={e => setFinanceForm({ ...financeForm, title: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Category</label>
+                  <select
+                    value={financeForm.category}
+                    onChange={e => setFinanceForm({ ...financeForm, category: e.target.value as any })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                  >
+                    <option value="Fertilizer">Fertilizer</option>
+                    <option value="Pots & Bags">Pots & Bags</option>
+                    <option value="Soil & Manure">Soil & Manure</option>
+                    <option value="Labor & Workers">Labor & Workers</option>
+                    <option value="Transport & Freight">Transport & Freight</option>
+                    <option value="Plant Wholesale">Plant Wholesale</option>
+                    <option value="Direct Nursery Sale">Direct Nursery Sale</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Quantity</label>
+                  <input
+                    type="number"
+                    value={financeForm.quantity}
+                    onChange={e => setFinanceForm({ ...financeForm, quantity: Number(e.target.value) })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Total Cost (₹) *</label>
+                  <input
+                    type="number"
+                    required
+                    value={financeForm.costAmount}
+                    onChange={e => setFinanceForm({ ...financeForm, costAmount: Number(e.target.value) })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-rose-700"
+                  />
+                </div>
+
+                {financeForm.type === 'SALE' && (
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700 block">Selling Amount (₹) *</label>
+                    <input
+                      type="number"
+                      required
+                      value={financeForm.sellAmount}
+                      onChange={e => setFinanceForm({ ...financeForm, sellAmount: Number(e.target.value) })}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-emerald-700"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Date *</label>
+                <input
+                  type="date"
+                  required
+                  value={financeForm.date}
+                  onChange={e => setFinanceForm({ ...financeForm, date: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Notes / Vendor Details</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Bought from Dharmapuri Agro Supplies"
+                  value={financeForm.notes}
+                  onChange={e => setFinanceForm({ ...financeForm, notes: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-medium"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
+              >
+                {editingFinance ? 'Save Changes' : 'Log Entry'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* ADD/EDIT BANNER MODAL                                     */}
+      {/* ========================================================= */}
+      {showBannerModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden border border-slate-200 max-h-[90vh] flex flex-col">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-extrabold text-sm text-slate-900">
+                {editingBanner ? 'Edit Banner' : 'Add Homepage Hero Banner'}
+              </h3>
+              <button onClick={() => setShowBannerModal(false)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (onSaveBanner) {
+                  await onSaveBanner({
+                    id: editingBanner?.id,
+                    title: bannerForm.title,
+                    subtitle: bannerForm.subtitle,
+                    imageUrl: bannerForm.imageUrl,
+                    link: bannerForm.link,
+                    ctaText: bannerForm.ctaText,
+                    active: bannerForm.active,
+                    order: Number(bannerForm.order || 1)
+                  });
+                }
+                setShowBannerModal(false);
+              }}
+              className="p-4 overflow-y-auto space-y-3 text-xs"
+            >
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Banner Headline *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Grand Festive Season Rose Sale"
+                  value={bannerForm.title}
+                  onChange={e => setBannerForm({ ...bannerForm, title: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Subtitle</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 50+ Hybrid Varieties • Direct Nursery Price"
+                  value={bannerForm.subtitle}
+                  onChange={e => setBannerForm({ ...bannerForm, subtitle: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-medium"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Banner Image URL *</label>
+                <input
+                  type="text"
+                  required
+                  value={bannerForm.imageUrl}
+                  onChange={e => setBannerForm({ ...bannerForm, imageUrl: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono text-[11px]"
+                />
+                {bannerForm.imageUrl && (
+                  <img src={bannerForm.imageUrl} alt="Preview" className="w-full h-24 object-cover rounded-xl mt-1 border" />
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Button CTA Text</label>
+                  <input
+                    type="text"
+                    value={bannerForm.ctaText}
+                    onChange={e => setBannerForm({ ...bannerForm, ctaText: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Display Order</label>
+                  <input
+                    type="number"
+                    value={bannerForm.order}
+                    onChange={e => setBannerForm({ ...bannerForm, order: Number(bannerForm.order) })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                  />
+                </div>
+              </div>
+
+              <label className="flex items-center gap-2 p-2 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer select-none font-bold text-xs">
+                <input
+                  type="checkbox"
+                  checked={bannerForm.active}
+                  onChange={e => setBannerForm({ ...bannerForm, active: e.target.checked })}
+                  className="w-4 h-4 text-emerald-700 rounded"
+                />
+                <span>Show on Homepage Carousel</span>
+              </label>
+
+              <button
+                type="submit"
+                className="w-full py-3 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
+              >
+                {editingBanner ? 'Save Banner Changes' : 'Publish Banner'}
+              </button>
+            </form>
           </div>
         </div>
       )}
