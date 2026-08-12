@@ -121,8 +121,8 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   // Selected order for detail views
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   
-  // 4 Stage Filter
-  const [orderStageFilter, setOrderStageFilter] = useState<'all' | 'confirmed' | 'packing' | 'dispatched' | 'delivered'>('all');
+  // 4 Stage Filter: 'confirmed' | 'packing' | 'dispatched' | 'delivered'
+  const [orderStageFilter, setOrderStageFilter] = useState<'confirmed' | 'packing' | 'dispatched' | 'delivered'>('confirmed');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Label Generation State
@@ -627,13 +627,13 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 <h3 className="text-sm font-bold text-slate-900">Recent Orders</h3>
                 <button
                   onClick={() => {
-                    setOrderStageFilter('all');
+                    setOrderStageFilter('confirmed');
                     setCurrentScreen('orders_list');
                     setActiveBottomTab('orders');
                   }}
                   className="text-xs font-bold text-emerald-800 hover:text-emerald-950 flex items-center gap-0.5 cursor-pointer"
                 >
-                  <span>View All ({orders.length})</span>
+                  <span>View Orders ({orders.length})</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -741,25 +741,27 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
             </div>
 
-            {/* 4-Stage Filter Tabs Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+            {/* Exactly the 4 Dedicated Order Stage Tabs */}
+            <div className="grid grid-cols-4 gap-1.5 p-1 bg-slate-200/90 rounded-2xl">
               {[
-                { key: 'all', label: `All (${orders.length})` },
-                { key: 'confirmed', label: `Confirmed (${stats.confirmedCount})` },
-                { key: 'packing', label: `Packing (${stats.packingCount})` },
-                { key: 'dispatched', label: `Dispatched (${stats.dispatchedCount})` },
-                { key: 'delivered', label: `Delivered (${stats.deliveredCount})` },
+                { key: 'confirmed', label: '1. Confirmed', count: stats.confirmedCount, color: 'text-emerald-700' },
+                { key: 'packing', label: '2. Packing', count: stats.packingCount, color: 'text-amber-600' },
+                { key: 'dispatched', label: '3. Courier', count: stats.dispatchedCount, color: 'text-blue-600' },
+                { key: 'delivered', label: '4. Delivered', count: stats.deliveredCount, color: 'text-purple-700' },
               ].map(tab => (
                 <button
                   key={tab.key}
                   onClick={() => setOrderStageFilter(tab.key as any)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer whitespace-nowrap ${
+                  className={`py-2 px-1 rounded-xl text-center transition-all cursor-pointer ${
                     orderStageFilter === tab.key
-                      ? 'bg-emerald-800 text-white shadow-xs'
-                      : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                      ? 'bg-white text-slate-900 font-extrabold shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900 font-bold'
                   }`}
                 >
-                  {tab.label}
+                  <span className="block text-[11px] leading-tight truncate">{tab.label}</span>
+                  <span className={`block text-xs font-black mt-0.5 ${orderStageFilter === tab.key ? tab.color : 'text-slate-500'}`}>
+                    {tab.count}
+                  </span>
                 </button>
               ))}
             </div>
@@ -2346,7 +2348,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
         <button
           onClick={() => {
             setActiveBottomTab('orders');
-            setOrderStageFilter('all');
+            setOrderStageFilter('confirmed');
             setCurrentScreen('orders_list');
           }}
           className={`flex flex-col items-center gap-1 transition-colors cursor-pointer relative ${
