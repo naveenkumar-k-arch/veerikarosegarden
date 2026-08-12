@@ -1304,4 +1304,23 @@ body {
   transform-style: preserve-3d;
 }
 
+/* ============================================================
+   A4 LABEL SHEET PRINT STYLES
+   ============================================================ */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+  body {
+    padding-bottom: 0 !important;
+    background: white !important;
+  }
+  .page-break-after {
+    page-break-after: always;
+    break-after: page;
+  }
+}
+
+
 

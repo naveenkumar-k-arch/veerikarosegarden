@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Product, Category, Order, Coupon, Banner, Review, SiteSettings, PaymentLog, FinancialEntry, Combo } from '../types';
-import { LayoutDashboard, Package, ShoppingBag, FolderTree, Tag, Image, Star, Settings as SettingsIcon, ShieldCheck, Plus, Edit, Trash2, Check, X, RefreshCw, Printer, AlertTriangle, Search, Lock, ExternalLink, DollarSign, TrendingUp, TrendingDown, Camera, CreditCard, ChevronDown, User, Phone, MapPin, Upload, MessageSquare, ThumbsUp, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, FolderTree, Tag, Image, Star, Settings as SettingsIcon, ShieldCheck, Plus, Edit, Trash2, Check, X, RefreshCw, Printer, AlertTriangle, Search, Lock, ExternalLink, DollarSign, TrendingUp, TrendingDown, Camera, CreditCard, ChevronDown, User, Phone, MapPin, Upload, MessageSquare, ThumbsUp, Eye, EyeOff, Sparkles, Monitor, Sprout } from 'lucide-react';
 
 import { INITIAL_PRODUCTS, INITIAL_CATEGORIES } from '../data/catalogData';
 import { INITIAL_REVIEWS } from '../data/reviewsData';
+import { MobileAdminWorkflow } from '../components/MobileAdminWorkflow';
+import { A4LabelSheetPrint } from '../components/A4LabelSheetPrint';
 
 // ── Inline Coupon Creation Form ──────────────────────────────────────────────
 const CouponForm: React.FC<{ categories: Category[]; onSave: (data: any) => Promise<void> }> = ({ onSave }) => {
@@ -105,6 +107,10 @@ interface AdminPageProps {
 }
 
 export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, reviews: propsReviews, onUpdateReviews }) => {
+  const [adminLayoutMode, setAdminLayoutMode] = useState<'mobile_workflow' | 'desktop_full'>(() => {
+    return 'mobile_workflow';
+  });
+  const [desktopLabelOrders, setDesktopLabelOrders] = useState<Order[] | null>(null);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'categories' | 'orders' | 'inventory' | 'coupons' | 'banners' | 'reviews' | 'settings' | 'audit' | 'finances'>('dashboard');
   const [orderFilterStage, setOrderFilterStage] = useState<'all' | 'pending' | 'packing' | 'dispatched' | 'delivered'>('all');
 
@@ -1173,6 +1179,58 @@ const silentRefresh = async (): Promise<boolean> => {
   };
 
 
+  if (adminLayoutMode === 'mobile_workflow') {
+    return (
+      <div className="relative min-h-screen bg-slate-50">
+        {/* Switcher bar on top for desktop view testing */}
+        <div className="hidden lg:flex items-center justify-between bg-slate-900 text-white px-6 py-2.5 text-xs shadow-md">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="font-bold">📱 VRG Nursery Mobile Redesign Mode (12-Step Order Workflow)</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setAdminLayoutMode('desktop_full')}
+              className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <Monitor className="w-4 h-4 text-slate-400" />
+              <span>Switch to Desktop View</span>
+            </button>
+            <button
+              onClick={onBackToStore}
+              className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl transition-colors cursor-pointer"
+            >
+              Exit to Store
+            </button>
+          </div>
+        </div>
+
+        <MobileAdminWorkflow
+          orders={orders}
+          products={products}
+          categories={categories}
+          reviews={reviews}
+          adminUser={adminUser}
+          onUpdateOrderStatus={handleUpdateOrderStatus}
+          onSaveTracking={async (orderId, data) => {
+            await handleDispatchOrder(data.trackingNumber, data.courierName);
+          }}
+          onBackToStore={onBackToStore}
+          onOpenDesktopTab={(tabKey) => {
+            setActiveTab(tabKey as any);
+            setAdminLayoutMode('desktop_full');
+          }}
+          onLogout={() => {
+            localStorage.removeItem('vrg_user');
+            localStorage.removeItem('vrg_admin_email');
+            localStorage.removeItem('vrg_admin_role');
+            onBackToStore();
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
 
     <div className="min-h-screen bg-slate-100 text-slate-800 pb-12">
@@ -1189,6 +1247,15 @@ const silentRefresh = async (): Promise<boolean> => {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setAdminLayoutMode('mobile_workflow')}
+            className="px-3.5 py-2 bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+            title="Switch to Mobile 12-Step Order Workflow"
+          >
+            <Sprout className="w-4 h-4" />
+            <span>📱 Mobile Order Workflow</span>
+          </button>
+
           <button
             onClick={() => setActiveTab('settings')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
@@ -4742,6 +4809,14 @@ const silentRefresh = async (): Promise<boolean> => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Desktop A4 Label Sheet Preview Modal */}
+      {desktopLabelOrders && (
+        <A4LabelSheetPrint
+          orders={desktopLabelOrders}
+          onClose={() => setDesktopLabelOrders(null)}
+        />
       )}
     </div>
   );
