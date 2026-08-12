@@ -535,14 +535,6 @@ export const App: React.FC = () => {
     setCart((prev) => prev.filter((i) => i.product.id !== productId));
   };
 
-  const handleToggleWishlist = (product: Product) => {
-    setWishlist((prev) => {
-      const exists = prev.some((p) => p.id === product.id);
-      if (exists) return prev.filter((p) => p.id !== product.id);
-      return [...prev, product];
-    });
-  };
-
   // Direct "Buy Now" flow
   const handleBuyNow = (product: Product, quantity = 1) => {
     setCart([{ product, quantity }]);
