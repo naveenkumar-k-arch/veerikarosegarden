@@ -819,6 +819,54 @@ apiRouter.get('/admin/dashboard', requireAdmin, async (req: AuthenticatedRequest
   }
 });
 
+apiRouter.get('/admin/bootstrap', requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const [
+      stats,
+      products,
+      categories,
+      orders,
+      coupons,
+      banners,
+      reviews,
+      settings,
+      paymentLogs,
+      finances,
+      combos
+    ] = await Promise.all([
+      db.getDashboardStats().catch(() => null),
+      db.getProducts().catch(() => []),
+      db.getCategories().catch(() => []),
+      db.getOrders().catch(() => []),
+      db.getCoupons().catch(() => []),
+      db.getBanners().catch(() => []),
+      db.getReviews().catch(() => []),
+      db.getSettings().catch(() => null),
+      db.getPaymentLogs().catch(() => []),
+      db.getFinancialEntries().catch(() => []),
+      db.getCombos().catch(() => [])
+    ]);
+
+    res.json({
+      success: true,
+      stats,
+      products,
+      categories,
+      orders,
+      coupons,
+      banners,
+      reviews,
+      settings,
+      paymentLogs,
+      finances,
+      combos
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to fetch admin bootstrap data' });
+  }
+});
+
+
 apiRouter.get('/orders/user/:identifier', async (req: AuthenticatedRequest, res) => {
   try {
     const { identifier } = req.params;

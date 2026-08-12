@@ -6,6 +6,7 @@ import { INITIAL_PRODUCTS, INITIAL_CATEGORIES } from '../data/catalogData';
 import { INITIAL_REVIEWS } from '../data/reviewsData';
 import { MobileAdminWorkflow } from '../components/MobileAdminWorkflow';
 import { A4LabelSheetPrint } from '../components/A4LabelSheetPrint';
+import { processLocalImageFile } from '../utils/imageUpload';
 
 // ── Inline Coupon Creation Form ──────────────────────────────────────────────
 const CouponForm: React.FC<{ categories: Category[]; onSave: (data: any) => Promise<void> }> = ({ onSave }) => {
@@ -522,6 +523,60 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
     tags: ['Rose', 'Plant']
   });
 
+  // Product Image Upload & Local Storage State
+  const [prodImgTab, setProdImgTab] = useState<'upload' | 'url'>('upload');
+  const [prodUrlInput, setProdUrlInput] = useState('');
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  const handleProdLocalFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setIsUploadingImage(true);
+    try {
+      const newImages: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const dataUrl = await processLocalImageFile(files[i]);
+        if (dataUrl) newImages.push(dataUrl);
+      }
+      setProdForm(prev => ({
+        ...prev,
+        images: [...(prev.images || []), ...newImages]
+      }));
+    } catch (err: any) {
+      alert(err?.message || 'Failed to process local image file');
+    } finally {
+      setIsUploadingImage(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleAddProdUrlImage = () => {
+    if (!prodUrlInput.trim()) return;
+    setProdForm(prev => ({
+      ...prev,
+      images: [...(prev.images || []), prodUrlInput.trim()]
+    }));
+    setProdUrlInput('');
+  };
+
+  const handleRemoveProdImage = (index: number) => {
+    setProdForm(prev => ({
+      ...prev,
+      images: (prev.images || []).filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleSetPrimaryProdImage = (index: number) => {
+    setProdForm(prev => {
+      const imgs = [...(prev.images || [])];
+      if (index > 0 && index < imgs.length) {
+        const [moved] = imgs.splice(index, 1);
+        imgs.unshift(moved);
+      }
+      return { ...prev, images: imgs };
+    });
+  };
+
 // Shared promise lock to deduplicate concurrent refresh requests across parallel fetch calls
 let sharedRefreshPromise: Promise<boolean> | null = null;
 
@@ -578,61 +633,60 @@ const silentRefresh = async (): Promise<boolean> => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [sRes, pRes, cRes, oRes, cpRes, bRes, rRes, stRes, plRes, fnRes, cbRes] = await Promise.all([
-        authFetch('/api/admin/dashboard').then((r) => r.json()).catch(() => null),
-        authFetch('/api/products').then((r) => r.json()).catch(() => null),
-        authFetch('/api/admin/categories').then((r) => r.json()).catch(() => null),
-        authFetch('/api/admin/orders').then((r) => r.json()).catch(() => null),
-        authFetch('/api/coupons').then((r) => r.json()).catch(() => null),
-        authFetch('/api/banners').then((r) => r.json()).catch(() => null),
-        authFetch('/api/reviews').then((r) => r.json()).catch(() => null),
-        authFetch('/api/admin/settings').then((r) => r.json()).catch(() => null),
-        authFetch('/api/admin/payment-logs').then((r) => r.json()).catch(() => null),
-        authFetch('/api/admin/finances').then((r) => r.json()).catch(() => null),
-        authFetch('/api/combos').then((r) => r.json()).catch(() => null)
-      ]);
+      const bRes = await authFetch('/api/admin/bootstrap').then((r) => r.json()).catch(() => null);
 
-      if (cbRes?.success && Array.isArray(cbRes.combos)) {
-        setCombos(cbRes.combos);
-      }
-
-      if (fnRes?.success && Array.isArray(fnRes.entries)) {
-        setFinances(fnRes.entries);
-      }
-
-      if (sRes?.success) setStats(sRes.stats);
-
-      if (pRes?.success && Array.isArray(pRes.products) && pRes.products.length > 0) {
-        const now = Date.now();
-        setProducts(prev => {
-          return pRes.products.map((apiProd: Product) => {
-            const editedAt = pendingStockRef.current.get(apiProd.id);
-            if (editedAt && now - editedAt < 10000) {
-              const local = prev.find(p => p.id === apiProd.id);
-              return local ? { ...apiProd, stock: local.stock } : apiProd;
-            }
-            return apiProd;
+      if (bRes?.success) {
+        if (bRes.stats) setStats(bRes.stats);
+        if (Array.isArray(bRes.combos)) setCombos(bRes.combos);
+        if (Array.isArray(bRes.finances)) setFinances(bRes.finances);
+        if (Array.isArray(bRes.products) && bRes.products.length > 0) {
+          const now = Date.now();
+          setProducts(prev => {
+            return bRes.products.map((apiProd: Product) => {
+              const editedAt = pendingStockRef.current.get(apiProd.id);
+              if (editedAt && now - editedAt < 10000) {
+                const local = prev.find(p => p.id === apiProd.id);
+                return local ? { ...apiProd, stock: local.stock } : apiProd;
+              }
+              return apiProd;
+            });
           });
-        });
+        }
+        if (Array.isArray(bRes.categories) && bRes.categories.length > 0) setCategories(bRes.categories);
+        if (Array.isArray(bRes.coupons)) setCoupons(bRes.coupons);
+        if (Array.isArray(bRes.orders)) setOrders(bRes.orders);
+        if (Array.isArray(bRes.banners)) setBanners(bRes.banners);
+        if (Array.isArray(bRes.reviews)) setReviews(bRes.reviews);
+        if (bRes.settings) setSettings(bRes.settings);
+        if (Array.isArray(bRes.paymentLogs)) setPaymentLogs(bRes.paymentLogs);
+      } else {
+        // Fallback to legacy parallel calls if bootstrap fails
+        const [sRes, pRes, cRes, oRes, cpRes, bResLeg, rRes, stRes, plRes, fnRes, cbRes] = await Promise.all([
+          authFetch('/api/admin/dashboard').then((r) => r.json()).catch(() => null),
+          authFetch('/api/products').then((r) => r.json()).catch(() => null),
+          authFetch('/api/admin/categories').then((r) => r.json()).catch(() => null),
+          authFetch('/api/admin/orders').then((r) => r.json()).catch(() => null),
+          authFetch('/api/coupons').then((r) => r.json()).catch(() => null),
+          authFetch('/api/banners').then((r) => r.json()).catch(() => null),
+          authFetch('/api/reviews').then((r) => r.json()).catch(() => null),
+          authFetch('/api/admin/settings').then((r) => r.json()).catch(() => null),
+          authFetch('/api/admin/payment-logs').then((r) => r.json()).catch(() => null),
+          authFetch('/api/admin/finances').then((r) => r.json()).catch(() => null),
+          authFetch('/api/combos').then((r) => r.json()).catch(() => null)
+        ]);
+
+        if (cbRes?.success && Array.isArray(cbRes.combos)) setCombos(cbRes.combos);
+        if (fnRes?.success && Array.isArray(fnRes.entries)) setFinances(fnRes.entries);
+        if (sRes?.success) setStats(sRes.stats);
+        if (pRes?.success && Array.isArray(pRes.products)) setProducts(pRes.products);
+        if (cRes?.success && Array.isArray(cRes.categories)) setCategories(cRes.categories);
+        if (cpRes?.success && Array.isArray(cpRes.coupons)) setCoupons(cpRes.coupons);
+        if (oRes?.success && Array.isArray(oRes.orders)) setOrders(oRes.orders);
+        if (bResLeg?.success) setBanners(bResLeg.banners);
+        if (rRes?.success) setReviews(rRes.reviews);
+        if (stRes?.success) setSettings(stRes.settings);
+        if (plRes?.success) setPaymentLogs(plRes.logs);
       }
-
-      if (cRes?.success && Array.isArray(cRes.categories) && cRes.categories.length > 0) {
-        setCategories(cRes.categories);
-      }
-
-      if (cpRes?.success && Array.isArray(cpRes.coupons)) {
-        setCoupons(cpRes.coupons);
-      }
-
-      if (oRes?.success && Array.isArray(oRes.orders)) {
-        setOrders(oRes.orders);
-      }
-
-
-      if (bRes?.success) setBanners(bRes.banners);
-      if (rRes?.success) setReviews(rRes.reviews);
-      if (stRes?.success) setSettings(stRes.settings);
-      if (plRes?.success) setPaymentLogs(plRes.logs);
     } catch (err) {
       console.error(err);
     } finally {
@@ -3898,15 +3952,117 @@ const silentRefresh = async (): Promise<boolean> => {
                 </div>
               </div>
 
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Image URL</label>
-                <input
-                  type="text"
-                  required
-                  value={prodForm.images?.[0] || ''}
-                  onChange={(e) => setProdForm({ ...prodForm, images: [e.target.value] })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono"
-                />
+              <div className="space-y-2.5 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                <div className="flex items-center justify-between">
+                  <label className="font-extrabold text-slate-800 text-xs flex items-center gap-1.5">
+                    <Camera className="w-4 h-4 text-emerald-700" />
+                    <span>Product Images *</span>
+                  </label>
+                  <div className="flex bg-slate-200/80 p-0.5 rounded-lg text-[11px] font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setProdImgTab('upload')}
+                      className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${prodImgTab === 'upload' ? 'bg-white text-emerald-800 shadow-xs font-black' : 'text-slate-600 hover:text-slate-900'}`}
+                    >
+                      📁 Upload Local File
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setProdImgTab('url')}
+                      className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${prodImgTab === 'url' ? 'bg-white text-emerald-800 shadow-xs font-black' : 'text-slate-600 hover:text-slate-900'}`}
+                    >
+                      🔗 Paste Image URL
+                    </button>
+                  </div>
+                </div>
+
+                {prodImgTab === 'upload' ? (
+                  <div className="relative">
+                    <label
+                      htmlFor="admin-product-file-input"
+                      className="cursor-pointer border-2 border-dashed border-emerald-300 hover:border-emerald-500 bg-white hover:bg-emerald-50/40 rounded-xl p-3.5 flex flex-col items-center justify-center text-center transition-all group"
+                    >
+                      <Upload className="w-6 h-6 text-emerald-600 mb-1 group-hover:scale-110 transition-transform" />
+                      <span className="font-bold text-slate-800 text-xs">
+                        {isUploadingImage ? 'Compressing & Loading Image...' : 'Click to Upload from Local Storage / Device'}
+                      </span>
+                      <span className="text-[10px] text-slate-500 mt-0.5">
+                        Select photo file(s) from your computer or phone (JPG, PNG, WEBP)
+                      </span>
+                      <input
+                        id="admin-product-file-input"
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleProdLocalFileUpload}
+                        disabled={isUploadingImage}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="https://images.unsplash.com/... or /products/rose.jpg"
+                      value={prodUrlInput}
+                      onChange={(e) => setProdUrlInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddProdUrlImage(); } }}
+                      className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-xl font-mono text-xs"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddProdUrlImage}
+                      className="px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl flex items-center gap-1 shrink-0 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Add URL
+                    </button>
+                  </div>
+                )}
+
+                {/* Preview Thumbnails / Gallery */}
+                {prodForm.images && prodForm.images.length > 0 ? (
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      <span>Product Gallery ({prodForm.images.length})</span>
+                      <span>Hover image to manage</span>
+                    </div>
+                    <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                      {prodForm.images.map((imgUrl, idx) => (
+                        <div key={idx} className="relative group aspect-square rounded-xl overflow-hidden border-2 border-slate-200 bg-white shadow-xs">
+                          <img src={imgUrl} alt={`Product ${idx + 1}`} className="w-full h-full object-cover" />
+                          
+                          {idx === 0 ? (
+                            <span className="absolute top-1 left-1 bg-emerald-600 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-md shadow-xs">
+                              Main
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleSetPrimaryProdImage(idx)}
+                              className="absolute top-1 left-1 bg-slate-900/80 hover:bg-slate-900 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                            >
+                              Main
+                            </button>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveProdImage(idx)}
+                            className="absolute top-1 right-1 p-1 bg-rose-600/90 hover:bg-rose-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                            title="Remove image"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-rose-600 font-semibold text-[11px]">
+                    ⚠️ No image selected yet. Please upload an image from local storage or paste an image URL.
+                  </p>
+                )}
               </div>
 
               <div>

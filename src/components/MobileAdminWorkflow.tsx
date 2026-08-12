@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Order, Product, Category, Review, Coupon, Banner, Combo, FinancialEntry, SiteSettings } from '../types';
+import { processLocalImageFile } from '../utils/imageUpload';
 import {
   Sprout,
   LayoutDashboard,
@@ -192,6 +193,28 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
     imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80',
     description: ''
   });
+
+  // Mobile Product Image Upload State
+  const [mobileProdImgTab, setMobileProdImgTab] = useState<'upload' | 'url'>('upload');
+  const [isUploadingMobileImage, setIsUploadingMobileImage] = useState(false);
+
+  const handleMobileProductLocalFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingMobileImage(true);
+    try {
+      const dataUrl = await processLocalImageFile(file);
+      if (dataUrl) {
+        setProductForm(prev => ({ ...prev, imageUrl: dataUrl }));
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Failed to process image');
+    } finally {
+      setIsUploadingMobileImage(false);
+      e.target.value = '';
+    }
+  };
+
 
   // ==================== CATEGORY MODAL STATE ====================
   const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -3226,14 +3249,74 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700 block">Image URL</label>
-                <input
-                  type="text"
-                  value={productForm.imageUrl}
-                  onChange={e => setProductForm({ ...productForm, imageUrl: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-[11px]"
-                />
+              <div className="space-y-2 bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-700 text-xs flex items-center gap-1">
+                    <Camera className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Plant Image *</span>
+                  </label>
+                  <div className="flex bg-slate-200/80 p-0.5 rounded-lg text-[10px] font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setMobileProdImgTab('upload')}
+                      className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${mobileProdImgTab === 'upload' ? 'bg-white text-emerald-800 shadow-xs font-black' : 'text-slate-600'}`}
+                    >
+                      📁 Local Storage
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMobileProdImgTab('url')}
+                      className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${mobileProdImgTab === 'url' ? 'bg-white text-emerald-800 shadow-xs font-black' : 'text-slate-600'}`}
+                    >
+                      🔗 Web URL
+                    </button>
+                  </div>
+                </div>
+
+                {mobileProdImgTab === 'upload' ? (
+                  <label className="cursor-pointer border-2 border-dashed border-emerald-300 hover:border-emerald-500 bg-white rounded-xl p-3 flex flex-col items-center justify-center text-center transition-all group">
+                    <Upload className="w-5 h-5 text-emerald-600 mb-1 group-hover:scale-110 transition-transform" />
+                    <span className="font-bold text-slate-800 text-[11px]">
+                      {isUploadingMobileImage ? 'Uploading & compressing image...' : 'Click to Upload from Local Storage / Camera'}
+                    </span>
+                    <span className="text-[9.5px] text-slate-500 mt-0.5">Select photo file from your device</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleMobileProductLocalFileUpload}
+                      disabled={isUploadingMobileImage}
+                      className="hidden"
+                    />
+                  </label>
+                ) : (
+                  <input
+                    type="text"
+                    placeholder="Paste Image URL (https://... or /products/rose.jpg)"
+                    value={productForm.imageUrl}
+                    onChange={e => setProductForm({ ...productForm, imageUrl: e.target.value })}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-[11px]"
+                  />
+                )}
+
+                {productForm.imageUrl && (
+                  <div className="relative mt-2 rounded-xl overflow-hidden border border-slate-200 bg-white p-1.5 flex items-center gap-3">
+                    <img src={productForm.imageUrl} alt="Plant preview" className="w-14 h-14 object-cover rounded-lg shrink-0 border" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-bold text-emerald-800 truncate">
+                        {productForm.imageUrl.startsWith('data:') ? '📁 Uploaded from Local Storage' : '🔗 Web Image URL'}
+                      </p>
+                      <p className="text-[9px] text-slate-400 truncate">{productForm.imageUrl}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setProductForm({ ...productForm, imageUrl: '' })}
+                      className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg shrink-0 cursor-pointer"
+                      title="Remove image"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
               </div>
 
               <button

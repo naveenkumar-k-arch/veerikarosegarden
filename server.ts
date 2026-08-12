@@ -6,6 +6,7 @@ import path from 'path';
 import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import compression from 'compression';
 import { createServer as createViteServer } from 'vite';
 import { apiRouter } from './src/server/routes.js';
 import { globalLimiter, authLimiter, errorHandler } from './src/server/middleware/security.js';
@@ -14,6 +15,9 @@ import { AUTH_CONFIG } from './src/server/config/authConfig.js';
 async function startServer() {
   const app = express();
   const PORT = 3000;
+
+  // Enable gzip response compression for fast API transfers
+  app.use(compression({ threshold: 512, level: 6 }));
 
   // Enable trust proxy for reverse proxies (Nginx / Cloud Run)
   app.set('trust proxy', 1);

@@ -15,13 +15,16 @@ import { HomePage } from './pages/HomePage';
 import { ShopPage } from './pages/ShopPage';
 import { ProductDetailsPage } from './pages/ProductDetailsPage';
 import { CartPage } from './pages/CartPage';
-import { CheckoutPage } from './pages/CheckoutPage';
-import { OrderStatusPage } from './pages/OrderStatusPage';
-import { AccountPage } from './pages/AccountPage';
-import { PoliciesPage } from './pages/PoliciesPage';
-import { AdminPage } from './pages/AdminPage';
-import { AdminLoginForm } from './components/AdminLoginForm';
+
+const CheckoutPage = React.lazy(() => import('./pages/CheckoutPage').then(m => ({ default: m.CheckoutPage })));
+const OrderStatusPage = React.lazy(() => import('./pages/OrderStatusPage').then(m => ({ default: m.OrderStatusPage })));
+const AccountPage = React.lazy(() => import('./pages/AccountPage').then(m => ({ default: m.AccountPage })));
+const PoliciesPage = React.lazy(() => import('./pages/PoliciesPage').then(m => ({ default: m.PoliciesPage })));
+const AdminPage = React.lazy(() => import('./pages/AdminPage').then(m => ({ default: m.AdminPage })));
+const AdminLoginForm = React.lazy(() => import('./components/AdminLoginForm').then(m => ({ default: m.AdminLoginForm })));
+
 import { INITIAL_PRODUCTS, INITIAL_CATEGORIES } from './data/catalogData';
+
 import { INITIAL_REVIEWS } from './data/reviewsData';
 import { calculateDeliveryFee } from './utils/delivery';
 
@@ -831,6 +834,12 @@ export const App: React.FC = () => {
 
       {/* Primary Page Router */}
       <main className="flex-1">
+        <React.Suspense fallback={
+          <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 text-center space-y-3">
+            <div className="w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-xs font-extrabold text-emerald-800 tracking-wide">Loading page...</p>
+          </div>
+        }>
         {currentPage === 'home' && (
           <HomePage
             products={products}
@@ -991,6 +1000,7 @@ export const App: React.FC = () => {
             />
           )
         )}
+        </React.Suspense>
       </main>
 
       {/* Primary Footer - rendered only on Home page */}
