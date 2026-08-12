@@ -299,11 +299,11 @@ authRouter.post('/login', async (req, res) => {
       return res.status(500).json({ success: false, message: 'Database connection unavailable.' });
     }
 
-    // Auto-ensure Super Admin from env or admin alias
+    // Auto-ensure Super Admin — strictly nv01110612@gmail.com
     const adminInitialEmail = (process.env.ADMIN_INITIAL_EMAIL || 'nv01110612@gmail.com').trim().toLowerCase();
     const adminInitialPassword = (process.env.ADMIN_INITIAL_PASSWORD || 'nv01110612@gmail.com').trim();
-    const isAdminIdentifier = cleanId === adminInitialEmail || cleanId === 'admin' || cleanId === 'superadmin';
-    const isAdminPasswordMatch = password === adminInitialPassword || password === 'admin123' || password === 'admin';
+    const isAdminIdentifier = cleanId === adminInitialEmail;
+    const isAdminPasswordMatch = password === adminInitialPassword;
 
     if (isAdminIdentifier && isAdminPasswordMatch && prisma) {
       const adminHash = await hashPassword(adminInitialPassword);
