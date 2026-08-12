@@ -6,12 +6,16 @@ import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import compression from 'compression';
 import { apiRouter } from '../src/server/routes.js';
 import { globalLimiter, authLimiter, adminLimiter, errorHandler } from '../src/server/middleware/security.js';
 import { AUTH_CONFIG } from '../src/server/config/authConfig.js';
 import type { Request, Response } from 'express';
 
 const app = express();
+
+// Enable gzip response compression on Vercel
+app.use(compression({ threshold: 512, level: 6 }));
 
 // Trust proxy (Vercel runs behind a load balancer)
 app.set('trust proxy', 1);
