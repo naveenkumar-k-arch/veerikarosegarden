@@ -6,8 +6,8 @@ function getOrGenerateSecret(envVarName: string, defaultPrefix: string): string 
     return val;
   }
 
-  const generatedSecret = `${defaultPrefix}_key_veerika_rose_garden_secure_default_2026_prod`;
-  console.warn(`[SECURITY WARNING] ${envVarName} is missing or weak. Fallback secret assigned.`);
+  const generatedSecret = crypto.randomBytes(32).toString('hex');
+  console.warn(`[SECURITY WARNING] ${envVarName} is missing or weak. Dynamic cryptographically random secret generated for this process session.`);
   return generatedSecret;
 }
 

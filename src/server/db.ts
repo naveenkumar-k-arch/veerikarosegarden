@@ -49,6 +49,31 @@ function saveDiskReviews(reviews: Review[]) {
   }
 }
 
+const ORDERS_STORE_FILE = path.resolve(process.cwd(), 'src/data/orders_store.json');
+
+function loadDiskOrders(): Order[] {
+  try {
+    if (fs.existsSync(ORDERS_STORE_FILE)) {
+      const data = fs.readFileSync(ORDERS_STORE_FILE, 'utf-8');
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (err) {
+    console.error('Error reading orders_store.json:', err);
+  }
+  return [];
+}
+
+function saveDiskOrders(orders: Order[]) {
+  try {
+    const dir = path.dirname(ORDERS_STORE_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(ORDERS_STORE_FILE, JSON.stringify(orders, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error writing orders_store.json:', err);
+  }
+}
+
 // Default Fallback Data matching WhatsApp Catalogue
 const DEFAULT_CATEGORIES: Category[] = [
   {
@@ -3851,7 +3876,7 @@ const DEFAULT_SETTINGS: SiteSettings = {
   phonepeEnv: (process.env.PHONEPE_ENV as 'SANDBOX' | 'PRODUCTION') || 'PRODUCTION'
 };
 
-const DEFAULT_ORDERS: Order[] = [];
+const DEFAULT_ORDERS: Order[] = loadDiskOrders();
 
 const DEFAULT_FINANCES: FinancialEntry[] = [
   {
@@ -5561,11 +5586,10 @@ class Store {
     }
 
     const gBuffer = ((globalThis as any).globalMemoryOrdersBuffer || []) as Order[];
-    // Fetch from Firestore for true cross-device persistence
     const fsOrders = await firestoreGetAllOrders().catch(() => []) as Order[];
-    const hasRealOrders = dbOrders.length > 0 || this.memoryOrders.length > 0 || gBuffer.length > 0 || fsOrders.length > 0;
-    const defOrders = (!hasRealOrders && typeof DEFAULT_ORDERS !== 'undefined' ? DEFAULT_ORDERS : []) as Order[];
-    const allCombined = [...dbOrders, ...this.memoryOrders, ...gBuffer, ...fsOrders, ...defOrders];
+    const diskOrders = loadDiskOrders();
+    const defOrders = (typeof DEFAULT_ORDERS !== 'undefined' ? DEFAULT_ORDERS : []) as Order[];
+    const allCombined = [...dbOrders, ...this.memoryOrders, ...gBuffer, ...fsOrders, ...diskOrders, ...defOrders];
     const uniqueMap = new Map<string, Order>();
     allCombined.forEach(o => {
       if (o && o.id && !deletedOrderIds.has(o.id) && !deletedOrderIds.has(o.merchantTransactionId)) {

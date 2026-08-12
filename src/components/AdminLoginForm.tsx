@@ -8,7 +8,7 @@ interface AdminLoginFormProps {
 }
 
 export const AdminLoginForm: React.FC<AdminLoginFormProps> = ({ onLoginSuccess, onBackToStore }) => {
-  const [username, setUsername] = useState('nv01110612@gmail.com');
+  const [username, setUsername] = useState(() => localStorage.getItem('vrg_admin_email') || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
@@ -97,7 +97,7 @@ export const AdminLoginForm: React.FC<AdminLoginFormProps> = ({ onLoginSuccess, 
               required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="nv01110612@gmail.com"
+              placeholder="Enter username or email"
               className="w-full px-3.5 py-3 bg-slate-50/70 border border-slate-300 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:bg-white focus:border-emerald-700 transition-all"
             />
           </div>
