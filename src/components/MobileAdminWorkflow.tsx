@@ -1139,6 +1139,84 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 </div>
               </div>
 
+              {/* Payment Verification Card */}
+              {selectedOrder.paymentMethod === 'PHONEPE' && (
+                <div className="p-3 bg-purple-50/80 rounded-2xl border border-purple-200 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-extrabold text-purple-950 flex items-center gap-1.5 text-[11px]">
+                      <CreditCard className="w-3.5 h-3.5 text-purple-700" />
+                      <span>PhonePe PG Online Gateway</span>
+                    </span>
+                    <span className="text-[10px] bg-purple-200 text-purple-900 font-bold px-2 py-0.5 rounded-full">
+                      Automated PG
+                    </span>
+                  </div>
+
+                  <div className="bg-white p-2.5 rounded-xl border border-purple-200 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-slate-500 font-bold">Merchant Txn ID:</span>
+                      <span className="font-mono font-bold text-xs text-purple-950">{selectedOrder.merchantTransactionId || selectedOrder.id}</span>
+                    </div>
+                    <p className="text-[10px] text-purple-800 leading-relaxed pt-1 border-t border-purple-100">
+                      ℹ️ <strong>Why no screenshot?</strong> PhonePe is an online automated gateway. Customer is redirected directly to PhonePe and does not upload manual screenshots.
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5 pt-1">
+                    <p className="text-[11px] font-bold text-purple-950">⚙️ Manual Payment Override & Verification:</p>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await onUpdateOrderStatus(selectedOrder.id, selectedOrder.orderStatus === 'PENDING' ? 'CONFIRMED' : selectedOrder.orderStatus, 'SUCCESS');
+                          setSelectedOrder({ ...selectedOrder, paymentStatus: 'SUCCESS' });
+                        }}
+                        className={`py-2 px-1 rounded-xl text-[11px] font-black transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                          selectedOrder.paymentStatus === 'SUCCESS'
+                            ? 'bg-emerald-700 text-white shadow-xs'
+                            : 'bg-white text-emerald-800 border border-emerald-300 hover:bg-emerald-50'
+                        }`}
+                      >
+                        <Check className="w-3 h-3" />
+                        <span>Mark Paid</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await onUpdateOrderStatus(selectedOrder.id, selectedOrder.orderStatus, 'PENDING');
+                          setSelectedOrder({ ...selectedOrder, paymentStatus: 'PENDING' });
+                        }}
+                        className={`py-2 px-1 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                          selectedOrder.paymentStatus === 'PENDING' || !selectedOrder.paymentStatus
+                            ? 'bg-amber-500 text-white shadow-xs'
+                            : 'bg-white text-amber-900 border border-amber-300 hover:bg-amber-50'
+                        }`}
+                      >
+                        <Clock className="w-3 h-3" />
+                        <span>Pending</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await onUpdateOrderStatus(selectedOrder.id, selectedOrder.orderStatus, 'FAILED');
+                          setSelectedOrder({ ...selectedOrder, paymentStatus: 'FAILED' });
+                        }}
+                        className={`py-2 px-1 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                          selectedOrder.paymentStatus === 'FAILED'
+                            ? 'bg-rose-600 text-white shadow-xs'
+                            : 'bg-white text-rose-700 border border-rose-300 hover:bg-rose-50'
+                        }`}
+                      >
+                        <X className="w-3 h-3" />
+                        <span>Reject</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* QR Receipt Photo & UTR Reference Box */}
               {(selectedOrder.paymentProofUrl || selectedOrder.paymentMethod === 'QR_PAYMENT' || selectedOrder.paymentMethod === 'UPI_DIRECT') && (
                 <div className="p-3 bg-indigo-50/70 rounded-2xl border border-indigo-200 space-y-2.5">
@@ -1255,6 +1333,24 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                       </button>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* Cash on Delivery (COD) Card */}
+              {selectedOrder.paymentMethod === 'COD' && (
+                <div className="p-3 bg-amber-50/80 rounded-2xl border border-amber-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-extrabold text-amber-950 flex items-center gap-1.5 text-[11px]">
+                      <DollarSign className="w-3.5 h-3.5 text-amber-700" />
+                      <span>Cash on Delivery (COD)</span>
+                    </span>
+                    <span className="text-[10px] bg-amber-200 text-amber-900 font-bold px-2 py-0.5 rounded-full">
+                      Doorstep Cash
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-amber-800 leading-relaxed">
+                    Collect ₹{selectedOrder.grandTotal} in cash upon doorstep delivery by courier.
+                  </p>
                 </div>
               )}
             </div>
