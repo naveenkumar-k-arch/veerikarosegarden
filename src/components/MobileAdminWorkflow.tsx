@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Order, Product, Category, Review } from '../types';
+import { Order, Product, Category, Review, Coupon, Banner } from '../types';
 import {
   Sprout,
   LayoutDashboard,
@@ -29,12 +29,21 @@ import {
   ShieldCheck,
   LogOut,
   X,
+  Send,
+  Box,
+  CheckCircle,
   ShoppingBag,
   AlertTriangle,
   Image as ImageIcon,
-  Send,
-  Box,
-  CheckCircle
+  Plus,
+  Trash2,
+  Edit,
+  Upload,
+  Save,
+  Eye,
+  Camera,
+  Layers,
+  Sparkles
 } from 'lucide-react';
 import { A4LabelSheetPrint } from './A4LabelSheetPrint';
 
@@ -43,11 +52,23 @@ export interface MobileAdminWorkflowProps {
   products: Product[];
   categories: Category[];
   reviews: Review[];
+  coupons?: Coupon[];
+  banners?: Banner[];
+  settings?: any;
+  finances?: any[];
   adminUser?: any;
   onUpdateOrderStatus: (orderId: string, status: string, paymentStatus?: string) => Promise<void>;
   onSaveTracking: (orderId: string, data: { courierName: string; trackingNumber: string; trackingLink?: string }) => Promise<void>;
+  onSaveProduct?: (prod: any) => Promise<void>;
+  onDeleteProduct?: (id: string, name: string) => Promise<void>;
+  onSaveCategory?: (cat: any) => Promise<void>;
+  onDeleteCategory?: (id: string, name: string) => Promise<void>;
+  onSaveReview?: (rev: any) => void;
+  onDeleteReview?: (id: string) => void;
+  onSaveCoupon?: (coupon: any) => Promise<void>;
+  onDeleteCoupon?: (id: string) => Promise<void>;
+  onSaveSettings?: (settings: any) => Promise<void>;
   onBackToStore: () => void;
-  onOpenDesktopTab?: (tabKey: string) => void;
   onLogout?: () => void;
 }
 
@@ -58,6 +79,15 @@ export type ScreenType =
   | 'generate_labels'
   | 'dispatch_order'
   | 'order_timeline'
+  | 'products'
+  | 'categories'
+  | 'inventory'
+  | 'coupons'
+  | 'banners'
+  | 'reviews'
+  | 'finances'
+  | 'settings'
+  | 'audit'
   | 'menu_drawer';
 
 export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
@@ -65,21 +95,33 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   products,
   categories,
   reviews,
+  coupons = [],
+  banners = [],
+  settings: initialSettings,
+  finances = [],
   adminUser,
   onUpdateOrderStatus,
   onSaveTracking,
+  onSaveProduct,
+  onDeleteProduct,
+  onSaveCategory,
+  onDeleteCategory,
+  onSaveReview,
+  onDeleteReview,
+  onSaveCoupon,
+  onDeleteCoupon,
+  onSaveSettings,
   onBackToStore,
-  onOpenDesktopTab,
   onLogout
 }) => {
-  // Navigation & Screen state
+  // Current screen state
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('dashboard');
   const [activeBottomTab, setActiveBottomTab] = useState<'dashboard' | 'orders' | 'labels' | 'menu'>('dashboard');
   
   // Selected order for detail views
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   
-  // 4 Stage Filter: 'all' | 'confirmed' | 'packing' | 'dispatched' | 'delivered'
+  // 4 Stage Filter
   const [orderStageFilter, setOrderStageFilter] = useState<'all' | 'confirmed' | 'packing' | 'dispatched' | 'delivered'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -105,6 +147,63 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   });
   const [savingDispatch, setSavingDispatch] = useState(false);
 
+  // ==================== PRODUCT MODAL STATE ====================
+  const [showProductModal, setShowProductModal] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [productSearch, setProductSearch] = useState('');
+  const [productCategoryFilter, setProductCategoryFilter] = useState('ALL');
+  const [productForm, setProductForm] = useState({
+    name: '',
+    tamilName: '',
+    categoryId: 'cat-roses',
+    categoryName: 'Roses',
+    mrp: 299,
+    sellingPrice: 199,
+    stock: 25,
+    plantHeight: '1-2 Feet',
+    potSize: '8 Inch Polybag',
+    sunlight: 'Full Sun',
+    imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80',
+    description: ''
+  });
+
+  // ==================== CATEGORY MODAL STATE ====================
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [categoryForm, setCategoryForm] = useState({
+    name: '',
+    tamilName: '',
+    slug: '',
+    image: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80',
+    description: ''
+  });
+
+  // ==================== REVIEW MODAL STATE ====================
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewForm, setReviewForm] = useState({
+    userName: '',
+    location: 'Pennagaram, TN',
+    rating: 5,
+    title: '',
+    comment: '',
+    imageUrl: '',
+    productName: 'Dutch Hybrid Red Rose',
+    status: 'APPROVED' as 'APPROVED' | 'PENDING',
+    featured: true
+  });
+
+  // ==================== SETTINGS FORM STATE ====================
+  const [settingsForm, setSettingsForm] = useState(initialSettings || {
+    upiId: '9842624508@okbizaxis',
+    payeeName: 'Veerika Rose Garden',
+    deliveryCharge: 60,
+    freeDeliveryThreshold: 499,
+    phone: '9842624508',
+    email: 'nv01110612@gmail.com',
+    address: 'Pennagaram Main Road, Dharmapuri, Tamil Nadu - 636810'
+  });
+  const [settingsSavedToast, setSettingsSavedToast] = useState(false);
+
   // 4-Stage Stats Calculation directly from real orders
   const stats = useMemo(() => {
     const confirmedOrders = orders.filter(o => 
@@ -124,16 +223,22 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
       o.orderStatus === 'DELIVERED'
     );
 
+    const paidOrders = orders.filter(o => o.paymentStatus === 'SUCCESS');
+    const totalRevenue = paidOrders.reduce((sum, o) => sum + (o.grandTotal || 0), 0);
+    const lowStockCount = products.filter(p => (p.stock || 0) <= 15).length;
+
     return {
       confirmedCount: confirmedOrders.length,
       packingCount: packingOrders.length,
       dispatchedCount: dispatchedOrders.length,
       deliveredCount: deliveredOrders.length,
-      totalCount: orders.length
+      totalCount: orders.length,
+      totalRevenue,
+      lowStockCount
     };
-  }, [orders]);
+  }, [orders, products]);
 
-  // Helpers for formatted dates & addresses
+  // Formatters
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return 'Recent';
     try {
@@ -181,7 +286,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
     return parts.length > 0 ? parts.join(', ') : 'Address not specified';
   };
 
-  // WhatsApp Message Generator for 4 Stages
+  // WhatsApp Message Generator
   const generateWhatsAppMessage = (order: Order, stage: 'confirmed' | 'packing' | 'dispatched' | 'delivered') => {
     const customerName = order.customerName || order.shippingAddress?.fullName || 'Valued Customer';
     const dateStr = formatDate(order.createdAt);
@@ -194,38 +299,11 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
     }
 
     if (stage === 'confirmed') {
-      return `🌿 *Veerika Rose Garden (VRG Nursery)*
-Order Confirmation 📦
-
-Dear *${customerName}*,
-Thank you for ordering with us! Your order has been *Confirmed* successfully.
-
-📋 *Order ID:* ${order.id}
-📅 *Date:* ${dateStr}
-💰 *Total Amount:* ₹${order.grandTotal}
-
-🌱 *Your Ordered Plants:*
-${itemsList || '• Nursery Plants & Garden Saplings'}
-
-We will pack your plants with fresh cocopeat and protective wraps.
-
-Thank you! 🌿
-*Veerika Rose Garden*`;
+      return `🌿 *Veerika Rose Garden (VRG Nursery)*\nOrder Confirmation 📦\n\nDear *${customerName}*,\nThank you for ordering with us! Your order has been *Confirmed* successfully.\n\n📋 *Order ID:* ${order.id}\n📅 *Date:* ${dateStr}\n💰 *Total Amount:* ₹${order.grandTotal}\n\n🌱 *Your Ordered Plants:*\n${itemsList || '• Nursery Plants & Garden Saplings'}\n\nWe will pack your plants with fresh cocopeat and protective wraps.\n\nThank you! 🌿\n*Veerika Rose Garden*`;
     }
 
     if (stage === 'packing') {
-      return `📦 *Veerika Rose Garden (VRG Nursery)*
-Nursery Packing Update 🌿
-
-Dear *${customerName}*,
-Your plants for *Order #${order.id}* are now in the *Nursery Packing* stage!
-
-🌿 Our expert team is carefully inspecting, watering, and packing your plants with moist root balls and sturdy cardboard boxes to guarantee fresh delivery.
-
-Your package will be handed over to the courier shortly! 🚚
-
-Thank you!
-*Veerika Rose Garden*`;
+      return `📦 *Veerika Rose Garden (VRG Nursery)*\nNursery Packing Update 🌿\n\nDear *${customerName}*,\nYour plants for *Order #${order.id}* are now in the *Nursery Packing* stage!\n\n🌿 Our expert team is carefully inspecting, watering, and packing your plants with moist root balls and sturdy cardboard boxes to guarantee fresh delivery.\n\nYour package will be handed over to the courier shortly! 🚚\n\nThank you!\n*Veerika Rose Garden*`;
     }
 
     if (stage === 'dispatched') {
@@ -233,36 +311,10 @@ Thank you!
       const awb = order.trackingNumber || dispatchForm.awbNumber || 'In Transit';
       const link = order.deliveryNotes || dispatchForm.trackingLink || `https://www.google.com/search?q=${encodeURIComponent(courier + ' ' + awb)}`;
 
-      return `🚚 *Veerika Rose Garden (VRG Nursery)*
-Courier Dispatch & Tracking Update!
-
-Dear *${customerName}*,
-Great news! Your plant order *#${order.id}* has been *Dispatched* via courier.
-
-📦 *Courier Partner:* ${courier}
-🏷️ *AWB / Tracking No:* ${awb}
-
-🔗 *Track Shipment:*
-${link}
-
-Please keep your phone available during delivery.
-Thank you for choosing Veerika Rose Garden! 🌿`;
+      return `🚚 *Veerika Rose Garden (VRG Nursery)*\nCourier Dispatch & Tracking Update!\n\nDear *${customerName}*,\nGreat news! Your plant order *#${order.id}* has been *Dispatched* via courier.\n\n📦 *Courier Partner:* ${courier}\n🏷️ *AWB / Tracking No:* ${awb}\n\n🔗 *Track Shipment:*\n${link}\n\nPlease keep your phone available during delivery.\nThank you for choosing Veerika Rose Garden! 🌿`;
     }
 
-    // Delivered
-    return `🌸 *Veerika Rose Garden (VRG Nursery)*
-Delivered with Care! 🪴
-
-Dear *${customerName}*,
-Your order *#${order.id}* has been *Delivered* successfully!
-
-🌱 *Quick Plant Care Tips:*
-1. Unbox your plants gently in a shaded area.
-2. Water the roots moderately and allow them to rest for 24 hours before repotting.
-3. Keep away from harsh direct afternoon sunlight for the first 3 days.
-
-We would love your feedback! Please visit us again. 🌿
-*Veerika Rose Garden*`;
+    return `🌸 *Veerika Rose Garden (VRG Nursery)*\nDelivered with Care! 🪴\n\nDear *${customerName}*,\nYour order *#${order.id}* has been *Delivered* successfully!\n\n🌱 *Quick Plant Care Tips:*\n1. Unbox your plants gently in a shaded area.\n2. Water the roots moderately and allow them to rest for 24 hours before repotting.\n3. Keep away from harsh direct afternoon sunlight for the first 3 days.\n\nWe would love your feedback! Please visit us again. 🌿\n*Veerika Rose Garden*`;
   };
 
   const handleOpenWhatsApp = (order: Order, stage: 'confirmed' | 'packing' | 'dispatched' | 'delivered') => {
@@ -295,7 +347,6 @@ We would love your feedback! Please visit us again. 🌿
     }
   };
 
-  // Tracking link helper
   const handleAwbChange = (awb: string) => {
     setDispatchForm(prev => {
       let link = '';
@@ -312,7 +363,6 @@ We would love your feedback! Please visit us again. 🌿
     });
   };
 
-  // Save Dispatch Tracking
   const handleSaveDispatch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedOrder) return;
@@ -334,8 +384,6 @@ We would love your feedback! Please visit us again. 🌿
       };
       setSelectedOrder(updated);
       setSavingDispatch(false);
-
-      // Open WhatsApp Dispatched notification preview
       handleOpenWhatsApp(updated, 'dispatched');
     } catch (e) {
       console.error('Failed to save dispatch tracking', e);
@@ -343,7 +391,18 @@ We would love your feedback! Please visit us again. 🌿
     }
   };
 
-  // 4 Stage Filter logic
+  // Review Photo Upload
+  const handleReviewPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setReviewForm(prev => ({ ...prev, imageUrl: event.target?.result as string }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Filtered Orders
   const filteredOrders = useMemo(() => {
     let list = [...orders];
 
@@ -383,23 +442,41 @@ We would love your feedback! Please visit us again. 🌿
     return list;
   }, [orders, orderStageFilter, searchQuery]);
 
-  // Selected orders for label sheet printing
+  // Filtered Products
+  const filteredProducts = useMemo(() => {
+    let list = [...products];
+    if (productCategoryFilter !== 'ALL') {
+      list = list.filter(p => p.categoryId === productCategoryFilter);
+    }
+    if (productSearch.trim()) {
+      const q = productSearch.toLowerCase().trim();
+      list = list.filter(p => 
+        p.name.toLowerCase().includes(q) ||
+        (p.tamilName && p.tamilName.toLowerCase().includes(q)) ||
+        (p.sku && p.sku.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }, [products, productCategoryFilter, productSearch]);
+
   const selectedLabelOrders = useMemo(() => {
     return orders.filter(o => selectedLabelOrderIds.includes(o.id));
   }, [orders, selectedLabelOrderIds]);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800 pb-20">
+    <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-800 pb-20">
       
-      {/* Top Mobile Clean Header */}
+      {/* Top Mobile Unified Header */}
       <header className="bg-white border-b border-slate-200/90 px-4 py-3 sticky top-0 z-30 flex items-center justify-between shadow-2xs">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-800">
+          <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-800 shrink-0">
             <Sprout className="w-5 h-5 text-emerald-700" />
           </div>
-          <span className="text-base font-black tracking-wider text-emerald-900 uppercase">
-            VRG NURSERY
-          </span>
+          <div>
+            <span className="text-base font-black tracking-wider text-emerald-900 uppercase">
+              VRG NURSERY
+            </span>
+          </div>
         </div>
 
         <button
@@ -412,16 +489,16 @@ We would love your feedback! Please visit us again. 🌿
         </button>
       </header>
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-md w-full mx-auto px-4 py-4 space-y-4">
+      {/* Main Mobile App Container */}
+      <main className="flex-1 max-w-lg w-full mx-auto px-4 py-4 space-y-4">
         
         {/* ========================================================= */}
-        {/* 1. DASHBOARD (4 Key Stages: Confirmed, Packing, Courier, Delivered) */}
+        {/* 1. DASHBOARD SCREEN                                        */}
         {/* ========================================================= */}
         {currentScreen === 'dashboard' && (
-          <div className="space-y-5 animate-in fade-in duration-150">
+          <div className="space-y-4 animate-in fade-in duration-150">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-extrabold text-slate-900">Dashboard</h2>
+              <h2 className="text-lg font-extrabold text-slate-900">Admin Dashboard</h2>
               {adminUser && (
                 <span className="text-[11px] font-bold bg-emerald-100 text-emerald-900 px-2.5 py-0.5 rounded-full">
                   Admin: {adminUser.name?.split(' ')[0] || 'Admin'}
@@ -429,10 +506,21 @@ We would love your feedback! Please visit us again. 🌿
               )}
             </div>
 
-            {/* 4 Status KPI Metric Cards (2x2 Grid matching the 4 Web Stages) */}
+            {/* Quick Overview Summary Banner */}
+            <div className="bg-[#14532d] text-white p-4 rounded-3xl shadow-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-emerald-200 uppercase tracking-wider">Total Farm Sales</span>
+                <span className="text-[11px] bg-emerald-800/80 px-2 py-0.5 rounded-full font-bold">Live Data</span>
+              </div>
+              <p className="text-3xl font-black">₹{stats.totalRevenue.toLocaleString('en-IN')}</p>
+              <div className="flex items-center justify-between text-xs pt-1 text-emerald-100 border-t border-emerald-800/60">
+                <span>📦 Total Orders: <strong>{orders.length}</strong></span>
+                <span>🌿 Total Plants: <strong>{products.length}</strong></span>
+              </div>
+            </div>
+
+            {/* 4 Status KPI Metric Cards (2x2 Grid) */}
             <div className="grid grid-cols-2 gap-3">
-              
-              {/* Stage 1: Order Confirmed */}
               <button
                 onClick={() => {
                   setOrderStageFilter('confirmed');
@@ -451,7 +539,6 @@ We would love your feedback! Please visit us again. 🌿
                 <span className="text-[10px] text-slate-400 font-medium">Ready for packing</span>
               </button>
 
-              {/* Stage 2: Nursery Packing */}
               <button
                 onClick={() => {
                   setOrderStageFilter('packing');
@@ -467,10 +554,9 @@ We would love your feedback! Please visit us again. 🌿
                 <span className="text-2xl font-black text-amber-600 block mt-1">
                   {stats.packingCount}
                 </span>
-                <span className="text-[10px] text-slate-400 font-medium">Packing in progress</span>
+                <span className="text-[10px] text-slate-400 font-medium">In packaging</span>
               </button>
 
-              {/* Stage 3: Courier Dispatched */}
               <button
                 onClick={() => {
                   setOrderStageFilter('dispatched');
@@ -489,7 +575,6 @@ We would love your feedback! Please visit us again. 🌿
                 <span className="text-[10px] text-slate-400 font-medium">With tracking link</span>
               </button>
 
-              {/* Stage 4: Delivered */}
               <button
                 onClick={() => {
                   setOrderStageFilter('delivered');
@@ -509,7 +594,34 @@ We would love your feedback! Please visit us again. 🌿
               </button>
             </div>
 
-            {/* Recent Orders List */}
+            {/* Quick Shortcuts Grid */}
+            <div className="grid grid-cols-3 gap-2 text-center text-xs font-bold">
+              <button
+                onClick={() => setCurrentScreen('products')}
+                className="p-3 bg-white border border-slate-200 rounded-2xl hover:border-emerald-400 active:scale-95 transition-all shadow-xs cursor-pointer flex flex-col items-center gap-1"
+              >
+                <Package className="w-5 h-5 text-emerald-700" />
+                <span>Plants ({products.length})</span>
+              </button>
+
+              <button
+                onClick={() => setCurrentScreen('categories')}
+                className="p-3 bg-white border border-slate-200 rounded-2xl hover:border-emerald-400 active:scale-95 transition-all shadow-xs cursor-pointer flex flex-col items-center gap-1"
+              >
+                <FolderTree className="w-5 h-5 text-emerald-700" />
+                <span>Categories</span>
+              </button>
+
+              <button
+                onClick={() => setCurrentScreen('reviews')}
+                className="p-3 bg-white border border-slate-200 rounded-2xl hover:border-emerald-400 active:scale-95 transition-all shadow-xs cursor-pointer flex flex-col items-center gap-1"
+              >
+                <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+                <span>Reviews ({reviews.length})</span>
+              </button>
+            </div>
+
+            {/* Recent Orders Section */}
             <div className="space-y-3 pt-1">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-slate-900">Recent Orders</h3>
@@ -531,7 +643,6 @@ We would love your feedback! Please visit us again. 🌿
                   const isPacking = order.orderStatus === 'PACKED' || order.orderStatus === 'PROCESSING';
                   const isDispatched = order.orderStatus === 'DISPATCHED' || order.orderStatus === 'OUT_FOR_DELIVERY';
                   const isDelivered = order.orderStatus === 'DELIVERED';
-                  const isConfirmed = !isPacking && !isDispatched && !isDelivered;
 
                   return (
                     <div
@@ -552,10 +663,10 @@ We would love your feedback! Please visit us again. 🌿
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-slate-700">
+                        <span className="text-xs font-semibold text-slate-700 truncate">
                           {order.customerName || order.shippingAddress?.fullName || 'Customer'}
                         </span>
-                        <span className="text-[11px] text-slate-400 font-medium">
+                        <span className="text-[11px] text-slate-400 font-medium shrink-0">
                           {formatDate(order.createdAt)}
                         </span>
                       </div>
@@ -594,7 +705,7 @@ We would love your feedback! Please visit us again. 🌿
         )}
 
         {/* ========================================================= */}
-        {/* 2. ORDERS LIST (With 4 Stage Filter Pills)                 */}
+        {/* 2. ORDERS LIST SCREEN (4 Stages)                           */}
         {/* ========================================================= */}
         {currentScreen === 'orders_list' && (
           <div className="space-y-4 animate-in fade-in duration-150">
@@ -602,7 +713,7 @@ We would love your feedback! Please visit us again. 🌿
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setCurrentScreen('dashboard')}
-                  className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
+                  className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </button>
@@ -610,7 +721,7 @@ We would love your feedback! Please visit us again. 🌿
               </div>
               <button
                 onClick={() => setCurrentScreen('menu_drawer')}
-                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
                 aria-label="Open menu"
                 title="Open Menu"
               >
@@ -625,7 +736,7 @@ We would love your feedback! Please visit us again. 🌿
                 placeholder="Search by Order ID, Name, Phone..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700"
+                className="w-full pl-9 pr-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700"
               />
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
             </div>
@@ -701,7 +812,7 @@ We would love your feedback! Please visit us again. 🌿
                       </span>
 
                       <span className="text-[11px] text-emerald-800 font-bold flex items-center gap-0.5">
-                        <span>Details & Actions</span>
+                        <span>Manage Order</span>
                         <ChevronRight className="w-3 h-3" />
                       </span>
                     </div>
@@ -711,7 +822,7 @@ We would love your feedback! Please visit us again. 🌿
 
               {filteredOrders.length === 0 && (
                 <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-2">
-                  <p className="text-xs font-bold text-slate-500">No orders found matching this filter</p>
+                  <p className="text-xs font-bold text-slate-500">No orders found in this stage</p>
                 </div>
               )}
             </div>
@@ -719,16 +830,15 @@ We would love your feedback! Please visit us again. 🌿
         )}
 
         {/* ========================================================= */}
-        {/* 3. ORDER DETAILS & STAGE MANAGER (4-Stage Operations)      */}
+        {/* 3. ORDER DETAILS SCREEN (Actions & WhatsApp)               */}
         {/* ========================================================= */}
         {currentScreen === 'order_details' && selectedOrder && (
           <div className="space-y-4 animate-in fade-in duration-150">
-            {/* Header */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setCurrentScreen('orders_list')}
-                  className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
+                  className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </button>
@@ -736,7 +846,7 @@ We would love your feedback! Please visit us again. 🌿
               </div>
               <button
                 onClick={() => setCurrentScreen('menu_drawer')}
-                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
                 aria-label="Open menu"
                 title="Open Menu"
               >
@@ -744,7 +854,6 @@ We would love your feedback! Please visit us again. 🌿
               </button>
             </div>
 
-            {/* Order ID & Current Stage Badge */}
             <div className="flex items-center justify-between py-1 bg-white p-3 rounded-2xl border border-slate-200">
               <div className="flex items-center gap-1.5">
                 <span className="text-xs font-extrabold text-slate-500">Order ID:</span>
@@ -758,20 +867,17 @@ We would love your feedback! Please visit us again. 🌿
             {/* Customer Details Card */}
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-2.5">
               <h3 className="text-xs font-extrabold text-slate-900">Customer Details</h3>
-              
               <div className="space-y-2 text-xs">
                 <div className="flex items-center gap-2 text-slate-800">
                   <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                   <span className="font-bold">{selectedOrder.customerName || selectedOrder.shippingAddress?.fullName || 'Customer'}</span>
                 </div>
-
                 <div className="flex items-center gap-2 text-slate-800">
                   <Phone className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                   <a href={`tel:${selectedOrder.customerPhone || selectedOrder.shippingAddress?.phone}`} className="font-semibold text-emerald-800 hover:underline">
                     +91 {selectedOrder.customerPhone || selectedOrder.shippingAddress?.phone || 'Not provided'}
                   </a>
                 </div>
-
                 <div className="flex items-start gap-2 text-slate-700">
                   <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5" />
                   <span className="font-medium leading-relaxed">
@@ -789,7 +895,6 @@ We would love your feedback! Please visit us again. 🌿
                 </h3>
                 <span className="text-xs font-extrabold text-slate-900">₹{selectedOrder.grandTotal}</span>
               </div>
-
               <div className="divide-y divide-slate-100">
                 {selectedOrder.items && selectedOrder.items.length > 0 ? (
                   selectedOrder.items.map((item, idx) => (
@@ -804,12 +909,12 @@ We would love your feedback! Please visit us again. 🌿
                     </div>
                   ))
                 ) : (
-                  <p className="text-xs text-slate-400 italic py-2">No individual plant items attached to this order.</p>
+                  <p className="text-xs text-slate-400 italic py-2">No items listed.</p>
                 )}
               </div>
             </div>
 
-            {/* Payment Details Card */}
+            {/* Payment Details */}
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-2.5 text-xs">
               <h3 className="font-extrabold text-slate-900">Payment Details</h3>
               <div className="flex items-center justify-between">
@@ -823,9 +928,7 @@ We would love your feedback! Please visit us again. 🌿
               <div className="flex items-center justify-between">
                 <span className="text-slate-500">Payment Status</span>
                 <span className={`font-bold px-2 py-0.5 rounded-md ${
-                  selectedOrder.paymentStatus === 'SUCCESS'
-                    ? 'bg-emerald-100 text-emerald-900'
-                    : 'bg-amber-100 text-amber-900'
+                  selectedOrder.paymentStatus === 'SUCCESS' ? 'bg-emerald-100 text-emerald-900' : 'bg-amber-100 text-amber-900'
                 }`}>
                   {selectedOrder.paymentStatus || 'PENDING'}
                 </span>
@@ -837,7 +940,6 @@ We would love your feedback! Please visit us again. 🌿
               <h3 className="text-xs font-extrabold text-slate-900">Update Order Stage</h3>
               
               <div className="grid grid-cols-2 gap-2">
-                {/* 1. Confirm Order */}
                 <button
                   onClick={async () => {
                     await onUpdateOrderStatus(selectedOrder.id, 'CONFIRMED', 'SUCCESS');
@@ -853,7 +955,6 @@ We would love your feedback! Please visit us again. 🌿
                   <span>1. Confirmed</span>
                 </button>
 
-                {/* 2. Move to Packing */}
                 <button
                   onClick={async () => {
                     await onUpdateOrderStatus(selectedOrder.id, 'PACKED');
@@ -869,7 +970,6 @@ We would love your feedback! Please visit us again. 🌿
                   <span>2. Packing</span>
                 </button>
 
-                {/* 3. Courier Dispatched */}
                 <button
                   onClick={() => {
                     setDispatchForm({
@@ -889,7 +989,6 @@ We would love your feedback! Please visit us again. 🌿
                   <span>3. Courier</span>
                 </button>
 
-                {/* 4. Delivered */}
                 <button
                   onClick={async () => {
                     await onUpdateOrderStatus(selectedOrder.id, 'DELIVERED');
@@ -906,7 +1005,7 @@ We would love your feedback! Please visit us again. 🌿
                 </button>
               </div>
 
-              {/* WhatsApp Notification Triggers for 4 Stages */}
+              {/* WhatsApp Notification Buttons */}
               <div className="pt-2 border-t border-slate-100 space-y-2">
                 <p className="text-[11px] font-extrabold text-slate-600">Send WhatsApp Notification:</p>
                 <div className="grid grid-cols-2 gap-2">
@@ -957,7 +1056,7 @@ We would love your feedback! Please visit us again. 🌿
         )}
 
         {/* ========================================================= */}
-        {/* 4. DISPATCH / TRACKING FORM                                */}
+        {/* 4. DISPATCH COURIER FORM                                   */}
         {/* ========================================================= */}
         {currentScreen === 'dispatch_order' && selectedOrder && (
           <div className="space-y-4 animate-in fade-in duration-150">
@@ -965,7 +1064,7 @@ We would love your feedback! Please visit us again. 🌿
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setCurrentScreen('order_details')}
-                  className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
+                  className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </button>
@@ -973,7 +1072,7 @@ We would love your feedback! Please visit us again. 🌿
               </div>
               <button
                 onClick={() => setCurrentScreen('menu_drawer')}
-                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
                 aria-label="Open menu"
                 title="Open Menu"
               >
@@ -981,13 +1080,11 @@ We would love your feedback! Please visit us again. 🌿
               </button>
             </div>
 
-            {/* Order Info */}
             <div className="bg-white p-3 rounded-2xl border border-slate-200 flex items-center justify-between text-xs">
               <span className="font-mono font-bold text-slate-900">Order #{selectedOrder.id}</span>
               <span className="font-semibold text-slate-600">{selectedOrder.customerName || selectedOrder.shippingAddress?.fullName}</span>
             </div>
 
-            {/* Form */}
             <form onSubmit={handleSaveDispatch} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3.5">
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-700 block">Courier Partner</label>
@@ -1004,9 +1101,7 @@ We would love your feedback! Please visit us again. 🌿
                   <option value="Professional Courier">Professional Courier</option>
                   <option value="DTDC">DTDC</option>
                   <option value="India Post">India Post (Speed Post)</option>
-                  <option value="Amazon Shipping">Amazon Shipping</option>
-                  <option value="Porter">Porter</option>
-                  <option value="Self Delivery">Self Nursery Delivery</option>
+                  <option value="Self Delivery">Self Delivery</option>
                   <option value="Other">Other</option>
                 </select>
               </div>
@@ -1024,7 +1119,7 @@ We would love your feedback! Please visit us again. 🌿
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700 block">Tracking URL (Auto-Generated)</label>
+                <label className="text-xs font-bold text-slate-700 block">Tracking URL</label>
                 <input
                   type="text"
                   placeholder="https://..."
@@ -1056,7 +1151,7 @@ We would love your feedback! Please visit us again. 🌿
         )}
 
         {/* ========================================================= */}
-        {/* 5. GENERATE LABEL SHEET (A4 4-Per-Page Printing)          */}
+        {/* 5. GENERATE LABELS SCREEN                                  */}
         {/* ========================================================= */}
         {currentScreen === 'generate_labels' && (
           <div className="space-y-4 animate-in fade-in duration-150">
@@ -1064,15 +1159,15 @@ We would love your feedback! Please visit us again. 🌿
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setCurrentScreen('dashboard')}
-                  className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
+                  className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </button>
-                <h2 className="text-base font-extrabold text-slate-900">Generate Label Sheet</h2>
+                <h2 className="text-base font-extrabold text-slate-900">Generate Labels</h2>
               </div>
               <button
                 onClick={() => setCurrentScreen('menu_drawer')}
-                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
                 aria-label="Open menu"
                 title="Open Menu"
               >
@@ -1080,7 +1175,6 @@ We would love your feedback! Please visit us again. 🌿
               </button>
             </div>
 
-            {/* Checklist Box */}
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-extrabold text-slate-900">
@@ -1138,12 +1232,10 @@ We would love your feedback! Please visit us again. 🌿
               </div>
             </div>
 
-            {/* Selected Count */}
             <div className="text-xs font-extrabold text-slate-900 px-1">
               Selected Orders: {selectedLabelOrderIds.length}
             </div>
 
-            {/* Primary Action Button */}
             <button
               onClick={() => setShowLabelPrintPreview(true)}
               disabled={selectedLabelOrderIds.length === 0}
@@ -1153,7 +1245,6 @@ We would love your feedback! Please visit us again. 🌿
               <span>Generate Label Sheet (A4 PDF)</span>
             </button>
 
-            {/* Calculation Guide Box matching 8.jpeg */}
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs text-center text-xs font-semibold text-slate-700 space-y-1">
               <p>📄 4 Orders = 1 A4 Sheet (2x2 Grid)</p>
               <p>📄 8 Orders = 2 A4 Sheets</p>
@@ -1162,7 +1253,7 @@ We would love your feedback! Please visit us again. 🌿
         )}
 
         {/* ========================================================= */}
-        {/* 6. ORDER TIMELINE (4-Stage Vertical Stepper)               */}
+        {/* 6. ORDER TIMELINE SCREEN                                   */}
         {/* ========================================================= */}
         {currentScreen === 'order_timeline' && selectedOrder && (() => {
           const isPacking = selectedOrder.orderStatus === 'PACKED' || selectedOrder.orderStatus === 'PROCESSING';
@@ -1180,7 +1271,7 @@ We would love your feedback! Please visit us again. 🌿
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setCurrentScreen('order_details')}
-                    className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
+                    className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
                   >
                     <ArrowLeft className="w-4 h-4" />
                   </button>
@@ -1188,7 +1279,7 @@ We would love your feedback! Please visit us again. 🌿
                 </div>
                 <button
                   onClick={() => setCurrentScreen('menu_drawer')}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
                   aria-label="Open menu"
                   title="Open Menu"
                 >
@@ -1196,10 +1287,8 @@ We would love your feedback! Please visit us again. 🌿
                 </button>
               </div>
 
-              {/* Stepper Timeline Box matching 12.jpeg */}
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-6">
-                
-                {/* Stage 1: Order Confirmed */}
+                {/* 1. Confirmed */}
                 <div className="flex items-start gap-4 relative">
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 z-10 ${
                     stage1Done ? 'bg-[#14532d] text-white' : 'bg-slate-200 text-slate-500'
@@ -1213,7 +1302,7 @@ We would love your feedback! Please visit us again. 🌿
                   <div className={`absolute left-3 top-6 bottom-0 w-0.5 -z-0 h-10 ${stage2Done ? 'bg-[#14532d]' : 'bg-slate-200'}`} />
                 </div>
 
-                {/* Stage 2: Nursery Packing */}
+                {/* 2. Packing */}
                 <div className="flex items-start gap-4 relative">
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 z-10 ${
                     stage2Done ? 'bg-[#14532d] text-white' : 'bg-slate-200 text-slate-500'
@@ -1229,7 +1318,7 @@ We would love your feedback! Please visit us again. 🌿
                   <div className={`absolute left-3 top-6 bottom-0 w-0.5 -z-0 h-10 ${stage3Done ? 'bg-[#14532d]' : 'bg-slate-200'}`} />
                 </div>
 
-                {/* Stage 3: Courier Dispatched */}
+                {/* 3. Dispatched */}
                 <div className="flex items-start gap-4 relative">
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 z-10 ${
                     stage3Done ? 'bg-[#14532d] text-white' : 'bg-slate-200 text-slate-500'
@@ -1247,7 +1336,7 @@ We would love your feedback! Please visit us again. 🌿
                   <div className={`absolute left-3 top-6 bottom-0 w-0.5 -z-0 h-10 ${stage4Done ? 'bg-[#14532d]' : 'bg-slate-200'}`} />
                 </div>
 
-                {/* Stage 4: Delivered */}
+                {/* 4. Delivered */}
                 <div className="flex items-start gap-4">
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 z-10 ${
                     stage4Done ? 'bg-[#14532d] text-white' : 'bg-slate-200 text-slate-500'
@@ -1266,10 +1355,482 @@ We would love your feedback! Please visit us again. 🌿
           );
         })()}
 
+        {/* ========================================================= */}
+        {/* 7. PRODUCTS CATALOG SCREEN (Mobile)                       */}
+        {/* ========================================================= */}
+        {currentScreen === 'products' && (
+          <div className="space-y-4 animate-in fade-in duration-150">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentScreen('dashboard')}
+                  className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                <h2 className="text-base font-extrabold text-slate-900">Products Catalog</h2>
+              </div>
+              <button
+                onClick={() => {
+                  setEditingProduct(null);
+                  setProductForm({
+                    name: '',
+                    tamilName: '',
+                    categoryId: categories[0]?.id || 'cat-roses',
+                    categoryName: categories[0]?.name || 'Roses',
+                    mrp: 299,
+                    sellingPrice: 199,
+                    stock: 25,
+                    plantHeight: '1-2 Feet',
+                    potSize: '8 Inch Bag',
+                    sunlight: 'Full Sun',
+                    imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80',
+                    description: ''
+                  });
+                  setShowProductModal(true);
+                }}
+                className="px-3 py-1.5 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl flex items-center gap-1 shadow-xs cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Plant</span>
+              </button>
+            </div>
+
+            {/* Search */}
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search plants by name, Tamil name..."
+                value={productSearch}
+                onChange={e => setProductSearch(e.target.value)}
+                className="w-full pl-9 pr-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700"
+              />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+            </div>
+
+            {/* Products List Cards */}
+            <div className="space-y-2.5">
+              {filteredProducts.map(p => (
+                <div key={p.id} className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
+                  <img
+                    src={p.images?.[0] || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80'}
+                    alt={p.name}
+                    className="w-14 h-14 rounded-xl object-cover shrink-0 border border-slate-100"
+                  />
+                  <div className="flex-1 min-w-0 space-y-0.5">
+                    <p className="font-bold text-xs text-slate-900 truncate">{p.name}</p>
+                    {p.tamilName && <p className="text-[11px] text-emerald-800 font-medium truncate">{p.tamilName}</p>}
+                    <div className="flex items-center gap-2 text-xs pt-0.5">
+                      <span className="font-extrabold text-emerald-800">₹{p.sellingPrice}</span>
+                      {p.mrp > p.sellingPrice && <span className="text-slate-400 line-through text-[10px]">₹{p.mrp}</span>}
+                      <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
+                        p.stock <= 10 ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'
+                      }`}>
+                        Stock: {p.stock}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => {
+                        setEditingProduct(p);
+                        setProductForm({
+                          name: p.name,
+                          tamilName: p.tamilName || '',
+                          categoryId: p.categoryId || 'cat-roses',
+                          categoryName: p.categoryName || 'Roses',
+                          mrp: p.mrp || 299,
+                          sellingPrice: p.sellingPrice || 199,
+                          stock: p.stock || 25,
+                          plantHeight: p.plantHeight || '1-2 Feet',
+                          potSize: p.potSize || '8 Inch Bag',
+                          sunlight: p.sunlight || 'Full Sun',
+                          imageUrl: p.images?.[0] || '',
+                          description: p.description || ''
+                        });
+                        setShowProductModal(true);
+                      }}
+                      className="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-700 cursor-pointer"
+                      title="Edit Plant"
+                    >
+                      <Edit className="w-3.5 h-3.5" />
+                    </button>
+                    {onDeleteProduct && (
+                      <button
+                        onClick={() => onDeleteProduct(p.id, p.name)}
+                        className="p-2 bg-rose-50 hover:bg-rose-100 rounded-xl text-rose-600 cursor-pointer"
+                        title="Delete Plant"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {filteredProducts.length === 0 && (
+                <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-2">
+                  <Package className="w-8 h-8 text-slate-300 mx-auto" />
+                  <p className="text-xs font-bold text-slate-500">No plants found</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* 8. CATEGORIES SCREEN (Mobile)                             */}
+        {/* ========================================================= */}
+        {currentScreen === 'categories' && (
+          <div className="space-y-4 animate-in fade-in duration-150">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentScreen('dashboard')}
+                  className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                <h2 className="text-base font-extrabold text-slate-900">Categories ({categories.length})</h2>
+              </div>
+              <button
+                onClick={() => {
+                  setEditingCategory(null);
+                  setCategoryForm({
+                    name: '',
+                    tamilName: '',
+                    slug: '',
+                    image: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80',
+                    description: ''
+                  });
+                  setShowCategoryModal(true);
+                }}
+                className="px-3 py-1.5 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl flex items-center gap-1 shadow-xs cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Category</span>
+              </button>
+            </div>
+
+            <div className="space-y-2.5">
+              {categories.map(c => {
+                const prodCount = products.filter(p => p.categoryId === c.id).length;
+                return (
+                  <div key={c.id} className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={c.image || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80'}
+                        alt={c.name}
+                        className="w-12 h-12 rounded-xl object-cover border border-slate-100"
+                      />
+                      <div>
+                        <p className="font-bold text-xs text-slate-900">{c.name}</p>
+                        {c.tamilName && <p className="text-[11px] text-emerald-800 font-medium">{c.tamilName}</p>}
+                        <p className="text-[10px] text-slate-400">{prodCount} plants attached</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => {
+                          setEditingCategory(c);
+                          setCategoryForm({
+                            name: c.name,
+                            tamilName: c.tamilName || '',
+                            slug: c.slug || '',
+                            image: c.image || '',
+                            description: c.description || ''
+                          });
+                          setShowCategoryModal(true);
+                        }}
+                        className="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-700 cursor-pointer"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
+                      </button>
+                      {onDeleteCategory && (
+                        <button
+                          onClick={() => onDeleteCategory(c.id, c.name)}
+                          className="p-2 bg-rose-50 hover:bg-rose-100 rounded-xl text-rose-600 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* 9. INVENTORY & STOCK ALERTS SCREEN                         */}
+        {/* ========================================================= */}
+        {currentScreen === 'inventory' && (
+          <div className="space-y-4 animate-in fade-in duration-150">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentScreen('dashboard')}
+                  className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                <h2 className="text-base font-extrabold text-slate-900">Inventory & Stock</h2>
+              </div>
+              <span className="text-[11px] font-bold bg-amber-100 text-amber-900 px-2.5 py-0.5 rounded-full">
+                {stats.lowStockCount} Low Stock
+              </span>
+            </div>
+
+            <div className="space-y-2.5">
+              {products.map(p => (
+                <div key={p.id} className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+                  <div className="min-w-0 flex-1 pr-2">
+                    <p className="font-bold text-xs text-slate-900 truncate">{p.name}</p>
+                    <p className="text-[11px] text-slate-400 font-mono">₹{p.sellingPrice} • Stock: <strong className={p.stock <= 10 ? 'text-rose-600' : 'text-emerald-700'}>{p.stock} units</strong></p>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={async () => {
+                        const newStock = Math.max(0, p.stock - 5);
+                        if (onSaveProduct) await onSaveProduct({ ...p, stock: newStock });
+                      }}
+                      className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-bold text-slate-700 cursor-pointer"
+                    >
+                      -5
+                    </button>
+                    <button
+                      onClick={async () => {
+                        const newStock = p.stock + 5;
+                        if (onSaveProduct) await onSaveProduct({ ...p, stock: newStock });
+                      }}
+                      className="px-2.5 py-1 bg-emerald-100 hover:bg-emerald-200 rounded-lg text-xs font-bold text-emerald-800 cursor-pointer"
+                    >
+                      +5
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* 10. CUSTOMER REVIEWS SCREEN                                */}
+        {/* ========================================================= */}
+        {currentScreen === 'reviews' && (
+          <div className="space-y-4 animate-in fade-in duration-150">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentScreen('dashboard')}
+                  className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                <h2 className="text-base font-extrabold text-slate-900">Reviews ({reviews.length})</h2>
+              </div>
+              <button
+                onClick={() => setShowReviewModal(true)}
+                className="px-3 py-1.5 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl flex items-center gap-1 shadow-xs cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Review</span>
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {reviews.map(r => (
+                <div key={r.id} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-xs text-slate-900">{r.userName}</p>
+                      <p className="text-[10px] text-slate-400">{r.location || 'Customer'}</p>
+                    </div>
+                    <div className="flex items-center gap-0.5">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`w-3 h-3 ${i < r.rating ? 'text-amber-400 fill-amber-400' : 'text-slate-200'}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-slate-700 font-medium italic">"{r.comment}"</p>
+
+                  {r.imageUrl && (
+                    <div className="w-full h-36 rounded-xl overflow-hidden border border-slate-200">
+                      <img src={r.imageUrl} alt="Customer plant review" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[11px]">
+                    <span className={`font-bold px-2 py-0.5 rounded-md ${
+                      r.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-900' : 'bg-amber-100 text-amber-900'
+                    }`}>
+                      {r.status === 'APPROVED' ? '✓ Approved' : 'Pending'}
+                    </span>
+                    {onDeleteReview && (
+                      <button
+                        onClick={() => onDeleteReview(r.id)}
+                        className="text-rose-600 font-bold hover:underline cursor-pointer"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {reviews.length === 0 && (
+                <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-2">
+                  <Star className="w-8 h-8 text-slate-300 mx-auto" />
+                  <p className="text-xs font-bold text-slate-500">No reviews published yet</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* 11. FINANCES SCREEN                                       */}
+        {/* ========================================================= */}
+        {currentScreen === 'finances' && (
+          <div className="space-y-4 animate-in fade-in duration-150">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentScreen('dashboard')}
+                  className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                <h2 className="text-base font-extrabold text-slate-900">Farm Finances</h2>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-1">
+                <span className="text-xs font-bold text-slate-500 uppercase">Gross Revenue</span>
+                <p className="text-xl font-black text-emerald-700">₹{stats.totalRevenue.toLocaleString('en-IN')}</p>
+                <span className="text-[10px] text-slate-400 font-medium">From customer orders</span>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-1">
+                <span className="text-xs font-bold text-slate-500 uppercase">Total Orders</span>
+                <p className="text-xl font-black text-slate-900">{orders.length}</p>
+                <span className="text-[10px] text-slate-400 font-medium">{stats.deliveredCount} delivered</span>
+              </div>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+              <h3 className="text-xs font-extrabold text-slate-900">Payment Breakdown</h3>
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between py-1 border-b border-slate-100">
+                  <span className="text-slate-600">UPI / QR Payments</span>
+                  <span className="font-bold text-emerald-700">
+                    ₹{orders.filter(o => o.paymentMethod !== 'COD' && o.paymentStatus === 'SUCCESS').reduce((s, o) => s + (o.grandTotal || 0), 0)}
+                  </span>
+                </div>
+                <div className="flex justify-between py-1">
+                  <span className="text-slate-600">Cash on Delivery (COD)</span>
+                  <span className="font-bold text-amber-700">
+                    ₹{orders.filter(o => o.paymentMethod === 'COD').reduce((s, o) => s + (o.grandTotal || 0), 0)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* 12. SETTINGS SCREEN                                        */}
+        {/* ========================================================= */}
+        {currentScreen === 'settings' && (
+          <div className="space-y-4 animate-in fade-in duration-150">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentScreen('dashboard')}
+                  className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                <h2 className="text-base font-extrabold text-slate-900">Store Settings</h2>
+              </div>
+            </div>
+
+            {settingsSavedToast && (
+              <div className="p-3 bg-emerald-100 text-emerald-900 rounded-xl text-xs font-bold text-center border border-emerald-300">
+                ✓ Settings saved successfully!
+              </div>
+            )}
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (onSaveSettings) await onSaveSettings(settingsForm);
+                setSettingsSavedToast(true);
+                setTimeout(() => setSettingsSavedToast(false), 2500);
+              }}
+              className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3 text-xs"
+            >
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">UPI ID for Direct QR Payments</label>
+                <input
+                  type="text"
+                  value={settingsForm.upiId}
+                  onChange={e => setSettingsForm({ ...settingsForm, upiId: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono font-bold"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Delivery Fee (₹)</label>
+                <input
+                  type="number"
+                  value={settingsForm.deliveryCharge}
+                  onChange={e => setSettingsForm({ ...settingsForm, deliveryCharge: Number(e.target.value) })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Free Delivery Min Order (₹)</label>
+                <input
+                  type="number"
+                  value={settingsForm.freeDeliveryThreshold}
+                  onChange={e => setSettingsForm({ ...settingsForm, freeDeliveryThreshold: Number(e.target.value) })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Support Phone Number</label>
+                <input
+                  type="text"
+                  value={settingsForm.phone}
+                  onChange={e => setSettingsForm({ ...settingsForm, phone: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <Save className="w-4 h-4" />
+                <span>Save Store Settings</span>
+              </button>
+            </form>
+          </div>
+        )}
+
       </main>
 
       {/* ========================================================= */}
-      {/* 7. SLIDE-OVER DRAWER MENU                                  */}
+      {/* 13. SLIDE-OVER DRAWER MENU                                 */}
       {/* ========================================================= */}
       {currentScreen === 'menu_drawer' && (
         <div className="fixed inset-0 z-50 flex">
@@ -1375,23 +1936,17 @@ We would love your feedback! Please visit us again. 🌿
               </div>
 
               {[
-                { key: 'products', label: `🌿 Products Catalog (${products.length})`, icon: <Package className="w-4 h-4 text-emerald-700" /> },
-                { key: 'categories', label: `📁 Categories (${categories.length})`, icon: <FolderTree className="w-4 h-4 text-emerald-700" /> },
-                { key: 'orders', label: `📦 All Orders (${orders.length})`, icon: <ShoppingBag className="w-4 h-4 text-blue-600" /> },
-                { key: 'inventory', label: '⚠️ Inventory & Low Stock Alerts', icon: <AlertTriangle className="w-4 h-4 text-amber-500" /> },
-                { key: 'coupons', label: '🏷️ Discount Coupons', icon: <Tag className="w-4 h-4 text-rose-500" /> },
-                { key: 'banners', label: '🖼️ Homepage Banners', icon: <ImageIcon className="w-4 h-4 text-indigo-500" /> },
-                { key: 'reviews', label: `⭐ Customer Reviews (${reviews.length})`, icon: <Star className="w-4 h-4 text-amber-500 fill-amber-500" /> },
-                { key: 'finances', label: '💰 Finances & Profit/Loss', icon: <DollarSign className="w-4 h-4 text-emerald-600" /> },
-                { key: 'settings', label: '⚙️ Store & Payment Settings', icon: <SettingsIcon className="w-4 h-4 text-slate-600" /> },
-                { key: 'audit', label: '🛡️ Security & Audit Logs', icon: <ShieldCheck className="w-4 h-4 text-purple-600" /> },
+                { screen: 'products', label: `🌿 Products Catalog (${products.length})`, icon: <Package className="w-4 h-4 text-emerald-700" /> },
+                { screen: 'categories', label: `📁 Categories (${categories.length})`, icon: <FolderTree className="w-4 h-4 text-emerald-700" /> },
+                { screen: 'orders_list', label: `📦 All Orders (${orders.length})`, icon: <ShoppingBag className="w-4 h-4 text-blue-600" /> },
+                { screen: 'inventory', label: '⚠️ Inventory & Low Stock Alerts', icon: <AlertTriangle className="w-4 h-4 text-amber-500" /> },
+                { screen: 'reviews', label: `⭐ Customer Reviews (${reviews.length})`, icon: <Star className="w-4 h-4 text-amber-500 fill-amber-500" /> },
+                { screen: 'finances', label: '💰 Finances & Profit/Loss', icon: <DollarSign className="w-4 h-4 text-emerald-600" /> },
+                { screen: 'settings', label: '⚙️ Store & Payment Settings', icon: <SettingsIcon className="w-4 h-4 text-slate-600" /> },
               ].map(item => (
                 <button
-                  key={item.key}
-                  onClick={() => {
-                    if (onOpenDesktopTab) onOpenDesktopTab(item.key);
-                    setCurrentScreen('dashboard');
-                  }}
+                  key={item.screen}
+                  onClick={() => setCurrentScreen(item.screen as any)}
                   className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer font-semibold text-xs text-left"
                 >
                   {item.icon}
@@ -1400,7 +1955,7 @@ We would love your feedback! Please visit us again. 🌿
               ))}
             </div>
 
-            {/* Footer */}
+            {/* Footer Actions */}
             <div className="p-3 border-t border-slate-200 bg-slate-50 space-y-1.5">
               <button
                 onClick={onBackToStore}
@@ -1425,7 +1980,295 @@ We would love your feedback! Please visit us again. 🌿
       )}
 
       {/* ========================================================= */}
-      {/* 8. WHATSAPP NOTIFICATION PREVIEW MODAL                     */}
+      {/* 14. ADD/EDIT PRODUCT MODAL                                 */}
+      {/* ========================================================= */}
+      {showProductModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden border border-slate-200 max-h-[90vh] flex flex-col">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-extrabold text-sm text-slate-900">
+                {editingProduct ? 'Edit Plant' : 'Add New Plant'}
+              </h3>
+              <button onClick={() => setShowProductModal(false)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (onSaveProduct) {
+                  await onSaveProduct({
+                    id: editingProduct?.id,
+                    name: productForm.name,
+                    tamilName: productForm.tamilName,
+                    categoryId: productForm.categoryId,
+                    categoryName: productForm.categoryName,
+                    mrp: Number(productForm.mrp),
+                    sellingPrice: Number(productForm.sellingPrice),
+                    stock: Number(productForm.stock),
+                    plantHeight: productForm.plantHeight,
+                    potSize: productForm.potSize,
+                    sunlight: productForm.sunlight,
+                    images: [productForm.imageUrl],
+                    description: productForm.description || productForm.name
+                  });
+                }
+                setShowProductModal(false);
+              }}
+              className="p-4 overflow-y-auto space-y-3 text-xs"
+            >
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Plant Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Red Rose"
+                  value={productForm.name}
+                  onChange={e => setProductForm({ ...productForm, name: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Tamil Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. சிவப்பு ரோஜா"
+                  value={productForm.tamilName}
+                  onChange={e => setProductForm({ ...productForm, tamilName: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Selling Price (₹) *</label>
+                  <input
+                    type="number"
+                    required
+                    value={productForm.sellingPrice}
+                    onChange={e => setProductForm({ ...productForm, sellingPrice: Number(e.target.value) })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">MRP (₹)</label>
+                  <input
+                    type="number"
+                    value={productForm.mrp}
+                    onChange={e => setProductForm({ ...productForm, mrp: Number(e.target.value) })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Stock Quantity *</label>
+                <input
+                  type="number"
+                  required
+                  value={productForm.stock}
+                  onChange={e => setProductForm({ ...productForm, stock: Number(e.target.value) })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Image URL</label>
+                <input
+                  type="text"
+                  value={productForm.imageUrl}
+                  onChange={e => setProductForm({ ...productForm, imageUrl: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-[11px]"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
+              >
+                {editingProduct ? 'Save Plant Changes' : 'Add Plant to Store'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* 15. ADD/EDIT CATEGORY MODAL                                */}
+      {/* ========================================================= */}
+      {showCategoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden border border-slate-200 max-h-[90vh] flex flex-col">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-extrabold text-sm text-slate-900">
+                {editingCategory ? 'Edit Category' : 'Add New Category'}
+              </h3>
+              <button onClick={() => setShowCategoryModal(false)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (onSaveCategory) {
+                  await onSaveCategory({
+                    id: editingCategory?.id,
+                    name: categoryForm.name,
+                    tamilName: categoryForm.tamilName,
+                    slug: categoryForm.slug || categoryForm.name.toLowerCase().replace(/\s+/g, '-'),
+                    image: categoryForm.image,
+                    description: categoryForm.description
+                  });
+                }
+                setShowCategoryModal(false);
+              }}
+              className="p-4 overflow-y-auto space-y-3 text-xs"
+            >
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Category Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Roses"
+                  value={categoryForm.name}
+                  onChange={e => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Tamil Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. ரோஜா வகைகள்"
+                  value={categoryForm.tamilName}
+                  onChange={e => setCategoryForm({ ...categoryForm, tamilName: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Image URL</label>
+                <input
+                  type="text"
+                  value={categoryForm.image}
+                  onChange={e => setCategoryForm({ ...categoryForm, image: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-[11px]"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
+              >
+                {editingCategory ? 'Save Category Changes' : 'Create Category'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* 16. ADD REVIEW MODAL WITH LOCAL PHOTO UPLOADER             */}
+      {/* ========================================================= */}
+      {showReviewModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden border border-slate-200 max-h-[90vh] flex flex-col">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-extrabold text-sm text-slate-900">Add Customer Review</h3>
+              <button onClick={() => setShowReviewModal(false)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (onSaveReview) {
+                  onSaveReview({
+                    id: `rev-${Date.now()}`,
+                    userName: reviewForm.userName,
+                    location: reviewForm.location,
+                    rating: Number(reviewForm.rating),
+                    title: reviewForm.title,
+                    comment: reviewForm.comment,
+                    imageUrl: reviewForm.imageUrl,
+                    productName: reviewForm.productName,
+                    status: reviewForm.status,
+                    featured: reviewForm.featured,
+                    createdAt: new Date().toISOString()
+                  });
+                }
+                setShowReviewModal(false);
+              }}
+              className="p-4 overflow-y-auto space-y-3 text-xs"
+            >
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Customer Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Ramesh Kumar"
+                  value={reviewForm.userName}
+                  onChange={e => setReviewForm({ ...reviewForm, userName: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Rating (1 to 5 Stars)</label>
+                <select
+                  value={reviewForm.rating}
+                  onChange={e => setReviewForm({ ...reviewForm, rating: Number(e.target.value) })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                >
+                  <option value={5}>★★★★★ (5 Stars)</option>
+                  <option value={4}>★★★★☆ (4 Stars)</option>
+                  <option value={3}>★★★☆☆ (3 Stars)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Review Comment *</label>
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="Customer feedback on plant quality..."
+                  value={reviewForm.comment}
+                  onChange={e => setReviewForm({ ...reviewForm, comment: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-medium"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Upload Customer Plant Photo</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleReviewPhotoUpload}
+                  className="w-full text-xs file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-emerald-700 file:text-white cursor-pointer"
+                />
+                {reviewForm.imageUrl && (
+                  <img src={reviewForm.imageUrl} alt="Preview" className="w-full h-24 object-cover rounded-xl mt-1 border" />
+                )}
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
+              >
+                Publish Review to Store
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* 17. WHATSAPP NOTIFICATION PREVIEW MODAL                    */}
       {/* ========================================================= */}
       {whatsAppModal?.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
@@ -1448,12 +2291,10 @@ We would love your feedback! Please visit us again. 🌿
               </button>
             </div>
 
-            {/* Message Bubble Preview */}
             <div className="bg-[#E7FFDB] p-3.5 rounded-2xl border border-[#d2f3be] text-xs font-sans text-slate-800 whitespace-pre-wrap max-h-60 overflow-y-auto leading-relaxed shadow-inner">
               {whatsAppModal.message}
             </div>
 
-            {/* Actions */}
             <div className="space-y-2">
               <button
                 onClick={handleLaunchWhatsApp}
@@ -1476,7 +2317,7 @@ We would love your feedback! Please visit us again. 🌿
       )}
 
       {/* ========================================================= */}
-      {/* 9. A4 PRINT LABEL SHEET MODAL                              */}
+      {/* 18. A4 PRINT LABEL SHEET MODAL                             */}
       {/* ========================================================= */}
       {showLabelPrintPreview && (
         <A4LabelSheetPrint
@@ -1486,25 +2327,22 @@ We would love your feedback! Please visit us again. 🌿
       )}
 
       {/* ========================================================= */}
-      {/* 10. BOTTOM NAVIGATION BAR                                  */}
+      {/* 19. BOTTOM NAVIGATION BAR                                  */}
       {/* ========================================================= */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-6 py-2 flex items-center justify-between shadow-lg max-w-md mx-auto">
-        
-        {/* Tab 1: Dashboard */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-6 py-2 flex items-center justify-between shadow-lg max-w-lg mx-auto">
         <button
           onClick={() => {
             setActiveBottomTab('dashboard');
             setCurrentScreen('dashboard');
           }}
           className={`flex flex-col items-center gap-1 transition-colors cursor-pointer ${
-            activeBottomTab === 'dashboard' ? 'text-[#14532d] font-bold' : 'text-slate-500 font-medium'
+            activeBottomTab === 'dashboard' && currentScreen === 'dashboard' ? 'text-[#14532d] font-bold' : 'text-slate-500 font-medium'
           }`}
         >
           <LayoutDashboard className="w-5 h-5" />
           <span className="text-[10px]">Dashboard</span>
         </button>
 
-        {/* Tab 2: Orders */}
         <button
           onClick={() => {
             setActiveBottomTab('orders');
@@ -1512,7 +2350,7 @@ We would love your feedback! Please visit us again. 🌿
             setCurrentScreen('orders_list');
           }}
           className={`flex flex-col items-center gap-1 transition-colors cursor-pointer relative ${
-            activeBottomTab === 'orders' ? 'text-[#14532d] font-bold' : 'text-slate-500 font-medium'
+            currentScreen === 'orders_list' || currentScreen === 'order_details' ? 'text-[#14532d] font-bold' : 'text-slate-500 font-medium'
           }`}
         >
           <Calendar className="w-5 h-5" />
@@ -1522,28 +2360,26 @@ We would love your feedback! Please visit us again. 🌿
           )}
         </button>
 
-        {/* Tab 3: Label Sheet */}
         <button
           onClick={() => {
             setActiveBottomTab('labels');
             setCurrentScreen('generate_labels');
           }}
           className={`flex flex-col items-center gap-1 transition-colors cursor-pointer ${
-            activeBottomTab === 'labels' ? 'text-[#14532d] font-bold' : 'text-slate-500 font-medium'
+            currentScreen === 'generate_labels' ? 'text-[#14532d] font-bold' : 'text-slate-500 font-medium'
           }`}
         >
           <FileText className="w-5 h-5" />
           <span className="text-[10px]">Label Sheet</span>
         </button>
 
-        {/* Tab 4: Menu */}
         <button
           onClick={() => {
             setActiveBottomTab('menu');
             setCurrentScreen('menu_drawer');
           }}
           className={`flex flex-col items-center gap-1 transition-colors cursor-pointer ${
-            activeBottomTab === 'menu' ? 'text-[#14532d] font-bold' : 'text-slate-500 font-medium'
+            currentScreen === 'menu_drawer' ? 'text-[#14532d] font-bold' : 'text-slate-500 font-medium'
           }`}
         >
           <Menu className="w-5 h-5" />
