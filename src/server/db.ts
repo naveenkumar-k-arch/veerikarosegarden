@@ -5907,37 +5907,55 @@ class Store {
     }
 
     try {
-      const totalOrders = await prisma.order.count();
-
-      const revenueAgg = await prisma.order.aggregate({
-        _sum: { totalAmount: true },
-        where: {
-          OR: [
-            { paymentStatus: 'SUCCESS' },
-            { status: 'DELIVERED' }
-          ]
-        }
-      });
-      let totalRevenue = revenueAgg._sum.totalAmount || 0;
-
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
 
-      const todayAgg = await prisma.order.aggregate({
-        _sum: { totalAmount: true },
-        where: {
-          OR: [
-            { paymentStatus: 'SUCCESS' },
-            { status: 'DELIVERED' }
-          ],
-          createdAt: { gte: todayStart }
-        }
-      });
+      // Execute all 7 DB queries concurrently in parallel
+      const [
+        totalOrders,
+        revenueAgg,
+        todayAgg,
+        pendingOrders,
+        completedOrders,
+        lowStockInventories,
+        recentOrdersList
+      ] = await Promise.all([
+        prisma.order.count(),
+        prisma.order.aggregate({
+          _sum: { totalAmount: true },
+          where: {
+            OR: [
+              { paymentStatus: 'SUCCESS' },
+              { status: 'DELIVERED' }
+            ]
+          }
+        }),
+        prisma.order.aggregate({
+          _sum: { totalAmount: true },
+          where: {
+            OR: [
+              { paymentStatus: 'SUCCESS' },
+              { status: 'DELIVERED' }
+            ],
+            createdAt: { gte: todayStart }
+          }
+        }),
+        prisma.order.count({
+          where: { status: { in: ['PENDING', 'PACKING', 'DISPATCHED'] } }
+        }),
+        prisma.order.count({
+          where: { status: 'DELIVERED' }
+        }),
+        prisma.inventory.findMany({
+          where: { quantity: { lte: 10 } },
+          include: { product: true }
+        }),
+        this.getOrders()
+      ]);
+
+      let totalRevenue = revenueAgg._sum.totalAmount || 0;
       let todaySales = todayAgg._sum.totalAmount || 0;
 
-      const recentOrdersList = await this.getOrders();
-
-      // Backup calculation from mapped order objects if aggregate misses non-enum values or COD delivered
       if (recentOrdersList.length > 0) {
         const calculatedRev = recentOrdersList.filter(isRevenueOrder).reduce((sum, o) => sum + (o.grandTotal || 0), 0);
         if (calculatedRev > totalRevenue) {
@@ -5948,19 +5966,6 @@ class Store {
           todaySales = calculatedToday;
         }
       }
-
-      const pendingOrders = await prisma.order.count({
-        where: { status: { in: ['PENDING', 'PACKING', 'DISPATCHED'] } }
-      });
-
-      const completedOrders = await prisma.order.count({
-        where: { status: 'DELIVERED' }
-      });
-
-      const lowStockInventories = await prisma.inventory.findMany({
-        where: { quantity: { lte: 10 } },
-        include: { product: true }
-      });
 
       const lowStockProducts = lowStockInventories.map(i => ({
         id: i.product.id,
