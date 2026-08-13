@@ -74,6 +74,31 @@ function saveDiskOrders(orders: Order[]) {
   }
 }
 
+const FINANCES_STORE_FILE = path.resolve(process.cwd(), 'src/data/finances_store.json');
+
+function loadDiskFinances(): FinancialEntry[] {
+  try {
+    if (fs.existsSync(FINANCES_STORE_FILE)) {
+      const data = fs.readFileSync(FINANCES_STORE_FILE, 'utf-8');
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (err) {
+    console.error('Error reading finances_store.json:', err);
+  }
+  return [...DEFAULT_FINANCES];
+}
+
+function saveDiskFinances(finances: FinancialEntry[]) {
+  try {
+    const dir = path.dirname(FINANCES_STORE_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(FINANCES_STORE_FILE, JSON.stringify(finances, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error writing finances_store.json:', err);
+  }
+}
+
 // Default Fallback Data matching WhatsApp Catalogue
 const DEFAULT_CATEGORIES: Category[] = [
   {
@@ -3968,7 +3993,15 @@ function packMetaIntoWorkingHours(cleanWorkingHours: string, meta: CustomMetaSet
 
 class Store {
   private memoryOrders: Order[] = [];
-  private memoryFinances: FinancialEntry[] = [...DEFAULT_FINANCES];
+  private get memoryFinances(): FinancialEntry[] {
+    if (!(globalThis as any)._memoryFinances) {
+      (globalThis as any)._memoryFinances = loadDiskFinances();
+    }
+    return (globalThis as any)._memoryFinances;
+  }
+  private set memoryFinances(val: FinancialEntry[]) {
+    (globalThis as any)._memoryFinances = val;
+  }
 
   // FINANCIAL EXPENSE & PROFIT MANAGEMENT
   async getFinancialEntries(): Promise<FinancialEntry[]> {
@@ -3976,7 +4009,6 @@ class Store {
   }
 
   async addFinancialEntry(data: Partial<FinancialEntry>): Promise<FinancialEntry> {
-
     const entry: FinancialEntry = {
       id: 'fin-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
       type: data.type || 'EXPENSE',
@@ -3989,21 +4021,27 @@ class Store {
       date: data.date || new Date().toISOString().split('T')[0],
       createdAt: new Date().toISOString()
     };
-    this.memoryFinances.unshift(entry);
+    const updated = [entry, ...this.memoryFinances];
+    this.memoryFinances = updated;
+    saveDiskFinances(updated);
     return entry;
   }
 
   async deleteFinancialEntry(id: string): Promise<boolean> {
+    if (!id) return false;
     deletedFinanceIds.add(id);
-    this.memoryFinances = this.memoryFinances.filter(f => f.id !== id);
+    const updated = this.memoryFinances.filter(f => f.id !== id);
+    this.memoryFinances = updated;
+    saveDiskFinances(updated);
     return true;
   }
 
   async updateFinancialEntry(id: string, data: Partial<FinancialEntry>): Promise<FinancialEntry | null> {
-    const idx = this.memoryFinances.findIndex(f => f.id === id);
+    const list = [...this.memoryFinances];
+    const idx = list.findIndex(f => f.id === id);
     if (idx !== -1) {
-      this.memoryFinances[idx] = {
-        ...this.memoryFinances[idx],
+      list[idx] = {
+        ...list[idx],
         ...(data.type ? { type: data.type } : {}),
         ...(data.title ? { title: data.title.trim() } : {}),
         ...(data.category ? { category: data.category } : {}),
@@ -4013,7 +4051,9 @@ class Store {
         ...(data.notes !== undefined ? { notes: data.notes } : {}),
         ...(data.date ? { date: data.date } : {})
       };
-      return this.memoryFinances[idx];
+      this.memoryFinances = list;
+      saveDiskFinances(list);
+      return list[idx];
     }
     return null;
   }

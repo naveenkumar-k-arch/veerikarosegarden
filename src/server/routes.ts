@@ -46,6 +46,7 @@ apiRouter.get('/health', async (req, res) => {
 // ================= PRODUCT ROUTES =================
 apiRouter.get('/products', async (req, res) => {
   try {
+    const { search, categoryId, featured, bestSeller, minPrice, maxPrice, sort } = req.query;
     const hasFilter = Boolean(search || categoryId || featured === 'true' || bestSeller === 'true' || minPrice || maxPrice || sort);
     const products = await db.getProducts(hasFilter ? {
       search: search as string,
@@ -119,10 +120,13 @@ apiRouter.delete('/products/:id', requireAdmin, async (req: AuthenticatedRequest
 // ================= CATEGORY ROUTES =================
 apiRouter.get('/categories', async (req, res) => {
   try {
+    const { onlyFeatured, showAll } = req.query;
+    const isFeaturedOnly = onlyFeatured === 'true';
+    const isShowAll = showAll === 'true';
     const hasCatFilter = Boolean(onlyFeatured || showAll);
     const categories = await db.getCategories(hasCatFilter ? {
-      onlyActive: !showAll,
-      onlyFeatured
+      onlyActive: !isShowAll,
+      onlyFeatured: isFeaturedOnly
     } : undefined);
     res.json({ success: true, count: categories.length, categories });
   } catch (error: any) {
@@ -1184,14 +1188,24 @@ apiRouter.post('/admin/finances', requireAdmin, async (req: AuthenticatedRequest
   }
 });
 
-apiRouter.delete('/admin/finances/:id', requireAdmin, async (req: AuthenticatedRequest, res) => {
+const handleDeleteFinance = async (req: AuthenticatedRequest, res: express.Response) => {
   try {
-    const deleted = await db.deleteFinancialEntry(req.params.id);
+    const id = req.params?.id || req.body?.id || (req.query?.id as string);
+    if (!id) {
+      return res.status(400).json({ success: false, message: 'ID required for finance entry deletion' });
+    }
+    const deleted = await db.deleteFinancialEntry(id);
     res.json({ success: true, deleted, message: 'Financial entry removed successfully' });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
   }
-});
+};
+
+apiRouter.delete('/admin/finances/:id', requireAdmin, handleDeleteFinance);
+apiRouter.post('/admin/finances/delete', requireAdmin, handleDeleteFinance);
+apiRouter.post('/admin/finances/:id/delete', requireAdmin, handleDeleteFinance);
+apiRouter.delete('/finances/:id', requireAdmin, handleDeleteFinance);
+apiRouter.post('/finances/delete', requireAdmin, handleDeleteFinance);
 
 const handleUpdateFinance = async (req: AuthenticatedRequest, res: express.Response) => {
   try {
@@ -1210,16 +1224,6 @@ const handleUpdateFinance = async (req: AuthenticatedRequest, res: express.Respo
 apiRouter.put('/admin/finances/:id', requireAdmin, handleUpdateFinance);
 apiRouter.post('/admin/finances/update', requireAdmin, handleUpdateFinance);
 apiRouter.post('/admin/finances/:id/update', requireAdmin, handleUpdateFinance);
-
-
-apiRouter.post('/admin/finances/delete', requireAdmin, async (req: AuthenticatedRequest, res) => {
-  try {
-    const deleted = await db.deleteFinancialEntry(req.body.id);
-    res.json({ success: true, deleted, message: 'Financial entry removed successfully' });
-  } catch (error: any) {
-    res.status(400).json({ success: false, message: error.message });
-  }
-});
 
 
 

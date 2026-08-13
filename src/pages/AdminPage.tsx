@@ -648,7 +648,10 @@ const silentRefresh = async (): Promise<boolean> => {
       if (bRes?.success) {
         if (bRes.stats) setStats(bRes.stats);
         if (Array.isArray(bRes.combos)) setCombos(bRes.combos);
-        if (Array.isArray(bRes.finances)) setFinances(bRes.finances);
+        if (Array.isArray(bRes.finances)) {
+          const deletedFinSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_finances') || '[]'));
+          setFinances(bRes.finances.filter((f: FinancialEntry) => !deletedFinSet.has(f.id)));
+        }
         if (Array.isArray(bRes.products) && bRes.products.length > 0) {
           const now = Date.now();
           setProducts(prev => {
@@ -702,7 +705,6 @@ const silentRefresh = async (): Promise<boolean> => {
     localStorage.removeItem('vrg_deleted_products');
     localStorage.removeItem('vrg_deleted_categories');
     localStorage.removeItem('vrg_deleted_coupons');
-    localStorage.removeItem('vrg_deleted_finances');
 
     fetchData(true);
 
