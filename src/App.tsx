@@ -558,6 +558,12 @@ export const App: React.FC = () => {
     if (params?.category !== undefined) setSelectedCategory(params.category);
     if (params?.query !== undefined) setSearchQuery(params.query);
 
+    if (page === 'cart' && window.innerWidth < 768) {
+      setIsCartOpen(false);
+      setIsMobileCheckoutOpen(true);
+      return;
+    }
+
     setCurrentPage(page);
 
     const activeProd = params?.product !== undefined ? params.product : selectedProduct;
