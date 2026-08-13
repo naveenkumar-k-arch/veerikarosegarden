@@ -37,7 +37,17 @@ interface MobileCheckoutFlowProps {
   onNavigateToAccount: () => void;
 }
 
-type PotOption = 'NONE' | '6_INCH' | '8_INCH';
+type DeliveryOptionType = 'REDUCED_SOIL' | 'FULL_SOIL' | 'METTUR_PARCEL';
+
+const getDeliveryChargeForOption = (opt: DeliveryOptionType, count: number): number => {
+  if (opt === 'REDUCED_SOIL') return count * 60;
+  if (opt === 'FULL_SOIL') return count * 100;
+  if (opt === 'METTUR_PARCEL') {
+    if (count < 3) return 60;
+    return Math.ceil(count / 6) * 60;
+  }
+  return count * 60;
+};
 
 const DELIVERY_TERMS = [
   '🌿 Plants are live/semi-dormant saplings. Minor leaf stress during transit is normal and temporary.',
@@ -160,8 +170,27 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
   });
   const [addrError, setAddrError] = useState<string | null>(null);
 
-  // ── Pot selection ──────────────────────────────────────────────────────────
-  const [selectedPot, setSelectedPot] = useState<PotOption>('NONE');
+  // ── Delivery / Packing Selection ──────────────────────────────────────────
+  const [deliveryOption, setDeliveryOption] = useState<DeliveryOptionType>('REDUCED_SOIL');
+
+  // Total plant count
+  const subtotal = items.reduce((sum, i) => sum + i.product.sellingPrice * i.quantity, 0);
+  const totalPlantCount = items.reduce((sum, i) => sum + i.quantity, 0);
+
+  // Auto fallback if option becomes unavailable due to plant count changes
+  useEffect(() => {
+    if (deliveryOption === 'FULL_SOIL' && totalPlantCount > 5) {
+      setDeliveryOption('REDUCED_SOIL');
+    }
+    if (deliveryOption === 'METTUR_PARCEL' && totalPlantCount < 3) {
+      setDeliveryOption('REDUCED_SOIL');
+    }
+  }, [totalPlantCount, deliveryOption]);
+
+  const shippingCharge = getDeliveryChargeForOption(deliveryOption, totalPlantCount);
+  const potCharge = 0;
+  const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
+  const grandTotal = Math.max(0, subtotal + shippingCharge - discountAmount);
 
   // ── Terms ──────────────────────────────────────────────────────────────────
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -213,10 +242,8 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
 
   if (!isOpen) return null;
 
-  // ── Computed totals ────────────────────────────────────────────────────────
+  // Summary Step preview calculation
   const summaryTotals = computeOrderTotals({ items, state: previewState, appliedCoupon });
-  const checkoutTotals = computeOrderTotals({ items, state: address.state, selectedPot, appliedCoupon });
-  const { subtotal, totalPlantCount, potCharge, shippingFee: shippingCharge, discountAmount, grandTotal } = checkoutTotals;
 
   const upiId = siteSettings?.upiId || '7200826129@ybl';
   const upiName = siteSettings?.upiName || 'Veerika Rose Garden Nursery';
@@ -306,8 +333,8 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
         paymentMethod: effectivePM,
         paymentProofUrl: effectivePM === 'QR_PAYMENT' ? paymentProofUrl : undefined,
         transactionId: effectivePM === 'QR_PAYMENT' ? transactionId : undefined,
-        potCharge,
-        potOption: selectedPot,
+        potCharge: 0,
+        potOption: deliveryOption === 'METTUR_PARCEL' ? 'Mettur Parcel Service' : deliveryOption === 'FULL_SOIL' ? 'Professional Courier - Full Soil' : 'Professional Courier - Reduced Soil',
       });
       setLoading(false);
       if (res.success) {
@@ -818,14 +845,14 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
         )}
 
         {/* ═══════════════════════════════════════════════════════════════════
-            STEP 4 — Order Items & Pot Selection
+            STEP 4 — Delivery / Packing
         ═══════════════════════════════════════════════════════════════════ */}
         {step === 4 && (
           <div className="flex flex-col min-h-full">
-            <Header title="📦 Order Items" onBack={() => goTo(3)} />
+            <Header title="🚚 Delivery / Packing" subtitle="Options change automatically based on plant quantity." onBack={() => goTo(3)} />
 
             <div className="flex-1 px-4 py-3 space-y-4">
-              {/* Items */}
+              {/* Items Summary */}
               <div className="space-y-2">
                 {items.map(item => (
                   <div key={item.product.id} className="flex gap-3 bg-white p-3 rounded-2xl border border-slate-200 items-center">
@@ -839,32 +866,102 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                 ))}
               </div>
 
-              {/* Pot selection */}
+              {/* Delivery / Packing options */}
               <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 space-y-3">
-                <label className="text-[11px] font-extrabold text-slate-700 flex items-center gap-1.5">
-                  🪴 Plant Pot Requirement:
-                </label>
-                <div className="space-y-2">
-                  {[
-                    { value: 'NONE' as PotOption, label: '🌱 No pot required(reduced soil)', price: '₹0', sub: '' },
-                    { value: '6_INCH' as PotOption, label: '🪴 below 6 inch (no delivery charges )', price: `+₹${99 * totalPlantCount}`, sub: `(${totalPlantCount} pot)` },
-                    { value: '8_INCH' as PotOption, label: '🪴 Above 6 inch (no delivery charges)', price: `+₹${199 * totalPlantCount}`, sub: `(${totalPlantCount} pot)` },
-                  ].map(opt => (
-                    <div
-                      key={opt.value}
-                      onClick={() => setSelectedPot(opt.value)}
-                      className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between ${selectedPot === opt.value ? 'border-emerald-600 bg-emerald-50' : 'border-slate-200 bg-white'}`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <input type="radio" checked={selectedPot === opt.value} onChange={() => setSelectedPot(opt.value)} className="accent-emerald-600 cursor-pointer" />
-                        <span className="text-[11px] font-semibold text-slate-800">{opt.label}</span>
+                <div>
+                  <h3 className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5">
+                    🚚 Delivery / Packing Options
+                  </h3>
+                  <p className="text-[10px] text-slate-500 font-medium mt-0.5">
+                    Options change automatically based on plant quantity ({totalPlantCount} plant{totalPlantCount !== 1 ? 's' : ''}).
+                  </p>
+                </div>
+
+                <div className="space-y-2.5">
+                  {/* Option 1: Professional Courier - Reduced Soil */}
+                  <div
+                    onClick={() => setDeliveryOption('REDUCED_SOIL')}
+                    className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all ${deliveryOption === 'REDUCED_SOIL' ? 'border-emerald-600 bg-emerald-50' : 'border-slate-200 bg-white'}`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2.5">
+                        <input type="radio" checked={deliveryOption === 'REDUCED_SOIL'} onChange={() => setDeliveryOption('REDUCED_SOIL')} className="mt-0.5 accent-emerald-600 cursor-pointer" />
+                        <div>
+                          <h4 className="text-xs font-extrabold text-slate-900">🌿 Professional Courier – Reduced Soil</h4>
+                          <span className="inline-block px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[9px] font-extrabold rounded-md mt-1">Available</span>
+                          <p className="text-[10px] text-slate-600 font-semibold mt-1">Delivery Charge: ₹60 for each plant</p>
+                        </div>
                       </div>
-                      <div className="text-right shrink-0 ml-2">
-                        <span className="text-[11px] font-extrabold text-slate-900 block">{opt.price}</span>
-                        {opt.sub && <span className="text-[9px] text-emerald-700 font-bold">{opt.sub}</span>}
+                      <div className="text-right shrink-0">
+                        <span className="text-xs font-extrabold text-slate-900 block">₹{totalPlantCount * 60}</span>
+                        <span className="text-[9px] text-slate-400 font-medium">({totalPlantCount} × ₹60)</span>
                       </div>
                     </div>
-                  ))}
+                  </div>
+
+                  {/* Option 2: Professional Courier - Full Soil */}
+                  {(() => {
+                    const isAvail = totalPlantCount <= 5;
+                    return (
+                      <div
+                        onClick={() => { if (isAvail) setDeliveryOption('FULL_SOIL'); }}
+                        className={`p-3.5 rounded-xl border-2 transition-all ${!isAvail ? 'opacity-50 border-slate-200 bg-slate-100 cursor-not-allowed' : deliveryOption === 'FULL_SOIL' ? 'border-emerald-600 bg-emerald-50 cursor-pointer' : 'border-slate-200 bg-white cursor-pointer'}`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-start gap-2.5">
+                            <input type="radio" disabled={!isAvail} checked={deliveryOption === 'FULL_SOIL'} onChange={() => { if (isAvail) setDeliveryOption('FULL_SOIL'); }} className="mt-0.5 accent-emerald-600 cursor-pointer" />
+                            <div>
+                              <h4 className="text-xs font-extrabold text-slate-900">🌱 Professional Courier – Full Soil</h4>
+                              <span className={`inline-block px-2 py-0.5 text-[9px] font-extrabold rounded-md mt-1 ${isAvail ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                                {isAvail ? 'Maximum 5 plants' : 'Unavailable (Max 5 plants)'}
+                              </span>
+                              <p className="text-[10px] text-slate-600 font-semibold mt-1">Delivery Charge: ₹100 for each plant</p>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <span className="text-xs font-extrabold text-slate-900 block">₹{totalPlantCount * 100}</span>
+                            <span className="text-[9px] text-slate-400 font-medium">({totalPlantCount} × ₹100)</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Option 3: Mettur Parcel Service */}
+                  {(() => {
+                    const isAvail = totalPlantCount >= 3;
+                    const metturCharge = getDeliveryChargeForOption('METTUR_PARCEL', totalPlantCount);
+                    return (
+                      <div
+                        onClick={() => { if (isAvail) setDeliveryOption('METTUR_PARCEL'); }}
+                        className={`p-3.5 rounded-xl border-2 transition-all ${!isAvail ? 'opacity-60 border-slate-200 bg-amber-50/50 cursor-not-allowed' : deliveryOption === 'METTUR_PARCEL' ? 'border-emerald-600 bg-emerald-50 cursor-pointer' : 'border-slate-200 bg-white cursor-pointer'}`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-start gap-2.5">
+                            <input type="radio" disabled={!isAvail} checked={deliveryOption === 'METTUR_PARCEL'} onChange={() => { if (isAvail) setDeliveryOption('METTUR_PARCEL'); }} className="mt-0.5 accent-emerald-600 cursor-pointer" />
+                            <div>
+                              <h4 className="text-xs font-extrabold text-slate-900">📦 Mettur Parcel Service</h4>
+                              <p className="text-[10px] text-slate-500 font-medium">All India • Available from 3 plants • Full Soil / Open Box</p>
+                              <span className={`inline-block px-2 py-0.5 text-[9px] font-extrabold rounded-md mt-1 ${isAvail ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                                {isAvail ? 'Available' : 'Available from 3 plants'}
+                              </span>
+                              <p className="text-[10px] text-slate-600 font-semibold mt-1">Packing / Delivery Charge: ₹60 (upto 6 plants ₹60, 7–12 plants ₹120)</p>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            {isAvail ? (
+                              <>
+                                <span className="text-xs font-extrabold text-slate-900 block">₹{metturCharge}</span>
+                                <span className="text-[9px] text-emerald-700 font-bold">{totalPlantCount <= 6 ? 'Upto 6 plants' : '7–12 plants'}</span>
+                              </>
+                            ) : (
+                              <span className="text-[10px] font-bold text-amber-700 block">Min 3 plants</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -878,19 +975,11 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                   <div>
                     <span className="flex items-center gap-1">🚚 Delivery Charge:</span>
                     <span className="text-[10px] text-slate-400 block">
-                      {selectedPot !== 'NONE' ? 'Free with pot' : `${address.state} (${isTamilNadu(address.state) ? 'Tamil Nadu Rate' : 'Other States Rate'})`}
+                      {deliveryOption === 'METTUR_PARCEL' ? 'Mettur Parcel Service' : deliveryOption === 'FULL_SOIL' ? 'Courier (Full Soil)' : 'Courier (Reduced Soil)'}
                     </span>
                   </div>
-                  <span className="font-bold text-slate-900">
-                    {selectedPot !== 'NONE' ? <span className="text-emerald-700">FREE</span> : `₹${shippingCharge}`}
-                  </span>
+                  <span className="font-bold text-slate-900">₹{shippingCharge}</span>
                 </div>
-                {potCharge > 0 && (
-                  <div className="flex justify-between text-emerald-800 font-semibold">
-                    <span>🪴 Pot Charge:</span>
-                    <span>+₹{potCharge}</span>
-                  </div>
-                )}
                 {appliedCoupon && (
                   <div className="flex justify-between text-emerald-700 font-semibold">
                     <span>🏷️ Coupon:</span>
