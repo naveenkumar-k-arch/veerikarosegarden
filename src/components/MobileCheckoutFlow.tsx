@@ -333,37 +333,145 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
   };
 
   const handleDownloadReceipt = () => {
-    const order = fetchedOrder;
-    if (!order) return;
-    const content = `
-VRG NURSERY — ORDER RECEIPT
-============================
-Order ID: ${order.id}
-Date: ${new Date(order.createdAt).toLocaleDateString('en-IN')}
+    const order = fetchedOrder || {
+      id: placedOrderId || 'ORD-1001',
+      createdAt: new Date().toISOString(),
+      customerName: address.fullName || user?.name || 'Valued Customer',
+      customerPhone: address.phone || user?.phone || '',
+      shippingAddress: address,
+      items: items.map(i => ({ name: i.product.name, price: i.product.sellingPrice, quantity: i.quantity })),
+      subtotal,
+      shippingCharge,
+      potCharge,
+      grandTotal,
+      paymentMethod,
+      paymentStatus: paymentMethod === 'COD' ? 'CONFIRMED' : 'SUCCESS',
+    };
 
-CUSTOMER
-Name: ${order.customerName}
-Phone: ${order.customerPhone}
+    const printHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Receipt_${order.id}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 24px; color: #0f172a; max-width: 600px; margin: 0 auto; line-height: 1.5; font-size: 13px; }
+    .no-print { display: flex; justify-content: flex-end; margin-bottom: 16px; }
+    .btn-pdf { background: #15803d; color: #ffffff; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+    .header { text-align: center; border-bottom: 2px solid #16a34a; padding-bottom: 16px; margin-bottom: 20px; }
+    .brand { font-size: 22px; font-weight: 900; color: #14532d; margin: 0; }
+    .subbrand { font-size: 12px; color: #16a34a; font-weight: 700; margin: 2px 0 0 0; }
+    .contact { font-size: 11px; color: #64748b; margin-top: 6px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; p: 12px; padding: 12px; }
+    .box-title { font-size: 10px; font-weight: 800; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    .table th { background: #f1f5f9; text-align: left; padding: 10px; font-size: 11px; text-transform: uppercase; color: #475569; font-weight: 800; border-radius: 6px; }
+    .table td { padding: 10px; border-bottom: 1px solid #f1f5f9; font-size: 12px; }
+    .grand-row td { border-top: 2px solid #0f172a; font-size: 15px; font-weight: 900; color: #14532d; padding-top: 12px; }
+    .badge { display: inline-block; background: #dcfce7; color: #15803d; font-weight: 800; padding: 2px 8px; border-radius: 6px; font-size: 10px; }
+    .footer { text-align: center; margin-top: 24px; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 16px; }
+    @media print {
+      .no-print { display: none !important; }
+      body { padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print">
+    <button onclick="window.print()" class="btn-pdf">📄 Save as PDF / Print Receipt</button>
+  </div>
 
-ITEMS
-${order.items.map((i: any) => `- ${i.name} × ${i.quantity} = ₹${i.price * i.quantity}`).join('\n')}
+  <div class="header">
+    <h1 class="brand">🌸 Veerika Rose Garden</h1>
+    <p class="subbrand">Official Order Receipt & Tax Invoice</p>
+    <div class="contact">Pennagaram, Dharmapuri, Tamil Nadu - 636810 | Phone: +91 72008 26129</div>
+  </div>
 
-BILLING
-Subtotal: ₹${order.subtotal}
-Delivery: ₹${order.shippingCharge}
-Pot Charge: ₹${order.potCharge || 0}
-Grand Total: ₹${order.grandTotal}
-Payment: ${order.paymentMethod}
-Status: ${order.paymentStatus}
+  <div class="grid">
+    <div class="box">
+      <div class="box-title">Order Details</div>
+      <strong>Order ID:</strong> ${order.id}<br>
+      <strong>Date:</strong> ${new Date(order.createdAt).toLocaleDateString('en-IN')}<br>
+      <strong>Payment:</strong> ${order.paymentMethod}<br>
+      <strong>Status:</strong> <span class="badge">${order.paymentStatus || 'CONFIRMED'}</span>
+    </div>
+    <div class="box">
+      <div class="box-title">Delivery Address</div>
+      <strong>${order.shippingAddress?.fullName || order.customerName}</strong><br>
+      ${order.shippingAddress?.houseNo ? order.shippingAddress.houseNo + ', ' : ''}${order.shippingAddress?.street || ''}<br>
+      ${order.shippingAddress?.villageTown || ''}, ${order.shippingAddress?.district || ''}<br>
+      ${order.shippingAddress?.state || 'Tamil Nadu'} - ${order.shippingAddress?.pincode || ''}<br>
+      📱 ${order.shippingAddress?.phone || order.customerPhone}
+    </div>
+  </div>
 
-🌱 Dispatch: 5-6 working days | Delivery: 1-2 days after dispatch
-VRG Nursery — Veerika Rose Garden
-    `.trim();
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `VRG-Receipt-${order.id}.txt`;
-    a.click(); URL.revokeObjectURL(url);
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Plant Description</th>
+        <th style="text-align: center;">Qty</th>
+        <th style="text-align: right;">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${(order.items || []).map((i: any) => `
+        <tr>
+          <td><strong>${i.name}</strong></td>
+          <td style="text-align: center;">${i.quantity}</td>
+          <td style="text-align: right;">₹${i.price * i.quantity}</td>
+        </tr>
+      `).join('')}
+      <tr>
+        <td colspan="2" style="text-align: right; color: #64748b;">Subtotal:</td>
+        <td style="text-align: right; font-weight: 700;">₹${order.subtotal || subtotal}</td>
+      </tr>
+      <tr>
+        <td colspan="2" style="text-align: right; color: #64748b;">Delivery Charge:</td>
+        <td style="text-align: right; font-weight: 700;">₹${order.shippingCharge ?? shippingCharge}</td>
+      </tr>
+      ${(order.potCharge || potCharge) > 0 ? `
+        <tr>
+          <td colspan="2" style="text-align: right; color: #64748b;">Pot Charge:</td>
+          <td style="text-align: right; font-weight: 700;">+₹${order.potCharge || potCharge}</td>
+        </tr>
+      ` : ''}
+      <tr class="grand-row">
+        <td colspan="2" style="text-align: right;">Grand Total:</td>
+        <td style="text-align: right;">₹${order.grandTotal || grandTotal}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="footer">
+    🌱 Dispatch: 5-6 working days | Delivery: 1-2 days after dispatch<br>
+    Thank you for choosing Veerika Rose Garden Nursery!
+  </div>
+
+  <script>
+    window.onload = function() {
+      setTimeout(function() { window.print(); }, 200);
+    };
+  </script>
+</body>
+</html>
+    `;
+
+    const printWin = window.open('', '_blank');
+    if (printWin) {
+      printWin.document.write(printHtml);
+      printWin.document.close();
+    } else {
+      // Text fallback if popups disabled
+      const content = `VRG NURSERY — ORDER RECEIPT\nOrder ID: ${order.id}\nGrand Total: ₹${order.grandTotal || grandTotal}`;
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `VRG-Receipt-${order.id}.txt`;
+      a.click(); URL.revokeObjectURL(url);
+    }
   };
 
   // ─────────────────────────────────────────────────────────────────────────
