@@ -670,32 +670,24 @@ const silentRefresh = async (): Promise<boolean> => {
         if (bRes.settings) setSettings(bRes.settings);
         if (Array.isArray(bRes.paymentLogs)) setPaymentLogs(bRes.paymentLogs);
       } else {
-        // Fallback to legacy parallel calls if bootstrap fails
-        const [sRes, pRes, cRes, oRes, cpRes, bResLeg, rRes, stRes, plRes, fnRes, cbRes] = await Promise.all([
-          authFetch('/api/admin/dashboard').then((r) => r.json()).catch(() => null),
-          authFetch('/api/products').then((r) => r.json()).catch(() => null),
-          authFetch('/api/admin/categories').then((r) => r.json()).catch(() => null),
-          authFetch('/api/admin/orders').then((r) => r.json()).catch(() => null),
-          authFetch('/api/coupons').then((r) => r.json()).catch(() => null),
-          authFetch('/api/banners').then((r) => r.json()).catch(() => null),
-          authFetch('/api/reviews').then((r) => r.json()).catch(() => null),
-          authFetch('/api/admin/settings').then((r) => r.json()).catch(() => null),
-          authFetch('/api/admin/payment-logs').then((r) => r.json()).catch(() => null),
-          authFetch('/api/admin/finances').then((r) => r.json()).catch(() => null),
-          authFetch('/api/combos').then((r) => r.json()).catch(() => null)
+        // Fast fallback: fetch public endpoints without 401 retry overhead
+        const [pRes, cRes, cpRes, bResLeg, rRes, stRes, cbRes] = await Promise.all([
+          fetch('/api/products').then((r) => r.json()).catch(() => null),
+          fetch('/api/categories').then((r) => r.json()).catch(() => null),
+          fetch('/api/coupons').then((r) => r.json()).catch(() => null),
+          fetch('/api/banners').then((r) => r.json()).catch(() => null),
+          fetch('/api/reviews').then((r) => r.json()).catch(() => null),
+          fetch('/api/settings').then((r) => r.json()).catch(() => null),
+          fetch('/api/combos').then((r) => r.json()).catch(() => null)
         ]);
 
         if (cbRes?.success && Array.isArray(cbRes.combos)) setCombos(cbRes.combos);
-        if (fnRes?.success && Array.isArray(fnRes.entries)) setFinances(fnRes.entries);
-        if (sRes?.success) setStats(sRes.stats);
         if (pRes?.success && Array.isArray(pRes.products)) setProducts(pRes.products);
         if (cRes?.success && Array.isArray(cRes.categories)) setCategories(cRes.categories);
         if (cpRes?.success && Array.isArray(cpRes.coupons)) setCoupons(cpRes.coupons);
-        if (oRes?.success && Array.isArray(oRes.orders)) setOrders(oRes.orders);
         if (bResLeg?.success) setBanners(bResLeg.banners);
         if (rRes?.success) setReviews(rRes.reviews);
         if (stRes?.success) setSettings(stRes.settings);
-        if (plRes?.success) setPaymentLogs(plRes.logs);
       }
     } catch (err) {
       console.error(err);

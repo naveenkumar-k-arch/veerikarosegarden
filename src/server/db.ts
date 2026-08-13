@@ -4023,6 +4023,12 @@ class Store {
 
 
   // PRODUCTS
+  private productsCache: { data: Product[]; expiresAt: number } | null = null;
+
+  invalidateProductsCache() {
+    this.productsCache = null;
+  }
+
   async getProducts(query?: {
     search?: string;
     categoryId?: string;
@@ -4032,6 +4038,11 @@ class Store {
     maxPrice?: number;
     sort?: string;
   }): Promise<Product[]> {
+    const isFullQuery = !query || Object.keys(query).length === 0;
+    if (isFullQuery && this.productsCache && Date.now() < this.productsCache.expiresAt) {
+      return this.productsCache.data;
+    }
+
     const prisma = getPrismaClient();
     if (!prisma) {
       let results = [...DEFAULT_PRODUCTS];
@@ -4215,7 +4226,11 @@ class Store {
         results = results.filter(p => p.sellingPrice <= query.maxPrice!);
       }
 
-      return results.filter(p => !deletedProductIds.has(p.id));
+      const finalProducts = results.filter(p => !deletedProductIds.has(p.id));
+      if (isFullQuery) {
+        this.productsCache = { data: finalProducts, expiresAt: Date.now() + 10000 };
+      }
+      return finalProducts;
     } catch (err) {
       console.error('Prisma getProducts error:', err);
       return DEFAULT_PRODUCTS.filter(p => !deletedProductIds.has(p.id));
@@ -5501,10 +5516,21 @@ class Store {
     (globalThis as any).globalMemoryOrdersBuffer.unshift(order);
     // Persist to Firestore for cross-device/cross-request access
     firestoreSaveOrder(order).catch(() => {});
+    this.invalidateOrdersCache();
     return order;
   }
 
+  private ordersCache: { data: Order[]; expiresAt: number } | null = null;
+
+  invalidateOrdersCache() {
+    this.ordersCache = null;
+  }
+
   async getOrders(userId?: string): Promise<Order[]> {
+    if (!userId && this.ordersCache && Date.now() < this.ordersCache.expiresAt) {
+      return this.ordersCache.data;
+    }
+
     const prisma = getPrismaClient();
     let dbOrders: Order[] = [];
 
@@ -5601,10 +5627,15 @@ class Store {
         }
       }
     });
-    return Array.from(uniqueMap.values());
+    const result = Array.from(uniqueMap.values());
+    if (!userId) {
+      this.ordersCache = { data: result, expiresAt: Date.now() + 10000 };
+    }
+    return result;
   }
 
   async deleteOrder(id: string): Promise<boolean> {
+    this.invalidateOrdersCache();
     const clean = (id || '').trim();
     if (clean) {
       deletedOrderIds.add(clean);
