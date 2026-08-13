@@ -152,12 +152,8 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
 
   // ── Address state ──────────────────────────────────────────────────────────
   const [address, setAddress] = useState<ShippingAddress>({
-    fullName: user?.name || '',
-    phone: (() => {
-      const p = user?.phone || '';
-      if (!p || p.startsWith('g_') || p.includes('@') || /[a-zA-Z]/.test(p)) return '';
-      return p;
-    })(),
+    fullName: '',
+    phone: '',
     alternatePhone: '',
     houseNo: '',
     street: '',

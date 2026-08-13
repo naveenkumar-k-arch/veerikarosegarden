@@ -60,13 +60,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     return clean;
   };
 
-  // Clean Address State — restore from sessionStorage if available
+  // Clean Address State — default to empty fields
   const [address, setAddress] = useState<ShippingAddress>(() => {
-    const saved = getSessionItem<ShippingAddress | null>('vrg_checkout_address', null);
-    if (saved && saved.fullName) return saved;
     return {
-      fullName: user?.name || '',
-      phone: getInitialPhone(user?.phone),
+      fullName: '',
+      phone: '',
       alternatePhone: '',
       houseNo: '',
       street: '',
