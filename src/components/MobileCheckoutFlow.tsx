@@ -1,0 +1,1276 @@
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  X, ArrowLeft, ArrowRight, ShoppingBag, Check, Truck, MapPin, Tag,
+  ShieldCheck, Package, CheckCircle2, CreditCard, QrCode, Copy,
+  CheckCircle, Upload, AlertCircle, Image as ImageIcon, Trash2, Plus, Minus,
+  Download, ExternalLink, RefreshCw, FileText
+} from 'lucide-react';
+import { CartItem, ShippingAddress, PaymentMethod, User, SiteSettings } from '../types';
+import { INDIAN_STATES, isTamilNadu } from '../utils/delivery';
+import { computeOrderTotals } from '../utils/orderTotals';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Types & Constants
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface MobileCheckoutFlowProps {
+  isOpen: boolean;
+  onClose: () => void;
+  items: CartItem[];
+  user: User | null;
+  appliedCoupon: { code: string; discountAmount: number } | null;
+  onApplyCoupon: (code: string) => Promise<{ success: boolean; message: string }>;
+  onRemoveCoupon: () => void;
+  onPlaceOrder: (orderData: {
+    customerName: string;
+    customerPhone: string;
+    customerEmail: string;
+    shippingAddress: ShippingAddress;
+    paymentMethod: PaymentMethod;
+    paymentProofUrl?: string;
+    transactionId?: string;
+    potCharge?: number;
+    potOption?: string;
+  }) => Promise<{ success: boolean; orderId?: string; message?: string }>;
+  onUpdateQuantity: (productId: string, qty: number) => void;
+  onRemoveItem: (productId: string) => void;
+  onNavigateToAccount: () => void;
+}
+
+type PotOption = 'NONE' | '6_INCH' | '8_INCH';
+
+const DELIVERY_TERMS = [
+  '🌿 Plants are live/semi-dormant saplings. Minor leaf stress during transit is normal and temporary.',
+  '📦 Orders are normally dispatched within 5–6 working days after confirmation.',
+  '🚚 After dispatch, delivery takes 1–2 working days within Tamil Nadu.',
+  '📸 For QR/UPI payment orders, screenshot upload is mandatory. No screenshot = order rejected.',
+  '💧 We pack plants with moisture-retaining material to survive courier transit safely.',
+  '🪴 Pot orders include free delivery. No-pot orders attract state-based delivery charges.',
+  '🔄 No refund/return once the plant is dispatched. Live plants are non-returnable.',
+  '📞 For any issue, contact us via WhatsApp within 24 hours of delivery with unboxing video.',
+  '🏡 We deliver to villages, towns, and metro cities across all listed states.',
+  '✅ By placing an order, you agree to these terms and our full nursery policies.',
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Step Progress Bar
+// ─────────────────────────────────────────────────────────────────────────────
+
+const STEP_LABELS = [
+  'Cart', 'Summary', 'Address', 'Items', 'Terms', 'Payment', 'Confirmed', 'Receipt', 'Track'
+];
+
+const StepBar: React.FC<{ step: number }> = ({ step }) => {
+  const pct = Math.round(((step - 1) / 8) * 100);
+  return (
+    <div className="px-4 pt-2 pb-1">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[10px] font-bold text-emerald-700">Step {step} of 9 · {STEP_LABELS[step - 1]}</span>
+        <span className="text-[10px] font-bold text-slate-500">{pct}%</span>
+      </div>
+      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-emerald-600 rounded-full transition-all duration-500"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Image compression helper
+// ─────────────────────────────────────────────────────────────────────────────
+
+const compressImageBase64 = (dataUrl: string, maxW = 1000, maxH = 1000, q = 0.75): Promise<string> =>
+  new Promise((resolve) => {
+    if (!dataUrl?.startsWith('data:image')) return resolve(dataUrl);
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > maxW || height > maxH) {
+        if (width > height) { height = Math.round((height * maxW) / width); width = maxW; }
+        else { width = Math.round((width * maxH) / height); height = maxH; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (ctx) { ctx.drawImage(img, 0, 0, width, height); resolve(canvas.toDataURL('image/jpeg', q)); }
+      else resolve(dataUrl);
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main Component
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
+  isOpen,
+  onClose,
+  items,
+  user,
+  appliedCoupon,
+  onApplyCoupon,
+  onRemoveCoupon,
+  onPlaceOrder,
+  onUpdateQuantity,
+  onRemoveItem,
+  onNavigateToAccount,
+}) => {
+  // ── Step state ─────────────────────────────────────────────────────────────
+  const [step, setStep] = useState(1);
+  const [direction, setDirection] = useState<'forward' | 'back'>('forward');
+  const [animating, setAnimating] = useState(false);
+
+  const goTo = (next: number) => {
+    if (animating) return;
+    setDirection(next > step ? 'forward' : 'back');
+    setAnimating(true);
+    setTimeout(() => {
+      setStep(next);
+      setAnimating(false);
+    }, 220);
+  };
+
+  // ── Summary step state ─────────────────────────────────────────────────────
+  const [previewState, setPreviewState] = useState('Tamil Nadu');
+  const [couponCode, setCouponCode] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponMsg, setCouponMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // ── Address state ──────────────────────────────────────────────────────────
+  const [address, setAddress] = useState<ShippingAddress>({
+    fullName: user?.name || '',
+    phone: (() => {
+      const p = user?.phone || '';
+      if (!p || p.startsWith('g_') || p.includes('@') || /[a-zA-Z]/.test(p)) return '';
+      return p;
+    })(),
+    alternatePhone: '',
+    houseNo: '',
+    street: '',
+    villageTown: '',
+    district: '',
+    state: 'Tamil Nadu',
+    pincode: '',
+    landmark: '',
+    addressType: 'Home',
+  });
+  const [addrError, setAddrError] = useState<string | null>(null);
+
+  // ── Pot selection ──────────────────────────────────────────────────────────
+  const [selectedPot, setSelectedPot] = useState<PotOption>('NONE');
+
+  // ── Terms ──────────────────────────────────────────────────────────────────
+  const [termsAccepted, setTermsAccepted] = useState(false);
+
+  // ── Payment ────────────────────────────────────────────────────────────────
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('PHONEPE');
+  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
+  const [paymentProofUrl, setPaymentProofUrl] = useState('');
+  const [proofPreview, setProofPreview] = useState<string | null>(null);
+  const [transactionId, setTransactionId] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [copiedUpi, setCopiedUpi] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
+
+  // ── Order result ───────────────────────────────────────────────────────────
+  const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
+  const [fetchedOrder, setFetchedOrder] = useState<any>(null);
+  const [trackLoading, setTrackLoading] = useState(false);
+
+  // scroll to top on step change
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [step]);
+
+  // fetch site settings
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then(d => { if (d.success && d.settings) setSiteSettings(d.settings); })
+      .catch(() => {});
+  }, []);
+
+  // reset step when opened
+  useEffect(() => {
+    if (isOpen) setStep(1);
+  }, [isOpen]);
+
+  // fetch order on step 7
+  useEffect(() => {
+    if (step === 7 && placedOrderId && !fetchedOrder) {
+      fetch(`/api/orders/${placedOrderId}`)
+        .then(r => r.json())
+        .then(d => { if (d.success && d.order) setFetchedOrder(d.order); })
+        .catch(() => {});
+    }
+  }, [step, placedOrderId]);
+
+  if (!isOpen) return null;
+
+  // ── Computed totals ────────────────────────────────────────────────────────
+  const summaryTotals = computeOrderTotals({ items, state: previewState, appliedCoupon });
+  const checkoutTotals = computeOrderTotals({ items, state: address.state, selectedPot, appliedCoupon });
+  const { subtotal, totalPlantCount, potCharge, shippingFee: shippingCharge, discountAmount, grandTotal } = checkoutTotals;
+
+  const upiId = siteSettings?.upiId || '7200826129@ybl';
+  const upiName = siteSettings?.upiName || 'Veerika Rose Garden Nursery';
+  const upiDeepLink = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(upiName)}&am=${grandTotal}&cu=INR`;
+  const qrCodeUrl = `https://quickchart.io/qr?size=300&text=${encodeURIComponent(`upi://pay?pa=${upiId}&pn=${upiName}&cu=INR`)}`;
+
+  const isPhonePeEnabled = siteSettings ? siteSettings.enablePhonePe !== false : true;
+  const isCodEnabled = siteSettings ? siteSettings.enableCod !== false : true;
+  const isQrEnabled = siteSettings ? siteSettings.enableQrPayment !== false : true;
+  const isRazorpayEnabled = siteSettings?.enableRazorpay === true;
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
+
+  const handleCouponSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!couponCode.trim()) return;
+    setCouponLoading(true);
+    setCouponMsg(null);
+    const res = await onApplyCoupon(couponCode.trim());
+    setCouponLoading(false);
+    if (res.success) { setCouponMsg({ type: 'success', text: res.message }); setCouponCode(''); }
+    else setCouponMsg({ type: 'error', text: res.message });
+  };
+
+  const handleAddressNext = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanPin = address.pincode.trim();
+    if (!address.fullName.trim() || !address.phone.trim() || !address.houseNo.trim() ||
+      !address.street.trim() || !address.villageTown.trim() || !address.district.trim() || !cleanPin) {
+      setAddrError('Please fill all required fields (Name, Phone, House No, Street, Village, District, Pincode).');
+      return;
+    }
+    if (!/^\d{6}$/.test(cleanPin)) {
+      setAddrError('Pincode must be exactly 6 digits.');
+      return;
+    }
+    setAddrError(null);
+    setAddress(prev => ({ ...prev, pincode: cleanPin }));
+    goTo(4);
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { setOrderError('Please select a valid image file.'); e.target.value = ''; return; }
+    if (file.size > 10 * 1024 * 1024) { setOrderError('Image too large. Max 10MB.'); e.target.value = ''; return; }
+    setUploadingImage(true);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const compressed = await compressImageBase64(reader.result as string);
+        if (compressed.length > 3.5 * 1024 * 1024) { setOrderError('Image too large after compression. Try a smaller screenshot.'); return; }
+        setPaymentProofUrl(compressed);
+        setProofPreview(compressed);
+        setPaymentMethod('QR_PAYMENT');
+      } finally { setUploadingImage(false); }
+    };
+    reader.onerror = () => { setUploadingImage(false); setOrderError('Failed to read image.'); };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCopyUpi = () => {
+    navigator.clipboard.writeText(upiId);
+    setCopiedUpi(true);
+    setTimeout(() => setCopiedUpi(false), 3000);
+  };
+
+  const handlePlaceOrder = async () => {
+    if (!user) { setOrderError('🔒 Login required to place an order.'); return; }
+    if (uploadingImage) { setOrderError('Please wait — processing payment screenshot.'); return; }
+    const effectivePM: PaymentMethod = (paymentMethod === 'QR_PAYMENT' || Boolean(paymentProofUrl)) ? 'QR_PAYMENT' : paymentMethod;
+    if (effectivePM === 'QR_PAYMENT' && !paymentProofUrl) {
+      setOrderError('📸 Please upload payment screenshot before placing order.');
+      return;
+    }
+    setLoading(true);
+    setOrderError(null);
+    try {
+      const rawPhone = (address.phone || user.phone || '').replace(/\D/g, '');
+      const cleanPhone = rawPhone.length >= 10 ? rawPhone.slice(-10) : rawPhone;
+      const cleanEmail = (user.email?.includes('@')) ? user.email : `cust${cleanPhone}@veerikanursery.com`;
+      const res = await onPlaceOrder({
+        customerName: address.fullName || user.name || 'Customer',
+        customerPhone: cleanPhone,
+        customerEmail: cleanEmail,
+        shippingAddress: { ...address, phone: cleanPhone },
+        paymentMethod: effectivePM,
+        paymentProofUrl: effectivePM === 'QR_PAYMENT' ? paymentProofUrl : undefined,
+        transactionId: effectivePM === 'QR_PAYMENT' ? transactionId : undefined,
+        potCharge,
+        potOption: selectedPot,
+      });
+      setLoading(false);
+      if (res.success) {
+        setPlacedOrderId(res.orderId || null);
+        goTo(7);
+      } else {
+        setOrderError(res.message || 'Failed to place order. Please try again.');
+      }
+    } catch (err: any) {
+      setLoading(false);
+      setOrderError(err.message || 'An error occurred. Please retry.');
+    }
+  };
+
+  const handleFetchOrderForTracking = async () => {
+    if (!placedOrderId) return;
+    setTrackLoading(true);
+    try {
+      const res = await fetch(`/api/orders/${placedOrderId}`);
+      const d = await res.json();
+      if (d.success && d.order) setFetchedOrder(d.order);
+    } finally { setTrackLoading(false); }
+  };
+
+  const handleDownloadReceipt = () => {
+    const order = fetchedOrder;
+    if (!order) return;
+    const content = `
+VRG NURSERY — ORDER RECEIPT
+============================
+Order ID: ${order.id}
+Date: ${new Date(order.createdAt).toLocaleDateString('en-IN')}
+
+CUSTOMER
+Name: ${order.customerName}
+Phone: ${order.customerPhone}
+
+ITEMS
+${order.items.map((i: any) => `- ${i.name} × ${i.quantity} = ₹${i.price * i.quantity}`).join('\n')}
+
+BILLING
+Subtotal: ₹${order.subtotal}
+Delivery: ₹${order.shippingCharge}
+Pot Charge: ₹${order.potCharge || 0}
+Grand Total: ₹${order.grandTotal}
+Payment: ${order.paymentMethod}
+Status: ${order.paymentStatus}
+
+🌱 Dispatch: 5-6 working days | Delivery: 1-2 days after dispatch
+VRG Nursery — Veerika Rose Garden
+    `.trim();
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `VRG-Receipt-${order.id}.txt`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Shared UI Components
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const ProceedBtn: React.FC<{ label: string; onClick?: () => void; type?: 'button' | 'submit'; disabled?: boolean }> =
+    ({ label, onClick, type = 'button', disabled }) => (
+      <button
+        type={type}
+        onClick={onClick}
+        disabled={disabled}
+        className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 text-white font-extrabold text-sm rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
+      >
+        {disabled && type === 'button' ? (
+          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+        ) : (
+          <>
+            <span>{label}</span>
+            <ArrowRight className="w-4 h-4" />
+          </>
+        )}
+      </button>
+    );
+
+  const Header: React.FC<{ title: string; subtitle?: string; showBack?: boolean; onBack?: () => void }> =
+    ({ title, subtitle, showBack = true, onBack }) => (
+      <div className="px-4 pt-3 pb-2">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <h2 className="font-extrabold text-slate-900 text-base leading-tight">{title}</h2>
+            {subtitle && <p className="text-[11px] text-slate-500 mt-0.5 font-medium">{subtitle}</p>}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {showBack && onBack && (
+              <button onClick={onBack} className="p-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer">
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+            )}
+            <button onClick={onClose} className="p-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-rose-100 hover:text-rose-600 transition-colors cursor-pointer">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Render
+  // ─────────────────────────────────────────────────────────────────────────
+
+  return (
+    <div className="fixed inset-0 z-[100] flex flex-col bg-white" style={{ touchAction: 'pan-y' }}>
+      {/* Top accent bar */}
+      <div className="h-1 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600 shrink-0" />
+
+      {/* Step progress */}
+      <div className="shrink-0 border-b border-slate-100 bg-white">
+        <StepBar step={step} />
+      </div>
+
+      {/* Scrollable content — animated slide per step */}
+      <div
+        ref={scrollRef}
+        key={step}
+        className="flex-1 overflow-y-auto overscroll-contain"
+        style={{
+          animation: animating
+            ? (direction === 'forward'
+                ? 'slideOutLeft 0.22s ease forwards'
+                : 'slideOutRight 0.22s ease forwards')
+            : (direction === 'forward'
+                ? 'slideInRight 0.25s ease'
+                : 'slideInLeft 0.25s ease'),
+        }}
+      >
+        <style>{`
+          @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to   { transform: translateX(0);    opacity: 1; }
+          }
+          @keyframes slideInLeft {
+            from { transform: translateX(-100%); opacity: 0; }
+            to   { transform: translateX(0);     opacity: 1; }
+          }
+          @keyframes slideOutLeft {
+            from { transform: translateX(0);    opacity: 1; }
+            to   { transform: translateX(-100%); opacity: 0; }
+          }
+          @keyframes slideOutRight {
+            from { transform: translateX(0);   opacity: 1; }
+            to   { transform: translateX(100%); opacity: 0; }
+          }
+        `}</style>
+
+        {/* ═══════════════════════════════════════════════════════════════════
+            STEP 1 — Your Shopping Cart
+        ═══════════════════════════════════════════════════════════════════ */}
+        {step === 1 && (
+          <div className="flex flex-col min-h-full">
+            <Header
+              title="Your Shopping Cart"
+              subtitle="Review your plant order items before proceeding to secure checkout"
+              showBack={false}
+            />
+
+            {/* Cart items */}
+            <div className="flex-1 px-4 py-2 space-y-3">
+              {items.length === 0 ? (
+                <div className="py-16 text-center space-y-4">
+                  <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto">
+                    <ShoppingBag className="w-10 h-10 text-emerald-400" />
+                  </div>
+                  <p className="text-sm font-bold text-slate-700">Your cart is empty</p>
+                  <button onClick={onClose} className="px-5 py-2.5 bg-emerald-700 text-white font-bold text-xs rounded-xl cursor-pointer">
+                    Browse Plants
+                  </button>
+                </div>
+              ) : (
+                items.map((item) => (
+                  <div key={item.product.id} className="flex gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-200 items-center">
+                    <img
+                      src={item.product.images?.[0] || '/products/double-delight.jpeg'}
+                      alt={item.product.name}
+                      className="w-16 h-16 object-cover rounded-xl border border-slate-200 shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-xs text-slate-900 truncate">{item.product.name}</h4>
+                      {item.product.tamilName && (
+                        <p className="text-[11px] text-emerald-700 font-medium">{item.product.tamilName}</p>
+                      )}
+                      <p className="text-xs font-extrabold text-slate-800 mt-0.5">₹{item.product.sellingPrice}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                      <button onClick={() => onRemoveItem(item.product.id)} className="text-slate-300 hover:text-rose-500 transition-colors p-1 cursor-pointer">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                      <div className="flex items-center border border-slate-200 rounded-xl bg-white">
+                        <button onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)} className="p-1.5 text-slate-500 hover:text-emerald-700 cursor-pointer">
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <span className="px-2.5 text-xs font-extrabold text-slate-900 font-mono">{item.quantity}</span>
+                        <button onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)} disabled={item.quantity >= 20} className="p-1.5 text-slate-500 hover:text-emerald-700 disabled:opacity-30 cursor-pointer">
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Footer */}
+            {items.length > 0 && (
+              <div className="px-4 pb-6 pt-3 border-t border-slate-100 bg-white space-y-3">
+                <div className="flex justify-between items-center text-xs text-slate-600">
+                  <span className="font-medium">{items.reduce((s, i) => s + i.quantity, 0)} plant(s) in cart</span>
+                  <span className="font-extrabold text-slate-900">₹{items.reduce((s, i) => s + i.product.sellingPrice * i.quantity, 0)}</span>
+                </div>
+                <ProceedBtn label="PROCEED TO CHECKOUT" onClick={() => goTo(2)} />
+                <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-400">
+                  <ShieldCheck className="w-3 h-3 text-emerald-500" />
+                  <span>Secure & Encrypted Checkout</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════
+            STEP 2 — Order Summary
+        ═══════════════════════════════════════════════════════════════════ */}
+        {step === 2 && (
+          <div className="flex flex-col min-h-full">
+            <Header title="Order Summary" subtitle={`(${items.length} item${items.length !== 1 ? 's' : ''})`} onBack={() => goTo(1)} />
+
+            <div className="flex-1 px-4 py-3 space-y-4">
+              {/* State selector */}
+              <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 space-y-2">
+                <label className="text-[11px] font-extrabold text-slate-700 flex items-center gap-1.5">
+                  <Truck className="w-3.5 h-3.5 text-emerald-600" />
+                  🚚 Delivery State Rate Preview:
+                </label>
+                <select
+                  value={previewState}
+                  onChange={(e) => setPreviewState(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 cursor-pointer"
+                >
+                  {INDIAN_STATES.map(st => (
+                    <option key={st} value={st}>{st} {isTamilNadu(st) ? '(₹60 base shipping)' : '(₹100 base shipping)'}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Coupon */}
+              <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 space-y-2">
+                <label className="text-[11px] font-extrabold text-slate-700 flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 text-emerald-600" />
+                  Apply Coupon / Discount Code
+                </label>
+                {appliedCoupon ? (
+                  <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs">
+                    <span className="font-bold text-emerald-800">✅ {appliedCoupon.code} (−₹{appliedCoupon.discountAmount})</span>
+                    <button onClick={onRemoveCoupon} className="text-rose-600 font-bold hover:underline text-xs cursor-pointer">Remove</button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleCouponSubmit} className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Enter Coupon Code"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                      className="flex-1 px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-mono font-semibold uppercase focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                    />
+                    <button type="submit" disabled={couponLoading || !couponCode.trim()} className="px-4 py-2.5 bg-slate-800 hover:bg-slate-900 disabled:bg-slate-300 text-white font-bold text-xs rounded-xl cursor-pointer">
+                      {couponLoading ? '...' : 'Apply'}
+                    </button>
+                  </form>
+                )}
+                {couponMsg && (
+                  <p className={`text-[11px] font-bold ${couponMsg.type === 'success' ? 'text-emerald-700' : 'text-rose-600'}`}>
+                    {couponMsg.text}
+                  </p>
+                )}
+              </div>
+
+              {/* Price breakdown */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-2.5 text-xs text-slate-600">
+                <div className="flex justify-between">
+                  <span className="font-medium">Subtotal:</span>
+                  <span className="font-bold text-slate-900">₹{summaryTotals.subtotal}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Delivery Fee:</span>
+                  <span className="font-bold text-slate-900">₹{summaryTotals.shippingFee}</span>
+                </div>
+                {appliedCoupon && (
+                  <div className="flex justify-between text-emerald-700 font-semibold">
+                    <span>Coupon Discount:</span>
+                    <span>−₹{summaryTotals.discountAmount}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm font-extrabold text-slate-900 pt-2 border-t border-slate-200">
+                  <span>Grand Total:</span>
+                  <span className="text-emerald-800 text-base">₹{summaryTotals.grandTotal}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-4 pb-6 pt-3 border-t border-slate-100 bg-white">
+              {!user && (
+                <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 font-semibold">
+                  🔒 Login required to checkout.{' '}
+                  <button onClick={() => { onClose(); onNavigateToAccount(); }} className="underline font-bold cursor-pointer">Login / Sign Up →</button>
+                </div>
+              )}
+              <ProceedBtn label="PROCEED TO CHECKOUT" onClick={() => goTo(3)} />
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════
+            STEP 3 — Delivery Address
+        ═══════════════════════════════════════════════════════════════════ */}
+        {step === 3 && (
+          <form onSubmit={handleAddressNext} className="flex flex-col min-h-full">
+            <Header title="Delivery Address" subtitle="Village / City Shipping Address" onBack={() => goTo(2)} />
+
+            <div className="flex-1 px-4 py-3 space-y-3">
+              {addrError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-semibold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  {addrError}
+                </div>
+              )}
+
+              {[
+                { label: 'Full Name *', field: 'fullName', type: 'text', placeholder: 'Your full name' },
+                { label: 'Mobile Number (WhatsApp) *', field: 'phone', type: 'tel', placeholder: '10-digit mobile number' },
+                { label: 'House / Door No *', field: 'houseNo', type: 'text', placeholder: 'e.g. 12A' },
+                { label: 'Street / Gramam Name *', field: 'street', type: 'text', placeholder: 'Street or village name' },
+              ].map(({ label, field, type, placeholder }) => (
+                <div key={field}>
+                  <label className="text-[11px] font-extrabold text-slate-700 block mb-1">{label}</label>
+                  <input
+                    type={type}
+                    required
+                    placeholder={placeholder}
+                    value={(address as any)[field]}
+                    onChange={(e) => setAddress(prev => ({ ...prev, [field]: e.target.value }))}
+                    className="w-full px-3.5 py-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                  />
+                </div>
+              ))}
+
+              <div>
+                <label className="text-[11px] font-extrabold text-slate-700 block mb-1">State *</label>
+                <select
+                  required
+                  value={address.state}
+                  onChange={(e) => setAddress(prev => ({ ...prev, state: e.target.value }))}
+                  className="w-full px-3.5 py-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 cursor-pointer"
+                >
+                  {INDIAN_STATES.map(st => (
+                    <option key={st} value={st}>{st} {isTamilNadu(st) ? '(₹60 base shipping)' : '(₹100 base shipping)'}</option>
+                  ))}
+                </select>
+              </div>
+
+              {[
+                { label: 'Pincode *', field: 'pincode', type: 'text', placeholder: '6-digit pincode' },
+                { label: 'Village / Town *', field: 'villageTown', type: 'text', placeholder: 'Village or town name' },
+                { label: 'District *', field: 'district', type: 'text', placeholder: 'District name' },
+              ].map(({ label, field, type, placeholder }) => (
+                <div key={field}>
+                  <label className="text-[11px] font-extrabold text-slate-700 block mb-1">{label}</label>
+                  <input
+                    type={type}
+                    required={field !== 'landmark'}
+                    placeholder={placeholder}
+                    value={(address as any)[field]}
+                    onChange={(e) => setAddress(prev => ({ ...prev, [field]: e.target.value }))}
+                    className="w-full px-3.5 py-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                  />
+                </div>
+              ))}
+
+              <div>
+                <label className="text-[11px] font-extrabold text-slate-700 block mb-1">Nearby Landmark (For Courier Driver)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Near Pillaiyar Kovil / Bus Stand / Post Office"
+                  value={address.landmark || ''}
+                  onChange={(e) => setAddress(prev => ({ ...prev, landmark: e.target.value }))}
+                  className="w-full px-3.5 py-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                />
+              </div>
+            </div>
+
+            <div className="px-4 pb-6 pt-3 border-t border-slate-100 bg-white">
+              <ProceedBtn label="PROCEED TO PAYMENT METHOD" type="submit" />
+            </div>
+          </form>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════
+            STEP 4 — Order Items & Pot Selection
+        ═══════════════════════════════════════════════════════════════════ */}
+        {step === 4 && (
+          <div className="flex flex-col min-h-full">
+            <Header title="📦 Order Items" onBack={() => goTo(3)} />
+
+            <div className="flex-1 px-4 py-3 space-y-4">
+              {/* Items */}
+              <div className="space-y-2">
+                {items.map(item => (
+                  <div key={item.product.id} className="flex gap-3 bg-white p-3 rounded-2xl border border-slate-200 items-center">
+                    <img src={item.product.images?.[0] || '/products/double-delight.jpeg'} alt={item.product.name} className="w-12 h-12 object-cover rounded-xl border shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-[11px] text-slate-900 truncate">{item.product.name}</p>
+                      <p className="text-[10px] text-slate-500 font-mono">Qty: {item.quantity}</p>
+                    </div>
+                    <span className="font-bold text-xs text-slate-900">₹{item.product.sellingPrice * item.quantity}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pot selection */}
+              <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 space-y-3">
+                <label className="text-[11px] font-extrabold text-slate-700 flex items-center gap-1.5">
+                  🪴 Plant Pot Requirement:
+                </label>
+                <div className="space-y-2">
+                  {[
+                    { value: 'NONE' as PotOption, label: '🌱 No pot required(reduced soil)', price: '₹0', sub: '' },
+                    { value: '6_INCH' as PotOption, label: '🪴 below 6 inch (no delivery charges )', price: `+₹${99 * totalPlantCount}`, sub: `(${totalPlantCount} pot)` },
+                    { value: '8_INCH' as PotOption, label: '🪴 Above 6 inch (no delivery charges)', price: `+₹${199 * totalPlantCount}`, sub: `(${totalPlantCount} pot)` },
+                  ].map(opt => (
+                    <div
+                      key={opt.value}
+                      onClick={() => setSelectedPot(opt.value)}
+                      className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between ${selectedPot === opt.value ? 'border-emerald-600 bg-emerald-50' : 'border-slate-200 bg-white'}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <input type="radio" checked={selectedPot === opt.value} onChange={() => setSelectedPot(opt.value)} className="accent-emerald-600 cursor-pointer" />
+                        <span className="text-[11px] font-semibold text-slate-800">{opt.label}</span>
+                      </div>
+                      <div className="text-right shrink-0 ml-2">
+                        <span className="text-[11px] font-extrabold text-slate-900 block">{opt.price}</span>
+                        {opt.sub && <span className="text-[9px] text-emerald-700 font-bold">{opt.sub}</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Price summary */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-2 text-xs text-slate-600">
+                <div className="flex justify-between">
+                  <span className="flex items-center gap-1">🧾 Subtotal:</span>
+                  <span className="font-semibold text-slate-900">₹{subtotal}</span>
+                </div>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="flex items-center gap-1">🚚 Delivery Charge:</span>
+                    <span className="text-[10px] text-slate-400 block">
+                      {selectedPot !== 'NONE' ? 'Free with pot' : `${address.state} (${isTamilNadu(address.state) ? 'Tamil Nadu Rate' : 'Other States Rate'})`}
+                    </span>
+                  </div>
+                  <span className="font-bold text-slate-900">
+                    {selectedPot !== 'NONE' ? <span className="text-emerald-700">FREE</span> : `₹${shippingCharge}`}
+                  </span>
+                </div>
+                {potCharge > 0 && (
+                  <div className="flex justify-between text-emerald-800 font-semibold">
+                    <span>🪴 Pot Charge:</span>
+                    <span>+₹{potCharge}</span>
+                  </div>
+                )}
+                {appliedCoupon && (
+                  <div className="flex justify-between text-emerald-700 font-semibold">
+                    <span>🏷️ Coupon:</span>
+                    <span>−₹{discountAmount}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm font-extrabold text-slate-900 pt-2 border-t border-slate-200">
+                  <span className="flex items-center gap-1">💰 Grand Total:</span>
+                  <span className="text-emerald-800 text-base">₹{grandTotal}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-4 pb-6 pt-3 border-t border-slate-100 bg-white">
+              <ProceedBtn label="PROCEED TO CHECKOUT" onClick={() => goTo(5)} />
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════
+            STEP 5 — Delivery & Courier Terms
+        ═══════════════════════════════════════════════════════════════════ */}
+        {step === 5 && (
+          <div className="flex flex-col min-h-full">
+            <Header title="📜 Delivery & Courier Terms" onBack={() => goTo(4)} />
+
+            <div className="flex-1 px-4 py-3 space-y-3">
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3">
+                {DELIVERY_TERMS.map((term, i) => (
+                  <p key={i} className="text-[11px] text-amber-900 font-medium leading-relaxed">{term}</p>
+                ))}
+              </div>
+
+              <label className="flex items-start gap-3 p-4 bg-emerald-50 border-2 border-emerald-200 rounded-2xl cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={termsAccepted}
+                  onChange={(e) => setTermsAccepted(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 accent-emerald-600 cursor-pointer shrink-0"
+                />
+                <span className="text-xs font-bold text-emerald-900">
+                  I have read and understood the Delivery & Courier Terms.
+                </span>
+              </label>
+            </div>
+
+            <div className="px-4 pb-6 pt-3 border-t border-slate-100 bg-white">
+              <button
+                onClick={() => goTo(6)}
+                disabled={!termsAccepted}
+                className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-extrabold text-sm rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
+              >
+                <span>PROCEED TO PAYMENT →</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════
+            STEP 6 — Payment Method
+        ═══════════════════════════════════════════════════════════════════ */}
+        {step === 6 && (
+          <div className="flex flex-col min-h-full">
+            <div className="px-4 pt-3 pb-2">
+              <div className="flex items-center justify-between">
+                <h2 className="font-extrabold text-slate-900 text-base">Payment Method</h2>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => goTo(3)} className="text-[11px] text-emerald-700 font-bold border border-emerald-200 bg-emerald-50 px-2.5 py-1 rounded-lg cursor-pointer">
+                    Edit Address
+                  </button>
+                  <button onClick={onClose} className="p-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-rose-100 hover:text-rose-600 transition-colors cursor-pointer">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              <p className="text-[11px] text-slate-500 mt-0.5">Select Payment Method</p>
+            </div>
+
+            <div className="flex-1 px-4 py-3 space-y-3">
+              {/* Error */}
+              {orderError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-semibold flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{orderError}</span>
+                </div>
+              )}
+
+              {/* Payment options */}
+              <div className="space-y-2.5">
+                {isRazorpayEnabled && (
+                  <div onClick={() => setPaymentMethod('RAZORPAY')} className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 ${paymentMethod === 'RAZORPAY' ? 'border-blue-600 bg-blue-50' : 'border-slate-200 bg-slate-50'}`}>
+                    <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center shrink-0">
+                      <CreditCard className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-slate-900 text-xs">Razorpay Online Gateway</h4>
+                      <p className="text-[10px] text-slate-500 mt-0.5">GPay, PhonePe, Paytm, Cards & NetBanking</p>
+                    </div>
+                    {paymentMethod === 'RAZORPAY' && <CheckCircle className="w-4 h-4 text-blue-600 shrink-0 mt-1" />}
+                  </div>
+                )}
+
+                {isPhonePeEnabled && (
+                  <div onClick={() => setPaymentMethod('PHONEPE')} className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 ${paymentMethod === 'PHONEPE' ? 'border-purple-600 bg-purple-50' : 'border-slate-200 bg-slate-50'}`}>
+                    <div className="w-8 h-8 bg-[#5f259f] text-white rounded-full flex items-center justify-center font-bold text-xs shrink-0">पे</div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-slate-900 text-xs">PhonePe Payment Gateway</h4>
+                      <p className="text-[10px] text-slate-500 mt-0.5">UPI, GPay, Cards & NetBanking</p>
+                    </div>
+                    {paymentMethod === 'PHONEPE' && <CheckCircle className="w-4 h-4 text-purple-600 shrink-0 mt-1" />}
+                  </div>
+                )}
+
+                {isQrEnabled && (
+                  <div onClick={() => setPaymentMethod('QR_PAYMENT')} className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 ${paymentMethod === 'QR_PAYMENT' ? 'border-indigo-600 bg-indigo-50' : 'border-slate-200 bg-slate-50'}`}>
+                    <div className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center shrink-0">
+                      <QrCode className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-slate-900 text-xs">Scan QR & Upload Receipt</h4>
+                      <p className="text-[10px] text-slate-500 mt-0.5">📸 Mandatory screenshot required</p>
+                    </div>
+                    {paymentMethod === 'QR_PAYMENT' && <CheckCircle className="w-4 h-4 text-indigo-600 shrink-0 mt-1" />}
+                  </div>
+                )}
+
+                {isCodEnabled && (
+                  <div onClick={() => setPaymentMethod('COD')} className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 ${paymentMethod === 'COD' ? 'border-emerald-700 bg-emerald-50' : 'border-slate-200 bg-slate-50'}`}>
+                    <div className="w-8 h-8 bg-emerald-800 text-white rounded-full flex items-center justify-center font-bold text-base shrink-0">💵</div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-slate-900 text-xs">Cash on Delivery (COD)</h4>
+                      <p className="text-[10px] text-slate-500 mt-0.5">Pay cash on delivery</p>
+                    </div>
+                    {paymentMethod === 'COD' && <CheckCircle className="w-4 h-4 text-emerald-700 shrink-0 mt-1" />}
+                  </div>
+                )}
+              </div>
+
+              {/* QR Payment Panel */}
+              {paymentMethod === 'QR_PAYMENT' && isQrEnabled && (
+                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl border border-indigo-200 p-4 space-y-4">
+                  {/* QR Code */}
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="bg-white p-2 rounded-2xl border-2 border-indigo-200 shadow-sm">
+                      <img src={qrCodeUrl} alt="UPI QR Code" className="w-44 h-44 object-contain rounded-xl" />
+                    </div>
+                    <p className="text-[11px] font-extrabold text-indigo-900">📱 Scan to pay ₹{grandTotal}</p>
+                    <a href={upiDeepLink} className="px-4 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 cursor-pointer">
+                      ⚡ Pay ₹{grandTotal} via GPay/PhonePe
+                    </a>
+                  </div>
+
+                  {/* UPI ID */}
+                  <div className="bg-white rounded-xl border border-indigo-100 p-3 space-y-1">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase">Merchant UPI ID:</span>
+                    <div className="flex items-center gap-2">
+                      <code className="bg-indigo-50 text-indigo-900 font-mono font-bold text-xs px-2 py-1 rounded-lg border border-indigo-200 flex-1">{upiId}</code>
+                      <button type="button" onClick={handleCopyUpi} className="p-2 bg-indigo-600 text-white rounded-lg cursor-pointer">
+                        {copiedUpi ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-slate-500 font-medium">{upiName}</p>
+                  </div>
+
+                  {/* Upload */}
+                  <div className="bg-white rounded-xl border-2 border-dashed border-indigo-300 p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-extrabold text-slate-800 flex items-center gap-1">
+                        <ImageIcon className="w-3.5 h-3.5 text-indigo-600" /> Upload Paid Screenshot *
+                      </label>
+                      <span className="bg-rose-100 text-rose-800 font-extrabold text-[9px] px-2 py-0.5 rounded-full">MANDATORY</span>
+                    </div>
+                    <label className="flex items-center gap-2 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl cursor-pointer">
+                      <Upload className="w-3.5 h-3.5" />
+                      {paymentProofUrl ? 'Change Receipt Photo' : 'Select Screenshot Image'}
+                      <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                    </label>
+                    {proofPreview && (
+                      <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 px-2 py-1.5 rounded-lg text-xs">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <img src={proofPreview} alt="Proof" className="w-7 h-7 object-cover rounded border" />
+                        <span className="font-bold text-emerald-800">Screenshot Uploaded!</span>
+                      </div>
+                    )}
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-600 block mb-1">UPI Transaction Ref (Optional):</label>
+                      <input
+                        type="text"
+                        placeholder="12-digit UTR number"
+                        value={transactionId}
+                        onChange={(e) => setTransactionId(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg font-mono text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="px-4 pb-6 pt-3 border-t border-slate-100 bg-white">
+              <button
+                onClick={handlePlaceOrder}
+                disabled={loading || !user}
+                className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 text-white font-extrabold text-sm rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
+              >
+                {loading ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <span>CONFIRM & PLACE ORDER</span>
+                    <Check className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════
+            STEP 7 — Order Confirmed
+        ═══════════════════════════════════════════════════════════════════ */}
+        {step === 7 && (
+          <div className="flex flex-col min-h-full">
+            <div className="px-4 pt-3 pb-2 flex items-center justify-between">
+              <h2 className="font-extrabold text-slate-900 text-base">Order Confirmed</h2>
+              <button onClick={onClose} className="p-1.5 rounded-xl bg-slate-100 text-slate-600 cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 px-4 py-3 space-y-4">
+              {/* Success banner */}
+              <div className="bg-emerald-900 rounded-3xl p-5 text-white text-center space-y-3 shadow-lg">
+                <div className="w-16 h-16 bg-emerald-700 rounded-full flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-9 h-9 text-emerald-200" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-emerald-300 uppercase tracking-wide">Payment successful</p>
+                  <h3 className="text-xl font-black text-white mt-1">Order ID</h3>
+                  <p className="font-mono font-bold text-emerald-300 text-sm">{placedOrderId || 'ORD-...'}</p>
+                </div>
+              </div>
+
+              {/* Order details card */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3 text-xs">
+                {fetchedOrder ? (
+                  <>
+                    {fetchedOrder.items.map((item: any, idx: number) => (
+                      <div key={idx} className="flex justify-between items-center py-1.5 border-b border-slate-100 last:border-none">
+                        <span className="font-semibold text-slate-800">{item.name} × {item.quantity}</span>
+                        <span className="font-bold text-slate-900">₹{item.price * item.quantity}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between pt-1">
+                      <span className="text-slate-600">Plant Total</span>
+                      <span className="font-bold text-slate-900">₹{fetchedOrder.subtotal}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Delivery</span>
+                      <span className="font-bold text-slate-900">
+                        {fetchedOrder.potOption && fetchedOrder.potOption !== 'NONE' ? 'Reduced Soil' : `₹${fetchedOrder.shippingCharge}`}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm font-extrabold text-slate-900 pt-2 border-t border-slate-200">
+                      <span>Grand Total</span>
+                      <span className="text-emerald-800">₹{fetchedOrder.grandTotal}</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-1">
+                      <span className="text-slate-600">Status</span>
+                      <span className="bg-emerald-100 text-emerald-800 font-extrabold text-[10px] px-2.5 py-0.5 rounded-full">
+                        {fetchedOrder.paymentMethod === 'COD' ? 'COD CONFIRMED' : fetchedOrder.paymentStatus}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="py-4 text-center">
+                    <div className="w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto" />
+                    <p className="text-xs text-slate-500 mt-2">Loading order details...</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 text-[11px] text-emerald-800 font-medium">
+                🌱 Your order will normally be dispatched within 5–6 working days after order confirmation. After dispatch, you will normally receive the plants within 1–2 days.
+              </div>
+            </div>
+
+            <div className="px-4 pb-6 pt-3 border-t border-slate-100 bg-white">
+              <button
+                onClick={() => goTo(8)}
+                className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-sm rounded-2xl shadow-md flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>VIEW RECEIPT →</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════
+            STEP 8 — Customer Receipt
+        ═══════════════════════════════════════════════════════════════════ */}
+        {step === 8 && (
+          <div className="flex flex-col min-h-full">
+            <div className="px-4 pt-3 pb-2 flex items-center justify-between">
+              <h2 className="font-extrabold text-slate-900 text-base">🧾 Customer Receipt</h2>
+              <button onClick={onClose} className="p-1.5 rounded-xl bg-slate-100 text-slate-600 cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 px-4 py-3">
+              {/* Receipt card */}
+              <div className="bg-white rounded-3xl border-2 border-slate-200 overflow-hidden shadow-sm">
+                {/* Receipt header */}
+                <div className="bg-emerald-900 text-white p-5 text-center space-y-1">
+                  <p className="text-[10px] font-bold text-emerald-300 uppercase tracking-widest">VRG NURSERY</p>
+                  <h3 className="text-lg font-black">Veerika Rose Garden</h3>
+                  <p className="text-[10px] text-emerald-200">Official Order Receipt</p>
+                </div>
+
+                {/* Receipt body */}
+                <div className="p-4 space-y-3 text-xs">
+                  <div className="flex justify-between border-b border-slate-100 pb-2">
+                    <span className="font-bold text-slate-600">Order ID</span>
+                    <span className="font-mono font-extrabold text-slate-900">{fetchedOrder?.id || placedOrderId}</span>
+                  </div>
+
+                  {fetchedOrder?.items?.map((item: any, idx: number) => (
+                    <div key={idx} className="flex justify-between items-center">
+                      <span className="font-semibold text-slate-700">{item.name} × {item.quantity}</span>
+                      <span className="font-bold text-slate-900">₹{item.price * item.quantity}</span>
+                    </div>
+                  ))}
+
+                  <div className="border-t border-slate-200 pt-2 space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Plant Total</span>
+                      <span className="font-semibold text-slate-900">₹{fetchedOrder?.subtotal ?? subtotal}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Delivery Charge</span>
+                      <span className="font-semibold text-slate-900">₹{fetchedOrder?.shippingCharge ?? shippingCharge}</span>
+                    </div>
+                    {(fetchedOrder?.potCharge > 0 || potCharge > 0) && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Pot Charge</span>
+                        <span className="font-semibold text-slate-900">₹{fetchedOrder?.potCharge ?? potCharge}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between font-extrabold text-sm border-t border-slate-300 pt-2">
+                      <span className="text-slate-900">Grand Total</span>
+                      <span className="text-emerald-800">₹{fetchedOrder?.grandTotal ?? grandTotal}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Payment</span>
+                      <span className={`font-extrabold text-[11px] px-2.5 py-0.5 rounded-full ${fetchedOrder?.paymentStatus === 'SUCCESS' || fetchedOrder?.paymentMethod === 'COD' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                        {fetchedOrder?.paymentMethod === 'COD' ? 'COD' : fetchedOrder?.paymentStatus || 'Pending'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-[10px] text-emerald-800 font-medium leading-relaxed">
+                    🌱 Your order will normally be dispatched within 5–6 working days after order confirmation. After dispatch, you will normally receive the plants within 1–2 days.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-4 pb-6 pt-3 border-t border-slate-100 bg-white space-y-2.5">
+              <button
+                onClick={handleDownloadReceipt}
+                className="w-full py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold text-sm rounded-2xl flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                ⬇️ DOWNLOAD RECEIPT PDF
+              </button>
+              <button
+                onClick={() => { goTo(9); handleFetchOrderForTracking(); }}
+                className="w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm rounded-2xl flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Package className="w-4 h-4" />
+                TRACK MY ORDER →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════
+            STEP 9 — Track My Order
+        ═══════════════════════════════════════════════════════════════════ */}
+        {step === 9 && (
+          <div className="flex flex-col min-h-full">
+            <div className="px-4 pt-3 pb-2 flex items-center justify-between">
+              <h2 className="font-extrabold text-slate-900 text-base">📦 Track My Order</h2>
+              <div className="flex items-center gap-2">
+                <button onClick={() => goTo(8)} className="p-1.5 rounded-xl bg-slate-100 text-slate-600 cursor-pointer">
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                <button onClick={onClose} className="p-1.5 rounded-xl bg-slate-100 text-slate-600 cursor-pointer">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 px-4 py-3 space-y-4">
+              {/* Order ID & Status */}
+              <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 space-y-2 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-slate-600">Order ID</span>
+                  <span className="font-mono font-extrabold text-slate-900">{fetchedOrder?.id || placedOrderId}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-slate-600">Status</span>
+                  <span className="bg-emerald-100 text-emerald-800 font-extrabold text-[10px] px-2.5 py-0.5 rounded-full">
+                    {fetchedOrder?.orderStatus || 'Order Confirmed'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Timeline */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-0">
+                {[
+                  { label: 'Order Confirmed', icon: <CheckCircle2 className="w-4 h-4" />, active: true, sub: '✓' },
+                  { label: 'Processing / Packing', icon: <Package className="w-4 h-4" />, active: fetchedOrder?.orderStatus !== 'PENDING', sub: '' },
+                  { label: 'Dispatched', icon: <Truck className="w-4 h-4" />, active: fetchedOrder?.orderStatus === 'DISPATCHED' || fetchedOrder?.orderStatus === 'DELIVERED' || fetchedOrder?.orderStatus === 'OUT_FOR_DELIVERY', sub: '' },
+                  { label: 'Out for Delivery', icon: <Truck className="w-4 h-4" />, active: fetchedOrder?.orderStatus === 'OUT_FOR_DELIVERY' || fetchedOrder?.orderStatus === 'DELIVERED', sub: '' },
+                  { label: 'Delivered', icon: <CheckCircle2 className="w-4 h-4" />, active: fetchedOrder?.orderStatus === 'DELIVERED', sub: '' },
+                ].map((s, i, arr) => (
+                  <div key={s.label} className="flex items-start gap-3">
+                    {/* Icon column */}
+                    <div className="flex flex-col items-center shrink-0">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${s.active ? 'bg-emerald-700 border-emerald-700 text-white' : 'bg-white border-slate-200 text-slate-300'}`}>
+                        {s.icon}
+                      </div>
+                      {i < arr.length - 1 && (
+                        <div className={`w-0.5 h-6 ${s.active ? 'bg-emerald-400' : 'bg-slate-200'}`} />
+                      )}
+                    </div>
+                    {/* Label */}
+                    <div className="pt-1.5 pb-4">
+                      <p className={`text-xs font-bold ${s.active ? 'text-emerald-900' : 'text-slate-400'}`}>
+                        {s.label} {s.active && s.sub && <span className="text-emerald-600">{s.sub}</span>}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Courier tracking */}
+              {fetchedOrder?.trackingNumber && (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-xs space-y-2">
+                  <p className="font-bold text-emerald-900">Courier: {fetchedOrder.courierName}</p>
+                  <p className="font-mono font-semibold text-emerald-800">AWB: {fetchedOrder.trackingNumber}</p>
+                  <a
+                    href={`https://www.google.com/search?q=${fetchedOrder.courierName}+tracking+${fetchedOrder.trackingNumber}`}
+                    target="_blank" rel="noreferrer"
+                    className="flex items-center gap-1.5 text-emerald-700 font-bold hover:underline"
+                  >
+                    Track Online <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              )}
+            </div>
+
+            <div className="px-4 pb-6 pt-3 border-t border-slate-100 bg-white space-y-2.5">
+              <button
+                onClick={handleFetchOrderForTracking}
+                disabled={trackLoading}
+                className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-sm rounded-2xl flex items-center justify-center gap-2 cursor-pointer transition-colors"
+              >
+                {trackLoading ? (
+                  <div className="w-4 h-4 border-2 border-slate-600 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+                🔎 TRACK YOUR ORDER
+              </button>
+              <button
+                onClick={onClose}
+                className="w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm rounded-2xl flex items-center justify-center gap-2 cursor-pointer"
+              >
+                Back to Shop
+              </button>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+};

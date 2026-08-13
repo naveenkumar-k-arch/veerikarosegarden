@@ -10,6 +10,7 @@ import { PlantCareModal } from './components/PlantCareModal';
 import { PhonePeModal } from './components/PhonePeModal';
 import { ExpertAdviceModal } from './components/ExpertAdviceModal';
 import { SplashScreen } from './components/SplashScreen';
+import { MobileCheckoutFlow } from './components/MobileCheckoutFlow';
 
 import { HomePage } from './pages/HomePage';
 import { ShopPage } from './pages/ShopPage';
@@ -245,6 +246,7 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('toggleWishlist', handleCustomWishlist as EventListener);
   }, []);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
+  const [isMobileCheckoutOpen, setIsMobileCheckoutOpen] = useState<boolean>(false);
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountAmount: number } | null>(null);
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -936,6 +938,17 @@ export const App: React.FC = () => {
             onUpdateQuantity={handleUpdateCartQty}
             onRemoveItem={handleRemoveFromCart}
             onProceedToCheckout={() => {
+              // On mobile screens open the in-app mobile checkout wizard
+              if (window.innerWidth < 768) {
+                if (!user) {
+                  alert('🔑 Login or Sign Up Required:\nPlease login to your account before placing an order.');
+                  navigateTo('account');
+                  return;
+                }
+                setIsMobileCheckoutOpen(true);
+                return;
+              }
+              // Desktop: original flow
               if (!user) {
                 alert('🔑 Login or Sign Up Required:\nPlease login to your account before placing an order.');
                 navigateTo('account');
@@ -1049,6 +1062,17 @@ export const App: React.FC = () => {
         onRemoveItem={handleRemoveFromCart}
         onProceedToCheckout={() => {
           setIsCartOpen(false);
+          // On mobile open the in-app multi-step checkout wizard
+          if (window.innerWidth < 768) {
+            if (!user) {
+              alert('🔑 Login or Sign Up Required:\nPlease login to your account before placing an order.');
+              navigateTo('account');
+              return;
+            }
+            setIsMobileCheckoutOpen(true);
+            return;
+          }
+          // Desktop: original flow
           if (!user) {
             alert('🔑 Login or Sign Up Required:\nPlease login to your account before placing an order.');
             navigateTo('account');
@@ -1095,6 +1119,24 @@ export const App: React.FC = () => {
           onCancel={() => setPhonepeModal(null)}
         />
       )}
+
+      {/* Mobile Multi-Step Checkout Flow — full-screen, mobile only */}
+      <MobileCheckoutFlow
+        isOpen={isMobileCheckoutOpen}
+        onClose={() => setIsMobileCheckoutOpen(false)}
+        items={cart}
+        user={user}
+        appliedCoupon={appliedCoupon}
+        onApplyCoupon={handleApplyCoupon}
+        onRemoveCoupon={() => setAppliedCoupon(null)}
+        onPlaceOrder={handlePlaceOrder}
+        onUpdateQuantity={handleUpdateCartQty}
+        onRemoveItem={handleRemoveFromCart}
+        onNavigateToAccount={() => {
+          setIsMobileCheckoutOpen(false);
+          navigateTo('account');
+        }}
+      />
 
       {/* Floating Sticky Cart Button */}
       <button
