@@ -4422,8 +4422,18 @@ class Store {
   }
 
 
-  // CATEGORIES
+  private categoriesCache: { data: Category[]; expiresAt: number } | null = null;
+
+  invalidateCategoriesCache() {
+    this.categoriesCache = null;
+  }
+
   async getCategories(options?: { onlyActive?: boolean; onlyFeatured?: boolean }): Promise<Category[]> {
+    const isFullOptions = !options || Object.keys(options).length === 0;
+    if (isFullOptions && this.categoriesCache && Date.now() < this.categoriesCache.expiresAt) {
+      return this.categoriesCache.data;
+    }
+
     const prisma = getPrismaClient();
     if (!prisma) {
       let results = [...DEFAULT_CATEGORIES];
@@ -4500,7 +4510,11 @@ class Store {
         }
       }
 
-      return results.filter(c => !deletedCategoryIds.has(c.id));
+      const finalCategories = results.filter(c => !deletedCategoryIds.has(c.id));
+      if (isFullOptions) {
+        this.categoriesCache = { data: finalCategories, expiresAt: Date.now() + 10000 };
+      }
+      return finalCategories;
     } catch (err) {
       console.error('Prisma getCategories error:', err);
       return DEFAULT_CATEGORIES.filter(c => !deletedCategoryIds.has(c.id));
@@ -4802,7 +4816,12 @@ class Store {
     return { id, ...data, subtitle: data.subtitle || '', targetCategory: data.targetCategory || '', active: data.active !== false, order: data.order || 1 };
   }
 
+  private bannersCache: { data: Banner[]; expiresAt: number } | null = null;
+
   async getBanners(): Promise<Banner[]> {
+    if (this.bannersCache && Date.now() < this.bannersCache.expiresAt) {
+      return this.bannersCache.data;
+    }
     const prisma = getPrismaClient();
     if (!prisma) return [];
 
@@ -4811,7 +4830,7 @@ class Store {
         where: { active: true },
         orderBy: { order: 'asc' }
       });
-      return items.map(b => ({
+      const result = items.map(b => ({
         id: b.id,
         title: b.title,
         subtitle: b.subtitle || '',
@@ -4820,6 +4839,8 @@ class Store {
         active: b.active,
         order: b.order
       }));
+      this.bannersCache = { data: result, expiresAt: Date.now() + 10000 };
+      return result;
     } catch (err) {
       console.error('Prisma getBanners error:', err);
       return [];

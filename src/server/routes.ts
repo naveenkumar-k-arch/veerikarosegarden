@@ -46,8 +46,8 @@ apiRouter.get('/health', async (req, res) => {
 // ================= PRODUCT ROUTES =================
 apiRouter.get('/products', async (req, res) => {
   try {
-    const { search, categoryId, featured, bestSeller, minPrice, maxPrice, sort } = req.query;
-    const products = await db.getProducts({
+    const hasFilter = Boolean(search || categoryId || featured === 'true' || bestSeller === 'true' || minPrice || maxPrice || sort);
+    const products = await db.getProducts(hasFilter ? {
       search: search as string,
       categoryId: categoryId as string,
       featured: featured === 'true',
@@ -55,7 +55,7 @@ apiRouter.get('/products', async (req, res) => {
       minPrice: minPrice ? Number(minPrice) : undefined,
       maxPrice: maxPrice ? Number(maxPrice) : undefined,
       sort: sort as string
-    });
+    } : undefined);
     res.json({ success: true, count: products.length, products });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
@@ -119,12 +119,11 @@ apiRouter.delete('/products/:id', requireAdmin, async (req: AuthenticatedRequest
 // ================= CATEGORY ROUTES =================
 apiRouter.get('/categories', async (req, res) => {
   try {
-    const onlyFeatured = req.query.featured === 'true';
-    const showAll = req.query.all === 'true';
-    const categories = await db.getCategories({
+    const hasCatFilter = Boolean(onlyFeatured || showAll);
+    const categories = await db.getCategories(hasCatFilter ? {
       onlyActive: !showAll,
       onlyFeatured
-    });
+    } : undefined);
     res.json({ success: true, count: categories.length, categories });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
