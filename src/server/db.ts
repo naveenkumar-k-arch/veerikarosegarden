@@ -5066,8 +5066,8 @@ const DEFAULT_SETTINGS: SiteSettings = {
   shippingFee: 50,
   freeShippingThreshold: 999,
   enableRazorpay: true,
-  razorpayKeyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_TPguZgR8B1DLZg',
-  razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || 'ImuQTzfKISH0lAa6X2FCuVGs',
+  razorpayKeyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_TPhOIp2VtwhOxH',
+  razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || 'YQOrPZnRj1LBN1WyfDpfwres',
   enableCod: true,
   enablePhonePe: true,
   enableQrPayment: true,
@@ -6593,6 +6593,8 @@ class Store {
 
   async updateSettings(updates: Partial<SiteSettings>): Promise<SiteSettings> {
     this.invalidateSettingsCache();
+    if (updates.razorpayKeyId) updates.razorpayKeyId = updates.razorpayKeyId.trim();
+    if (updates.razorpayKeySecret) updates.razorpayKeySecret = updates.razorpayKeySecret.trim();
     const current = await this.getSettings();
     const merged: SiteSettings = {
       ...current,

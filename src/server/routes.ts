@@ -747,8 +747,8 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
             customerName: finalName
           }
         },
-        (settings.razorpayKeyId && settings.razorpayKeyId.trim()) || process.env.RAZORPAY_KEY_ID || 'rzp_test_TPguZgR8B1DLZg',
-        (settings.razorpayKeySecret && settings.razorpayKeySecret.trim()) || process.env.RAZORPAY_KEY_SECRET || 'ImuQTzfKISH0lAa6X2FCuVGs'
+        (settings.razorpayKeyId && settings.razorpayKeyId.trim()) || process.env.RAZORPAY_KEY_ID || 'rzp_test_TPhOIp2VtwhOxH',
+        (settings.razorpayKeySecret && settings.razorpayKeySecret.trim()) || process.env.RAZORPAY_KEY_SECRET || 'YQOrPZnRj1LBN1WyfDpfwres'
       );
 
       if (!rzpRes.success || !rzpRes.razorpayOrderId) {
@@ -767,7 +767,7 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
         order: newOrder,
         orderId: newOrder.id,
         razorpayOrderId: rzpRes.razorpayOrderId,
-        razorpayKeyId: (settings.razorpayKeyId && settings.razorpayKeyId.trim()) || process.env.RAZORPAY_KEY_ID || 'rzp_test_TPguZgR8B1DLZg',
+        razorpayKeyId: (settings.razorpayKeyId && settings.razorpayKeyId.trim()) || process.env.RAZORPAY_KEY_ID || 'rzp_test_TPhOIp2VtwhOxH',
         amount: calculatedGrandTotal,
         customerName: finalName,
         customerEmail: finalEmail,
@@ -1182,8 +1182,8 @@ const handleCreateRazorpayOrder = async (req: AuthenticatedRequest, res: any) =>
     }
 
     const settings = await db.getSettings();
-    const keyId = (settings?.razorpayKeyId && settings.razorpayKeyId.trim()) || process.env.RAZORPAY_KEY_ID || 'rzp_test_TPguZgR8B1DLZg';
-    const keySecret = (settings?.razorpayKeySecret && settings.razorpayKeySecret.trim()) || process.env.RAZORPAY_KEY_SECRET || 'ImuQTzfKISH0lAa6X2FCuVGs';
+    const keyId = (settings?.razorpayKeyId && settings.razorpayKeyId.trim()) || process.env.RAZORPAY_KEY_ID || 'rzp_test_TPhOIp2VtwhOxH';
+    const keySecret = (settings?.razorpayKeySecret && settings.razorpayKeySecret.trim()) || process.env.RAZORPAY_KEY_SECRET || 'YQOrPZnRj1LBN1WyfDpfwres';
 
     if (!keyId || !keySecret) {
       return res.status(401).json({ success: false, message: 'Razorpay API credentials not configured.' });
@@ -1245,7 +1245,7 @@ const handleVerifyRazorpayPayment = async (req: AuthenticatedRequest, res: any) 
     }
 
     const settings = await db.getSettings();
-    const keySecret = (settings?.razorpayKeySecret && settings.razorpayKeySecret.trim()) || process.env.RAZORPAY_KEY_SECRET || 'ImuQTzfKISH0lAa6X2FCuVGs';
+    const keySecret = (settings?.razorpayKeySecret && settings.razorpayKeySecret.trim()) || process.env.RAZORPAY_KEY_SECRET || 'YQOrPZnRj1LBN1WyfDpfwres';
 
     if (!keySecret) {
       return res.status(401).json({ success: false, message: 'Razorpay secret key not configured.' });
