@@ -5446,7 +5446,7 @@ class Store {
 
       const finalProducts = results.filter(p => !deletedProductIds.has(p.id));
       if (isFullQuery) {
-        this.productsCache = { data: finalProducts, expiresAt: Date.now() + 10000 };
+        this.productsCache = { data: finalProducts, expiresAt: Date.now() + 60000 };
       }
       return finalProducts;
     } catch (err) {
@@ -5827,7 +5827,7 @@ class Store {
 
       const finalCategories = results.filter(c => !deletedCategoryIds.has(c.id));
       if (isFullOptions) {
-        this.categoriesCache = { data: finalCategories, expiresAt: Date.now() + 10000 };
+        this.categoriesCache = { data: finalCategories, expiresAt: Date.now() + 60000 };
       }
       return finalCategories;
     } catch (err) {
@@ -6552,17 +6552,35 @@ class Store {
   }
 
   // SITE SETTINGS
+  private settingsCache: { data: SiteSettings; expiresAt: number } | null = null;
+
+  invalidateSettingsCache() {
+    this.settingsCache = null;
+  }
+
   async getSettings(): Promise<SiteSettings> {
+    if (this.settingsCache && Date.now() < this.settingsCache.expiresAt) {
+      return this.settingsCache.data;
+    }
+
     const prisma = getPrismaClient();
     const memory = (globalThis as any)._globalMemorySettings || {};
-    if (!prisma) return { ...DEFAULT_SETTINGS, ...memory };
+    if (!prisma) {
+      const res = { ...DEFAULT_SETTINGS, ...memory };
+      this.settingsCache = { data: res, expiresAt: Date.now() + 60000 };
+      return res;
+    }
 
     try {
       const s = await prisma.siteSetting.findUnique({
         where: { id: 'default' }
       });
 
-      if (!s) return { ...DEFAULT_SETTINGS, ...memory };
+      if (!s) {
+        const res = { ...DEFAULT_SETTINGS, ...memory };
+        this.settingsCache = { data: res, expiresAt: Date.now() + 60000 };
+        return res;
+      }
 
       const { workingHours, meta } = extractMetaFromWorkingHours(s.workingHours);
 
@@ -6599,14 +6617,18 @@ class Store {
       };
 
       (globalThis as any)._globalMemorySettings = merged;
+      this.settingsCache = { data: merged, expiresAt: Date.now() + 60000 };
       return merged;
     } catch (err) {
       console.error('Prisma getSettings error:', err);
-      return { ...DEFAULT_SETTINGS, ...memory };
+      const res = { ...DEFAULT_SETTINGS, ...memory };
+      this.settingsCache = { data: res, expiresAt: Date.now() + 60000 };
+      return res;
     }
   }
 
   async updateSettings(updates: Partial<SiteSettings>): Promise<SiteSettings> {
+    this.invalidateSettingsCache();
     const current = await this.getSettings();
     const merged: SiteSettings = {
       ...current,
@@ -6614,6 +6636,7 @@ class Store {
     };
 
     (globalThis as any)._globalMemorySettings = merged;
+    this.settingsCache = { data: merged, expiresAt: Date.now() + 60000 };
 
     const prisma = getPrismaClient();
 
@@ -7316,7 +7339,17 @@ class Store {
   }
 
   // DASHBOARD STATS
+  private dashboardStatsCache: { data: any; expiresAt: number } | null = null;
+
+  invalidateDashboardStatsCache() {
+    this.dashboardStatsCache = null;
+  }
+
   async getDashboardStats(existingOrders?: Order[]) {
+    if (!existingOrders && this.dashboardStatsCache && Date.now() < this.dashboardStatsCache.expiresAt) {
+      return this.dashboardStatsCache.data;
+    }
+
     const isRevenueOrder = (o: any) => {
       const pStatus = (o.paymentStatus || '').toString().toUpperCase();
       const oStatus = (o.orderStatus || o.status || '').toString().toUpperCase();
@@ -7330,7 +7363,7 @@ class Store {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
 
-      return {
+      const res = {
         totalOrders: allOrders.length,
         totalRevenue: paidOrders.reduce((sum, o) => sum + (o.grandTotal || 0), 0),
         todaySales: paidOrders.filter(o => new Date(o.createdAt) >= todayStart).reduce((sum, o) => sum + (o.grandTotal || 0), 0),
@@ -7340,6 +7373,8 @@ class Store {
         lowStockProducts: [],
         recentOrders: allOrders.slice(0, 10)
       };
+      if (!existingOrders) this.dashboardStatsCache = { data: res, expiresAt: Date.now() + 15000 };
+      return res;
     }
 
     try {
@@ -7409,7 +7444,7 @@ class Store {
         stock: i.quantity
       }));
 
-      return {
+      const res = {
         totalOrders,
         totalRevenue,
         todaySales,
@@ -7419,6 +7454,9 @@ class Store {
         lowStockProducts,
         recentOrders: recentOrdersList.slice(0, 5)
       };
+
+      if (!existingOrders) this.dashboardStatsCache = { data: res, expiresAt: Date.now() + 15000 };
+      return res;
     } catch (err) {
       console.error('Prisma getDashboardStats error:', err);
       return {
@@ -7436,3 +7474,21 @@ class Store {
 }
 
 export const db = new Store();
+
+export async function prewarmAllCaches(): Promise<void> {
+  try {
+    const p1 = db.getSettings().catch(() => null);
+    const p2 = db.getProducts().catch(() => []);
+    const p3 = db.getCategories().catch(() => []);
+    const p4 = db.getOrders().catch(() => []);
+    const p5 = db.getCoupons().catch(() => []);
+    const p6 = db.getBanners().catch(() => []);
+    const p7 = db.getCombos().catch(() => []);
+    const p8 = db.getReviews().catch(() => []);
+    await Promise.all([p1, p2, p3, p4, p5, p6, p7, p8]);
+    await db.getDashboardStats().catch(() => null);
+    console.log('⚡ All nursery database & catalog caches pre-warmed into fast RAM.');
+  } catch (err) {
+    console.warn('Cache pre-warm notice:', err);
+  }
+}

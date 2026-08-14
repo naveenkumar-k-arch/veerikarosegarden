@@ -11,6 +11,7 @@ import { createServer as createViteServer } from 'vite';
 import { apiRouter } from './src/server/routes.js';
 import { globalLimiter, authLimiter, errorHandler } from './src/server/middleware/security.js';
 import { AUTH_CONFIG } from './src/server/config/authConfig.js';
+import { prewarmAllCaches } from './src/server/db.js';
 
 async function startServer() {
   const app = express();
@@ -151,6 +152,8 @@ Sitemap: ${req.protocol}://${req.get('host')}/sitemap.xml`);
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🌿 Veerika Rose Garden Server running on http://0.0.0.0:${PORT}`);
+    // Warm all high-traffic RAM caches in background so cold start latency is eliminated
+    prewarmAllCaches().catch(() => {});
   });
 }
 
