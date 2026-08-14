@@ -1583,9 +1583,14 @@ const silentRefresh = async (): Promise<boolean> => {
             }
           }}
           onSaveSettings={async (st) => {
+            setSettings(st);
             try {
-              await authFetch('/api/admin/settings', { method: 'POST', body: JSON.stringify(st) });
-              setSettings(st);
+              const res = await authFetch('/api/admin/settings', { method: 'POST', body: JSON.stringify(st) });
+              const data = await res.json().catch(() => null);
+              if (data && data.settings) {
+                setSettings(data.settings);
+              }
+              await fetchData();
             } catch (e) {
               console.error(e);
             }

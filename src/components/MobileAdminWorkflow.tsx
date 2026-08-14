@@ -329,6 +329,22 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
     phonepeEnv: 'SANDBOX'
   });
 
+  // Synchronize settingsForm whenever settings prop updates from server
+  useEffect(() => {
+    if (initialSettings && typeof initialSettings === 'object') {
+      setSettingsForm((prev: any) => ({
+        ...prev,
+        ...initialSettings,
+        enableRazorpay: initialSettings.enableRazorpay !== undefined ? initialSettings.enableRazorpay : prev.enableRazorpay,
+        enablePhonePe: initialSettings.enablePhonePe !== undefined ? initialSettings.enablePhonePe : prev.enablePhonePe,
+        enableCod: initialSettings.enableCod !== undefined ? initialSettings.enableCod : prev.enableCod,
+        enableQrPayment: initialSettings.enableQrPayment !== undefined ? initialSettings.enableQrPayment : prev.enableQrPayment,
+        razorpayKeyId: initialSettings.razorpayKeyId || prev.razorpayKeyId || '',
+        razorpayKeySecret: initialSettings.razorpayKeySecret || prev.razorpayKeySecret || ''
+      }));
+    }
+  }, [initialSettings]);
+
   // Helper to close all modal states locally without pushing history
   const closeAllModalsLocally = useCallback(() => {
     setShowProductModal(false);

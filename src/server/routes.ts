@@ -1449,7 +1449,7 @@ apiRouter.get('/admin/settings', requireAdmin, async (req: AuthenticatedRequest,
   }
 });
 
-apiRouter.put('/settings', requireAdmin, async (req: AuthenticatedRequest, res) => {
+const handleUpdateSettings = async (req: AuthenticatedRequest, res: express.Response) => {
   try {
     const SALT_MASK = '••••••••';
     const body = { ...req.body };
@@ -1476,7 +1476,13 @@ apiRouter.put('/settings', requireAdmin, async (req: AuthenticatedRequest, res) 
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
-});
+};
+
+apiRouter.put('/settings', requireAdmin, handleUpdateSettings);
+apiRouter.post('/settings', requireAdmin, handleUpdateSettings);
+apiRouter.put('/admin/settings', requireAdmin, handleUpdateSettings);
+apiRouter.post('/admin/settings', requireAdmin, handleUpdateSettings);
+apiRouter.post('/admin/settings/update', requireAdmin, handleUpdateSettings);
 
 // ================= EXPERT ADVICE CALLBACK & AI DOCTOR =================
 apiRouter.post('/expert-callback', (req, res) => {
