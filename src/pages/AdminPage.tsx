@@ -804,27 +804,34 @@ const silentRefresh = async (): Promise<boolean> => {
         bestSeller: prodForm.bestSeller ?? false,
         trending: prodForm.trending ?? false,
         tags: prodForm.tags?.length ? prodForm.tags : [prodForm.categoryName || 'Plant'],
-        status: 'ACTIVE'
+        status: 'ACTIVE' as const
       };
 
-      const res = await authFetch(url, {
+      // Optimistic UI update instantly
+      if (editingProduct) {
+        setProducts(prev => prev.map(p => p.id === editingProduct.id ? { ...p, ...payload, id: editingProduct.id } as Product : p));
+      } else {
+        const tempId = 'prod-' + Date.now();
+        setProducts(prev => [{ ...payload, id: tempId, rating: 5, reviewCount: 0 } as Product, ...prev]);
+      }
+
+      setShowProductModal(false);
+      setEditingProduct(null);
+      setProductSaveError(null);
+      setProductSaving(false);
+
+      // Async background server sync
+      authFetch(url, {
         method,
         body: JSON.stringify(payload)
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        setShowProductModal(false);
-        setEditingProduct(null);
-        setProductSaveError(null);
-        fetchData();
-      } else {
-        const errDetail = data.errors?.map((e: any) => e.message).join(', ') || data.message || 'Save failed';
-        setProductSaveError(`❌ ${errDetail}`);
-      }
+      }).then(async res => {
+        const data = await res.json().catch(() => null);
+        if (data?.product?.id && !editingProduct) {
+          setProducts(prev => prev.map(p => p.sku === payload.sku ? { ...p, id: data.product.id } : p));
+        }
+      }).catch(err => console.warn('Background save product notice:', err));
     } catch (err: any) {
-      setProductSaveError(`❌ Network error: ${err.message}`);
-    } finally {
+      setProductSaveError(err.message || 'Failed to save product');
       setProductSaving(false);
     }
   };
@@ -1355,7 +1362,7 @@ const silentRefresh = async (): Promise<boolean> => {
               status: prod.status || 'ACTIVE'
             };
 
-            // Optimistic UI update
+            // Optimistic UI update instantly (< 0ms)
             if (isEdit) {
               setProducts(prev => prev.map(p => p.id === prod.id ? { ...p, ...payload, id: prod.id } : p));
             } else {
@@ -1363,22 +1370,20 @@ const silentRefresh = async (): Promise<boolean> => {
               setProducts(prev => [{ ...payload, id: tempId, rating: 5, reviewCount: 0 }, ...prev]);
             }
 
-            try {
-              const res = await authFetch(url, {
-                method,
-                body: JSON.stringify(payload)
-              });
+            // Fire async background sync without blocking UI
+            authFetch(url, {
+              method,
+              body: JSON.stringify(payload)
+            }).then(async res => {
               const data = await res.json().catch(() => null);
-              if (data && !data.success) {
-                const errDetail = data.errors?.map((e: any) => e.message).join(', ') || data.message || 'Failed to save product';
-                throw new Error(errDetail);
+              if (data && data.success && data.product) {
+                if (!isEdit && data.product.id) {
+                  setProducts(prev => prev.map(p => p.sku === payload.sku ? { ...p, id: data.product.id } : p));
+                }
               }
-              await fetchData();
-            } catch (e: any) {
-              console.error('Error in onSaveProduct:', e);
-              await fetchData();
-              throw e;
-            }
+            }).catch(e => {
+              console.warn('Background product save notice:', e);
+            });
           }}
           onDeleteProduct={handleDeleteProduct}
           onSaveCategory={async (cat) => {

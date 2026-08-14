@@ -3316,34 +3316,30 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 const stock = Number(productForm.stock) >= 0 ? Number(productForm.stock) : 0;
                 const catObj = categories.find(c => c.id === productForm.categoryId);
 
-                setIsSavingProduct(true);
-                try {
-                  if (onSaveProduct) {
-                    await onSaveProduct({
-                      id: editingProduct?.id,
-                      name: trimmedName,
-                      tamilName: productForm.tamilName.trim() || trimmedName,
-                      categoryId: productForm.categoryId || categories[0]?.id || 'cat-roses',
-                      categoryName: productForm.categoryName || catObj?.name || 'Roses',
-                      mrp,
-                      sellingPrice,
-                      stock,
-                      plantHeight: productForm.plantHeight || '1-2 Feet',
-                      potSize: productForm.potSize || '8 Inch Bag',
-                      sunlight: productForm.sunlight || 'Full Sun',
-                      images: productForm.imageUrl ? [productForm.imageUrl] : [],
-                      imageUrl: productForm.imageUrl,
-                      description: productForm.description.trim() || trimmedName
-                    });
-                  }
-                  setShowProductModal(false);
-                  setProductSuccessToast(editingProduct ? `Plant "${trimmedName}" updated successfully!` : `Plant "${trimmedName}" added!`);
-                  setTimeout(() => setProductSuccessToast(null), 3000);
-                } catch (err: any) {
-                  console.error('Error saving plant:', err);
-                  setProductModalError(err?.message || 'Failed to save plant changes. Please try again.');
-                } finally {
-                  setIsSavingProduct(false);
+                // Instantly dismiss modal and show success feedback (0ms)
+                setShowProductModal(false);
+                setProductSuccessToast(editingProduct ? `Plant "${trimmedName}" updated successfully!` : `Plant "${trimmedName}" added!`);
+                setTimeout(() => setProductSuccessToast(null), 3000);
+
+                if (onSaveProduct) {
+                  onSaveProduct({
+                    id: editingProduct?.id,
+                    name: trimmedName,
+                    tamilName: productForm.tamilName.trim() || trimmedName,
+                    categoryId: productForm.categoryId || categories[0]?.id || 'cat-roses',
+                    categoryName: productForm.categoryName || catObj?.name || 'Roses',
+                    mrp,
+                    sellingPrice,
+                    stock,
+                    plantHeight: productForm.plantHeight || '1-2 Feet',
+                    potSize: productForm.potSize || '8 Inch Bag',
+                    sunlight: productForm.sunlight || 'Full Sun',
+                    images: productForm.imageUrl ? [productForm.imageUrl] : [],
+                    imageUrl: productForm.imageUrl,
+                    description: productForm.description.trim() || trimmedName
+                  }).catch(err => {
+                    console.error('Background error saving plant:', err);
+                  });
                 }
               }}
               className="p-4 overflow-y-auto space-y-3 text-xs"
