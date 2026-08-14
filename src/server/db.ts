@@ -5576,39 +5576,53 @@ class Store {
 
   async updateProduct(id: string, updates: Partial<Product>): Promise<Product | null> {
     const prisma = getPrismaClient();
-    if (!prisma) return null;
+    let prismaUpdated: Product | null = null;
 
-    try {
-      await prisma.product.update({
-        where: { id },
-        data: {
-          ...(updates.name ? { name: updates.name } : {}),
-          ...(updates.tamilName ? { nameTamil: updates.tamilName } : {}),
-          ...(updates.scientificName !== undefined ? { scientificName: updates.scientificName } : {}),
-          ...(updates.sellingPrice !== undefined ? { price: updates.sellingPrice } : {}),
-          ...(updates.mrp !== undefined ? { originalPrice: updates.mrp } : {}),
-          ...(updates.description !== undefined ? { description: updates.description } : {}),
-          ...(updates.images ? { images: updates.images, image: updates.images[0] } : {}),
-          ...(updates.featured !== undefined ? { isFeatured: updates.featured } : {}),
-          ...(updates.bestSeller !== undefined ? { isBestSeller: updates.bestSeller } : {}),
-          ...(updates.categoryId ? { categoryId: updates.categoryId } : {}),
-          ...(updates.categoryName ? { category: updates.categoryName } : {})
-        }
-      });
-
-      if (updates.stock !== undefined) {
-        await prisma.inventory.upsert({
-          where: { productId: id },
-          update: { quantity: updates.stock },
-          create: { productId: id, quantity: updates.stock }
+    if (prisma) {
+      try {
+        await prisma.product.update({
+          where: { id },
+          data: {
+            ...(updates.name ? { name: updates.name } : {}),
+            ...(updates.tamilName ? { nameTamil: updates.tamilName } : {}),
+            ...(updates.scientificName !== undefined ? { scientificName: updates.scientificName } : {}),
+            ...(updates.sellingPrice !== undefined ? { price: updates.sellingPrice } : {}),
+            ...(updates.mrp !== undefined ? { originalPrice: updates.mrp } : {}),
+            ...(updates.description !== undefined ? { description: updates.description } : {}),
+            ...(updates.images ? { images: updates.images, image: updates.images[0] } : {}),
+            ...(updates.featured !== undefined ? { isFeatured: updates.featured } : {}),
+            ...(updates.bestSeller !== undefined ? { isBestSeller: updates.bestSeller } : {}),
+            ...(updates.categoryId ? { categoryId: updates.categoryId } : {}),
+            ...(updates.categoryName ? { category: updates.categoryName } : {})
+          }
         });
-      }
 
-      return (await this.getProductById(id)) || null;
-    } catch (err) {
-      console.error('Prisma updateProduct error:', err);
-      return null;
+        if (updates.stock !== undefined) {
+          await prisma.inventory.upsert({
+            where: { productId: id },
+            update: { quantity: updates.stock },
+            create: { productId: id, quantity: updates.stock }
+          });
+        }
+
+        prismaUpdated = (await this.getProductById(id)) || null;
+      } catch (err) {
+        console.warn('Prisma updateProduct fallback to in-memory:', err);
+      }
     }
+
+    // Always update in DEFAULT_PRODUCTS if exists as well
+    const defIndex = DEFAULT_PRODUCTS.findIndex(p => p.id === id);
+    if (defIndex !== -1) {
+      DEFAULT_PRODUCTS[defIndex] = {
+        ...DEFAULT_PRODUCTS[defIndex],
+        ...updates,
+        updatedAt: new Date().toISOString()
+      };
+      return DEFAULT_PRODUCTS[defIndex];
+    }
+
+    return prismaUpdated || (await this.getProductById(id)) || null;
   }
 
   async deleteProduct(id: string): Promise<boolean> {

@@ -1309,24 +1309,95 @@ const silentRefresh = async (): Promise<boolean> => {
             });
           }}
           onSaveProduct={async (prod) => {
+            const isEdit = Boolean(prod.id);
+            const url = isEdit ? `/api/products/${prod.id}` : '/api/products';
+            const method = isEdit ? 'PUT' : 'POST';
+
+            const autoSku = prod.sku ||
+              `VRG-${(prod.name || 'PLANT').replace(/\s+/g, '-').toUpperCase().slice(0, 12)}-${Date.now().toString(36).toUpperCase()}`;
+            const mrp = Number(prod.mrp) || Number(prod.sellingPrice) || 0;
+            const sellingPrice = Number(prod.sellingPrice) || 0;
+            const autoDiscount = mrp > 0 ? Math.max(0, Math.round(((mrp - sellingPrice) / mrp) * 100)) : 0;
+            const validImages = Array.isArray(prod.images) && prod.images.filter(Boolean).length
+              ? prod.images.filter(Boolean)
+              : (prod.imageUrl ? [prod.imageUrl] : ['https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80']);
+
+            const payload: any = {
+              sku: autoSku,
+              name: prod.name?.trim() || '',
+              englishName: prod.englishName?.trim() || prod.name?.trim() || '',
+              tamilName: prod.tamilName?.trim() || prod.name?.trim() || '',
+              scientificName: prod.scientificName?.trim() || '',
+              categoryId: prod.categoryId || categories[0]?.id || 'cat-roses',
+              categoryName: prod.categoryName || categories.find(c => c.id === prod.categoryId)?.name || 'Roses',
+              description: prod.description?.trim() || prod.name?.trim() || '',
+              mrp: mrp > 0 ? mrp : sellingPrice,
+              sellingPrice,
+              discount: prod.discount ?? autoDiscount,
+              stock: Number(prod.stock) >= 0 ? Number(prod.stock) : 25,
+              plantHeight: prod.plantHeight || '1–2 Feet',
+              potSize: prod.potSize || '8 Inch Bag',
+              sunlight: prod.sunlight || 'Full Sun',
+              waterRequirement: prod.waterRequirement || 'Daily',
+              floweringSeason: prod.floweringSeason || 'All Year',
+              careInstructions: prod.careInstructions || {
+                watering: 'Water daily in the morning.',
+                sunlight: 'Requires 5 hours direct sunlight.',
+                fertilizer: 'Apply vermicompost every 15 days.',
+                soil: 'Red soil mixed with coco peat.'
+              },
+              images: validImages,
+              featured: prod.featured ?? false,
+              bestSeller: prod.bestSeller ?? false,
+              trending: prod.trending ?? false,
+              tags: prod.tags?.length ? prod.tags : [prod.categoryName || 'Plant'],
+              status: prod.status || 'ACTIVE'
+            };
+
+            // Optimistic UI update
+            if (isEdit) {
+              setProducts(prev => prev.map(p => p.id === prod.id ? { ...p, ...payload, id: prod.id } : p));
+            } else {
+              const tempId = 'prod-' + Date.now();
+              setProducts(prev => [{ ...payload, id: tempId, rating: 5, reviewCount: 0 }, ...prev]);
+            }
+
             try {
-              const url = prod.id ? `/api/products/${prod.id}` : '/api/products';
-              const method = prod.id ? 'PUT' : 'POST';
-              await authFetch(url, { method, body: JSON.stringify(prod) });
-              fetchData();
-            } catch (e) {
-              console.error(e);
+              const res = await authFetch(url, {
+                method,
+                body: JSON.stringify(payload)
+              });
+              const data = await res.json().catch(() => null);
+              if (data && !data.success) {
+                const errDetail = data.errors?.map((e: any) => e.message).join(', ') || data.message || 'Failed to save product';
+                throw new Error(errDetail);
+              }
+              await fetchData();
+            } catch (e: any) {
+              console.error('Error in onSaveProduct:', e);
+              await fetchData();
+              throw e;
             }
           }}
           onDeleteProduct={handleDeleteProduct}
           onSaveCategory={async (cat) => {
+            const isEdit = Boolean(cat.id);
+            const url = isEdit ? `/api/admin/categories/${cat.id}` : '/api/admin/categories';
+            const method = isEdit ? 'PUT' : 'POST';
+            if (isEdit) {
+              setCategories(prev => prev.map(c => c.id === cat.id ? { ...c, ...cat } : c));
+            } else {
+              setCategories(prev => [{ ...cat, id: 'cat-' + Date.now(), productCount: 0 }, ...prev]);
+            }
             try {
-              const url = cat.id ? `/api/admin/categories/${cat.id}` : '/api/admin/categories';
-              const method = cat.id ? 'PUT' : 'POST';
-              await authFetch(url, { method, body: JSON.stringify(cat) });
-              fetchData();
-            } catch (e) {
-              console.error(e);
+              const res = await authFetch(url, { method, body: JSON.stringify(cat) });
+              const data = await res.json().catch(() => null);
+              if (data && !data.success) throw new Error(data.message || 'Failed to save category');
+              await fetchData();
+            } catch (e: any) {
+              console.error('Error in onSaveCategory:', e);
+              await fetchData();
+              throw e;
             }
           }}
           onDeleteCategory={handleDeleteCategory}
@@ -1336,71 +1407,117 @@ const silentRefresh = async (): Promise<boolean> => {
           } : undefined}
           onDeleteReview={handleDeleteReview}
           onSaveCoupon={async (cp) => {
+            const isEdit = Boolean(cp.id);
+            const url = isEdit ? `/api/admin/coupons/${cp.id}` : '/api/admin/coupons';
+            const method = isEdit ? 'PUT' : 'POST';
+            if (isEdit) {
+              setCoupons(prev => prev.map(c => c.id === cp.id ? { ...c, ...cp } : c));
+            } else {
+              setCoupons(prev => [{ ...cp, id: 'cp-' + Date.now() }, ...prev]);
+            }
             try {
-              const url = cp.id ? `/api/admin/coupons/${cp.id}` : '/api/admin/coupons';
-              const method = cp.id ? 'PUT' : 'POST';
-              await authFetch(url, { method, body: JSON.stringify(cp) });
-              fetchData();
-            } catch (e) {
-              console.error(e);
+              const res = await authFetch(url, { method, body: JSON.stringify(cp) });
+              const data = await res.json().catch(() => null);
+              if (data && !data.success) throw new Error(data.message || 'Failed to save coupon');
+              await fetchData();
+            } catch (e: any) {
+              console.error('Error in onSaveCoupon:', e);
+              await fetchData();
+              throw e;
             }
           }}
           onDeleteCoupon={async (id) => {
             if (!confirm('Are you sure you want to delete this coupon?')) return;
+            setCoupons(prev => prev.filter(c => c.id !== id));
             try {
               await authFetch(`/api/admin/coupons/${id}`, { method: 'DELETE' });
-              fetchData();
+              await fetchData();
             } catch (e) {
               console.error(e);
+              await fetchData();
             }
           }}
           onSaveCombo={async (comboData) => {
+            const isEdit = Boolean(comboData.id);
+            const url = isEdit ? `/api/admin/combos/${comboData.id}` : '/api/admin/combos';
+            const method = isEdit ? 'PUT' : 'POST';
+            if (isEdit) {
+              setCombos(prev => prev.map(c => c.id === comboData.id ? { ...c, ...comboData } : c));
+            } else {
+              setCombos(prev => [{ ...comboData, id: 'combo-' + Date.now() }, ...prev]);
+            }
             try {
-              const url = comboData.id ? `/api/admin/combos/${comboData.id}` : '/api/admin/combos';
-              const method = comboData.id ? 'PUT' : 'POST';
-              await authFetch(url, { method, body: JSON.stringify(comboData) });
-              fetchData();
-            } catch (e) {
-              console.error(e);
+              const res = await authFetch(url, { method, body: JSON.stringify(comboData) });
+              const data = await res.json().catch(() => null);
+              if (data && !data.success) throw new Error(data.message || 'Failed to save combo offer');
+              await fetchData();
+            } catch (e: any) {
+              console.error('Error in onSaveCombo:', e);
+              await fetchData();
+              throw e;
             }
           }}
           onDeleteCombo={async (id) => {
             if (!confirm('Are you sure you want to delete this combo offer?')) return;
+            setCombos(prev => prev.filter(c => c.id !== id));
             try {
               await authFetch(`/api/admin/combos/${id}`, { method: 'DELETE' });
-              fetchData();
+              await fetchData();
             } catch (e) {
               console.error(e);
+              await fetchData();
             }
           }}
           onSaveFinance={async (fnData) => {
+            const isEdit = Boolean(fnData.id);
+            const url = isEdit ? `/api/admin/finances/${fnData.id}` : '/api/admin/finances';
+            const method = isEdit ? 'PUT' : 'POST';
+            if (isEdit) {
+              setFinances(prev => prev.map(f => f.id === fnData.id ? { ...f, ...fnData } : f));
+            } else {
+              setFinances(prev => [{ ...fnData, id: 'fn-' + Date.now() }, ...prev]);
+            }
             try {
-              const url = fnData.id ? `/api/admin/finances/${fnData.id}` : '/api/admin/finances';
-              const method = fnData.id ? 'PUT' : 'POST';
-              await authFetch(url, { method, body: JSON.stringify(fnData) });
-              fetchData();
-            } catch (e) {
-              console.error(e);
+              const res = await authFetch(url, { method, body: JSON.stringify(fnData) });
+              const data = await res.json().catch(() => null);
+              if (data && !data.success) throw new Error(data.message || 'Failed to save financial entry');
+              await fetchData();
+            } catch (e: any) {
+              console.error('Error in onSaveFinance:', e);
+              await fetchData();
+              throw e;
             }
           }}
           onDeleteFinance={handleDeleteFinance}
           onSaveBanner={async (bData) => {
+            const isEdit = Boolean(bData.id);
+            const url = isEdit ? `/api/admin/banners/${bData.id}` : '/api/admin/banners';
+            const method = isEdit ? 'PUT' : 'POST';
+            if (isEdit) {
+              setBanners(prev => prev.map(b => b.id === bData.id ? { ...b, ...bData } : b));
+            } else {
+              setBanners(prev => [{ ...bData, id: 'banner-' + Date.now() }, ...prev]);
+            }
             try {
-              const url = bData.id ? `/api/admin/banners/${bData.id}` : '/api/admin/banners';
-              const method = bData.id ? 'PUT' : 'POST';
-              await authFetch(url, { method, body: JSON.stringify(bData) });
-              fetchData();
-            } catch (e) {
-              console.error(e);
+              const res = await authFetch(url, { method, body: JSON.stringify(bData) });
+              const data = await res.json().catch(() => null);
+              if (data && !data.success) throw new Error(data.message || 'Failed to save banner');
+              await fetchData();
+            } catch (e: any) {
+              console.error('Error in onSaveBanner:', e);
+              await fetchData();
+              throw e;
             }
           }}
           onDeleteBanner={async (id) => {
             if (!confirm('Are you sure you want to delete this banner?')) return;
+            setBanners(prev => prev.filter(b => b.id !== id));
             try {
               await authFetch(`/api/admin/banners/${id}`, { method: 'DELETE' });
-              fetchData();
+              await fetchData();
             } catch (e) {
               console.error(e);
+              await fetchData();
             }
           }}
           onSaveSettings={async (st) => {

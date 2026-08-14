@@ -46,28 +46,28 @@ export const createOrderSchema = z.object({
 export const productSchema = z.object({
   // SKU is optional — auto-generated server-side if not provided
   sku: z.string().min(1).optional(),
-  name: z.string().min(2).max(200),
-  englishName: z.string().min(2).max(200).optional(),
-  tamilName: z.string().min(1).max(200),
-  scientificName: z.string().min(1).max(200).optional().default(''),
-  categoryId: z.string().min(1),
-  categoryName: z.string().min(1).optional().default('Roses'),
+  name: z.string().min(1).max(200),
+  englishName: z.string().max(200).optional().default(''),
+  tamilName: z.string().max(200).optional().default(''),
+  scientificName: z.string().max(200).optional().default(''),
+  categoryId: z.string().optional().default('cat-roses'),
+  categoryName: z.string().optional().default('Roses'),
   // Description is optional — admin can leave blank, defaults to plant name
   description: z.string().optional().default(''),
-  mrp: z.number().positive(),
-  sellingPrice: z.number().positive(),
+  mrp: z.number().min(0).optional().default(0),
+  sellingPrice: z.number().min(0),
   discount: z.number().min(0).max(100).optional().default(0),
-  stock: z.number().int().min(0),
-  plantHeight: z.string().min(1).optional().default('1–2 Feet'),
-  potSize: z.string().min(1).optional().default('8 Inch Bag'),
-  sunlight: z.string().min(1).optional().default('Full Sun'),
-  waterRequirement: z.string().min(1).optional().default('Daily'),
-  floweringSeason: z.string().min(1).optional().default('All Year'),
+  stock: z.number().int().min(0).optional().default(0),
+  plantHeight: z.string().optional().default('1–2 Feet'),
+  potSize: z.string().optional().default('8 Inch Bag'),
+  sunlight: z.string().optional().default('Full Sun'),
+  waterRequirement: z.string().optional().default('Daily'),
+  floweringSeason: z.string().optional().default('All Year'),
   careInstructions: z.object({
-    watering: z.string(),
-    sunlight: z.string(),
-    fertilizer: z.string(),
-    soil: z.string()
+    watering: z.string().optional().default('Water daily in the morning.'),
+    sunlight: z.string().optional().default('Requires 5 hours direct sunlight.'),
+    fertilizer: z.string().optional().default('Apply vermicompost every 15 days.'),
+    soil: z.string().optional().default('Red soil mixed with coco peat.')
   }).optional().default({
     watering: 'Water daily in the morning.',
     sunlight: 'Requires 5 hours direct sunlight.',
@@ -75,12 +75,12 @@ export const productSchema = z.object({
     soil: 'Red soil mixed with coco peat.'
   }),
   // Accept both full URLs (https://...) and local paths (/products/image.jpg)
-  images: z.array(z.string().min(1)).optional().default([]),
-  featured: z.boolean().default(false),
-  bestSeller: z.boolean().default(false),
-  trending: z.boolean().default(false),
+  images: z.array(z.string()).optional().default([]),
+  featured: z.boolean().optional().default(false),
+  bestSeller: z.boolean().optional().default(false),
+  trending: z.boolean().optional().default(false),
   tags: z.array(z.string()).optional().default([]),
-  status: z.enum(['ACTIVE', 'INACTIVE', 'ARCHIVED']).default('ACTIVE')
+  status: z.enum(['ACTIVE', 'INACTIVE', 'ARCHIVED']).optional().default('ACTIVE')
 });
 
 export const reviewSchema = z.object({

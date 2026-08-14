@@ -179,6 +179,9 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [productSearch, setProductSearch] = useState('');
   const [productCategoryFilter, setProductCategoryFilter] = useState('ALL');
+  const [isSavingProduct, setIsSavingProduct] = useState(false);
+  const [productModalError, setProductModalError] = useState<string | null>(null);
+  const [productSuccessToast, setProductSuccessToast] = useState<string | null>(null);
   const [productForm, setProductForm] = useState({
     name: '',
     tamilName: '',
@@ -1820,6 +1823,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               <button
                 onClick={() => {
                   setEditingProduct(null);
+                  setProductModalError(null);
                   setProductForm({
                     name: '',
                     tamilName: '',
@@ -1842,6 +1846,14 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 <span>Add Plant</span>
               </button>
             </div>
+
+            {/* Success Toast */}
+            {productSuccessToast && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-bold text-emerald-800 flex items-center gap-2 animate-in fade-in">
+                <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{productSuccessToast}</span>
+              </div>
+            )}
 
             {/* Search */}
             <div className="relative">
@@ -1881,14 +1893,15 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                     <button
                       onClick={() => {
                         setEditingProduct(p);
+                        setProductModalError(null);
                         setProductForm({
-                          name: p.name,
+                          name: p.name || '',
                           tamilName: p.tamilName || '',
-                          categoryId: p.categoryId || 'cat-roses',
-                          categoryName: p.categoryName || 'Roses',
-                          mrp: p.mrp || 299,
+                          categoryId: p.categoryId || categories[0]?.id || 'cat-roses',
+                          categoryName: p.categoryName || categories.find(c => c.id === p.categoryId)?.name || 'Roses',
+                          mrp: p.mrp || p.sellingPrice || 299,
                           sellingPrice: p.sellingPrice || 199,
-                          stock: p.stock || 25,
+                          stock: p.stock ?? 25,
                           plantHeight: p.plantHeight || '1-2 Feet',
                           potSize: p.potSize || '8 Inch Bag',
                           sunlight: p.sunlight || 'Full Sun',
@@ -3165,10 +3178,18 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
           <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden border border-slate-200 max-h-[92vh] sm:max-h-[90vh] flex flex-col">
             <div className="p-4 border-b border-slate-100 flex items-center justify-between shrink-0">
-              <h3 className="font-extrabold text-sm text-slate-900">
-                {editingProduct ? 'Edit Plant' : 'Add New Plant'}
+              <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-1.5">
+                <Sprout className="w-4 h-4 text-emerald-700" />
+                <span>{editingProduct ? 'Edit Plant' : 'Add New Plant'}</span>
               </h3>
-              <button onClick={() => setShowProductModal(false)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowProductModal(false);
+                  setProductModalError(null);
+                }}
+                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -3176,27 +3197,63 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
-                if (onSaveProduct) {
-                  await onSaveProduct({
-                    id: editingProduct?.id,
-                    name: productForm.name,
-                    tamilName: productForm.tamilName,
-                    categoryId: productForm.categoryId,
-                    categoryName: productForm.categoryName,
-                    mrp: Number(productForm.mrp),
-                    sellingPrice: Number(productForm.sellingPrice),
-                    stock: Number(productForm.stock),
-                    plantHeight: productForm.plantHeight,
-                    potSize: productForm.potSize,
-                    sunlight: productForm.sunlight,
-                    images: [productForm.imageUrl],
-                    description: productForm.description || productForm.name
-                  });
+                setProductModalError(null);
+
+                const trimmedName = productForm.name.trim();
+                if (!trimmedName) {
+                  setProductModalError('Please enter a plant name.');
+                  return;
                 }
-                setShowProductModal(false);
+
+                const sellingPrice = Number(productForm.sellingPrice);
+                if (isNaN(sellingPrice) || sellingPrice <= 0) {
+                  setProductModalError('Please enter a valid selling price (> 0).');
+                  return;
+                }
+
+                const mrp = Number(productForm.mrp) > 0 ? Number(productForm.mrp) : sellingPrice;
+                const stock = Number(productForm.stock) >= 0 ? Number(productForm.stock) : 0;
+                const catObj = categories.find(c => c.id === productForm.categoryId);
+
+                setIsSavingProduct(true);
+                try {
+                  if (onSaveProduct) {
+                    await onSaveProduct({
+                      id: editingProduct?.id,
+                      name: trimmedName,
+                      tamilName: productForm.tamilName.trim() || trimmedName,
+                      categoryId: productForm.categoryId || categories[0]?.id || 'cat-roses',
+                      categoryName: productForm.categoryName || catObj?.name || 'Roses',
+                      mrp,
+                      sellingPrice,
+                      stock,
+                      plantHeight: productForm.plantHeight || '1-2 Feet',
+                      potSize: productForm.potSize || '8 Inch Bag',
+                      sunlight: productForm.sunlight || 'Full Sun',
+                      images: productForm.imageUrl ? [productForm.imageUrl] : [],
+                      imageUrl: productForm.imageUrl,
+                      description: productForm.description.trim() || trimmedName
+                    });
+                  }
+                  setShowProductModal(false);
+                  setProductSuccessToast(editingProduct ? `Plant "${trimmedName}" updated successfully!` : `Plant "${trimmedName}" added!`);
+                  setTimeout(() => setProductSuccessToast(null), 3000);
+                } catch (err: any) {
+                  console.error('Error saving plant:', err);
+                  setProductModalError(err?.message || 'Failed to save plant changes. Please try again.');
+                } finally {
+                  setIsSavingProduct(false);
+                }
               }}
               className="p-4 overflow-y-auto space-y-3 text-xs"
             >
+              {productModalError && (
+                <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-[11px] font-semibold text-rose-700 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span className="flex-1">{productModalError}</span>
+                </div>
+              )}
+
               <div className="space-y-1">
                 <label className="font-bold text-slate-700 block">Plant Name *</label>
                 <input
@@ -3210,14 +3267,36 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               </div>
 
               <div className="space-y-1">
-                <label className="font-bold text-slate-700 block">Tamil Name</label>
+                <label className="font-bold text-slate-700 block">Tamil Name (தமிழ்)</label>
                 <input
                   type="text"
                   placeholder="e.g. சிவப்பு ரோஜா"
                   value={productForm.tamilName}
                   onChange={e => setProductForm({ ...productForm, tamilName: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-emerald-800"
                 />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Category *</label>
+                <select
+                  value={productForm.categoryId}
+                  onChange={e => {
+                    const selCat = categories.find(c => c.id === e.target.value);
+                    setProductForm({
+                      ...productForm,
+                      categoryId: e.target.value,
+                      categoryName: selCat?.name || productForm.categoryName
+                    });
+                  }}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-xs"
+                >
+                  {categories.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} {c.tamilName ? `(${c.tamilName})` : ''}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
@@ -3226,6 +3305,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                   <input
                     type="number"
                     required
+                    min={1}
                     value={productForm.sellingPrice}
                     onChange={e => setProductForm({ ...productForm, sellingPrice: Number(e.target.value) })}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
@@ -3235,6 +3315,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                   <label className="font-bold text-slate-700 block">MRP (₹)</label>
                   <input
                     type="number"
+                    min={0}
                     value={productForm.mrp}
                     onChange={e => setProductForm({ ...productForm, mrp: Number(e.target.value) })}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
@@ -3242,14 +3323,38 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 </div>
               </div>
 
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Stock Quantity *</label>
+                  <input
+                    type="number"
+                    required
+                    min={0}
+                    value={productForm.stock}
+                    onChange={e => setProductForm({ ...productForm, stock: Number(e.target.value) })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Plant Height</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 1-2 Feet"
+                    value={productForm.plantHeight}
+                    onChange={e => setProductForm({ ...productForm, plantHeight: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-semibold text-xs"
+                  />
+                </div>
+              </div>
+
               <div className="space-y-1">
-                <label className="font-bold text-slate-700 block">Stock Quantity *</label>
-                <input
-                  type="number"
-                  required
-                  value={productForm.stock}
-                  onChange={e => setProductForm({ ...productForm, stock: Number(e.target.value) })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                <label className="font-bold text-slate-700 block">Plant Description</label>
+                <textarea
+                  rows={2}
+                  placeholder="Describe the plant variety, blooming habits..."
+                  value={productForm.description}
+                  onChange={e => setProductForm({ ...productForm, description: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs resize-none"
                 />
               </div>
 
@@ -3325,9 +3430,20 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
               <button
                 type="submit"
-                className="w-full py-3 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
+                disabled={isSavingProduct}
+                className="w-full py-3 bg-[#14532d] hover:bg-[#0f3d21] disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2"
               >
-                {editingProduct ? 'Save Plant Changes' : 'Add Plant to Store'}
+                {isSavingProduct ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>{editingProduct ? 'Saving Plant Changes...' : 'Adding Plant to Store...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    <span>{editingProduct ? 'Save Plant Changes' : 'Add Plant to Store'}</span>
+                  </>
+                )}
               </button>
             </form>
           </div>
@@ -3352,17 +3468,21 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
-                if (onSaveCategory) {
-                  await onSaveCategory({
-                    id: editingCategory?.id,
-                    name: categoryForm.name,
-                    tamilName: categoryForm.tamilName,
-                    slug: categoryForm.slug || categoryForm.name.toLowerCase().replace(/\s+/g, '-'),
-                    image: categoryForm.image,
-                    description: categoryForm.description
-                  });
+                try {
+                  if (onSaveCategory) {
+                    await onSaveCategory({
+                      id: editingCategory?.id,
+                      name: categoryForm.name.trim(),
+                      tamilName: categoryForm.tamilName.trim() || categoryForm.name.trim(),
+                      slug: categoryForm.slug || categoryForm.name.toLowerCase().replace(/\s+/g, '-'),
+                      image: categoryForm.image,
+                      description: categoryForm.description
+                    });
+                  }
+                  setShowCategoryModal(false);
+                } catch (err: any) {
+                  alert(err?.message || 'Failed to save category');
                 }
-                setShowCategoryModal(false);
               }}
               className="p-4 overflow-y-auto space-y-3 text-xs"
             >
@@ -3428,21 +3548,25 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
-                if (onSaveCombo) {
-                  await onSaveCombo({
-                    id: editingCombo?.id,
-                    title: comboForm.title,
-                    subtitle: comboForm.subtitle,
-                    badge: comboForm.badge,
-                    productIds: comboForm.productIds,
-                    originalPrice: Number(comboForm.originalPrice),
-                    comboPrice: Number(comboForm.comboPrice),
-                    imageUrl: comboForm.imageUrl,
-                    active: comboForm.active,
-                    freeDelivery: comboForm.freeDelivery
-                  });
+                try {
+                  if (onSaveCombo) {
+                    await onSaveCombo({
+                      id: editingCombo?.id,
+                      title: comboForm.title.trim(),
+                      subtitle: comboForm.subtitle.trim(),
+                      badge: comboForm.badge.trim(),
+                      productIds: comboForm.productIds,
+                      originalPrice: Number(comboForm.originalPrice),
+                      comboPrice: Number(comboForm.comboPrice),
+                      imageUrl: comboForm.imageUrl,
+                      active: comboForm.active,
+                      freeDelivery: comboForm.freeDelivery
+                    });
+                  }
+                  setShowComboModal(false);
+                } catch (err: any) {
+                  alert(err?.message || 'Failed to save combo offer');
                 }
-                setShowComboModal(false);
               }}
               className="p-4 overflow-y-auto space-y-3 text-xs"
             >
