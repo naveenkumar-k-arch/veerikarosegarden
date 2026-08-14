@@ -7019,18 +7019,33 @@ class Store {
     const clean = (id || '').trim();
     if (!clean) return undefined;
 
-    const all = await this.getOrders();
     const cleanLower = clean.toLowerCase();
     const numOnly = clean.replace(/\D/g, '');
 
-    // 1. Direct match on ID, orderNumber, merchantTransactionId, or trackingNumber
+    // 0. Instant memory lookup (< 1ms)
+    const gBuffer = ((globalThis as any).globalMemoryOrdersBuffer || []) as Order[];
+    const directMem = this.memoryOrders.find(o => 
+      (o.id && o.id.toLowerCase() === cleanLower) ||
+      (o.merchantTransactionId && o.merchantTransactionId.toLowerCase() === cleanLower) ||
+      (o.trackingNumber && o.trackingNumber.toLowerCase() === cleanLower)
+    ) || gBuffer.find(o => 
+      (o.id && o.id.toLowerCase() === cleanLower) ||
+      (o.merchantTransactionId && o.merchantTransactionId.toLowerCase() === cleanLower) ||
+      (o.trackingNumber && o.trackingNumber.toLowerCase() === cleanLower)
+    );
+    if (directMem) return directMem;
+
+    // 1. Query combined orders
+    const all = await this.getOrders();
+
+    // Direct match on ID, orderNumber, merchantTransactionId, or trackingNumber
     let match = all.find(o =>
       (o.id && o.id.toLowerCase() === cleanLower) ||
       (o.merchantTransactionId && o.merchantTransactionId.toLowerCase() === cleanLower) ||
       (o.trackingNumber && o.trackingNumber.toLowerCase() === cleanLower)
     );
 
-    // 2. Flexible numeric match (e.g., searching "0" matches "ORD-0")
+    // Flexible numeric match (e.g., searching "0" matches "ORD-0")
     if (!match && numOnly !== '') {
       match = all.find(o => {
         if (!o.id) return false;
@@ -7039,7 +7054,7 @@ class Store {
       });
     }
 
-    // 3. Phone number match (10 digits)
+    // Phone number match (10 digits)
     if (!match && numOnly.length >= 10) {
       match = all.find(o => o.customerPhone && o.customerPhone.replace(/\D/g, '').slice(-10) === numOnly.slice(-10));
     }
@@ -7089,6 +7104,19 @@ class Store {
         image: i.product?.image || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80'
       }));
 
+      const stStr = String(o.status || '');
+      const dbStatus: Order['orderStatus'] = (stStr === 'DELIVERED' 
+        ? 'DELIVERED' 
+        : stStr === 'DISPATCHED' || stStr === 'OUT_FOR_DELIVERY'
+        ? 'DISPATCHED' 
+        : stStr === 'PACKING' || stStr === 'PACKED' || stStr === 'PROCESSING'
+        ? 'PACKED' 
+        : stStr === 'PAID' || stStr === 'CONFIRMED'
+        ? 'CONFIRMED' 
+        : stStr === 'CANCELLED' 
+        ? 'CANCELLED' 
+        : 'PENDING');
+
       return {
         id: o.id,
         customerName: o.customerName,
@@ -7100,8 +7128,7 @@ class Store {
         discount: o.discount,
         shippingCharge: o.deliveryFee,
         grandTotal: o.totalAmount,
-        orderStatus: o.status === 'DELIVERED' ? 'DELIVERED' : o.status === 'DISPATCHED' ? 'DISPATCHED' : o.status === 'PAID' || o.status === 'PACKING' ? 'PROCESSING' : o.status === 'CANCELLED' ? 'CANCELLED' : 'PENDING',
-
+        orderStatus: dbStatus,
         paymentStatus: o.paymentStatus === 'SUCCESS' ? 'SUCCESS' : o.paymentStatus === 'FAILED' ? 'FAILED' : 'PENDING',
         paymentMethod: ((o as any).paymentMethod === 'COD' ? 'COD' : 'PHONEPE') as PaymentMethod,
         merchantTransactionId: o.merchantTransactionId || '',

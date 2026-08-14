@@ -9,19 +9,35 @@ interface OrderStatusPageProps {
 }
 
 export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBackToHome }) => {
-  const [order, setOrder] = useState<Order | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Initialize from local caches instantly (< 0ms)
+  const getInitialOrder = (): Order | null => {
+    try {
+      const keys = ['vrg_my_orders', 'vrg_orders', 'veerika_customer_orders', 'veerika_admin_orders'];
+      for (const k of keys) {
+        const raw = localStorage.getItem(k);
+        if (raw) {
+          const list: Order[] = JSON.parse(raw);
+          const found = list.find(o => o.id === orderId || o.merchantTransactionId === orderId);
+          if (found) return found;
+        }
+      }
+    } catch {}
+    return null;
+  };
+
+  const [order, setOrder] = useState<Order | null>(getInitialOrder);
+  const [loading, setLoading] = useState(!order);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
   const fetchOrder = async () => {
     try {
       const res = await fetch(`/api/orders/${orderId}`);
       const data = await res.json();
-      if (data.success) {
+      if (data.success && data.order) {
         setOrder(data.order);
       }
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching order status:', err);
     } finally {
       setLoading(false);
     }
@@ -29,68 +45,37 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
 
   useEffect(() => {
     fetchOrder();
-    const interval = setInterval(fetchOrder, 4000); // Poll for live payment update
+    const interval = setInterval(fetchOrder, 3000); // Live poll for stage and dispatch updates
     return () => clearInterval(interval);
   }, [orderId]);
 
-  if (loading) {
+  if (loading && !order) {
     return (
       <div className="py-20 text-center space-y-3">
         <div className="w-8 h-8 border-4 border-emerald-700 border-t-transparent rounded-full animate-spin mx-auto" />
-        <p className="text-xs font-bold text-slate-600">Verifying PhonePe Payment & Order Status...</p>
+        <p className="text-xs font-bold text-slate-600">Loading live order & tracking details...</p>
       </div>
     );
   }
 
   if (!order) {
-    // Construct local confirmed order fallback state for seamless user confirmation
-    const fallbackOrder: Order = {
-      id: orderId,
-      merchantTransactionId: 'MT' + Date.now(),
-      customerName: 'Valued Customer',
-      customerPhone: '',
-      customerEmail: '',
-      shippingAddress: {
-        fullName: 'Valued Customer',
-        phone: '',
-        houseNo: 'Nursery Address',
-        street: 'Shipping Address',
-        villageTown: 'Pennagaram',
-        district: 'Dharmapuri',
-        state: 'Tamil Nadu',
-        pincode: '636810',
-        addressType: 'Home'
-      },
-      items: [
-        {
-          productId: 'prod-1',
-          sku: 'VRG-ROSE-01',
-          name: 'Nursery Plant Sapling',
-          tamilName: 'ரோஜா செடி',
-          price: 199,
-          mrp: 199,
-          quantity: 1,
-          image: '/products/double-delight.jpeg'
-        }
-      ],
-      subtotal: 199,
-      discount: 0,
-      shippingCharge: 50,
-      grandTotal: 249,
-      orderStatus: 'PENDING',
-      paymentStatus: 'PENDING',
-      paymentMethod: 'COD',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    try {
-      const prev = JSON.parse(localStorage.getItem('veerika_admin_orders') || '[]');
-      localStorage.setItem('veerika_admin_orders', JSON.stringify([fallbackOrder, ...prev.filter((o: any) => o.id !== fallbackOrder.id)]));
-    } catch {}
-
-    setOrder(fallbackOrder);
-    return null;
+    return (
+      <div className="max-w-md mx-auto my-16 p-8 bg-white rounded-3xl border border-slate-200 text-center space-y-4 shadow-sm">
+        <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+          <Package className="w-6 h-6" />
+        </div>
+        <h3 className="font-extrabold text-slate-900 text-base">Order Not Found</h3>
+        <p className="text-xs text-slate-500">
+          We couldn't locate order reference <strong className="font-mono">{orderId}</strong>. Please verify the order number or check your account orders.
+        </p>
+        <button
+          onClick={onBackToHome}
+          className="w-full py-2.5 bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs hover:bg-emerald-900 transition-colors cursor-pointer"
+        >
+          Return to Nursery Shop
+        </button>
+      </div>
+    );
   }
 
   const isCod = order.paymentMethod === 'COD';

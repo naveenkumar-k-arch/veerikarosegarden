@@ -951,10 +951,12 @@ apiRouter.get('/orders/:id', async (req: AuthenticatedRequest, res) => {
       }
     }
 
-    // Auto-verify with PhonePe if still PENDING and payment method is PHONEPE
-    if (order.paymentMethod === 'PHONEPE' && order.paymentStatus === 'PENDING' && order.merchantTransactionId) {
-      await PhonePeService.checkStatus(order.merchantTransactionId);
-      order = (await db.getOrderById(req.params.id)) || order;
+    // Non-blocking background PhonePe status check if explicitly requested with short timeout
+    if (req.query.verify === 'phonepe' && order.paymentMethod === 'PHONEPE' && order.paymentStatus === 'PENDING' && order.merchantTransactionId) {
+      Promise.race([
+        PhonePeService.checkStatus(order.merchantTransactionId),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000))
+      ]).catch(() => {});
     }
 
     res.json({ success: true, order });
