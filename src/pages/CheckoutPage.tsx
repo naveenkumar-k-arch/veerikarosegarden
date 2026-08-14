@@ -359,7 +359,7 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
     }
 
     const options = {
-      key: orderRes.razorpayKeyId || (import.meta as any).env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TPhOIp2VtwhOxH',
+      key: orderRes.razorpayKeyId || (import.meta as any).env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TPhhoBxVXsxTpD',
       amount: Math.round(orderRes.amount * 100), // in paise
       currency: 'INR',
       name: siteSettings?.businessName || 'Veerika Rose Garden',

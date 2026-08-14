@@ -403,7 +403,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
     }
 
     const options = {
-      key: orderRes.razorpayKeyId || (import.meta as any).env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TPhOIp2VtwhOxH',
+      key: orderRes.razorpayKeyId || (import.meta as any).env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TPhhoBxVXsxTpD',
       amount: Math.round((orderRes.amount || grandTotal) * 100), // in paise
       currency: 'INR',
       name: siteSettings?.businessName || 'Veerika Rose Garden',
