@@ -6576,9 +6576,8 @@ class Store {
         upiId: meta.upiId ?? '7200826129@ybl',
         upiName: meta.upiName ?? 'Veerika Rose Garden Nursery',
         qrCodeImageUrl: meta.qrCodeImageUrl ?? '/nursery-qr.svg',
-        qrInstructions: meta.qrInstructions ?? DEFAULT_SETTINGS.qrInstructions,
-        razorpayKeyId: meta.razorpayKeyId ?? '',
-        razorpayKeySecret: meta.razorpayKeySecret ?? ''
+        razorpayKeyId: (meta.razorpayKeyId && meta.razorpayKeyId.trim()) ? meta.razorpayKeyId.trim() : ((s as any).razorpayKeyId || process.env.RAZORPAY_KEY_ID || DEFAULT_SETTINGS.razorpayKeyId || ''),
+        razorpayKeySecret: (meta.razorpayKeySecret && meta.razorpayKeySecret.trim()) ? meta.razorpayKeySecret.trim() : ((s as any).razorpayKeySecret || process.env.RAZORPAY_KEY_SECRET || DEFAULT_SETTINGS.razorpayKeySecret || '')
       };
 
       (globalThis as any)._globalMemorySettings = merged;
