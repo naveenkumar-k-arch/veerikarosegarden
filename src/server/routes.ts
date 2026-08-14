@@ -1152,41 +1152,119 @@ apiRouter.post('/phonepe/refund', requireAdmin, async (req: AuthenticatedRequest
   res.json(refundResult);
 });
 
-// ================= RAZORPAY VERIFY API =================
-apiRouter.post('/razorpay/verify', checkoutLimiter, async (req: AuthenticatedRequest, res) => {
+// ================= RAZORPAY CREATE ORDER API =================
+const handleCreateRazorpayOrder = async (req: AuthenticatedRequest, res: any) => {
   try {
-    const { orderId, razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
+    let { amount, currency = 'INR', receipt, notes } = req.body;
 
-    if (!orderId || !razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
-      return res.status(400).json({ success: false, message: 'Missing required Razorpay payment verification parameters.' });
+    if (amount === undefined || amount === null) {
+      return res.status(400).json({ success: false, message: 'Amount is required.' });
     }
 
-    const order = await db.getOrderById(orderId);
-    if (!order) {
-      return res.status(404).json({ success: false, message: 'Order not found.' });
+    let amountInPaise: number;
+    let amountInRupees: number;
+
+    // Support both paise (amountInPaise flag or amount >= 100 with paise indicator) and standard Rupees
+    if (req.body.amountInPaise || req.body.isPaise) {
+      amountInPaise = Math.round(Number(amount));
+      amountInRupees = amountInPaise / 100;
+    } else {
+      amountInRupees = Number(amount);
+      amountInPaise = Math.round(amountInRupees * 100);
+    }
+
+    if (amountInPaise < 100) {
+      return res.status(400).json({ success: false, message: 'Minimum transaction amount is ₹1.00 (100 paise).' });
+    }
+
+    const settings = await db.getSettings();
+    const keyId = settings?.razorpayKeyId || process.env.RAZORPAY_KEY_ID || '';
+    const keySecret = settings?.razorpayKeySecret || process.env.RAZORPAY_KEY_SECRET || '';
+
+    if (!keyId || !keySecret) {
+      return res.status(401).json({ success: false, message: 'Razorpay API credentials not configured.' });
+    }
+
+    const rzpRes = await RazorpayService.createOrder(
+      {
+        amount: amountInRupees,
+        currency,
+        receipt: receipt || `rcpt_${Date.now()}`,
+        notes: notes || {}
+      },
+      keyId,
+      keySecret
+    );
+
+    if (!rzpRes.success || !rzpRes.razorpayOrderId) {
+      return res.status(500).json({
+        success: false,
+        message: rzpRes.message || 'Failed to create Razorpay order.'
+      });
+    }
+
+    return res.json({
+      success: true,
+      order_id: rzpRes.razorpayOrderId,
+      razorpayOrderId: rzpRes.razorpayOrderId,
+      amount: amountInPaise,
+      currency,
+      key_id: keyId,
+      keyId
+    });
+  } catch (err: any) {
+    console.error('[Razorpay Create Order] Error:', err);
+    return res.status(500).json({ success: false, message: err.message || 'Failed to create Razorpay order' });
+  }
+};
+
+apiRouter.post('/create-order', checkoutLimiter, handleCreateRazorpayOrder);
+apiRouter.post('/razorpay/create-order', checkoutLimiter, handleCreateRazorpayOrder);
+
+// ================= RAZORPAY VERIFY API =================
+const handleVerifyRazorpayPayment = async (req: AuthenticatedRequest, res: any) => {
+  try {
+    const razorpayOrderId = req.body.razorpay_order_id || req.body.razorpayOrderId || req.body.order_id;
+    const razorpayPaymentId = req.body.razorpay_payment_id || req.body.razorpayPaymentId || req.body.payment_id;
+    const razorpaySignature = req.body.razorpay_signature || req.body.razorpaySignature || req.body.signature;
+    const orderId = req.body.orderId || req.body.order_id || req.body.receipt;
+
+    if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required Razorpay payment verification parameters (razorpay_order_id, razorpay_payment_id, razorpay_signature).'
+      });
     }
 
     const settings = await db.getSettings();
     const keySecret = settings?.razorpayKeySecret || process.env.RAZORPAY_KEY_SECRET || '';
 
+    if (!keySecret) {
+      return res.status(401).json({ success: false, message: 'Razorpay secret key not configured.' });
+    }
+
     const isValid = RazorpayService.verifySignature(razorpayOrderId, razorpayPaymentId, razorpaySignature, keySecret);
 
     if (!isValid) {
-      console.warn('[Razorpay Verify] Invalid signature for order:', orderId);
+      console.warn('[Razorpay Verify] Invalid signature for order:', orderId || razorpayOrderId);
       return res.status(400).json({ success: false, message: 'Invalid Razorpay payment signature. Payment verification failed.' });
     }
 
-    // Update order status to PAID / CONFIRMED
-    const updatedOrder = await db.updateOrderStatus(orderId, 'CONFIRMED', undefined, undefined, 'SUCCESS');
-
-    await db.addPaymentLog({
-      merchantTransactionId: order.merchantTransactionId,
-      orderId,
-      amount: order.grandTotal,
-      status: 'SUCCESS',
-      checksum: razorpaySignature,
-      payload: JSON.stringify({ razorpayOrderId, razorpayPaymentId })
-    }).catch(() => {});
+    let updatedOrder = null;
+    if (orderId) {
+      const order = await db.getOrderById(orderId);
+      if (order) {
+        updatedOrder = await db.updateOrderStatus(orderId, 'CONFIRMED', undefined, undefined, 'SUCCESS');
+        await db.addPaymentLog({
+          merchantTransactionId: order.merchantTransactionId || razorpayPaymentId,
+          orderId,
+          amount: order.grandTotal,
+          status: 'SUCCESS',
+          checksum: razorpaySignature,
+          payload: JSON.stringify({ razorpayOrderId, razorpayPaymentId })
+        }).catch(() => {});
+      }
+    }
 
     return res.json({
       success: true,
@@ -1198,7 +1276,10 @@ apiRouter.post('/razorpay/verify', checkoutLimiter, async (req: AuthenticatedReq
     console.error('[Razorpay Verify] Error:', err);
     return res.status(500).json({ success: false, message: err.message || 'Razorpay verification error' });
   }
-});
+};
+
+apiRouter.post('/verify-payment', checkoutLimiter, handleVerifyRazorpayPayment);
+apiRouter.post('/razorpay/verify', checkoutLimiter, handleVerifyRazorpayPayment);
 
 // ================= RAZORPAY WEBHOOK HANDLER =================
 apiRouter.post('/razorpay/webhook', async (req, res) => {

@@ -5066,6 +5066,8 @@ const DEFAULT_SETTINGS: SiteSettings = {
   shippingFee: 50,
   freeShippingThreshold: 999,
   enableRazorpay: true,
+  razorpayKeyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_TPguZgR8B1DLZg',
+  razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || 'ImuQTzfKISH0lAa6X2FCuVGs',
   enableCod: true,
   enablePhonePe: true,
   enableQrPayment: true,
