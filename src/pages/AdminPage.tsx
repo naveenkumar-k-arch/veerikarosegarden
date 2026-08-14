@@ -2276,16 +2276,29 @@ const silentRefresh = async (): Promise<boolean> => {
 
           {/* TAB 3: ORDERS MANAGEMENT - 4 CATEGORIZED SECTIONS */}
           {activeTab === 'orders' && (() => {
-            const pendingList = orders.filter(o => o.orderStatus === 'PENDING');
-            const packingList = orders.filter(o => o.orderStatus === 'PROCESSING' || (o.orderStatus as any) === 'PACKING');
-            const dispatchedList = orders.filter(o => o.orderStatus === 'DISPATCHED');
-            const deliveredList = orders.filter(o => o.orderStatus === 'DELIVERED');
+            const pendingList = orders.filter(o => {
+              const s = (o.orderStatus || '').toUpperCase();
+              return s === 'PENDING' || s === 'CONFIRMED' || s === 'PLACED' || !s;
+            });
+            const packingList = orders.filter(o => {
+              const s = (o.orderStatus || '').toUpperCase();
+              return s === 'PROCESSING' || s === 'PACKING' || s === 'PACKED';
+            });
+            const dispatchedList = orders.filter(o => {
+              const s = (o.orderStatus || '').toUpperCase();
+              return s === 'DISPATCHED' || s === 'SHIPPED' || s === 'COURIER' || s === 'OUT_FOR_DELIVERY';
+            });
+            const deliveredList = orders.filter(o => {
+              const s = (o.orderStatus || '').toUpperCase();
+              return s === 'DELIVERED' || s === 'COMPLETED';
+            });
 
             const renderOrderCard = (o: Order) => {
               const isCod = o.paymentMethod === 'COD';
-              const isDelivered = o.orderStatus === 'DELIVERED';
-              const isDispatched = o.orderStatus === 'DISPATCHED';
-              const isPacking = o.orderStatus === 'PROCESSING' || (o.orderStatus as any) === 'PACKING';
+              const s = (o.orderStatus || '').toUpperCase();
+              const isDelivered = s === 'DELIVERED' || s === 'COMPLETED';
+              const isDispatched = s === 'DISPATCHED' || s === 'SHIPPED' || s === 'COURIER' || s === 'OUT_FOR_DELIVERY';
+              const isPacking = s === 'PROCESSING' || s === 'PACKING' || s === 'PACKED';
 
               return (
                 <div key={o.id} className="bg-white p-5 rounded-2xl border border-slate-200 space-y-4 text-xs shadow-xs hover:border-slate-300 transition-all">

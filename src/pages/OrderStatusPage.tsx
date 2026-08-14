@@ -12,12 +12,17 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
   // Initialize from local caches instantly (< 0ms)
   const getInitialOrder = (): Order | null => {
     try {
+      const cleanTarget = (orderId || '').toLowerCase().trim();
       const keys = ['vrg_my_orders', 'vrg_orders', 'veerika_customer_orders', 'veerika_admin_orders'];
       for (const k of keys) {
         const raw = localStorage.getItem(k);
         if (raw) {
           const list: Order[] = JSON.parse(raw);
-          const found = list.find(o => o.id === orderId || o.merchantTransactionId === orderId);
+          const found = list.find(o => 
+            (o.id && o.id.toLowerCase() === cleanTarget) ||
+            (o.merchantTransactionId && o.merchantTransactionId.toLowerCase() === cleanTarget) ||
+            (o.trackingNumber && o.trackingNumber.toLowerCase() === cleanTarget)
+          );
           if (found) return found;
         }
       }
@@ -31,7 +36,8 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
 
   const fetchOrder = async () => {
     try {
-      const res = await fetch(`/api/orders/${orderId}`);
+      const cleanTarget = (orderId || '').trim();
+      const res = await fetch(`/api/orders/${encodeURIComponent(cleanTarget)}`);
       const data = await res.json();
       if (data.success && data.order) {
         setOrder(data.order);
