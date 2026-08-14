@@ -171,30 +171,38 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
             </p>
           </div>
 
-          <div className={`p-3 rounded-2xl border space-y-1 ${
-            order.orderStatus !== 'PENDING' ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-slate-50 border-slate-200 text-slate-400'
+          <div className={`p-3 rounded-2xl border space-y-1 transition-all ${
+            order.orderStatus === 'PACKED' || order.orderStatus === 'PROCESSING' || order.orderStatus === 'DISPATCHED' || order.orderStatus === 'DELIVERED'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-900 font-bold' 
+              : 'bg-slate-50 border-slate-200 text-slate-400'
           }`}>
             <Package className="w-5 h-5 text-emerald-700" />
             <p className="font-bold">2. Nursery Packing</p>
-            <p className="text-[10px] text-slate-500">Moisture Protection</p>
+            <p className="text-[10px] text-slate-500">
+              {order.orderStatus === 'PACKED' || order.orderStatus === 'PROCESSING' || order.orderStatus === 'DISPATCHED' || order.orderStatus === 'DELIVERED'
+                ? 'Roots Packed with Cocopeat' 
+                : 'Pending Packaging'}
+            </p>
           </div>
 
-          <div className={`p-3 rounded-2xl border space-y-1 ${
-            order.orderStatus === 'DISPATCHED' || order.orderStatus === 'DELIVERED'
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+          <div className={`p-3 rounded-2xl border space-y-1 transition-all ${
+            order.orderStatus === 'DISPATCHED' || order.orderStatus === 'OUT_FOR_DELIVERY' || order.orderStatus === 'DELIVERED'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-900 font-bold'
               : 'bg-slate-50 border-slate-200 text-slate-400'
           }`}>
             <Truck className="w-5 h-5 text-emerald-700" />
             <p className="font-bold">3. Dispatched</p>
-            <p className="text-[10px] text-slate-500">{order.courierName || 'In Transit'}</p>
+            <p className="text-[10px] text-slate-500">
+              {order.courierName ? `${order.courierName}` : order.orderStatus === 'DISPATCHED' ? 'Courier In Transit' : 'Awaiting Dispatch'}
+            </p>
           </div>
 
-          <div className={`p-3 rounded-2xl border space-y-1 ${
-            order.orderStatus === 'DELIVERED' ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-slate-50 border-slate-200 text-slate-400'
+          <div className={`p-3 rounded-2xl border space-y-1 transition-all ${
+            order.orderStatus === 'DELIVERED' ? 'bg-emerald-50 border-emerald-200 text-emerald-900 font-bold' : 'bg-slate-50 border-slate-200 text-slate-400'
           }`}>
             <CheckCircle2 className="w-5 h-5 text-emerald-700" />
             <p className="font-bold">4. Delivered</p>
-            <p className="text-[10px] text-slate-500">Village/City Arrival</p>
+            <p className="text-[10px] text-slate-500">{order.orderStatus === 'DELIVERED' ? 'Delivered Safely' : 'In Transit'}</p>
           </div>
         </div>
 

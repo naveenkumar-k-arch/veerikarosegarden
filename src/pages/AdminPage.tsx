@@ -1018,7 +1018,7 @@ const silentRefresh = async (): Promise<boolean> => {
     setOrders(prev => {
       const updatedOrdersList = prev.map(updateSingleOrder);
 
-      const keysToSave = ['veerika_admin_orders', 'vrg_user_orders', 'veerika_customer_orders', 'vrg_orders'];
+      const keysToSave = ['veerika_admin_orders', 'vrg_user_orders', 'veerika_customer_orders', 'vrg_orders', 'vrg_my_orders'];
       keysToSave.forEach(key => {
         try {
           localStorage.setItem(key, JSON.stringify(updatedOrdersList));
@@ -1290,7 +1290,7 @@ const silentRefresh = async (): Promise<boolean> => {
                 trackingNumber: data.trackingNumber,
                 deliveryNotes: data.trackingLink
               } : o);
-              const keysToSave = ['veerika_admin_orders', 'vrg_user_orders', 'veerika_customer_orders', 'vrg_orders'];
+              const keysToSave = ['veerika_admin_orders', 'vrg_user_orders', 'veerika_customer_orders', 'vrg_orders', 'vrg_my_orders'];
               keysToSave.forEach(key => {
                 try { localStorage.setItem(key, JSON.stringify(updated)); } catch {}
               });

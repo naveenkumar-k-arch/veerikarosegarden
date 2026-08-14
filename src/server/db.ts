@@ -6917,6 +6917,19 @@ class Store {
           }
 
           const hasProof = Boolean(unpackedProofUrl);
+          const stStr = String(o.status || '');
+          const dbOrderStatus: Order['orderStatus'] = (stStr === 'DELIVERED' 
+            ? 'DELIVERED' 
+            : stStr === 'DISPATCHED' || stStr === 'OUT_FOR_DELIVERY'
+            ? 'DISPATCHED' 
+            : stStr === 'PACKING' || stStr === 'PACKED' || stStr === 'PROCESSING'
+            ? 'PACKED' 
+            : stStr === 'PAID' || stStr === 'CONFIRMED'
+            ? 'CONFIRMED' 
+            : stStr === 'CANCELLED' 
+            ? 'CANCELLED' 
+            : 'PENDING');
+
           return {
             id: o.id,
             customerName: o.customerName,
@@ -6928,7 +6941,7 @@ class Store {
             discount: o.discount,
             shippingCharge: o.deliveryFee,
             grandTotal: o.totalAmount,
-            orderStatus: o.status === 'DELIVERED' ? 'DELIVERED' : o.status === 'DISPATCHED' ? 'DISPATCHED' : o.status === 'PAID' || o.status === 'PACKING' ? 'PROCESSING' : o.status === 'CANCELLED' ? 'CANCELLED' : 'PENDING',
+            orderStatus: dbOrderStatus,
             paymentStatus: o.paymentStatus === 'SUCCESS' ? 'SUCCESS' : o.paymentStatus === 'FAILED' ? 'FAILED' : 'PENDING',
             paymentMethod: ((o as any).paymentMethod === 'COD' 
               ? 'COD' 
@@ -6951,15 +6964,27 @@ class Store {
     const fsOrders = await firestoreGetAllOrders().catch(() => []) as Order[];
     const diskOrders = loadDiskOrders();
     const defOrders = (typeof DEFAULT_ORDERS !== 'undefined' ? DEFAULT_ORDERS : []) as Order[];
-    const allCombined = [...dbOrders, ...this.memoryOrders, ...gBuffer, ...fsOrders, ...diskOrders, ...defOrders];
+
+    // Priority order: in-memory updated orders first, then global buffer, db, firestore, disk, defaults
+    const allCombined = [...this.memoryOrders, ...gBuffer, ...dbOrders, ...fsOrders, ...diskOrders, ...defOrders];
     const uniqueMap = new Map<string, Order>();
     allCombined.forEach(o => {
       if (o && o.id && !deletedOrderIds.has(o.id) && !deletedOrderIds.has(o.merchantTransactionId)) {
         const existing = uniqueMap.get(o.id);
         if (!existing) {
           uniqueMap.set(o.id, o);
-        } else if (!existing.paymentProofUrl && o.paymentProofUrl) {
-          uniqueMap.set(o.id, { ...existing, paymentProofUrl: o.paymentProofUrl, paymentMethod: 'QR_PAYMENT' });
+        } else {
+          // If existing is already present (from earlier priority list), retain its newer orderStatus
+          uniqueMap.set(o.id, {
+            ...o,
+            ...existing,
+            orderStatus: existing.orderStatus || o.orderStatus,
+            paymentStatus: existing.paymentStatus || o.paymentStatus,
+            trackingNumber: existing.trackingNumber || (o as any).trackingNumber,
+            courierName: existing.courierName || (o as any).courierName,
+            paymentProofUrl: existing.paymentProofUrl || o.paymentProofUrl,
+            deliveryNotes: existing.deliveryNotes || (o as any).deliveryNotes
+          });
         }
       }
     });
@@ -7144,14 +7169,39 @@ class Store {
       memOrder.updatedAt = new Date().toISOString();
     }
 
-    // Update in cached buffer if present
+    // Update in global buffer and cache
+    if (!(globalThis as any).globalMemoryOrdersBuffer) (globalThis as any).globalMemoryOrdersBuffer = [];
+    const gBuffer = (globalThis as any).globalMemoryOrdersBuffer as Order[];
+    const gIndex = gBuffer.findIndex(o => o.id === orderId);
+    if (gIndex !== -1) {
+      gBuffer[gIndex] = { ...gBuffer[gIndex], ...memOrder };
+    } else {
+      gBuffer.unshift(memOrder);
+    }
+
+    if (typeof DEFAULT_ORDERS !== 'undefined') {
+      const defIdx = DEFAULT_ORDERS.findIndex(o => o.id === orderId);
+      if (defIdx !== -1) {
+        DEFAULT_ORDERS[defIdx] = { ...DEFAULT_ORDERS[defIdx], ...memOrder };
+      }
+    }
+
     if (this.ordersCache && this.ordersCache.data) {
       this.ordersCache.data = this.ordersCache.data.map(o => o.id === orderId ? { ...o, ...memOrder } : o);
     }
 
     const prisma = getPrismaClient();
     if (prisma) {
-      const dbStatus = status === 'DELIVERED' ? 'DELIVERED' : (status === 'PACKED' || status === 'PROCESSING') ? 'PACKING' : status === 'CANCELLED' ? 'CANCELLED' : status === 'DISPATCHED' ? 'DISPATCHED' : 'PENDING';
+      const dbStatus = status === 'DELIVERED' 
+        ? 'DELIVERED' 
+        : (status === 'PACKED' || status === 'PROCESSING') 
+        ? 'PACKING' 
+        : status === 'CANCELLED' 
+        ? 'CANCELLED' 
+        : status === 'DISPATCHED' 
+        ? 'DISPATCHED' 
+        : (status === 'CONFIRMED' ? 'PAID' : 'PENDING');
+
       const dbPayment = paymentStatus === 'SUCCESS' ? 'SUCCESS' : paymentStatus === 'FAILED' ? 'FAILED' : undefined;
       const finalTracking = trackingNumber ? `${courierName ? courierName + ' | ' : ''}${trackingNumber}` : undefined;
 
