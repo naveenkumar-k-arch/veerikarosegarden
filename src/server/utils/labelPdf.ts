@@ -183,12 +183,13 @@ export function generateDispatchLabelsPdf(
       const displayAddrLines = addrLines.slice(0, 7);
       pdf.text(displayAddrLines, pos.x + 39, addrStartY);
 
-      // Customer Phone Number (Bold at bottom)
+      // Customer Phone Number (Positioned above, immediately below address)
       if (customerPhone) {
+        const phoneY = addrStartY + (displayAddrLines.length * 3.4) + 2.5;
         pdf.setTextColor(15, 23, 42);
         pdf.setFont('helvetica', 'bold');
         pdf.setFontSize(8.5);
-        pdf.text(customerPhone, pos.x + 39, pos.y + cardHeight - 4.5);
+        pdf.text(customerPhone, pos.x + 39, Math.min(phoneY, pos.y + cardHeight - 5));
       }
 
       // Vertical Divider 2

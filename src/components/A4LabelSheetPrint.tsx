@@ -182,12 +182,13 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
           const displayAddrLines = addrLines.slice(0, 7);
           pdf.text(displayAddrLines, pos.x + 39, addrStartY);
 
-          // Customer Phone Number
+          // Customer Phone Number (Positioned above, immediately below address)
           if (customerPhone) {
+            const phoneY = addrStartY + (displayAddrLines.length * 3.4) + 2.5;
             pdf.setTextColor(15, 23, 42);
             pdf.setFont('helvetica', 'bold');
             pdf.setFontSize(8.5);
-            pdf.text(customerPhone, pos.x + 39, pos.y + cardHeight - 4.5);
+            pdf.text(customerPhone, pos.x + 39, Math.min(phoneY, pos.y + cardHeight - 5));
           }
 
           // Vertical Divider 2
@@ -432,7 +433,7 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
                       </div>
 
                       {/* Column 2: To */}
-                      <div className="col-span-5 px-2 border-r border-slate-200 flex flex-col justify-between h-full space-y-1">
+                      <div className="col-span-5 px-2 border-r border-slate-200 flex flex-col justify-start h-full space-y-1">
                         <div>
                           <p className="font-bold text-[#14532d] text-xs leading-none">To,</p>
                           <p className="font-extrabold text-slate-900 text-xs sm:text-sm leading-tight mt-0.5">
@@ -441,12 +442,12 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
                           <p className="text-[11px] text-slate-700 font-medium leading-snug line-clamp-4 mt-1">
                             {fullAddress.startsWith('Address') || fullAddress.startsWith('No') ? fullAddress : `Address ${fullAddress}`}
                           </p>
+                          {customerPhone && (
+                            <p className="font-black text-slate-900 text-xs sm:text-sm pt-1.5">
+                              {customerPhone}
+                            </p>
+                          )}
                         </div>
-                        {customerPhone && (
-                          <p className="font-black text-slate-900 text-xs sm:text-sm pt-1">
-                            {customerPhone}
-                          </p>
-                        )}
                       </div>
 
                       {/* Column 3: Ordered Plants */}
