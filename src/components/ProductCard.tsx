@@ -25,6 +25,12 @@ export const CompactProductCard: React.FC<CompactProductCardProps> = ({
   const [imgError, setImgError] = useState(false);
   const [added, setAdded] = useState(false);
 
+  const discountPercent = product.discount > 0 
+    ? product.discount 
+    : (product.mrp && product.mrp > product.sellingPrice) 
+    ? Math.round(((product.mrp - product.sellingPrice) / product.mrp) * 100) 
+    : 0;
+
   const defaultImg = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=400&q=80';
   const displayImg = imgError || !product.images[0] ? defaultImg : product.images[0];
 
@@ -59,18 +65,33 @@ export const CompactProductCard: React.FC<CompactProductCardProps> = ({
         transition: 'transform 0.15s ease',
       }}
     >
-      {/* Top Left Category Tag Pill */}
-      <div style={{ position: 'absolute', top: 4, left: 4, zIndex: 10, display: 'flex', gap: 3 }}>
+      {/* Top Left Category Tag & Offer Badges */}
+      <div style={{ position: 'absolute', top: 4, left: 4, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {discountPercent > 0 && (
+          <span style={{
+            background: 'linear-gradient(135deg, #f43f5e, #e11d48)',
+            color: 'white',
+            fontSize: 7.5,
+            fontWeight: 800,
+            padding: '1px 5px',
+            borderRadius: 999,
+            boxShadow: '0 1px 4px rgba(244,63,94,0.4)',
+            whiteSpace: 'nowrap',
+            lineHeight: 1.2
+          }}>
+            {discountPercent}% OFF
+          </span>
+        )}
         <span style={{
           background: 'linear-gradient(135deg, #16a34a, #15803d)',
           color: 'white',
-          fontSize: 8,
+          fontSize: 7.5,
           fontWeight: 700,
           padding: '1px 5px',
           borderRadius: 999,
           boxShadow: '0 1px 4px rgba(22,163,74,0.3)',
           whiteSpace: 'nowrap',
-          maxWidth: 80,
+          maxWidth: 75,
           overflow: 'hidden',
           textOverflow: 'ellipsis'
         }}>
@@ -139,11 +160,16 @@ export const CompactProductCard: React.FC<CompactProductCardProps> = ({
                 ₹{product.sellingPrice}
               </span>
               {product.mrp > product.sellingPrice && (
-                <span style={{ fontSize: 8, color: '#94a3b8', textDecoration: 'line-through' }}>
+                <span style={{ fontSize: 8.5, color: '#94a3b8', textDecoration: 'line-through' }}>
                   ₹{product.mrp}
                 </span>
               )}
             </div>
+            {discountPercent > 0 && (
+              <span style={{ fontSize: 7.5, fontWeight: 800, color: '#e11d48', display: 'block', marginTop: 1, lineHeight: 1 }}>
+                {discountPercent}% OFF
+              </span>
+            )}
           </div>
 
           {/* Plus Add Button */}
@@ -256,6 +282,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const [imgError, setImgError] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
 
+  const discountPercent = product.discount > 0 
+    ? product.discount 
+    : (product.mrp && product.mrp > product.sellingPrice) 
+    ? Math.round(((product.mrp - product.sellingPrice) / product.mrp) * 100) 
+    : 0;
+
   const defaultImg = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80';
   const displayImg = imgError || !product.images[0] ? defaultImg : product.images[0];
 
@@ -295,9 +327,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     >
       {/* Badges */}
       <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
-        {product.discount > 0 && (
+        {discountPercent > 0 && (
           <span style={{ background: 'linear-gradient(135deg,#f43f5e,#e11d48)', color: 'white', fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 999, boxShadow: '0 2px 8px rgba(244,63,94,0.35)' }}>
-            {product.discount}% OFF
+            {discountPercent}% OFF
           </span>
         )}
         {product.bestSeller && (
@@ -381,12 +413,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
         {/* Price Row */}
         <div style={{ marginTop: 'auto', paddingTop: 6 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginBottom: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginBottom: 8, flexWrap: 'wrap' }}>
             <span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800, color: 'var(--color-green-dark)', lineHeight: 1 }}>
               ₹{product.sellingPrice}
             </span>
             {product.mrp > product.sellingPrice && (
               <span style={{ fontSize: 11, color: 'var(--text-light)', textDecoration: 'line-through' }}>₹{product.mrp}</span>
+            )}
+            {discountPercent > 0 && (
+              <span style={{ fontSize: 9.5, fontWeight: 800, color: '#e11d48', background: '#ffe4e6', padding: '1px 6px', borderRadius: 6 }}>
+                {discountPercent}% OFF
+              </span>
             )}
             {product.stock > 0 && product.stock <= 5 && (
               <span style={{ fontSize: 9, fontWeight: 700, color: '#d97706', background: '#fef3c7', padding: '1px 5px', borderRadius: 4, marginLeft: 'auto' }}>
