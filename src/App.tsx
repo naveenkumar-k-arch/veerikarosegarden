@@ -367,6 +367,7 @@ export const App: React.FC = () => {
     fetchUserOrders();
 
     const handleSync = () => fetchUserOrders();
+    const handleProductSync = () => fetchCoreData();
     const handleSyncReviews = (e: any) => {
       if (e.detail && Array.isArray(e.detail)) {
         setReviews(e.detail);
@@ -374,6 +375,9 @@ export const App: React.FC = () => {
     };
 
     window.addEventListener('orderStatusUpdated', handleSync);
+    window.addEventListener('vrg_products_updated', handleProductSync);
+    window.addEventListener('vrg_categories_updated', handleProductSync);
+    window.addEventListener('vrg_combos_updated', handleProductSync);
     window.addEventListener('vrg_reviews_updated', handleSyncReviews);
     window.addEventListener('storage', handleSync);
 

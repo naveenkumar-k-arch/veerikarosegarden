@@ -742,11 +742,17 @@ const silentRefresh = async (): Promise<boolean> => {
 
     const handleSync = () => fetchData();
     window.addEventListener('orderStatusUpdated', handleSync);
+    window.addEventListener('vrg_products_updated', handleSync);
+    window.addEventListener('vrg_categories_updated', handleSync);
+    window.addEventListener('vrg_combos_updated', handleSync);
     window.addEventListener('storage', handleSync);
 
     return () => {
       clearInterval(interval);
       window.removeEventListener('orderStatusUpdated', handleSync);
+      window.removeEventListener('vrg_products_updated', handleSync);
+      window.removeEventListener('vrg_categories_updated', handleSync);
+      window.removeEventListener('vrg_combos_updated', handleSync);
       window.removeEventListener('storage', handleSync);
     };
   }, []);
@@ -820,6 +826,10 @@ const silentRefresh = async (): Promise<boolean> => {
       setProductSaveError(null);
       setProductSaving(false);
 
+      try {
+        window.dispatchEvent(new CustomEvent('vrg_products_updated'));
+      } catch {}
+
       // Async background server sync
       authFetch(url, {
         method,
@@ -842,6 +852,9 @@ const silentRefresh = async (): Promise<boolean> => {
   const handleDeleteProduct = async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to delete product "${name}"?`)) return;
     setProducts(prev => prev.filter(p => p.id !== id));
+    try {
+      window.dispatchEvent(new CustomEvent('vrg_products_updated'));
+    } catch {}
     try {
       await authFetch(`/api/products/${id}`, { method: 'DELETE' }).catch(() => null);
     } catch (err) {
@@ -1369,6 +1382,10 @@ const silentRefresh = async (): Promise<boolean> => {
               const tempId = 'prod-' + Date.now();
               setProducts(prev => [{ ...payload, id: tempId, rating: 5, reviewCount: 0 }, ...prev]);
             }
+
+            try {
+              window.dispatchEvent(new CustomEvent('vrg_products_updated'));
+            } catch {}
 
             // Fire async background sync without blocking UI
             authFetch(url, {
