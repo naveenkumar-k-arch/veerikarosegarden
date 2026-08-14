@@ -112,64 +112,78 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
               </div>
             </div>
 
-            {/* 2x2 Grid Labels (4 per A4 page) */}
+            {/* Grid of Labels matching the 3-column format from reference image */}
             <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-4 flex-1">
               {pageOrders.map((order, orderIdx) => {
                 const labelNumber = pageIndex * chunkSize + orderIdx + 1;
-                const totalPlants = getPlantsCount(order);
+                const customerName = order.customerName || order.shippingAddress?.fullName || 'Valued Customer';
+                const customerPhone = order.customerPhone || order.shippingAddress?.phone || '';
+                const fullAddress = formatAddress(order.shippingAddress);
 
                 return (
                   <div
                     key={order.id || orderIdx}
-                    className="border-2 border-slate-300 rounded-xl p-4 flex flex-col justify-between bg-slate-50/40 relative min-h-[110mm] print:min-h-[115mm]"
+                    className="border border-gray-400 rounded-2xl p-4 bg-white flex flex-col justify-between shadow-2xs relative print:border-gray-400 print:rounded-2xl"
                   >
-                    {/* Top Order Meta */}
-                    <div className="space-y-2">
-                      <div className="flex items-start justify-between gap-2 border-b border-slate-200 pb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="w-6 h-6 rounded-md bg-[#14532d] text-white font-black text-xs flex items-center justify-center shrink-0">
+                    <div className="grid grid-cols-12 gap-3 h-full items-start">
+                      
+                      {/* Column 1: From */}
+                      <div className="col-span-3 pr-2.5 border-r border-gray-200 flex flex-col justify-between h-full">
+                        <div>
+                          <div className="w-8 h-8 rounded-lg bg-[#14532d] text-white font-black text-base flex items-center justify-center mb-2.5 shadow-2xs">
                             {labelNumber}
-                          </span>
-                          <div>
-                            <span className="font-mono font-black text-slate-900 text-sm block leading-none">
-                              {order.id}
-                            </span>
-                            <span className="text-[10px] text-slate-500 font-medium">
-                              {new Date(order.createdAt || Date.now()).toLocaleDateString('en-IN', {
-                                day: '2-digit',
-                                month: 'short',
-                                year: 'numeric'
-                              })}
-                            </span>
+                          </div>
+                          <div className="space-y-1 text-xs text-slate-800">
+                            <p className="font-semibold text-slate-700">From :</p>
+                            <h4 className="font-black text-[#14532d] text-xs sm:text-sm tracking-tight leading-tight">
+                              VRG NURSERY
+                            </h4>
+                            <p className="text-[11px] text-slate-700 font-medium leading-tight">
+                              Dharmapuri – 636813
+                            </p>
+                            <p className="text-xs font-bold text-slate-800 pt-1">
+                              7904020206
+                            </p>
                           </div>
                         </div>
-                        <span className="font-extrabold text-emerald-900 text-xs bg-emerald-100 px-2 py-0.5 rounded-md">
-                          ₹{order.grandTotal}
-                        </span>
                       </div>
 
-                      {/* Recipient Details */}
-                      <div className="space-y-1 pt-1">
-                        <p className="font-black text-slate-900 text-sm tracking-tight">
-                          {order.customerName || order.shippingAddress?.fullName}
-                        </p>
-                        <p className="font-bold text-slate-800 text-xs">
-                          +91 {order.customerPhone || order.shippingAddress?.phone}
-                        </p>
-                        <p className="text-xs text-slate-700 font-medium leading-relaxed mt-1 line-clamp-4">
-                          {formatAddress(order.shippingAddress)}
-                        </p>
+                      {/* Column 2: To */}
+                      <div className="col-span-5 px-2.5 border-r border-gray-200 flex flex-col justify-between h-full">
+                        <div className="space-y-1">
+                          <p className="font-bold text-[#14532d] text-sm">To,</p>
+                          <p className="font-extrabold text-slate-900 text-xs sm:text-sm leading-tight">
+                            {customerName}
+                          </p>
+                          <p className="text-[11px] sm:text-xs text-slate-700 font-medium leading-relaxed line-clamp-4">
+                            Address {fullAddress}
+                          </p>
+                        </div>
+                        {customerPhone && (
+                          <p className="font-black text-slate-900 text-xs sm:text-sm pt-2">
+                            {customerPhone}
+                          </p>
+                        )}
                       </div>
-                    </div>
 
-                    {/* Bottom Plants Count and Details */}
-                    <div className="mt-3 pt-2 border-t border-slate-200 flex items-center justify-between text-xs">
-                      <span className="font-bold text-emerald-900 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
-                        Plants: {totalPlants} Items
-                      </span>
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                        {order.paymentMethod === 'COD' ? 'COD ORDER' : 'PREPAID UPI'}
-                      </span>
+                      {/* Column 3: Ordered Plants */}
+                      <div className="col-span-4 pl-2 flex flex-col justify-between h-full">
+                        <div className="space-y-1.5">
+                          <p className="font-bold text-[#14532d] text-xs sm:text-sm">Ordered Plants</p>
+                          <div className="space-y-1 text-[11px] sm:text-xs text-slate-800 font-medium">
+                            {order.items && order.items.length > 0 ? (
+                              order.items.map((item, idx) => (
+                                <p key={idx} className="leading-snug">
+                                  {idx + 1}. {item.name} {item.quantity > 1 ? `(${item.quantity})` : ''}
+                                </p>
+                              ))
+                            ) : (
+                              <p className="leading-snug">1. Nursery Plant Sapling</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
                     </div>
                   </div>
                 );
@@ -179,7 +193,7 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
               {Array.from({ length: Math.max(0, 4 - pageOrders.length) }).map((_, emptyIdx) => (
                 <div
                   key={`empty-${emptyIdx}`}
-                  className="border-2 border-dashed border-slate-200 rounded-xl p-4 flex items-center justify-center text-slate-300 font-bold text-xs min-h-[110mm] print:min-h-[115mm]"
+                  className="border border-dashed border-slate-200 rounded-2xl p-4 flex items-center justify-center text-slate-300 font-bold text-xs min-h-[100mm]"
                 >
                   Empty Slot
                 </div>
