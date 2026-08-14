@@ -86,128 +86,124 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
         pdf.setLineWidth(0.6);
         pdf.line(10, 22, 200, 22);
 
-        // ================= 2x2 LABELS GRID =================
-        const positions = [
-          { x: 10, y: 26 },   // Top Left (1)
-          { x: 108, y: 26 },  // Top Right (2)
-          { x: 10, y: 154 },  // Bottom Left (3)
-          { x: 108, y: 154 }  // Bottom Right (4)
-        ];
-
-        const cardWidth = 92;
-        const cardHeight = 124;
+        // ================= 4 HORIZONTAL LABELS PER A4 PAGE =================
+        const cardPositionsY = [26, 90, 154, 218];
+        const cardWidth = 190;
+        const cardHeight = 58;
 
         pageOrders.forEach((order, orderIdx) => {
-          const pos = positions[orderIdx] || positions[0];
+          const cardY = cardPositionsY[orderIdx] || 26;
           const labelNumber = pageIndex * chunkSize + orderIdx + 1;
-          const customerName = order.customerName || order.shippingAddress?.fullName || 'Valued Customer';
-          const customerPhone = order.customerPhone || order.shippingAddress?.phone || '';
+          const customerName = order.customerName || (order.shippingAddress as any)?.fullName || 'Valued Customer';
+          const customerPhone = order.customerPhone || (order.shippingAddress as any)?.phone || '';
           const fullAddress = formatAddress(order.shippingAddress);
 
           // Outer Card Border
-          pdf.setDrawColor(148, 163, 184); // slate-400
-          pdf.setLineWidth(0.35);
-          pdf.roundedRect(pos.x, pos.y, cardWidth, cardHeight, 3.5, 3.5, 'S');
+          pdf.setDrawColor(180, 190, 205);
+          pdf.setLineWidth(0.4);
+          pdf.roundedRect(10, cardY, cardWidth, cardHeight, 3.5, 3.5, 'S');
 
-          // ---------------- COLUMN 1: FROM (x to x+26) ----------------
+          // ---------------- COLUMN 1: FROM (10mm to 56mm, width 46mm) ----------------
           // Green Badge Number
           pdf.setFillColor(20, 83, 45); // #14532d
-          pdf.roundedRect(pos.x + 2.5, pos.y + 3, 7.5, 7.5, 1.5, 1.5, 'F');
+          pdf.roundedRect(14, cardY + 4, 8, 8, 1.8, 1.8, 'F');
           pdf.setTextColor(255, 255, 255);
           pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(9);
-          pdf.text(String(labelNumber), pos.x + 6.25, pos.y + 8.2, { align: 'center' });
+          pdf.setFontSize(10.5);
+          pdf.text(String(labelNumber), 18, cardY + 9.8, { align: 'center' });
 
           // "From :"
           pdf.setTextColor(71, 85, 105);
           pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(7.5);
-          pdf.text('From :', pos.x + 2.5, pos.y + 16);
+          pdf.setFontSize(8);
+          pdf.text('From :', 14, cardY + 18);
 
           // "VRG NURSERY"
           pdf.setTextColor(20, 83, 45);
           pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(8.5);
-          pdf.text('VRG NURSERY', pos.x + 2.5, pos.y + 21);
+          pdf.setFontSize(9.5);
+          pdf.text('VRG NURSERY', 14, cardY + 24);
 
           // Address
           pdf.setTextColor(51, 65, 85);
           pdf.setFont('helvetica', 'normal');
-          pdf.setFontSize(6.8);
-          pdf.text('Dharmapuri – 636813', pos.x + 2.5, pos.y + 26);
+          pdf.setFontSize(7.5);
+          pdf.text('Dharmapuri – 636813', 14, cardY + 30);
 
-          // Phone
+          // Store Phone
           pdf.setTextColor(30, 41, 59);
           pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(7.5);
-          pdf.text('7904020206', pos.x + 2.5, pos.y + 32);
+          pdf.setFontSize(8.5);
+          pdf.text('7904020206', 14, cardY + 36);
 
           // Vertical Divider 1
           pdf.setDrawColor(226, 232, 240);
-          pdf.setLineWidth(0.25);
-          pdf.line(pos.x + 26.5, pos.y + 2, pos.x + 26.5, pos.y + cardHeight - 2);
+          pdf.setLineWidth(0.3);
+          pdf.line(56, cardY + 2, 56, cardY + cardHeight - 2);
 
-          // ---------------- COLUMN 2: TO (x+27 to x+59) ----------------
+          // ---------------- COLUMN 2: TO (58mm to 136mm, width 78mm) ----------------
           // "To,"
           pdf.setTextColor(20, 83, 45);
           pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(8.5);
-          pdf.text('To,', pos.x + 28.5, pos.y + 7.5);
+          pdf.setFontSize(9.5);
+          pdf.text('To,', 61, cardY + 8.5);
 
           // Customer Name
           pdf.setTextColor(15, 23, 42);
           pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(8);
-          const nameLines = pdf.splitTextToSize(customerName, 29);
-          pdf.text(nameLines, pos.x + 28.5, pos.y + 12.5);
+          pdf.setFontSize(9);
+          pdf.text(customerName, 61, cardY + 14.5);
 
-          // Address lines
-          let addrStartY = pos.y + 12.5 + (nameLines.length * 3.5) + 1;
+          // Address
           pdf.setTextColor(51, 65, 85);
           pdf.setFont('helvetica', 'normal');
-          pdf.setFontSize(6.5);
-          const addrLines = pdf.splitTextToSize('Address ' + fullAddress, 29);
-          const maxAddrLines = addrLines.slice(0, 12);
-          pdf.text(maxAddrLines, pos.x + 28.5, addrStartY);
+          pdf.setFontSize(7.5);
+          const addrLines = pdf.splitTextToSize('Address ' + fullAddress, 70);
+          const displayAddrLines = addrLines.slice(0, 4);
+          pdf.text(displayAddrLines, 61, cardY + 19.5);
 
-          // Customer Phone (Bottom)
+          // Customer Mobile (Right below address)
+          let phoneY = cardY + 19.5 + (displayAddrLines.length * 3.8) + 4.5;
+          if (phoneY > cardY + 53) phoneY = cardY + 53;
           if (customerPhone) {
             pdf.setTextColor(15, 23, 42);
             pdf.setFont('helvetica', 'bold');
-            pdf.setFontSize(8);
-            pdf.text(customerPhone, pos.x + 28.5, pos.y + cardHeight - 4.5);
+            pdf.setFontSize(9.5);
+            pdf.text(customerPhone, 61, phoneY);
           }
 
           // Vertical Divider 2
           pdf.setDrawColor(226, 232, 240);
-          pdf.setLineWidth(0.25);
-          pdf.line(pos.x + 59.5, pos.y + 2, pos.x + 59.5, pos.y + cardHeight - 2);
+          pdf.setLineWidth(0.3);
+          pdf.line(136, cardY + 2, 136, cardY + cardHeight - 2);
 
-          // ---------------- COLUMN 3: ORDERED PLANTS (x+60 to x+91) ----------------
+          // ---------------- COLUMN 3: ORDERED PLANTS (138mm to 200mm, width 62mm) ----------------
           // "Ordered Plants"
           pdf.setTextColor(20, 83, 45);
           pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(8);
-          pdf.text('Ordered Plants', pos.x + 61.5, pos.y + 7.5);
+          pdf.setFontSize(9.5);
+          pdf.text('Ordered Plants', 141, cardY + 8.5);
 
-          // Numbered Items List
-          let itemY = pos.y + 12.5;
+          // Numbered Plants List
+          let itemY = cardY + 14.5;
           if (order.items && order.items.length > 0) {
             order.items.forEach((item, idx) => {
-              if (itemY < pos.y + cardHeight - 6) {
+              if (itemY <= cardY + 52) {
                 const itemText = `${idx + 1}. ${item.name}${item.quantity > 1 ? ` (${item.quantity})` : ''}`;
-                const splitItem = pdf.splitTextToSize(itemText, 29);
+                const splitItem = pdf.splitTextToSize(itemText, 54);
+                const displayItemLines = splitItem.slice(0, 2);
                 pdf.setTextColor(30, 41, 59);
-                pdf.setFontSize(6.8);
+                pdf.setFontSize(7.5);
                 pdf.setFont('helvetica', 'normal');
-                pdf.text(splitItem, pos.x + 61.5, itemY);
-                itemY += (splitItem.length * 3.3) + 1.2;
+                pdf.text(displayItemLines, 141, itemY);
+                itemY += (displayItemLines.length * 3.6) + 1.2;
               }
             });
           } else {
             pdf.setTextColor(100, 116, 139);
-            pdf.setFontSize(6.8);
-            pdf.text('1. Nursery Plant Sapling', pos.x + 61.5, itemY);
+            pdf.setFontSize(7.5);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text('1. Nursery Plant Sapling', 141, itemY);
           }
         });
 
@@ -217,7 +213,7 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
         pdf.line(10, 285, 200, 285);
 
         pdf.setTextColor(148, 163, 184);
-        pdf.setFontSize(6.8);
+        pdf.setFontSize(7);
         pdf.setFont('helvetica', 'normal');
         pdf.text(`Page ${pageIndex + 1} of ${pages.length}`, 10, 289);
         pdf.text('VRG Nursery Order Dispatch Label Sheet', 105, 289, { align: 'center' });
@@ -355,8 +351,8 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
               </div>
             </div>
 
-            {/* Grid of Labels matching the 3-column format from reference image (4 per A4 page) */}
-            <div className="grid grid-cols-2 gap-3.5 flex-1">
+            {/* 4 Wide Horizontal Label Cards per A4 Sheet matching reference image */}
+            <div className="flex flex-col gap-3.5 flex-1 justify-between">
               {pageOrders.map((order, orderIdx) => {
                 const labelNumber = pageIndex * chunkSize + orderIdx + 1;
                 const customerName = order.customerName || order.shippingAddress?.fullName || 'Valued Customer';
@@ -366,64 +362,58 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
                 return (
                   <div
                     key={order.id || orderIdx}
-                    className="border border-gray-400 rounded-2xl p-4 bg-white flex flex-col justify-between shadow-2xs relative print:border-gray-400 print:rounded-2xl"
+                    className="border border-slate-300 rounded-2xl p-3 sm:p-4 bg-white shadow-2xs relative print:border-slate-400 print:rounded-2xl"
                   >
-                    <div className="grid grid-cols-12 gap-3 h-full items-start">
+                    <div className="grid grid-cols-12 gap-3 items-start">
                       
                       {/* Column 1: From */}
-                      <div className="col-span-3 pr-2.5 border-r border-gray-200 flex flex-col justify-between h-full">
-                        <div>
-                          <div className="w-8 h-8 rounded-lg bg-[#14532d] text-white font-black text-base flex items-center justify-center mb-2.5 shadow-2xs">
-                            {labelNumber}
-                          </div>
-                          <div className="space-y-1 text-xs text-slate-800">
-                            <p className="font-semibold text-slate-700">From :</p>
-                            <h4 className="font-black text-[#14532d] text-xs sm:text-sm tracking-tight leading-tight">
-                              VRG NURSERY
-                            </h4>
-                            <p className="text-[11px] text-slate-700 font-medium leading-tight">
-                              Dharmapuri – 636813
-                            </p>
-                            <p className="text-xs font-bold text-slate-800 pt-1">
-                              7904020206
-                            </p>
-                          </div>
+                      <div className="col-span-3 pr-2.5 border-r border-slate-200 space-y-1">
+                        <div className="w-7 h-7 rounded-lg bg-[#14532d] text-white font-black text-sm flex items-center justify-center mb-1 shadow-2xs">
+                          {labelNumber}
+                        </div>
+                        <div className="space-y-0.5 text-xs text-slate-800">
+                          <p className="font-semibold text-slate-600 text-[11px]">From :</p>
+                          <h4 className="font-black text-[#14532d] text-xs sm:text-sm tracking-tight leading-tight">
+                            VRG NURSERY
+                          </h4>
+                          <p className="text-[11px] text-slate-700 font-medium leading-tight">
+                            Dharmapuri – 636813
+                          </p>
+                          <p className="text-xs font-bold text-slate-800 pt-0.5">
+                            7904020206
+                          </p>
                         </div>
                       </div>
 
                       {/* Column 2: To */}
-                      <div className="col-span-5 px-2.5 border-r border-gray-200 flex flex-col justify-between h-full">
-                        <div className="space-y-1">
-                          <p className="font-bold text-[#14532d] text-sm">To,</p>
-                          <p className="font-extrabold text-slate-900 text-xs sm:text-sm leading-tight">
-                            {customerName}
-                          </p>
-                          <p className="text-[11px] sm:text-xs text-slate-700 font-medium leading-relaxed line-clamp-4">
-                            Address {fullAddress}
-                          </p>
-                        </div>
+                      <div className="col-span-5 px-2.5 border-r border-slate-200 space-y-1">
+                        <p className="font-bold text-[#14532d] text-xs sm:text-sm leading-none">To,</p>
+                        <p className="font-extrabold text-slate-900 text-xs sm:text-sm leading-tight">
+                          {customerName}
+                        </p>
+                        <p className="text-[11px] sm:text-xs text-slate-700 font-medium leading-snug line-clamp-3">
+                          Address {fullAddress}
+                        </p>
                         {customerPhone && (
-                          <p className="font-black text-slate-900 text-xs sm:text-sm pt-2">
+                          <p className="font-black text-slate-900 text-xs sm:text-sm pt-1">
                             {customerPhone}
                           </p>
                         )}
                       </div>
 
                       {/* Column 3: Ordered Plants */}
-                      <div className="col-span-4 pl-2 flex flex-col justify-between h-full">
-                        <div className="space-y-1.5">
-                          <p className="font-bold text-[#14532d] text-xs sm:text-sm">Ordered Plants</p>
-                          <div className="space-y-1 text-[11px] sm:text-xs text-slate-800 font-medium">
-                            {order.items && order.items.length > 0 ? (
-                              order.items.map((item, idx) => (
-                                <p key={idx} className="leading-snug">
-                                  {idx + 1}. {item.name} {item.quantity > 1 ? `(${item.quantity})` : ''}
-                                </p>
-                              ))
-                            ) : (
-                              <p className="leading-snug">1. Nursery Plant Sapling</p>
-                            )}
-                          </div>
+                      <div className="col-span-4 pl-2 space-y-1">
+                        <p className="font-bold text-[#14532d] text-xs sm:text-sm leading-none">Ordered Plants</p>
+                        <div className="space-y-0.5 text-[11px] sm:text-xs text-slate-800 font-medium">
+                          {order.items && order.items.length > 0 ? (
+                            order.items.map((item, idx) => (
+                              <p key={idx} className="leading-snug line-clamp-2">
+                                {idx + 1}. {item.name} {item.quantity > 1 ? `(${item.quantity})` : ''}
+                              </p>
+                            ))
+                          ) : (
+                            <p className="leading-snug">1. Nursery Plant Sapling</p>
+                          )}
                         </div>
                       </div>
 
@@ -436,7 +426,7 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
               {Array.from({ length: Math.max(0, 4 - pageOrders.length) }).map((_, emptyIdx) => (
                 <div
                   key={`empty-${emptyIdx}`}
-                  className="border border-dashed border-slate-200 rounded-2xl p-4 flex items-center justify-center text-slate-300 font-bold text-xs min-h-[100mm]"
+                  className="border border-dashed border-slate-200 rounded-2xl p-4 flex items-center justify-center text-slate-300 font-bold text-xs min-h-[50mm]"
                 >
                   Empty Slot
                 </div>
