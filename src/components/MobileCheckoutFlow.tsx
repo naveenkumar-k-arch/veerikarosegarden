@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   X, ArrowLeft, ArrowRight, ShoppingBag, Check, Truck, MapPin, Tag,
   ShieldCheck, Package, CheckCircle2, CreditCard, QrCode, Copy,
@@ -134,15 +134,77 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
   const [direction, setDirection] = useState<'forward' | 'back'>('forward');
   const [animating, setAnimating] = useState(false);
 
-  const goTo = (next: number) => {
+  // Go to step with browser history push
+  const goTo = useCallback((next: number, replace = false) => {
     if (animating) return;
-    setDirection(next > step ? 'forward' : 'back');
+    const isForward = next > step;
+    setDirection(isForward ? 'forward' : 'back');
     setAnimating(true);
+    setStep(next);
+
+    const stateObj = {
+      vrgCart: true,
+      cartStep: next
+    };
+
+    if (replace) {
+      window.history.replaceState(stateObj, '', window.location.pathname);
+    } else {
+      window.history.pushState(stateObj, '', window.location.pathname);
+    }
+
     setTimeout(() => {
-      setStep(next);
       setAnimating(false);
     }, 220);
-  };
+  }, [animating, step]);
+
+  // Handle close cart with clean history
+  const handleClose = useCallback(() => {
+    if (window.history.state && window.history.state.vrgCart) {
+      window.history.back();
+    } else {
+      onClose();
+    }
+  }, [onClose]);
+
+  // Handle in-app back buttons with history sync
+  const handleGoBack = useCallback((fallbackStep?: number) => {
+    if (window.history.state && window.history.state.vrgCart && typeof window.history.state.cartStep === 'number' && window.history.state.cartStep > 1) {
+      window.history.back();
+    } else if (step > 1) {
+      goTo(fallbackStep !== undefined ? fallbackStep : step - 1);
+    } else {
+      handleClose();
+    }
+  }, [step, goTo, handleClose]);
+
+  // Popstate listener for mobile 9-step checkout flow
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Push initial step 1 state if not already set
+    if (!window.history.state || !window.history.state.vrgCart) {
+      window.history.pushState({
+        vrgCart: true,
+        cartStep: 1
+      }, '', window.location.pathname);
+    }
+
+    const handleCartPopState = (e: PopStateEvent) => {
+      const state = e.state;
+      if (state && state.vrgCart && typeof state.cartStep === 'number') {
+        const targetStep = state.cartStep;
+        setDirection(targetStep > step ? 'forward' : 'back');
+        setStep(targetStep);
+      } else {
+        // User popped before the cart opened
+        onClose();
+      }
+    };
+
+    window.addEventListener('popstate', handleCartPopState);
+    return () => window.removeEventListener('popstate', handleCartPopState);
+  }, [isOpen, step, onClose]);
 
   // ── Summary step state ─────────────────────────────────────────────────────
   const [previewState, setPreviewState] = useState('Tamil Nadu');
@@ -609,7 +671,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                     <ShoppingBag className="w-10 h-10 text-emerald-400" />
                   </div>
                   <p className="text-sm font-bold text-slate-700">Your cart is empty</p>
-                  <button onClick={onClose} className="px-5 py-2.5 bg-emerald-700 text-white font-bold text-xs rounded-xl cursor-pointer">
+                  <button onClick={handleClose} className="px-5 py-2.5 bg-emerald-700 text-white font-bold text-xs rounded-xl cursor-pointer">
                     Browse Plants
                   </button>
                 </div>
@@ -669,7 +731,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
         ═══════════════════════════════════════════════════════════════════ */}
         {step === 2 && (
           <div className="flex flex-col min-h-full">
-            <Header title="Order Summary" subtitle={`(${items.length} item${items.length !== 1 ? 's' : ''})`} onBack={() => goTo(1)} />
+            <Header title="Order Summary" subtitle={`(${items.length} item${items.length !== 1 ? 's' : ''})`} onBack={() => handleGoBack(1)} />
 
             <div className="flex-1 px-4 py-3 space-y-4">
               {/* State selector */}
@@ -748,7 +810,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
               {!user && (
                 <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 font-semibold">
                   🔒 Login required to checkout.{' '}
-                  <button onClick={() => { onClose(); onNavigateToAccount(); }} className="underline font-bold cursor-pointer">Login / Sign Up →</button>
+                  <button onClick={() => { handleClose(); onNavigateToAccount(); }} className="underline font-bold cursor-pointer">Login / Sign Up →</button>
                 </div>
               )}
               <ProceedBtn label="PROCEED TO CHECKOUT" onClick={() => goTo(3)} />
@@ -761,7 +823,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
         ═══════════════════════════════════════════════════════════════════ */}
         {step === 3 && (
           <form onSubmit={handleAddressNext} className="flex flex-col min-h-full">
-            <Header title="Delivery Address" subtitle="Village / City Shipping Address" onBack={() => goTo(2)} />
+            <Header title="Delivery Address" subtitle="Village / City Shipping Address" onBack={() => handleGoBack(2)} />
 
             <div className="flex-1 px-4 py-3 space-y-3">
               {addrError && (
@@ -845,7 +907,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
         ═══════════════════════════════════════════════════════════════════ */}
         {step === 4 && (
           <div className="flex flex-col min-h-full">
-            <Header title="🚚 Delivery / Packing" subtitle="Options change automatically based on plant quantity." onBack={() => goTo(3)} />
+            <Header title="🚚 Delivery / Packing" subtitle="Options change automatically based on plant quantity." onBack={() => handleGoBack(3)} />
 
             <div className="flex-1 px-4 py-3 space-y-4">
               {/* Items Summary */}
@@ -1000,7 +1062,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
         ═══════════════════════════════════════════════════════════════════ */}
         {step === 5 && (
           <div className="flex flex-col min-h-full">
-            <Header title="📜 Delivery & Courier Terms" onBack={() => goTo(4)} />
+            <Header title="📜 Delivery & Courier Terms" onBack={() => handleGoBack(4)} />
 
             <div className="flex-1 px-4 py-3 space-y-3">
               <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3">
