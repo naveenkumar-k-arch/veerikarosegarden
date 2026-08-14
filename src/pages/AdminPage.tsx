@@ -1002,15 +1002,8 @@ const silentRefresh = async (): Promise<boolean> => {
     }
   };
 
-  // Handle Quick Order Status Updates
+  // Handle Quick Order Status Updates (Instant 0ms UI response)
   const handleUpdateOrderStatus = async (orderId: string, status: string, paymentStatus?: string) => {
-    try {
-      await authFetch(`/api/admin/orders/${orderId}/status`, {
-        method: 'PUT',
-        body: JSON.stringify({ orderStatus: status, paymentStatus })
-      }).catch(() => null);
-    } catch {}
-
     const updateSingleOrder = (o: Order): Order => {
       if (o.id === orderId) {
         return {
@@ -1037,6 +1030,14 @@ const silentRefresh = async (): Promise<boolean> => {
 
     try {
       window.dispatchEvent(new CustomEvent('orderStatusUpdated', { detail: { orderId, status, paymentStatus } }));
+    } catch {}
+
+    // Async backend update
+    try {
+      authFetch(`/api/admin/orders/${orderId}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ orderStatus: status, paymentStatus })
+      }).catch(() => null);
     } catch {}
   };
 
@@ -1281,18 +1282,6 @@ const silentRefresh = async (): Promise<boolean> => {
           adminUser={adminUser}
           onUpdateOrderStatus={handleUpdateOrderStatus}
           onSaveTracking={async (orderId, data) => {
-            try {
-              await authFetch(`/api/admin/orders/${orderId}/status`, {
-                method: 'PUT',
-                body: JSON.stringify({
-                  orderStatus: 'DISPATCHED',
-                  courierName: data.courierName,
-                  trackingNumber: data.trackingNumber,
-                  deliveryNotes: data.trackingLink
-                })
-              }).catch(() => null);
-            } catch {}
-
             setOrders(prev => {
               const updated = prev.map(o => o.id === orderId ? {
                 ...o,
@@ -1307,6 +1296,18 @@ const silentRefresh = async (): Promise<boolean> => {
               });
               return updated;
             });
+
+            try {
+              authFetch(`/api/admin/orders/${orderId}/status`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                  orderStatus: 'DISPATCHED',
+                  courierName: data.courierName,
+                  trackingNumber: data.trackingNumber,
+                  deliveryNotes: data.trackingLink
+                })
+              }).catch(() => null);
+            } catch {}
           }}
           onSaveProduct={async (prod) => {
             const isEdit = Boolean(prod.id);

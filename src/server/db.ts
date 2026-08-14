@@ -7032,10 +7032,10 @@ class Store {
       memOrder = {
         id: orderId,
         merchantTransactionId: 'MT' + Date.now(),
-        customerName: 'Naveen Kumar',
-        customerPhone: '09360931606',
-        customerEmail: 'nv01110612@gmail.com',
-        shippingAddress: { fullName: 'Naveen Kumar', phone: '09360931606', houseNo: '12', street: 'Main Road', villageTown: 'Pennagaram', district: 'Dharmapuri', state: 'Tamil Nadu', pincode: '636810', addressType: 'Home' },
+        customerName: 'Customer',
+        customerPhone: '',
+        customerEmail: '',
+        shippingAddress: { fullName: 'Customer', phone: '', houseNo: '', street: '', villageTown: '', district: '', state: 'Tamil Nadu', pincode: '', addressType: 'Home' },
         items: [],
         subtotal: 199,
         shippingCharge: 50,
@@ -7058,17 +7058,21 @@ class Store {
         memOrder.paymentProofUrl = paymentProofUrl;
         memOrder.paymentMethod = 'QR_PAYMENT';
       }
+      memOrder.updatedAt = new Date().toISOString();
+    }
+
+    // Update in cached buffer if present
+    if (this.ordersCache && this.ordersCache.data) {
+      this.ordersCache.data = this.ordersCache.data.map(o => o.id === orderId ? { ...o, ...memOrder } : o);
     }
 
     const prisma = getPrismaClient();
-    if (!prisma) return memOrder;
-
-    try {
-      const dbStatus = status === 'DELIVERED' ? 'DELIVERED' : status === 'PROCESSING' ? 'PACKING' : status === 'CANCELLED' ? 'CANCELLED' : status === 'DISPATCHED' ? 'DISPATCHED' : 'PENDING';
+    if (prisma) {
+      const dbStatus = status === 'DELIVERED' ? 'DELIVERED' : (status === 'PACKED' || status === 'PROCESSING') ? 'PACKING' : status === 'CANCELLED' ? 'CANCELLED' : status === 'DISPATCHED' ? 'DISPATCHED' : 'PENDING';
       const dbPayment = paymentStatus === 'SUCCESS' ? 'SUCCESS' : paymentStatus === 'FAILED' ? 'FAILED' : undefined;
       const finalTracking = trackingNumber ? `${courierName ? courierName + ' | ' : ''}${trackingNumber}` : undefined;
 
-      await prisma.order.updateMany({
+      prisma.order.updateMany({
         where: {
           OR: [
             { id: orderId },
@@ -7081,30 +7085,18 @@ class Store {
           ...(dbPayment ? { paymentStatus: dbPayment as any } : {}),
           ...(finalTracking ? { trackingNumber: finalTracking } : {})
         }
-      });
-
-
-      const updated = await this.getOrderById(orderId);
-      if (updated) {
-        updated.orderStatus = status;
-        if (trackingNumber) (updated as any).trackingNumber = trackingNumber;
-        if (courierName) (updated as any).courierName = courierName;
-        if (paymentStatus) (updated as any).paymentStatus = paymentStatus as any;
-        return updated;
-      }
-      return memOrder || null;
-
-    } finally {
-      // Always sync to Firestore regardless of DB result
-      if (memOrder) {
-        firestoreUpdateOrder(orderId, {
-          orderStatus: status,
-          ...(paymentStatus ? { paymentStatus } : {}),
-          ...(trackingNumber ? { trackingNumber } : {}),
-          ...(courierName ? { courierName } : {})
-        }).catch(() => {});
-      }
+      }).catch(err => console.warn('Prisma background updateOrderStatus notice:', err?.message));
     }
+
+    // Non-blocking Firestore sync in background
+    firestoreUpdateOrder(orderId, {
+      orderStatus: status,
+      ...(paymentStatus ? { paymentStatus } : {}),
+      ...(trackingNumber ? { trackingNumber } : {}),
+      ...(courierName ? { courierName } : {})
+    }).catch(() => {});
+
+    return memOrder;
   }
 
   // PAYMENT LOGS
