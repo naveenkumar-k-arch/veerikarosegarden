@@ -816,6 +816,19 @@ export const App: React.FC = () => {
       const payUrl = data.phonepePayUrl || data.phonepe?.payUrl || '';
       const merchantTxnId = data.phonepe?.merchantTransactionId || data.order?.merchantTransactionId || '';
 
+      if (orderData.paymentMethod === 'RAZORPAY') {
+        return {
+          success: true,
+          orderId,
+          razorpayOrderId: data.razorpayOrderId,
+          razorpayKeyId: data.razorpayKeyId,
+          amount: grandTotal,
+          customerName: payload.customerName,
+          customerPhone: payload.customerPhone,
+          customerEmail: payload.customerEmail
+        };
+      }
+
       if (orderData.paymentMethod === 'PHONEPE') {
         const isRealPayUrl = payUrl && payUrl.startsWith('http') && !payUrl.includes('/#/phonepe-gateway');
         if (isRealPayUrl) {
@@ -835,7 +848,7 @@ export const App: React.FC = () => {
           return { success: true, orderId };
         }
       } else {
-        // COD order — go straight to order status page
+        // COD / QR order — go straight to order status page
         navigateTo('order-status', { orderId });
       }
 

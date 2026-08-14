@@ -31,7 +31,17 @@ interface MobileCheckoutFlowProps {
     transactionId?: string;
     potCharge?: number;
     potOption?: string;
-  }) => Promise<{ success: boolean; orderId?: string; message?: string }>;
+  }) => Promise<{
+    success: boolean;
+    orderId?: string;
+    razorpayOrderId?: string;
+    razorpayKeyId?: string;
+    amount?: number;
+    customerName?: string;
+    customerPhone?: string;
+    customerEmail?: string;
+    message?: string;
+  }>;
   onUpdateQuantity: (productId: string, qty: number) => void;
   onRemoveItem: (productId: string) => void;
   onNavigateToAccount: () => void;
@@ -369,6 +379,92 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
     setTimeout(() => setCopiedUpi(false), 3000);
   };
 
+  const loadRazorpayScript = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if ((window as any).Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handleRazorpayPayment = async (orderRes: any) => {
+    setLoading(true);
+    const loaded = await loadRazorpayScript();
+    if (!loaded) {
+      setOrderError('Failed to load Razorpay SDK. Please check your internet connection and try again.');
+      setLoading(false);
+      return;
+    }
+
+    const options = {
+      key: orderRes.razorpayKeyId,
+      amount: Math.round((orderRes.amount || grandTotal) * 100), // in paise
+      currency: 'INR',
+      name: siteSettings?.businessName || 'Veerika Rose Garden',
+      description: `Plant Order #${orderRes.orderId}`,
+      image: '/products/double-delight.jpeg',
+      order_id: orderRes.razorpayOrderId,
+      handler: async function (response: any) {
+        setLoading(true);
+        try {
+          const verifyRes = await fetch('/api/razorpay/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orderId: orderRes.orderId,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature
+            })
+          });
+          const verifyData = await verifyRes.json();
+          setLoading(false);
+          if (verifyData.success) {
+            setPlacedOrderId(orderRes.orderId);
+            goTo(7);
+          } else {
+            setOrderError(verifyData.message || 'Razorpay payment verification failed.');
+          }
+        } catch (err: any) {
+          setLoading(false);
+          setOrderError('Error verifying Razorpay payment. Payment ID: ' + response.razorpay_payment_id);
+        }
+      },
+      prefill: {
+        name: orderRes.customerName || address.fullName || user?.name || 'Customer',
+        email: orderRes.customerEmail || user?.email || '',
+        contact: orderRes.customerPhone || address.phone || user?.phone || ''
+      },
+      theme: {
+        color: '#15803d'
+      },
+      modal: {
+        ondismiss: function () {
+          setLoading(false);
+          setOrderError('Razorpay payment popup was closed.');
+        }
+      }
+    };
+
+    try {
+      const rzp = new (window as any).Razorpay(options);
+      rzp.on('payment.failed', function (response: any) {
+        setLoading(false);
+        setOrderError(`Razorpay Payment Failed: ${response.error?.description || 'Transaction declined'}`);
+      });
+      rzp.open();
+    } catch (err: any) {
+      setLoading(false);
+      setOrderError('Failed to open Razorpay payment modal.');
+    }
+  };
+
   const handlePlaceOrder = async () => {
     if (!user) { setOrderError('🔒 Login required to place an order.'); return; }
     if (uploadingImage) { setOrderError('Please wait — processing payment screenshot.'); return; }
@@ -396,6 +492,10 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
       });
       setLoading(false);
       if (res.success) {
+        if (effectivePM === 'RAZORPAY' && res.razorpayOrderId) {
+          handleRazorpayPayment(res);
+          return;
+        }
         setPlacedOrderId(res.orderId || null);
         goTo(7);
       } else {

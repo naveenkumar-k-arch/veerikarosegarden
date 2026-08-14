@@ -683,6 +683,10 @@ const silentRefresh = async (): Promise<boolean> => {
         if (Array.isArray(bRes.reviews)) setReviews(bRes.reviews);
         if (bRes.settings) setSettings(bRes.settings);
         if (Array.isArray(bRes.paymentLogs)) setPaymentLogs(bRes.paymentLogs);
+
+        try {
+          localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(bRes));
+        } catch {}
       } else {
         // Fast fallback: fetch public endpoints without 401 retry overhead
         const [pRes, cRes, cpRes, bResLeg, rRes, stRes, cbRes] = await Promise.all([
@@ -717,7 +721,25 @@ const silentRefresh = async (): Promise<boolean> => {
     localStorage.removeItem('vrg_deleted_categories');
     localStorage.removeItem('vrg_deleted_coupons');
 
-    fetchData(true);
+    // SWR Cache Fast Render (0ms instant UI load from local cache)
+    try {
+      const cachedStr = localStorage.getItem('vrg_admin_bootstrap_cache');
+      if (cachedStr) {
+        const cached = JSON.parse(cachedStr);
+        if (cached?.stats) setStats(cached.stats);
+        if (Array.isArray(cached?.combos)) setCombos(cached.combos);
+        if (Array.isArray(cached?.products)) setProducts(cached.products);
+        if (Array.isArray(cached?.categories)) setCategories(cached.categories);
+        if (Array.isArray(cached?.coupons)) setCoupons(cached.coupons);
+        if (Array.isArray(cached?.orders)) setOrders(cached.orders);
+        if (Array.isArray(cached?.banners)) setBanners(cached.banners);
+        if (Array.isArray(cached?.reviews)) setReviews(cached.reviews);
+        if (cached?.settings) setSettings(cached.settings);
+        if (Array.isArray(cached?.paymentLogs)) setPaymentLogs(cached.paymentLogs);
+      }
+    } catch {}
+
+    fetchData(false);
 
     // Security Re-validation: Verify session token server-side on mount with auto-refresh support
     const verifySession = async () => {

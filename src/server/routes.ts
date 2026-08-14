@@ -830,9 +830,8 @@ apiRouter.get('/admin/dashboard', requireAdmin, async (req: AuthenticatedRequest
 
 apiRouter.get('/admin/bootstrap', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
-    const orders = await db.getOrders().catch(() => []);
     const [
-      stats,
+      orders,
       products,
       categories,
       coupons,
@@ -843,7 +842,7 @@ apiRouter.get('/admin/bootstrap', requireAdmin, async (req: AuthenticatedRequest
       finances,
       combos
     ] = await Promise.all([
-      db.getDashboardStats(orders).catch(() => null),
+      db.getOrders().catch(() => []),
       db.getProducts().catch(() => []),
       db.getCategories().catch(() => []),
       db.getCoupons().catch(() => []),
@@ -855,6 +854,9 @@ apiRouter.get('/admin/bootstrap', requireAdmin, async (req: AuthenticatedRequest
       db.getCombos().catch(() => [])
     ]);
 
+    const stats = await db.getDashboardStats(orders, products);
+
+    res.setHeader('Cache-Control', 'no-store');
     res.json({
       success: true,
       stats,
@@ -1195,6 +1197,52 @@ apiRouter.post('/razorpay/verify', checkoutLimiter, async (req: AuthenticatedReq
   } catch (err: any) {
     console.error('[Razorpay Verify] Error:', err);
     return res.status(500).json({ success: false, message: err.message || 'Razorpay verification error' });
+  }
+});
+
+// ================= RAZORPAY WEBHOOK HANDLER =================
+apiRouter.post('/razorpay/webhook', async (req, res) => {
+  try {
+    const signature = req.headers['x-razorpay-signature'] as string;
+    const settings = await db.getSettings();
+    const webhookSecret = (settings as any)?.razorpayWebhookSecret || process.env.RAZORPAY_WEBHOOK_SECRET || settings?.razorpayKeySecret || process.env.RAZORPAY_KEY_SECRET || '';
+
+    const rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    if (signature && webhookSecret) {
+      const crypto = await import('crypto');
+      const expectedSignature = crypto.createHmac('sha256', webhookSecret.trim()).update(rawBody).digest('hex');
+      if (expectedSignature !== signature) {
+        console.warn('[Razorpay Webhook] Invalid webhook signature from Razorpay');
+        return res.status(400).json({ success: false, message: 'Invalid webhook signature' });
+      }
+    }
+
+    const event = req.body?.event;
+    const payload = req.body?.payload;
+
+    if (event === 'payment.captured' || event === 'order.paid') {
+      const paymentEntity = payload?.payment?.entity;
+      const orderEntity = payload?.order?.entity;
+      const orderId = paymentEntity?.notes?.orderId || orderEntity?.receipt || paymentEntity?.description?.split('#')[1];
+
+      if (orderId) {
+        await db.updateOrderStatus(orderId, 'CONFIRMED', undefined, undefined, 'SUCCESS');
+        await db.addPaymentLog({
+          merchantTransactionId: paymentEntity?.id || orderId,
+          orderId,
+          amount: paymentEntity?.amount ? paymentEntity.amount / 100 : 0,
+          status: 'SUCCESS',
+          checksum: signature || 'WEBHOOK_CAPTURED',
+          payload: JSON.stringify(req.body)
+        }).catch(() => {});
+        console.log(`[Razorpay Webhook] Order ${orderId} marked as SUCCESS (${event})`);
+      }
+    }
+
+    return res.json({ status: 'ok' });
+  } catch (err: any) {
+    console.error('[Razorpay Webhook] Error:', err);
+    return res.status(500).json({ error: err.message });
   }
 });
 

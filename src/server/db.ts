@@ -6984,9 +6984,25 @@ class Store {
     }
 
     const gBuffer = ((globalThis as any).globalMemoryOrdersBuffer || []) as Order[];
-    const fsOrders = await firestoreGetAllOrders().catch(() => []) as Order[];
     const diskOrders = loadDiskOrders();
     const defOrders = (typeof DEFAULT_ORDERS !== 'undefined' ? DEFAULT_ORDERS : []) as Order[];
+
+    // Fast-path: Only block on Firestore if both Database and memory buffers are completely empty
+    let fsOrders: Order[] = [];
+    if (dbOrders.length === 0 && this.memoryOrders.length === 0 && gBuffer.length === 0 && diskOrders.length === 0) {
+      fsOrders = await firestoreGetAllOrders().catch(() => []) as Order[];
+    } else {
+      // Non-blocking background Firestore sync to prevent blocking the admin bootstrap API
+      firestoreGetAllOrders().then((fOrders) => {
+        if (Array.isArray(fOrders) && fOrders.length > 0) {
+          fOrders.forEach(fo => {
+            if (fo && fo.id && !this.memoryOrders.some(m => m.id === fo.id)) {
+              this.memoryOrders.push(fo);
+            }
+          });
+        }
+      }).catch(() => {});
+    }
 
     // Priority order: in-memory updated orders first, then global buffer, db, firestore, disk, defaults
     const allCombined = [...this.memoryOrders, ...gBuffer, ...dbOrders, ...fsOrders, ...diskOrders, ...defOrders];
@@ -7013,7 +7029,7 @@ class Store {
     });
     const result = Array.from(uniqueMap.values());
     if (!userId) {
-      this.ordersCache = { data: result, expiresAt: Date.now() + 10000 };
+      this.ordersCache = { data: result, expiresAt: Date.now() + 60000 };
     }
     return result;
   }
@@ -7345,20 +7361,44 @@ class Store {
     this.dashboardStatsCache = null;
   }
 
-  async getDashboardStats(existingOrders?: Order[]) {
-    if (!existingOrders && this.dashboardStatsCache && Date.now() < this.dashboardStatsCache.expiresAt) {
-      return this.dashboardStatsCache.data;
-    }
-
+  async getDashboardStats(existingOrders?: Order[], existingProducts?: Product[]) {
     const isRevenueOrder = (o: any) => {
       const pStatus = (o.paymentStatus || '').toString().toUpperCase();
       const oStatus = (o.orderStatus || o.status || '').toString().toUpperCase();
       return pStatus === 'SUCCESS' || pStatus === 'PAID' || pStatus === 'APPROVED' || oStatus === 'DELIVERED' || oStatus === 'COMPLETED';
     };
 
+    // Fast-path: When existingOrders is passed (like in /api/admin/bootstrap), compute stats in 0.001ms directly in RAM!
+    if (existingOrders) {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const paidOrders = existingOrders.filter(isRevenueOrder);
+      const lowStockProducts = (existingProducts || []).filter(p => (p.stock !== undefined ? p.stock <= 10 : false)).map(p => ({
+        id: p.id,
+        name: p.name,
+        stock: p.stock
+      }));
+
+      const res = {
+        totalOrders: existingOrders.length,
+        totalRevenue: paidOrders.reduce((sum, o) => sum + (o.grandTotal || 0), 0),
+        todaySales: paidOrders.filter(o => new Date(o.createdAt) >= todayStart).reduce((sum, o) => sum + (o.grandTotal || 0), 0),
+        pendingOrders: existingOrders.filter(o => o.orderStatus !== 'DELIVERED' && o.orderStatus !== 'CANCELLED').length,
+        completedOrders: existingOrders.filter(o => o.orderStatus === 'DELIVERED').length,
+        lowStockCount: lowStockProducts.length,
+        lowStockProducts,
+        recentOrders: existingOrders.slice(0, 10)
+      };
+      return res;
+    }
+
+    if (this.dashboardStatsCache && Date.now() < this.dashboardStatsCache.expiresAt) {
+      return this.dashboardStatsCache.data;
+    }
+
     const prisma = getPrismaClient();
     if (!prisma) {
-      const allOrders = existingOrders || this.memoryOrders;
+      const allOrders = this.memoryOrders;
       const paidOrders = allOrders.filter(isRevenueOrder);
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
@@ -7373,7 +7413,7 @@ class Store {
         lowStockProducts: [],
         recentOrders: allOrders.slice(0, 10)
       };
-      if (!existingOrders) this.dashboardStatsCache = { data: res, expiresAt: Date.now() + 15000 };
+      this.dashboardStatsCache = { data: res, expiresAt: Date.now() + 60000 };
       return res;
     }
 
@@ -7381,7 +7421,7 @@ class Store {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
 
-      const recentOrdersList = existingOrders || await this.getOrders();
+      const recentOrdersList = await this.getOrders();
 
       // Execute all 6 DB queries concurrently in parallel
       const [
@@ -7455,7 +7495,7 @@ class Store {
         recentOrders: recentOrdersList.slice(0, 5)
       };
 
-      if (!existingOrders) this.dashboardStatsCache = { data: res, expiresAt: Date.now() + 15000 };
+      this.dashboardStatsCache = { data: res, expiresAt: Date.now() + 60000 };
       return res;
     } catch (err) {
       console.error('Prisma getDashboardStats error:', err);
