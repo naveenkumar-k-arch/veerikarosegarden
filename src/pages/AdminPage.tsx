@@ -3432,6 +3432,39 @@ const silentRefresh = async (): Promise<boolean> => {
                   );
                 })()}
 
+                {/* Razorpay Toggle */}
+                {(() => {
+                  const isRazorpayOn = settings?.enableRazorpay !== false;
+                  return (
+                    <div
+                      onClick={() => setSettings({ ...settings, enableRazorpay: !isRazorpayOn } as any)}
+                      className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer select-none flex items-center justify-between gap-2 ${
+                        isRazorpayOn
+                          ? 'bg-blue-50/70 border-blue-500 text-blue-950 shadow-xs'
+                          : 'bg-rose-50/70 border-rose-300 text-rose-950 opacity-90'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-extrabold text-xs">Razorpay Gateway</span>
+                          <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full ${
+                            isRazorpayOn ? 'bg-blue-600 text-white' : 'bg-rose-600 text-white'
+                          }`}>
+                            {isRazorpayOn ? 'ON' : 'OFF'}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-slate-500 block mt-0.5">Cards, UPI, Netbanking</span>
+                      </div>
+
+                      <div className={`w-11 h-6 rounded-full p-0.5 transition-colors shrink-0 flex items-center ${
+                        isRazorpayOn ? 'bg-blue-600 justify-end' : 'bg-slate-300 justify-start'
+                      }`}>
+                        <div className="w-5 h-5 rounded-full bg-white shadow-md transform transition-transform" />
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/* COD Toggle */}
                 {(() => {
                   const isCodOn = settings?.enableCod !== false;
@@ -3497,6 +3530,35 @@ const silentRefresh = async (): Promise<boolean> => {
                     </div>
                   );
                 })()}
+              </div>
+
+              {/* RAZORPAY CONFIGURATION */}
+              <h3 className="font-bold text-sm text-blue-900 border-b border-blue-100 pb-2 pt-2">
+                Razorpay Payment Gateway Configuration
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Razorpay Key ID:</label>
+                  <input
+                    type="text"
+                    placeholder="rzp_test_... or rzp_live_..."
+                    value={settings?.razorpayKeyId ?? ''}
+                    onChange={(e) => setSettings({ ...settings, razorpayKeyId: e.target.value } as any)}
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Razorpay Key Secret:</label>
+                  <input
+                    type="password"
+                    placeholder="Enter new secret (leave blank to keep unchanged)"
+                    value={settings?.razorpayKeySecret ?? ''}
+                    onChange={(e) => setSettings({ ...settings, razorpayKeySecret: e.target.value } as any)}
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono"
+                  />
+                </div>
               </div>
 
               {/* SCAN QR CONFIGURATION */}
