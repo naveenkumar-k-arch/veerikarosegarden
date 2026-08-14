@@ -36,188 +36,221 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
     setIsGeneratingPdf(true);
 
     try {
+      // A4 Landscape: 297mm width × 210mm height
       const pdf = new jsPDFClass({
-        orientation: 'portrait',
+        orientation: 'landscape',
         unit: 'mm',
         format: 'a4',
         compress: true
       });
 
+      const currentDateStr = new Intl.DateTimeFormat('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      }).format(new Date());
+
       pages.forEach((pageOrders, pageIndex) => {
         if (pageIndex > 0) {
-          pdf.addPage('a4', 'portrait');
+          pdf.addPage('a4', 'landscape');
         }
 
-        // ================= HEADER =================
-        // Sprout badge box
-        pdf.setFillColor(209, 250, 229);
-        pdf.roundedRect(10, 8, 10, 10, 2, 2, 'F');
+        // ================= TOP HEADER =================
+        pdf.setDrawColor(180, 190, 205);
+        pdf.setLineWidth(0.4);
+        pdf.roundedRect(8, 6, 281, 24, 3, 3, 'S');
+
+        // Title: VRG NURSERY
+        pdf.setTextColor(20, 83, 45); // #14532d
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(22);
+        pdf.text('VRG NURSERY', 125, 16, { align: 'center' });
+
+        // Subtitle: Location & Phone
         pdf.setTextColor(20, 83, 45);
         pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(10);
-        pdf.text('VRG', 15, 14.5, { align: 'center' });
+        pdf.setFontSize(8.5);
+        pdf.text('📍 Dharmapuri – 636813       📞 7904020206', 125, 23, { align: 'center' });
 
-        // VRG Nursery Title & Subtitle
-        pdf.setTextColor(20, 83, 45);
+        // Left Plant Emoji / Label
+        pdf.setFontSize(14);
+        pdf.text('🌿', 16, 18);
+
+        // Right Metadata Box
+        pdf.setTextColor(15, 23, 42);
         pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(13);
-        pdf.text('VRG NURSERY', 23, 13);
-
-        pdf.setTextColor(71, 85, 105);
-        pdf.setFont('helvetica', 'normal');
         pdf.setFontSize(7.5);
-        pdf.text('Dharmapuri - 636813 | Phone: 7904020206', 23, 17.5);
-
-        // Right Meta
-        pdf.setTextColor(30, 41, 59);
-        pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(7.5);
-        pdf.text(`Label Sheet: ${sheetNumber}`, 200, 11, { align: 'right' });
-
+        pdf.text('Order Sheet Date', 216, 12);
         pdf.setFont('helvetica', 'normal');
-        pdf.text(`Batch No : ${batchNumber}`, 200, 15, { align: 'right' });
+        pdf.text(`: ${currentDateStr}`, 242, 12);
 
-        pdf.setTextColor(20, 83, 45);
         pdf.setFont('helvetica', 'bold');
-        pdf.text(`Selected Orders : ${pageOrders.length}`, 200, 19, { align: 'right' });
+        pdf.text('Total Orders', 216, 17);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(`: ${pageOrders.length}`, 242, 17);
 
-        // Header Divider Line
-        pdf.setDrawColor(20, 83, 45);
-        pdf.setLineWidth(0.6);
-        pdf.line(10, 22, 200, 22);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Prepared By', 216, 22);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(': Admin', 242, 22);
 
-        // ================= 4 HORIZONTAL LABELS PER A4 PAGE =================
-        const cardPositionsY = [26, 90, 154, 218];
-        const cardWidth = 190;
-        const cardHeight = 58;
+        // Right Plant Emoji
+        pdf.setFontSize(14);
+        pdf.text('🌿', 276, 18);
+
+        // ================= 2x2 GRID OF 4 LABELS =================
+        const cardPositions = [
+          { x: 8, y: 34 },
+          { x: 151, y: 34 },
+          { x: 8, y: 114 },
+          { x: 151, y: 114 }
+        ];
+
+        const cardWidth = 138;
+        const cardHeight = 72;
 
         pageOrders.forEach((order, orderIdx) => {
-          const cardY = cardPositionsY[orderIdx] || 26;
+          const pos = cardPositions[orderIdx] || cardPositions[0];
           const labelNumber = pageIndex * chunkSize + orderIdx + 1;
           const customerName = order.customerName || (order.shippingAddress as any)?.fullName || 'Valued Customer';
           const customerPhone = order.customerPhone || (order.shippingAddress as any)?.phone || '';
           const fullAddress = formatAddress(order.shippingAddress);
 
-          // Outer Card Border
+          // Outer Card Box
           pdf.setDrawColor(180, 190, 205);
-          pdf.setLineWidth(0.4);
-          pdf.roundedRect(10, cardY, cardWidth, cardHeight, 3.5, 3.5, 'S');
+          pdf.setLineWidth(0.35);
+          pdf.roundedRect(pos.x, pos.y, cardWidth, cardHeight, 3, 3, 'S');
 
-          // ---------------- COLUMN 1: FROM (10mm to 56mm, width 46mm) ----------------
-          // Green Badge Number
+          // ---------------- COLUMN 1: FROM (pos.x to pos.x + 36) ----------------
+          // Green Number Badge
           pdf.setFillColor(20, 83, 45); // #14532d
-          pdf.roundedRect(14, cardY + 4, 8, 8, 1.8, 1.8, 'F');
+          pdf.roundedRect(pos.x + 2.5, pos.y + 2.5, 7.5, 7.5, 1.5, 1.5, 'F');
           pdf.setTextColor(255, 255, 255);
           pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(10.5);
-          pdf.text(String(labelNumber), 18, cardY + 9.8, { align: 'center' });
+          pdf.setFontSize(9.5);
+          pdf.text(String(labelNumber), pos.x + 6.25, pos.y + 7.8, { align: 'center' });
 
           // "From :"
           pdf.setTextColor(71, 85, 105);
-          pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(8);
-          pdf.text('From :', 14, cardY + 18);
+          pdf.setFont('helvetica', 'normal');
+          pdf.setFontSize(7.5);
+          pdf.text('From :', pos.x + 2.5, pos.y + 15);
 
           // "VRG NURSERY"
           pdf.setTextColor(20, 83, 45);
           pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(9.5);
-          pdf.text('VRG NURSERY', 14, cardY + 24);
+          pdf.setFontSize(9);
+          pdf.text('VRG NURSERY', pos.x + 2.5, pos.y + 21);
 
-          // Address
+          // "Dharmapuri – 636813"
           pdf.setTextColor(51, 65, 85);
           pdf.setFont('helvetica', 'normal');
-          pdf.setFontSize(7.5);
-          pdf.text('Dharmapuri – 636813', 14, cardY + 30);
+          pdf.setFontSize(7.2);
+          pdf.text('Dharmapuri – 636813', pos.x + 2.5, pos.y + 27);
 
-          // Store Phone
+          // Nursery Phone "7904020206"
           pdf.setTextColor(30, 41, 59);
-          pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(8.5);
-          pdf.text('7904020206', 14, cardY + 36);
+          pdf.setFont('helvetica', 'normal');
+          pdf.setFontSize(7.8);
+          pdf.text('7904020206', pos.x + 2.5, pos.y + 33);
 
           // Vertical Divider 1
           pdf.setDrawColor(226, 232, 240);
-          pdf.setLineWidth(0.3);
-          pdf.line(56, cardY + 2, 56, cardY + cardHeight - 2);
+          pdf.setLineWidth(0.25);
+          pdf.line(pos.x + 36, pos.y + 2, pos.x + 36, pos.y + cardHeight - 2);
 
-          // ---------------- COLUMN 2: TO (58mm to 136mm, width 78mm) ----------------
+          // ---------------- COLUMN 2: TO (pos.x + 38 to pos.x + 94) ----------------
           // "To,"
           pdf.setTextColor(20, 83, 45);
           pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(9.5);
-          pdf.text('To,', 61, cardY + 8.5);
+          pdf.setFontSize(8.5);
+          pdf.text('To,', pos.x + 39, pos.y + 7);
 
           // Customer Name
           pdf.setTextColor(15, 23, 42);
           pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(9);
-          pdf.text(customerName, 61, cardY + 14.5);
+          pdf.setFontSize(8.5);
+          const nameLines = pdf.splitTextToSize(customerName, 52);
+          pdf.text(nameLines, pos.x + 39, pos.y + 12.5);
 
-          // Address
+          // Customer Address
+          const addrStartY = pos.y + 12.5 + (nameLines.length * 3.5) + 1;
           pdf.setTextColor(51, 65, 85);
           pdf.setFont('helvetica', 'normal');
-          pdf.setFontSize(7.5);
-          const addrLines = pdf.splitTextToSize('Address ' + fullAddress, 70);
-          const displayAddrLines = addrLines.slice(0, 4);
-          pdf.text(displayAddrLines, 61, cardY + 19.5);
+          pdf.setFontSize(6.8);
+          const addrLines = pdf.splitTextToSize(fullAddress.startsWith('Address') || fullAddress.startsWith('No') ? fullAddress : `Address ${fullAddress}`, 52);
+          const displayAddrLines = addrLines.slice(0, 7);
+          pdf.text(displayAddrLines, pos.x + 39, addrStartY);
 
-          // Customer Mobile (Right below address)
-          let phoneY = cardY + 19.5 + (displayAddrLines.length * 3.8) + 4.5;
-          if (phoneY > cardY + 53) phoneY = cardY + 53;
+          // Customer Phone Number
           if (customerPhone) {
             pdf.setTextColor(15, 23, 42);
             pdf.setFont('helvetica', 'bold');
-            pdf.setFontSize(9.5);
-            pdf.text(customerPhone, 61, phoneY);
+            pdf.setFontSize(8.5);
+            pdf.text(customerPhone, pos.x + 39, pos.y + cardHeight - 4.5);
           }
 
           // Vertical Divider 2
           pdf.setDrawColor(226, 232, 240);
-          pdf.setLineWidth(0.3);
-          pdf.line(136, cardY + 2, 136, cardY + cardHeight - 2);
+          pdf.setLineWidth(0.25);
+          pdf.line(pos.x + 94, pos.y + 2, pos.x + 94, pos.y + cardHeight - 2);
 
-          // ---------------- COLUMN 3: ORDERED PLANTS (138mm to 200mm, width 62mm) ----------------
+          // ---------------- COLUMN 3: ORDERED PLANTS (pos.x + 96 to pos.x + 136) ----------------
           // "Ordered Plants"
           pdf.setTextColor(20, 83, 45);
           pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(9.5);
-          pdf.text('Ordered Plants', 141, cardY + 8.5);
+          pdf.setFontSize(8.5);
+          pdf.text('Ordered Plants', pos.x + 97, pos.y + 7);
 
-          // Numbered Plants List
-          let itemY = cardY + 14.5;
+          // Plant Items List
+          let itemY = pos.y + 12.5;
           if (order.items && order.items.length > 0) {
             order.items.forEach((item, idx) => {
-              if (itemY <= cardY + 52) {
+              if (itemY <= pos.y + cardHeight - 6) {
                 const itemText = `${idx + 1}. ${item.name}${item.quantity > 1 ? ` (${item.quantity})` : ''}`;
-                const splitItem = pdf.splitTextToSize(itemText, 54);
+                const splitItem = pdf.splitTextToSize(itemText, 38);
                 const displayItemLines = splitItem.slice(0, 2);
                 pdf.setTextColor(30, 41, 59);
-                pdf.setFontSize(7.5);
+                pdf.setFontSize(6.8);
                 pdf.setFont('helvetica', 'normal');
-                pdf.text(displayItemLines, 141, itemY);
-                itemY += (displayItemLines.length * 3.6) + 1.2;
+                pdf.text(displayItemLines, pos.x + 97, itemY);
+                itemY += (displayItemLines.length * 3.2) + 1.2;
               }
             });
           } else {
             pdf.setTextColor(100, 116, 139);
-            pdf.setFontSize(7.5);
+            pdf.setFontSize(6.8);
             pdf.setFont('helvetica', 'normal');
-            pdf.text('1. Nursery Plant Sapling', 141, itemY);
+            pdf.text('1. Nursery Plant Sapling', pos.x + 97, itemY);
           }
         });
 
-        // ================= FOOTER =================
-        pdf.setDrawColor(226, 232, 240);
-        pdf.setLineWidth(0.3);
-        pdf.line(10, 285, 200, 285);
+        // ================= MIDDLE HORIZONTAL DASHED CUT LINE =================
+        pdf.setDrawColor(180, 190, 205);
+        pdf.setLineWidth(0.2);
+        pdf.setLineDashPattern([2, 2], 0);
+        pdf.line(8, 109.5, 289, 109.5);
+        pdf.setLineDashPattern([], 0);
 
-        pdf.setTextColor(148, 163, 184);
-        pdf.setFontSize(7);
-        pdf.setFont('helvetica', 'normal');
-        pdf.text(`Page ${pageIndex + 1} of ${pages.length}`, 10, 289);
-        pdf.text('VRG Nursery Order Dispatch Label Sheet', 105, 289, { align: 'center' });
-        pdf.text('veerikarosegarden.com', 200, 289, { align: 'right' });
+        pdf.setTextColor(100, 116, 139);
+        pdf.setFontSize(8);
+        pdf.text('✂', 10, 110.5);
+        pdf.text('✂', 148, 110.5);
+
+        // ================= BOTTOM FOOTER =================
+        pdf.setDrawColor(180, 190, 205);
+        pdf.setLineWidth(0.35);
+        pdf.roundedRect(8, 191, 281, 12, 2.5, 2.5, 'S');
+
+        pdf.setTextColor(20, 83, 45);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(8.5);
+        pdf.text(
+          '🌿   Thank you for your order!    |    We will pack your plants with care and deliver safe & fresh.   🌿',
+          148.5,
+          198.5,
+          { align: 'center' }
+        );
       });
 
       const cleanBatch = batchNumber.replace(/[^a-zA-Z0-9]/g, '') || '001';
@@ -244,10 +277,16 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
     return parts.join(', ');
   };
 
+  const currentDateStr = new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  }).format(new Date());
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-xs flex flex-col items-center justify-start overflow-y-auto p-2 sm:p-4 print:p-0 print:bg-white print:static">
       
-      {/* Scoped Print CSS: Ensures ONLY the label sheets are printed, stripping any generative labs or ambient UI */}
+      {/* Scoped Print CSS: Ensures ONLY the label sheets are printed in landscape */}
       <style>{`
         @media print {
           body * {
@@ -273,19 +312,20 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
             margin: 0 !important;
             page-break-after: always !important;
             break-after: page !important;
-            height: 297mm !important;
-            min-height: 297mm !important;
-            width: 210mm !important;
+            height: 210mm !important;
+            min-height: 210mm !important;
+            width: 297mm !important;
+            max-width: 297mm !important;
           }
           @page {
-            size: A4 portrait;
-            margin: 8mm;
+            size: A4 landscape;
+            margin: 6mm;
           }
         }
       `}</style>
 
       {/* Non-printed Top Action Toolbar */}
-      <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-3.5 mb-4 flex items-center justify-between gap-3 print:hidden sticky top-2 z-10 border border-slate-200">
+      <div className="w-full max-w-5xl bg-white rounded-2xl shadow-lg p-3.5 mb-4 flex items-center justify-between gap-3 print:hidden sticky top-2 z-10 border border-slate-200">
         <button
           onClick={onClose}
           className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer"
@@ -295,8 +335,8 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
         </button>
 
         <div className="text-center hidden sm:block">
-          <h3 className="font-extrabold text-sm text-slate-900">A4 Dispatch Label Sheet Preview</h3>
-          <p className="text-[11px] text-slate-500">{orders.length} Selected Orders • {pages.length} Page(s)</p>
+          <h3 className="font-extrabold text-sm text-slate-900">A4 Landscape Dispatch Label Sheet (2×2 Grid)</h3>
+          <p className="text-[11px] text-slate-500">{orders.length} Selected Orders • {pages.length} Sheet(s)</p>
         </div>
 
         {/* 2 Distinct Action Buttons: Print & Download PDF */}
@@ -321,38 +361,42 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
       </div>
 
       {/* Printable Sheet Pages Container */}
-      <div id="printable-label-sheets-container" className="w-full max-w-4xl space-y-6 print:space-y-0 print:w-full">
+      <div id="printable-label-sheets-container" className="w-full max-w-5xl space-y-6 print:space-y-0 print:w-full">
         {pages.map((pageOrders, pageIndex) => (
           <div
             key={pageIndex}
-            className="a4-sheet-page bg-white rounded-2xl print:rounded-none shadow-md print:shadow-none p-5 sm:p-6 border border-slate-200 print:border-none print:p-4 mx-auto w-full max-w-[210mm] min-h-[297mm] flex flex-col justify-between print:min-h-[297mm] print:h-[297mm] page-break-after"
+            className="a4-sheet-page bg-white rounded-2xl print:rounded-none shadow-md print:shadow-none p-4 sm:p-5 border border-slate-300 print:border-none mx-auto w-full max-w-[297mm] min-h-[210mm] flex flex-col justify-between page-break-after"
             style={{ boxSizing: 'border-box' }}
           >
-            {/* Sheet Header */}
-            <div className="border-b-2 border-emerald-800 pb-3 mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-800 shrink-0">
-                  <Sprout className="w-6 h-6 text-emerald-800" />
-                </div>
-                <div>
-                  <h1 className="text-lg font-black tracking-wide text-emerald-900 leading-none">
-                    VRG NURSERY
-                  </h1>
-                  <p className="text-[11px] font-semibold text-slate-600 mt-1">
-                    Dharmapuri - 636813 | 📞 7904020206
-                  </p>
-                </div>
+            {/* Top Sheet Header */}
+            <div className="border border-slate-300 rounded-xl p-3 mb-3 flex items-center justify-between bg-white shadow-2xs">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">🌿</span>
               </div>
 
-              <div className="text-right text-[11px] font-medium text-slate-600 space-y-0.5">
-                <p className="font-bold text-slate-800">Label Sheet: {sheetNumber}</p>
-                <p>Batch No : {batchNumber}</p>
-                <p className="font-bold text-emerald-800">Selected Orders : {pageOrders.length}</p>
+              <div className="text-center flex-1">
+                <h1 className="text-2xl font-black tracking-wide text-[#14532d] leading-none">
+                  VRG NURSERY
+                </h1>
+                <p className="text-xs font-bold text-[#14532d] mt-1.5 flex items-center justify-center gap-4">
+                  <span>📍 Dharmapuri – 636813</span>
+                  <span>📞 7904020206</span>
+                </p>
+              </div>
+
+              <div className="text-right text-[11px] font-medium text-slate-800 space-y-0.5 border-l border-slate-200 pl-3">
+                <p><span className="font-bold text-slate-900">Order Sheet Date</span> : {currentDateStr}</p>
+                <p><span className="font-bold text-slate-900">Total Orders</span> : {pageOrders.length}</p>
+                <p><span className="font-bold text-slate-900">Prepared By</span> : Admin</p>
+              </div>
+
+              <div className="flex items-center gap-2 pl-2">
+                <span className="text-2xl">🌿</span>
               </div>
             </div>
 
-            {/* 4 Wide Horizontal Label Cards per A4 Sheet matching reference image */}
-            <div className="flex flex-col gap-3.5 flex-1 justify-between">
+            {/* 2x2 Grid of 4 Cards */}
+            <div className="grid grid-cols-2 gap-3.5 flex-1 items-stretch">
               {pageOrders.map((order, orderIdx) => {
                 const labelNumber = pageIndex * chunkSize + orderIdx + 1;
                 const customerName = order.customerName || order.shippingAddress?.fullName || 'Valued Customer';
@@ -362,38 +406,42 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
                 return (
                   <div
                     key={order.id || orderIdx}
-                    className="border border-slate-300 rounded-2xl p-3 sm:p-4 bg-white shadow-2xs relative print:border-slate-400 print:rounded-2xl"
+                    className="border border-slate-300 rounded-xl p-3 bg-white shadow-2xs relative print:border-slate-400 print:rounded-xl flex flex-col justify-between"
                   >
-                    <div className="grid grid-cols-12 gap-3 items-start">
+                    <div className="grid grid-cols-12 gap-2.5 h-full items-start">
                       
                       {/* Column 1: From */}
-                      <div className="col-span-3 pr-2.5 border-r border-slate-200 space-y-1">
-                        <div className="w-7 h-7 rounded-lg bg-[#14532d] text-white font-black text-sm flex items-center justify-center mb-1 shadow-2xs">
-                          {labelNumber}
-                        </div>
-                        <div className="space-y-0.5 text-xs text-slate-800">
-                          <p className="font-semibold text-slate-600 text-[11px]">From :</p>
-                          <h4 className="font-black text-[#14532d] text-xs sm:text-sm tracking-tight leading-tight">
-                            VRG NURSERY
-                          </h4>
-                          <p className="text-[11px] text-slate-700 font-medium leading-tight">
-                            Dharmapuri – 636813
-                          </p>
-                          <p className="text-xs font-bold text-slate-800 pt-0.5">
-                            7904020206
-                          </p>
+                      <div className="col-span-3 pr-2 border-r border-slate-200 flex flex-col justify-between h-full space-y-1">
+                        <div>
+                          <div className="w-6 h-6 rounded-md bg-[#14532d] text-white font-black text-xs flex items-center justify-center mb-1.5 shadow-2xs">
+                            {labelNumber}
+                          </div>
+                          <div className="space-y-0.5 text-xs text-slate-800">
+                            <p className="text-slate-600 text-[11px]">From :</p>
+                            <h4 className="font-black text-[#14532d] text-xs leading-tight">
+                              VRG NURSERY
+                            </h4>
+                            <p className="text-[11px] text-slate-700 leading-tight">
+                              Dharmapuri – 636813
+                            </p>
+                            <p className="text-[11px] text-slate-800 pt-0.5">
+                              7904020206
+                            </p>
+                          </div>
                         </div>
                       </div>
 
                       {/* Column 2: To */}
-                      <div className="col-span-5 px-2.5 border-r border-slate-200 space-y-1">
-                        <p className="font-bold text-[#14532d] text-xs sm:text-sm leading-none">To,</p>
-                        <p className="font-extrabold text-slate-900 text-xs sm:text-sm leading-tight">
-                          {customerName}
-                        </p>
-                        <p className="text-[11px] sm:text-xs text-slate-700 font-medium leading-snug line-clamp-3">
-                          Address {fullAddress}
-                        </p>
+                      <div className="col-span-5 px-2 border-r border-slate-200 flex flex-col justify-between h-full space-y-1">
+                        <div>
+                          <p className="font-bold text-[#14532d] text-xs leading-none">To,</p>
+                          <p className="font-extrabold text-slate-900 text-xs sm:text-sm leading-tight mt-0.5">
+                            {customerName}
+                          </p>
+                          <p className="text-[11px] text-slate-700 font-medium leading-snug line-clamp-4 mt-1">
+                            {fullAddress.startsWith('Address') || fullAddress.startsWith('No') ? fullAddress : `Address ${fullAddress}`}
+                          </p>
+                        </div>
                         {customerPhone && (
                           <p className="font-black text-slate-900 text-xs sm:text-sm pt-1">
                             {customerPhone}
@@ -402,18 +450,20 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
                       </div>
 
                       {/* Column 3: Ordered Plants */}
-                      <div className="col-span-4 pl-2 space-y-1">
-                        <p className="font-bold text-[#14532d] text-xs sm:text-sm leading-none">Ordered Plants</p>
-                        <div className="space-y-0.5 text-[11px] sm:text-xs text-slate-800 font-medium">
-                          {order.items && order.items.length > 0 ? (
-                            order.items.map((item, idx) => (
-                              <p key={idx} className="leading-snug line-clamp-2">
-                                {idx + 1}. {item.name} {item.quantity > 1 ? `(${item.quantity})` : ''}
-                              </p>
-                            ))
-                          ) : (
-                            <p className="leading-snug">1. Nursery Plant Sapling</p>
-                          )}
+                      <div className="col-span-4 pl-1.5 flex flex-col justify-between h-full space-y-1">
+                        <div>
+                          <p className="font-bold text-[#14532d] text-xs leading-none">Ordered Plants</p>
+                          <div className="space-y-0.5 text-[11px] text-slate-800 font-medium mt-1">
+                            {order.items && order.items.length > 0 ? (
+                              order.items.map((item, idx) => (
+                                <p key={idx} className="leading-snug line-clamp-2">
+                                  {idx + 1}. {item.name} {item.quantity > 1 ? `(${item.quantity})` : ''}
+                                </p>
+                              ))
+                            ) : (
+                              <p className="leading-snug">1. Nursery Plant Sapling</p>
+                            )}
+                          </div>
                         </div>
                       </div>
 
@@ -426,18 +476,27 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
               {Array.from({ length: Math.max(0, 4 - pageOrders.length) }).map((_, emptyIdx) => (
                 <div
                   key={`empty-${emptyIdx}`}
-                  className="border border-dashed border-slate-200 rounded-2xl p-4 flex items-center justify-center text-slate-300 font-bold text-xs min-h-[50mm]"
+                  className="border border-dashed border-slate-200 rounded-xl p-4 flex items-center justify-center text-slate-300 font-bold text-xs min-h-[50mm]"
                 >
                   Empty Slot
                 </div>
               ))}
             </div>
 
-            {/* Sheet Footer */}
-            <div className="mt-4 pt-2 border-t border-slate-200 text-center text-[10px] text-slate-400 font-medium flex justify-between items-center">
-              <span>Page {pageIndex + 1} of {pages.length}</span>
-              <span>VRG Nursery Order Dispatch Label Sheet</span>
-              <span>veerikarosegarden.com</span>
+            {/* Middle Scissor Cut Line */}
+            <div className="relative my-2 text-center">
+              <div className="border-t border-dashed border-slate-300 w-full" />
+              <span className="absolute top-1/2 left-4 -translate-y-1/2 bg-white px-1 text-slate-400 text-xs">✂</span>
+              <span className="absolute top-1/2 right-4 -translate-y-1/2 bg-white px-1 text-slate-400 text-xs">✂</span>
+            </div>
+
+            {/* Bottom Footer */}
+            <div className="border border-slate-300 rounded-xl p-2 text-center text-xs font-bold text-[#14532d] flex justify-center items-center gap-2 bg-white shadow-2xs">
+              <span>🌿</span>
+              <span>Thank you for your order!</span>
+              <span>|</span>
+              <span>We will pack your plants with care and deliver safe & fresh.</span>
+              <span>🌿</span>
             </div>
           </div>
         ))}
