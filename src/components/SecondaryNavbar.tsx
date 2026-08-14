@@ -43,6 +43,7 @@ export const SecondaryNavbar: React.FC<SecondaryNavbarProps> = ({
 
   return (
     <header
+      id="secondary-navbar"
       style={{
         position: 'sticky',
         top: 0,
@@ -53,9 +54,9 @@ export const SecondaryNavbar: React.FC<SecondaryNavbarProps> = ({
         borderBottom: '1px solid #dcfce7',
         boxShadow: '0 2px 12px rgba(22, 163, 74, 0.08)'
       }}
-      className="w-full"
+      className="w-full h-[54px] sm:h-[58px] flex items-center shrink-0"
     >
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex items-center justify-between gap-2 sm:gap-4">
+      <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 py-2 flex items-center justify-between gap-2 sm:gap-4">
         
         {/* Left Brand & Back Button */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">

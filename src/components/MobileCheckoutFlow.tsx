@@ -709,7 +709,14 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-white" style={{ touchAction: 'pan-y' }}>
+    <div
+      className="fixed inset-x-0 bottom-0 z-[990] flex flex-col bg-white"
+      style={{
+        top: '54px',
+        height: 'calc(100dvh - 54px)',
+        touchAction: 'pan-y'
+      }}
+    >
       {/* Top accent bar */}
       <div className="h-1 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600 shrink-0" />
 
@@ -722,7 +729,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
       <div
         ref={scrollRef}
         key={step}
-        className="flex-1 overflow-y-auto overscroll-contain"
+        className="flex-1 overflow-y-auto overscroll-contain pb-8"
         style={{
           animation: animating
             ? (direction === 'forward'
