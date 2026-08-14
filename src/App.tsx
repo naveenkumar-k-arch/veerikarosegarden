@@ -32,8 +32,12 @@ import { calculateDeliveryFee } from './utils/delivery';
 import { toast } from './utils/toast';
 
 export const App: React.FC = () => {
-  // Splash Screen State
-  const [showSplash, setShowSplash] = useState<boolean>(true);
+  // Splash Screen State — only shows on initial load/refresh if landing on Home page ('/' or '')
+  const [showSplash, setShowSplash] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const pathname = window.location.pathname.trim().replace(/\/+$/, '') || '/';
+    return pathname === '/' || pathname === '';
+  });
   const handleSplashComplete = useCallback(() => setShowSplash(false), []);
 
   // Helper to parse URL path into page name & param ID for multi-page routing
@@ -639,7 +643,12 @@ export const App: React.FC = () => {
   useEffect(() => {
     const handlePopState = () => {
       const { page, paramId } = getPageFromUrl(window.location.pathname);
-      setCurrentPage(page);
+      setCurrentPage(prevPage => {
+        if (prevPage !== page) {
+          return page;
+        }
+        return prevPage;
+      });
       if (page === 'product-detail' && paramId) {
         const match = products.find(p => p.id === paramId || p.sku === paramId);
         if (match) setSelectedProduct(match);

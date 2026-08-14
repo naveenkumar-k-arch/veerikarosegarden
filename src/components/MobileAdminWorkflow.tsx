@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Order, Product, Category, Review, Coupon, Banner, Combo, FinancialEntry, SiteSettings } from '../types';
 import { processLocalImageFile } from '../utils/imageUpload';
 import { toast } from '../utils/toast';
@@ -328,6 +328,179 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
     phonepeSaltIndex: '1',
     phonepeEnv: 'SANDBOX'
   });
+
+  // Helper to close all modal states locally without pushing history
+  const closeAllModalsLocally = useCallback(() => {
+    setShowProductModal(false);
+    setShowCategoryModal(false);
+    setShowComboModal(false);
+    setShowCouponModal(false);
+    setShowFinanceModal(false);
+    setShowBannerModal(false);
+    setShowReviewModal(false);
+    setShowLabelPrintPreview(false);
+    setSelectedProofOrder(null);
+    setWhatsAppModal(null);
+  }, []);
+
+  // Centralized Screen Navigation with Browser History Integration
+  const navigateScreen = useCallback((screen: ScreenType, order?: Order | null, replace = false) => {
+    closeAllModalsLocally();
+    if (order !== undefined) {
+      setSelectedOrder(order);
+    }
+    setCurrentScreen(screen);
+
+    // Sync bottom active tab
+    if (screen === 'dashboard') setActiveBottomTab('dashboard');
+    else if (screen === 'orders_list' || screen === 'order_details' || screen === 'dispatch_order' || screen === 'order_timeline') setActiveBottomTab('orders');
+    else if (screen === 'generate_labels') setActiveBottomTab('labels');
+    else if (screen === 'menu_drawer') setActiveBottomTab('menu');
+
+    const stateObj = {
+      vrgAdmin: true,
+      page: 'admin',
+      adminScreen: screen,
+      orderId: order ? order.id : (screen === 'order_details' || screen === 'dispatch_order' || screen === 'order_timeline') ? (order === null ? undefined : selectedOrder?.id) : undefined,
+      stageFilter: orderStageFilter,
+      modal: null
+    };
+
+    if (replace) {
+      window.history.replaceState(stateObj, '', '/admin');
+    } else {
+      window.history.pushState(stateObj, '', '/admin');
+    }
+  }, [closeAllModalsLocally, selectedOrder, orderStageFilter]);
+
+  // Centralized Modal Open with Browser History Integration
+  const openAdminModal = useCallback((
+    modalName: 'product' | 'category' | 'combo' | 'coupon' | 'finance' | 'banner' | 'review' | 'proof' | 'whatsapp' | 'label_preview',
+    extra?: any
+  ) => {
+    const stateObj = {
+      vrgAdmin: true,
+      page: 'admin',
+      adminScreen: currentScreen,
+      orderId: selectedOrder?.id,
+      stageFilter: orderStageFilter,
+      modal: modalName
+    };
+    window.history.pushState(stateObj, '', '/admin');
+
+    if (modalName === 'product') {
+      setShowProductModal(true);
+      if (extra?.product !== undefined) setEditingProduct(extra.product);
+    } else if (modalName === 'category') {
+      setShowCategoryModal(true);
+      if (extra?.category !== undefined) setEditingCategory(extra.category);
+    } else if (modalName === 'combo') {
+      setShowComboModal(true);
+      if (extra?.combo !== undefined) setEditingCombo(extra.combo);
+    } else if (modalName === 'coupon') {
+      setShowCouponModal(true);
+    } else if (modalName === 'finance') {
+      setShowFinanceModal(true);
+      if (extra?.finance !== undefined) setEditingFinance(extra.finance);
+    } else if (modalName === 'banner') {
+      setShowBannerModal(true);
+      if (extra?.banner !== undefined) setEditingBanner(extra.banner);
+    } else if (modalName === 'review') {
+      setShowReviewModal(true);
+    } else if (modalName === 'proof') {
+      if (extra?.order) setSelectedProofOrder(extra.order);
+    } else if (modalName === 'whatsapp') {
+      if (extra?.modal) setWhatsAppModal(extra.modal);
+    } else if (modalName === 'label_preview') {
+      setShowLabelPrintPreview(true);
+    }
+  }, [currentScreen, selectedOrder, orderStageFilter]);
+
+  // Handle Close Modal via History Back or Local Closer
+  const handleCloseModal = useCallback((closer: () => void) => {
+    if (window.history.state && window.history.state.modal) {
+      window.history.back();
+    } else {
+      closer();
+    }
+  }, []);
+
+  // Handle Back Navigation from In-App Back Arrows
+  const handleGoBack = useCallback((fallbackScreen: ScreenType = 'dashboard') => {
+    if (window.history.state && window.history.state.vrgAdmin && window.history.state.adminScreen && window.history.state.adminScreen !== 'dashboard') {
+      window.history.back();
+    } else {
+      navigateScreen(fallbackScreen);
+    }
+  }, [navigateScreen]);
+
+  // Popstate Listener for Mobile Admin Workflow
+  useEffect(() => {
+    // Replace initial state with VRG Admin state on mount if not present
+    if (!window.history.state || !window.history.state.vrgAdmin) {
+      window.history.replaceState({
+        vrgAdmin: true,
+        page: 'admin',
+        adminScreen: currentScreen,
+        stageFilter: orderStageFilter,
+        modal: null
+      }, '', '/admin');
+    }
+
+    const handleAdminPopState = (e: PopStateEvent) => {
+      const state = e.state;
+      if (state && state.vrgAdmin) {
+        // 1. Synchronize modals
+        if (!state.modal) {
+          setShowProductModal(false);
+          setShowCategoryModal(false);
+          setShowComboModal(false);
+          setShowCouponModal(false);
+          setShowFinanceModal(false);
+          setShowBannerModal(false);
+          setShowReviewModal(false);
+          setShowLabelPrintPreview(false);
+          setSelectedProofOrder(null);
+          setWhatsAppModal(null);
+        } else {
+          if (state.modal === 'product') setShowProductModal(true);
+          else if (state.modal === 'category') setShowCategoryModal(true);
+          else if (state.modal === 'combo') setShowComboModal(true);
+          else if (state.modal === 'coupon') setShowCouponModal(true);
+          else if (state.modal === 'finance') setShowFinanceModal(true);
+          else if (state.modal === 'banner') setShowBannerModal(true);
+          else if (state.modal === 'review') setShowReviewModal(true);
+          else if (state.modal === 'label_preview') setShowLabelPrintPreview(true);
+        }
+
+        // 2. Synchronize screen
+        if (state.adminScreen) {
+          setCurrentScreen(state.adminScreen);
+          if (state.adminScreen === 'dashboard') setActiveBottomTab('dashboard');
+          else if (state.adminScreen === 'orders_list' || state.adminScreen === 'order_details' || state.adminScreen === 'dispatch_order' || state.adminScreen === 'order_timeline') setActiveBottomTab('orders');
+          else if (state.adminScreen === 'generate_labels') setActiveBottomTab('labels');
+          else if (state.adminScreen === 'menu_drawer') setActiveBottomTab('menu');
+        }
+
+        // 3. Synchronize selected order
+        if (state.orderId) {
+          const found = orders.find(o => o.id === state.orderId);
+          if (found) setSelectedOrder(found);
+        } else if (state.adminScreen === 'dashboard' || state.adminScreen === 'orders_list' || state.adminScreen === 'products' || state.adminScreen === 'categories') {
+          setSelectedOrder(null);
+        }
+
+        // 4. Synchronize stage filter
+        if (state.stageFilter) {
+          setOrderStageFilter(state.stageFilter);
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handleAdminPopState);
+    return () => window.removeEventListener('popstate', handleAdminPopState);
+  }, [orders]);
+
   const [settingsSavedToast, setSettingsSavedToast] = useState(false);
 
   // Sync settingsForm when initialSettings loads
@@ -482,12 +655,14 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
     const phone = rawPhone.replace(/[^0-9]/g, '');
     const cleanPhone = phone.startsWith('91') ? phone : `91${phone}`;
 
-    setWhatsAppModal({
-      open: true,
-      stage,
-      order,
-      message: msg,
-      phone: cleanPhone
+    openAdminModal('whatsapp', {
+      modal: {
+        open: true,
+        stage,
+        order,
+        message: msg,
+        phone: cleanPhone
+      }
     });
   };
 
@@ -534,7 +709,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
       deliveryNotes: dispatchForm.trackingLink
     };
     setSelectedOrder(updated);
-    setCurrentScreen('order_details');
+    navigateScreen('order_details', updated, true);
     handleOpenWhatsApp(updated, 'dispatched');
 
     onSaveTracking(selectedOrder.id, {
@@ -639,7 +814,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
         </div>
 
         <button
-          onClick={() => setCurrentScreen('menu_drawer')}
+          onClick={() => navigateScreen('menu_drawer')}
           className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-700 hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
           aria-label="Open mobile navigation menu"
           title="Open Menu"
@@ -683,8 +858,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               <button
                 onClick={() => {
                   setOrderStageFilter('confirmed');
-                  setCurrentScreen('orders_list');
-                  setActiveBottomTab('orders');
+                  navigateScreen('orders_list');
                 }}
                 className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-emerald-300 text-left transition-all active:scale-[0.98] cursor-pointer"
               >
@@ -701,8 +875,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               <button
                 onClick={() => {
                   setOrderStageFilter('packing');
-                  setCurrentScreen('orders_list');
-                  setActiveBottomTab('orders');
+                  navigateScreen('orders_list');
                 }}
                 className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-amber-300 text-left transition-all active:scale-[0.98] cursor-pointer"
               >
@@ -719,8 +892,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               <button
                 onClick={() => {
                   setOrderStageFilter('dispatched');
-                  setCurrentScreen('orders_list');
-                  setActiveBottomTab('orders');
+                  navigateScreen('orders_list');
                 }}
                 className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-blue-300 text-left transition-all active:scale-[0.98] cursor-pointer"
               >
@@ -737,8 +909,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               <button
                 onClick={() => {
                   setOrderStageFilter('delivered');
-                  setCurrentScreen('orders_list');
-                  setActiveBottomTab('orders');
+                  navigateScreen('orders_list');
                 }}
                 className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-purple-300 text-left transition-all active:scale-[0.98] cursor-pointer"
               >
@@ -756,7 +927,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             {/* Quick Shortcuts Grid */}
             <div className="grid grid-cols-3 gap-2 text-center text-xs font-bold">
               <button
-                onClick={() => setCurrentScreen('products')}
+                onClick={() => navigateScreen('products')}
                 className="p-3 bg-white border border-slate-200 rounded-2xl hover:border-emerald-400 active:scale-95 transition-all shadow-xs cursor-pointer flex flex-col items-center gap-1"
               >
                 <Package className="w-5 h-5 text-emerald-700" />
@@ -764,7 +935,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               </button>
 
               <button
-                onClick={() => setCurrentScreen('categories')}
+                onClick={() => navigateScreen('categories')}
                 className="p-3 bg-white border border-slate-200 rounded-2xl hover:border-emerald-400 active:scale-95 transition-all shadow-xs cursor-pointer flex flex-col items-center gap-1"
               >
                 <FolderTree className="w-5 h-5 text-emerald-700" />
@@ -772,7 +943,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               </button>
 
               <button
-                onClick={() => setCurrentScreen('reviews')}
+                onClick={() => navigateScreen('reviews')}
                 className="p-3 bg-white border border-slate-200 rounded-2xl hover:border-emerald-400 active:scale-95 transition-all shadow-xs cursor-pointer flex flex-col items-center gap-1"
               >
                 <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
@@ -787,8 +958,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 <button
                   onClick={() => {
                     setOrderStageFilter('confirmed');
-                    setCurrentScreen('orders_list');
-                    setActiveBottomTab('orders');
+                    navigateScreen('orders_list');
                   }}
                   className="text-xs font-bold text-emerald-800 hover:text-emerald-950 flex items-center gap-0.5 cursor-pointer"
                 >
@@ -807,8 +977,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                     <div
                       key={order.id}
                       onClick={() => {
-                        setSelectedOrder(order);
-                        setCurrentScreen('order_details');
+                        navigateScreen('order_details', order);
                       }}
                       className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-slate-300 active:scale-[0.99] transition-all cursor-pointer space-y-1.5"
                     >
@@ -863,7 +1032,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setSelectedProofOrder(order);
+                                openAdminModal('proof', { order });
                               }}
                               className="text-[10px] bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-2 py-0.5 rounded-md flex items-center gap-1 cursor-pointer"
                             >
@@ -900,7 +1069,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setCurrentScreen('dashboard')}
+                  onClick={() => handleGoBack('dashboard')}
                   className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -908,7 +1077,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 <h2 className="text-base font-extrabold text-slate-900">Orders List</h2>
               </div>
               <button
-                onClick={() => setCurrentScreen('menu_drawer')}
+                onClick={() => navigateScreen('menu_drawer')}
                 className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
                 aria-label="Open menu"
                 title="Open Menu"
@@ -965,8 +1134,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                   <div
                     key={order.id}
                     onClick={() => {
-                      setSelectedOrder(order);
-                      setCurrentScreen('order_details');
+                      navigateScreen('order_details', order);
                     }}
                     className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-slate-300 active:scale-[0.99] transition-all cursor-pointer space-y-2"
                   >
@@ -1021,7 +1189,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setSelectedProofOrder(order);
+                              openAdminModal('proof', { order });
                             }}
                             className="text-[10px] bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-2 py-0.5 rounded-md flex items-center gap-1 cursor-pointer"
                           >
@@ -1056,7 +1224,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setCurrentScreen('orders_list')}
+                  onClick={() => handleGoBack('orders_list')}
                   className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -1064,7 +1232,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 <h2 className="text-base font-extrabold text-slate-900">Manage Order</h2>
               </div>
               <button
-                onClick={() => setCurrentScreen('menu_drawer')}
+                onClick={() => navigateScreen('menu_drawer')}
                 className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
                 aria-label="Open menu"
                 title="Open Menu"
@@ -1265,7 +1433,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
                   {selectedOrder.paymentProofUrl ? (
                     <div
-                      onClick={() => setSelectedProofOrder(selectedOrder)}
+                      onClick={() => openAdminModal('proof', { order: selectedOrder })}
                       className="relative group cursor-pointer w-full h-36 rounded-xl overflow-hidden border-2 border-indigo-300 bg-slate-900 flex items-center justify-center shadow-xs"
                     >
                       <img
@@ -1432,7 +1600,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                       awbNumber: selectedOrder.trackingNumber || '',
                       trackingLink: selectedOrder.deliveryNotes || ''
                     });
-                    setCurrentScreen('dispatch_order');
+                    navigateScreen('dispatch_order', selectedOrder);
                   }}
                   className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
                     selectedOrder.orderStatus === 'DISPATCHED' || selectedOrder.orderStatus === 'OUT_FOR_DELIVERY'
@@ -1501,7 +1669,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
               {/* View Timeline Button */}
               <button
-                onClick={() => setCurrentScreen('order_timeline')}
+                onClick={() => navigateScreen('order_timeline', selectedOrder)}
                 className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 active:scale-98 text-slate-800 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer"
               >
                 <Clock className="w-3.5 h-3.5 text-slate-600" />
@@ -1519,7 +1687,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setCurrentScreen('order_details')}
+                  onClick={() => handleGoBack('order_details')}
                   className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -1527,7 +1695,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 <h2 className="text-base font-extrabold text-slate-900">Courier Dispatch</h2>
               </div>
               <button
-                onClick={() => setCurrentScreen('menu_drawer')}
+                onClick={() => navigateScreen('menu_drawer')}
                 className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
                 aria-label="Open menu"
                 title="Open Menu"
@@ -1614,7 +1782,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setCurrentScreen('dashboard')}
+                  onClick={() => handleGoBack('dashboard')}
                   className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -1622,7 +1790,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 <h2 className="text-base font-extrabold text-slate-900">Generate Labels</h2>
               </div>
               <button
-                onClick={() => setCurrentScreen('menu_drawer')}
+                onClick={() => navigateScreen('menu_drawer')}
                 className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
                 aria-label="Open menu"
                 title="Open Menu"
@@ -1693,7 +1861,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             </div>
 
             <button
-              onClick={() => setShowLabelPrintPreview(true)}
+              onClick={() => openAdminModal('label_preview')}
               disabled={selectedLabelOrderIds.length === 0}
               className="w-full py-3.5 bg-[#14532d] hover:bg-[#0f3d21] disabled:opacity-40 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2"
             >
@@ -1726,7 +1894,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setCurrentScreen('order_details')}
+                    onClick={() => handleGoBack('order_details')}
                     className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
                   >
                     <ArrowLeft className="w-4 h-4" />
@@ -1734,7 +1902,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                   <h2 className="text-base font-extrabold text-slate-900">Order Timeline</h2>
                 </div>
                 <button
-                  onClick={() => setCurrentScreen('menu_drawer')}
+                  onClick={() => navigateScreen('menu_drawer')}
                   className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
                   aria-label="Open menu"
                   title="Open Menu"
@@ -1819,7 +1987,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setCurrentScreen('dashboard')}
+                  onClick={() => handleGoBack('dashboard')}
                   className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -1845,7 +2013,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                     imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80',
                     description: ''
                   });
-                  setShowProductModal(true);
+                  openAdminModal('product', { product: null });
                 }}
                 className="px-3 py-1.5 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl flex items-center gap-1 shadow-xs cursor-pointer"
               >
@@ -2013,7 +2181,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                           imageUrl: p.images?.[0] || '',
                           description: p.description || ''
                         });
-                        setShowProductModal(true);
+                        openAdminModal('product', { product: p });
                       }}
                       className="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-700 cursor-pointer"
                       title="Edit Plant"
@@ -2051,7 +2219,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setCurrentScreen('dashboard')}
+                  onClick={() => handleGoBack('dashboard')}
                   className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -2068,7 +2236,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                     image: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80',
                     description: ''
                   });
-                  setShowCategoryModal(true);
+                  openAdminModal('category', { category: null });
                 }}
                 className="px-3 py-1.5 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl flex items-center gap-1 shadow-xs cursor-pointer"
               >
@@ -2105,7 +2273,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                             image: c.image || '',
                             description: c.description || ''
                           });
-                          setShowCategoryModal(true);
+                          openAdminModal('category', { category: c });
                         }}
                         className="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-700 cursor-pointer"
                       >
@@ -2135,7 +2303,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setCurrentScreen('dashboard')}
+                  onClick={() => handleGoBack('dashboard')}
                   className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -2156,7 +2324,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                     active: true,
                     freeDelivery: true
                   });
-                  setShowComboModal(true);
+                  openAdminModal('combo', { combo: null });
                 }}
                 className="px-3 py-1.5 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl flex items-center gap-1 shadow-xs cursor-pointer"
               >
@@ -2231,7 +2399,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                               active: combo.active !== false,
                               freeDelivery: combo.freeDelivery || false
                             });
-                            setShowComboModal(true);
+                            openAdminModal('combo', { combo });
                           }}
                           className="p-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 cursor-pointer"
                         >
@@ -2270,7 +2438,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setCurrentScreen('dashboard')}
+                  onClick={() => handleGoBack('dashboard')}
                   className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -2323,7 +2491,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setCurrentScreen('dashboard')}
+                  onClick={() => handleGoBack('dashboard')}
                   className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -2331,7 +2499,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 <h2 className="text-base font-extrabold text-slate-900">Reviews ({reviews.length})</h2>
               </div>
               <button
-                onClick={() => setShowReviewModal(true)}
+                onClick={() => openAdminModal('review')}
                 className="px-3 py-1.5 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl flex items-center gap-1 shadow-xs cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -2401,7 +2569,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setCurrentScreen('dashboard')}
+                  onClick={() => handleGoBack('dashboard')}
                   className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -2420,7 +2588,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                     isActive: true,
                     description: ''
                   });
-                  setShowCouponModal(true);
+                  openAdminModal('coupon');
                 }}
                 className="px-3 py-1.5 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl flex items-center gap-1 shadow-xs cursor-pointer"
               >
@@ -2516,7 +2684,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setCurrentScreen('dashboard')}
+                  onClick={() => handleGoBack('dashboard')}
                   className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -2536,7 +2704,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                     notes: '',
                     date: new Date().toISOString().split('T')[0]
                   });
-                  setShowFinanceModal(true);
+                  openAdminModal('finance', { finance: null });
                 }}
                 className="px-3 py-1.5 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl flex items-center gap-1 shadow-xs cursor-pointer"
               >
@@ -2676,7 +2844,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                               notes: f.notes || '',
                               date: f.date || new Date().toISOString().split('T')[0]
                             });
-                            setShowFinanceModal(true);
+                            openAdminModal('finance', { finance: f });
                           }}
                           className="p-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 cursor-pointer"
                         >
@@ -2715,7 +2883,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setCurrentScreen('dashboard')}
+                  onClick={() => handleGoBack('dashboard')}
                   className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -3019,7 +3187,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setCurrentScreen('dashboard')}
+                  onClick={() => handleGoBack('dashboard')}
                   className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -3038,7 +3206,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                     active: true,
                     order: banners.length + 1
                   });
-                  setShowBannerModal(true);
+                  openAdminModal('banner', { banner: null });
                 }}
                 className="px-3 py-1.5 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl flex items-center gap-1 shadow-xs cursor-pointer"
               >
@@ -3099,7 +3267,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setCurrentScreen('dashboard')}
+                  onClick={() => handleGoBack('dashboard')}
                   className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -3127,7 +3295,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
       {currentScreen === 'menu_drawer' && (
         <div className="fixed inset-0 z-50 flex">
           <div
-            onClick={() => setCurrentScreen('dashboard')}
+            onClick={() => handleGoBack('dashboard')}
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
           />
 
@@ -3143,7 +3311,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 </span>
               </div>
               <button
-                onClick={() => setCurrentScreen('dashboard')}
+                onClick={() => handleGoBack('dashboard')}
                 className="w-8 h-8 rounded-lg text-slate-500 hover:bg-slate-200 flex items-center justify-center cursor-pointer transition-colors"
               >
                 <X className="w-4 h-4" />
@@ -3170,7 +3338,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               <button
                 onClick={() => {
                   setOrderStageFilter('confirmed');
-                  setCurrentScreen('orders_list');
+                  navigateScreen('orders_list');
                 }}
                 className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
               >
@@ -3184,7 +3352,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               <button
                 onClick={() => {
                   setOrderStageFilter('packing');
-                  setCurrentScreen('orders_list');
+                  navigateScreen('orders_list');
                 }}
                 className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
               >
@@ -3198,7 +3366,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               <button
                 onClick={() => {
                   setOrderStageFilter('dispatched');
-                  setCurrentScreen('orders_list');
+                  navigateScreen('orders_list');
                 }}
                 className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
               >
@@ -3212,7 +3380,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               <button
                 onClick={() => {
                   setOrderStageFilter('delivered');
-                  setCurrentScreen('orders_list');
+                  navigateScreen('orders_list');
                 }}
                 className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
               >
@@ -3243,7 +3411,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 <button
                   key={item.screen}
                   onClick={() => {
-                    setCurrentScreen(item.screen as any);
+                    navigateScreen(item.screen as any);
                   }}
                   className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer font-semibold text-xs text-left"
                 >
@@ -3291,7 +3459,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  setShowProductModal(false);
+                  handleCloseModal(() => setShowProductModal(false));
                   setProductModalError(null);
                 }}
                 className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
@@ -3322,7 +3490,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 const catObj = categories.find(c => c.id === productForm.categoryId);
 
                 // Instantly dismiss modal and show success feedback (0ms)
-                setShowProductModal(false);
+                handleCloseModal(() => setShowProductModal(false));
                 const toastMsg = editingProduct ? `Plant "${trimmedName}" updated successfully!` : `Plant "${trimmedName}" added!`;
                 setProductSuccessToast(toastMsg);
                 toast.success(toastMsg, 'Product Saved');
@@ -3599,7 +3767,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               <h3 className="font-extrabold text-sm text-slate-900">
                 {editingCategory ? 'Edit Category' : 'Add New Category'}
               </h3>
-              <button onClick={() => setShowCategoryModal(false)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100">
+              <button onClick={() => handleCloseModal(() => setShowCategoryModal(false))} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -3618,7 +3786,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                       description: categoryForm.description
                     });
                   }
-                  setShowCategoryModal(false);
+                  handleCloseModal(() => setShowCategoryModal(false));
                 } catch (err: any) {
                   alert(err?.message || 'Failed to save category');
                 }
@@ -3679,7 +3847,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               <h3 className="font-extrabold text-sm text-slate-900">
                 {editingCombo ? 'Edit Plant Combo' : 'Create 3-in-1 Combo Offer'}
               </h3>
-              <button onClick={() => setShowComboModal(false)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer">
+              <button onClick={() => handleCloseModal(() => setShowComboModal(false))} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -3702,7 +3870,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                       freeDelivery: comboForm.freeDelivery
                     });
                   }
-                  setShowComboModal(false);
+                  handleCloseModal(() => setShowComboModal(false));
                 } catch (err: any) {
                   alert(err?.message || 'Failed to save combo offer');
                 }
@@ -3843,7 +4011,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
           <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden border border-slate-200 max-h-[90vh] flex flex-col">
             <div className="p-4 border-b border-slate-100 flex items-center justify-between">
               <h3 className="font-extrabold text-sm text-slate-900">Add Customer Review</h3>
-              <button onClick={() => setShowReviewModal(false)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100">
+              <button onClick={() => handleCloseModal(() => setShowReviewModal(false))} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -3948,7 +4116,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 </div>
               </div>
               <button
-                onClick={() => setWhatsAppModal(null)}
+                onClick={() => handleCloseModal(() => setWhatsAppModal(null))}
                 className="w-7 h-7 rounded-lg text-slate-400 hover:bg-slate-100 flex items-center justify-center cursor-pointer"
               >
                 <X className="w-4 h-4" />
@@ -3990,7 +4158,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               <h3 className="font-extrabold text-sm text-slate-900">
                 Create Discount Coupon
               </h3>
-              <button onClick={() => setShowCouponModal(false)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer">
+              <button onClick={() => handleCloseModal(() => setShowCouponModal(false))} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -4125,7 +4293,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               <h3 className="font-extrabold text-sm text-slate-900">
                 {editingFinance ? 'Edit Farm Financial Log' : 'Record Farm Spending / Sale'}
               </h3>
-              <button onClick={() => setShowFinanceModal(false)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer">
+              <button onClick={() => handleCloseModal(() => setShowFinanceModal(false))} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -4286,7 +4454,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               <h3 className="font-extrabold text-sm text-slate-900">
                 {editingBanner ? 'Edit Banner' : 'Add Homepage Hero Banner'}
               </h3>
-              <button onClick={() => setShowBannerModal(false)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer">
+              <button onClick={() => handleCloseModal(() => setShowBannerModal(false))} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -4306,7 +4474,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                     order: Number(bannerForm.order || 1)
                   });
                 }
-                setShowBannerModal(false);
+                handleCloseModal(() => setShowBannerModal(false));
               }}
               className="p-4 overflow-y-auto space-y-3 text-xs"
             >
@@ -4408,7 +4576,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 </div>
               </div>
               <button
-                onClick={() => setSelectedProofOrder(null)}
+                onClick={() => handleCloseModal(() => setSelectedProofOrder(null))}
                 className="w-7 h-7 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center cursor-pointer"
               >
                 <X className="w-4 h-4" />
@@ -4458,7 +4626,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                     if (selectedOrder && selectedOrder.id === selectedProofOrder.id) {
                       setSelectedOrder({ ...selectedOrder, paymentStatus: 'SUCCESS' });
                     }
-                    setSelectedProofOrder(null);
+                    handleCloseModal(() => setSelectedProofOrder(null));
                   }}
                   className="py-2.5 px-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl shadow-xs text-xs flex items-center justify-center gap-1.5 cursor-pointer"
                 >
@@ -4473,7 +4641,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                     if (selectedOrder && selectedOrder.id === selectedProofOrder.id) {
                       setSelectedOrder({ ...selectedOrder, paymentStatus: 'FAILED' });
                     }
-                    setSelectedProofOrder(null);
+                    handleCloseModal(() => setSelectedProofOrder(null));
                   }}
                   className="py-2.5 px-3 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-xl border border-rose-200 text-xs flex items-center justify-center gap-1.5 cursor-pointer"
                 >
@@ -4492,7 +4660,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
       {showLabelPrintPreview && (
         <A4LabelSheetPrint
           orders={selectedLabelOrders}
-          onClose={() => setShowLabelPrintPreview(false)}
+          onClose={() => handleCloseModal(() => setShowLabelPrintPreview(false))}
         />
       )}
 
@@ -4502,8 +4670,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-6 py-2 flex items-center justify-between shadow-lg max-w-lg mx-auto">
         <button
           onClick={() => {
-            setActiveBottomTab('dashboard');
-            setCurrentScreen('dashboard');
+            navigateScreen('dashboard');
           }}
           className={`flex flex-col items-center gap-1 transition-colors cursor-pointer ${
             activeBottomTab === 'dashboard' && currentScreen === 'dashboard' ? 'text-[#14532d] font-bold' : 'text-slate-500 font-medium'
@@ -4515,9 +4682,8 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
         <button
           onClick={() => {
-            setActiveBottomTab('orders');
             setOrderStageFilter('confirmed');
-            setCurrentScreen('orders_list');
+            navigateScreen('orders_list');
           }}
           className={`flex flex-col items-center gap-1 transition-colors cursor-pointer relative ${
             currentScreen === 'orders_list' || currentScreen === 'order_details' ? 'text-[#14532d] font-bold' : 'text-slate-500 font-medium'
@@ -4532,8 +4698,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
         <button
           onClick={() => {
-            setActiveBottomTab('labels');
-            setCurrentScreen('generate_labels');
+            navigateScreen('generate_labels');
           }}
           className={`flex flex-col items-center gap-1 transition-colors cursor-pointer ${
             currentScreen === 'generate_labels' ? 'text-[#14532d] font-bold' : 'text-slate-500 font-medium'
@@ -4545,8 +4710,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
         <button
           onClick={() => {
-            setActiveBottomTab('menu');
-            setCurrentScreen('menu_drawer');
+            navigateScreen('menu_drawer');
           }}
           className={`flex flex-col items-center gap-1 transition-colors cursor-pointer ${
             currentScreen === 'menu_drawer' ? 'text-[#14532d] font-bold' : 'text-slate-500 font-medium'
