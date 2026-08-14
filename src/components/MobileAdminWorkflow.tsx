@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Order, Product, Category, Review, Coupon, Banner, Combo, FinancialEntry, SiteSettings } from '../types';
 import { processLocalImageFile } from '../utils/imageUpload';
+import { toast } from '../utils/toast';
 import {
   Sprout,
   LayoutDashboard,
@@ -494,6 +495,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
     if (whatsAppModal?.message) {
       navigator.clipboard.writeText(whatsAppModal.message);
       setCopiedToast(true);
+      toast.success('WhatsApp message template copied!', 'Copied');
       setTimeout(() => setCopiedToast(false), 2000);
     }
   };
@@ -1295,6 +1297,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                         onClick={() => {
                           navigator.clipboard.writeText(selectedOrder.transactionId || '');
                           setCopiedUtrToast(true);
+                          toast.success('UTR reference copied to clipboard!', 'Copied');
                           setTimeout(() => setCopiedUtrToast(false), 2000);
                         }}
                         className="p-1.5 text-indigo-700 hover:bg-indigo-50 rounded-lg cursor-pointer"
@@ -2732,6 +2735,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 e.preventDefault();
                 if (onSaveSettings) await onSaveSettings(settingsForm);
                 setSettingsSavedToast(true);
+                toast.success('Store & Payment Settings saved successfully!', 'Settings Saved');
                 setTimeout(() => setSettingsSavedToast(false), 2500);
               }}
               className="space-y-4 text-xs"
@@ -3319,7 +3323,9 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
                 // Instantly dismiss modal and show success feedback (0ms)
                 setShowProductModal(false);
-                setProductSuccessToast(editingProduct ? `Plant "${trimmedName}" updated successfully!` : `Plant "${trimmedName}" added!`);
+                const toastMsg = editingProduct ? `Plant "${trimmedName}" updated successfully!` : `Plant "${trimmedName}" added!`;
+                setProductSuccessToast(toastMsg);
+                toast.success(toastMsg, 'Product Saved');
                 setTimeout(() => setProductSuccessToast(null), 3000);
 
                 if (onSaveProduct) {

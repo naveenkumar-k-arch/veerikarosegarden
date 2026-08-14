@@ -7,6 +7,7 @@ import { INITIAL_REVIEWS } from '../data/reviewsData';
 import { MobileAdminWorkflow } from '../components/MobileAdminWorkflow';
 import { A4LabelSheetPrint } from '../components/A4LabelSheetPrint';
 import { processLocalImageFile } from '../utils/imageUpload';
+import { toast } from '../utils/toast';
 
 // ── Inline Coupon Creation Form ──────────────────────────────────────────────
 const CouponForm: React.FC<{ categories: Category[]; onSave: (data: any) => Promise<void> }> = ({ onSave }) => {
@@ -25,9 +26,13 @@ const CouponForm: React.FC<{ categories: Category[]; onSave: (data: any) => Prom
     setMsg('');
     try {
       await onSave({ ...form, code: form.code.toUpperCase().trim() });
+      toast.success(`Coupon ${form.code.toUpperCase().trim()} created successfully!`, 'Coupon Created');
       setMsg('✅ Coupon created!');
       setForm({ code: '', discountType: 'PERCENTAGE', discountValue: 10, minOrderAmount: 0, maxUsageCount: 100, expiryDate: '', isActive: true, description: '' });
-    } catch { setMsg('❌ Failed to create coupon'); }
+    } catch {
+      toast.error('Failed to create coupon', 'Coupon Error');
+      setMsg('❌ Failed to create coupon');
+    }
     setSaving(false);
   };
 
@@ -277,6 +282,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
 
       const updated = reviews.map(r => r.id === editingReview.id ? { ...r, ...payload } : r);
       saveReviewsState(updated);
+      toast.success('Customer review updated successfully!', 'Review Saved');
 
       try {
         await authFetch(`/api/admin/reviews/${editingReview.id}`, {
@@ -304,6 +310,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
       };
 
       saveReviewsState([newReview, ...reviews]);
+      toast.success('Customer review added successfully!', 'Review Saved');
 
       try {
         await authFetch('/api/admin/reviews', {
@@ -366,6 +373,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
 
     const updated = reviews.filter(r => r.id !== id);
     saveReviewsState(updated);
+    toast.success('Review deleted.', 'Review Deleted');
 
     try {
       await authFetch(`/api/admin/reviews/${id}`, { method: 'DELETE' }).catch(() => null);
@@ -381,6 +389,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
     const newStatus = target.status === 'APPROVED' ? ('PENDING' as const) : ('APPROVED' as const);
     const updated = reviews.map(r => r.id === id ? { ...r, status: newStatus } : r);
     saveReviewsState(updated);
+    toast.success(`Review status updated to ${newStatus}!`, 'Review Status');
 
     try {
       await authFetch(`/api/admin/reviews/${id}`, {
@@ -398,6 +407,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
     const newFeatured = !target.featured;
     const updated = reviews.map(r => r.id === id ? { ...r, featured: newFeatured } : r);
     saveReviewsState(updated);
+    toast.success(newFeatured ? 'Review featured on store!' : 'Review unfeatured.', 'Review Featured');
 
     try {
       await authFetch(`/api/admin/reviews/${id}`, {
@@ -416,6 +426,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
     saveReviewsState(updated);
     setReplyingReviewId(null);
     setReplyText('');
+    toast.success('Reply published successfully!', 'Reply Published');
 
     try {
       await authFetch(`/api/admin/reviews/${id}`, {
@@ -816,9 +827,11 @@ const silentRefresh = async (): Promise<boolean> => {
       // Optimistic UI update instantly
       if (editingProduct) {
         setProducts(prev => prev.map(p => p.id === editingProduct.id ? { ...p, ...payload, id: editingProduct.id } as Product : p));
+        toast.success(`Plant "${payload.name}" updated successfully!`, 'Product Saved');
       } else {
         const tempId = 'prod-' + Date.now();
         setProducts(prev => [{ ...payload, id: tempId, rating: 5, reviewCount: 0 } as Product, ...prev]);
+        toast.success(`Plant "${payload.name}" added successfully!`, 'Product Saved');
       }
 
       setShowProductModal(false);
@@ -843,6 +856,7 @@ const silentRefresh = async (): Promise<boolean> => {
     } catch (err: any) {
       setProductSaveError(err.message || 'Failed to save product');
       setProductSaving(false);
+      toast.error(err.message || 'Failed to save product', 'Save Failed');
     }
   };
 
@@ -852,6 +866,7 @@ const silentRefresh = async (): Promise<boolean> => {
   const handleDeleteProduct = async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to delete product "${name}"?`)) return;
     setProducts(prev => prev.filter(p => p.id !== id));
+    toast.success(`Product "${name}" deleted.`, 'Product Deleted');
     try {
       window.dispatchEvent(new CustomEvent('vrg_products_updated'));
     } catch {}
@@ -866,6 +881,7 @@ const silentRefresh = async (): Promise<boolean> => {
   const handleDeleteAllProducts = async () => {
     if (!confirm('⚠️ WARNING: Are you sure you want to delete ALL products from the catalog? This action cannot be undone.')) return;
     setProducts([]);
+    toast.success('All products removed.', 'Catalog Cleared');
     try {
       await authFetch('/api/products/all?confirm=CONFIRM_DELETE_ALL', { method: 'DELETE' }).catch(() => null);
     } catch (err) {
@@ -885,6 +901,7 @@ const silentRefresh = async (): Promise<boolean> => {
       });
       const data = await res.json();
       if (data.success) {
+        toast.success(`Category "${catForm.name}" saved successfully!`, 'Category Saved');
         setShowCategoryModal(false);
         setEditingCategory(null);
         setCatForm({
@@ -904,10 +921,12 @@ const silentRefresh = async (): Promise<boolean> => {
         });
         fetchData();
       } else {
+        toast.error(data.message || 'Failed to save category', 'Category Error');
         alert(data.message || 'Failed to save category');
       }
     } catch (err: any) {
       console.error(err);
+      toast.error(err.message || 'Error saving category', 'Error');
       alert(err.message || 'Error saving category');
     }
   };
@@ -916,6 +935,7 @@ const silentRefresh = async (): Promise<boolean> => {
   const handleDeleteCategory = async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to delete category "${name}"?`)) return;
     setCategories(prev => prev.filter(c => c.id !== id));
+    toast.success(`Category "${name}" deleted.`, 'Category Deleted');
     try {
       const res = await authFetch(`/api/admin/categories/${id}`, { method: 'DELETE' });
       const data = await res.json();
@@ -945,9 +965,11 @@ const silentRefresh = async (): Promise<boolean> => {
       );
       const data = await res.json();
       if (data.success) {
+        toast.success('Category deleted and products reassigned successfully!', 'Category Reassigned');
         setDeleteCatTarget(null);
         fetchData();
       } else {
+        toast.error(data.message || 'Failed to reassign category', 'Error');
         alert(data.message || 'Failed to reassign and delete category');
       }
     } catch (err) {
@@ -962,9 +984,11 @@ const silentRefresh = async (): Promise<boolean> => {
       const res = await authFetch('/api/admin/categories/all?confirm=CONFIRM_DELETE_ALL', { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
+        toast.success('All categories removed.', 'Categories Cleared');
         alert('All categories removed successfully.');
         fetchData();
       } else {
+        toast.error(data.message || 'Failed to delete all categories', 'Error');
         alert(data.message || 'Failed to delete all categories');
       }
     } catch (err) {
@@ -977,6 +1001,7 @@ const silentRefresh = async (): Promise<boolean> => {
 
     // Remove order from UI state
     setOrders(prev => prev.filter(o => o.id !== orderId && o.merchantTransactionId !== orderId));
+    toast.success(`Order #${orderId} deleted successfully.`, 'Order Deleted');
 
     // Trigger backend deletion endpoints
     try {
@@ -993,6 +1018,8 @@ const silentRefresh = async (): Promise<boolean> => {
     if (!dispatchOrder) return;
     const finalCourier = customCourier || courierName || 'Self Delivery (Nursery Farm Team)';
     const finalTracking = customTracking || trackingNumber.trim() || 'VRG-SELF-DELIVERY';
+
+    toast.success(`Order #${dispatchOrder.id} dispatched via ${finalCourier}!`, 'Order Dispatched');
 
     try {
       const res = await authFetch(`/api/admin/orders/${dispatchOrder.id}/status`, {
@@ -1024,6 +1051,8 @@ const silentRefresh = async (): Promise<boolean> => {
 
   // Handle Quick Order Status Updates (Instant 0ms UI response)
   const handleUpdateOrderStatus = async (orderId: string, status: string, paymentStatus?: string) => {
+    toast.success(`Order #${orderId} status updated to ${status}!`, 'Order Updated');
+
     const updateSingleOrder = (o: Order): Order => {
       if (o.id === orderId) {
         return {
@@ -1117,13 +1146,16 @@ const silentRefresh = async (): Promise<boolean> => {
       });
       const data = await res.json();
       if (data.success && data.settings) {
+        toast.success('Store & payment settings saved successfully!', 'Settings Saved');
         setSettingsMsg('✅ Settings saved successfully!');
         setSettings(data.settings);
       } else {
+        toast.error(data.message || 'Failed to save settings', 'Settings Error');
         setSettingsMsg(`❌ ${data.message || 'Failed to save settings'}`);
       }
     } catch (err: any) {
       console.error(err);
+      toast.error(err.message || 'Network error saving settings', 'Error');
       setSettingsMsg(`❌ Network error: ${err.message}`);
     } finally {
       setSettingsSaving(false);
@@ -1147,6 +1179,7 @@ const silentRefresh = async (): Promise<boolean> => {
         });
         const data = await res.json();
         if (data.success) {
+          toast.success(`Payment proof attached to Order #${orderId}!`, 'Proof Uploaded');
           fetchData();
         }
       } catch (err) {
@@ -1165,6 +1198,7 @@ const silentRefresh = async (): Promise<boolean> => {
         body: JSON.stringify({ merchantTransactionId, amount })
       });
       const data = await res.json();
+      toast.success(data.message || `Refund of ₹${amount} initiated!`, 'Refund Status');
       alert(data.message);
       fetchData();
     } catch (err) {
@@ -1196,6 +1230,7 @@ const silentRefresh = async (): Promise<boolean> => {
           ...financeForm
         };
         setFinances(prev => prev.map(f => f.id === editingFinance.id ? updatedItem : f));
+        toast.success('Financial entry updated successfully!', 'Finance Saved');
       } else {
 
         const res = await authFetch('/api/admin/finances', {
@@ -1213,6 +1248,7 @@ const silentRefresh = async (): Promise<boolean> => {
           };
           setFinances(prev => [newEntry, ...prev]);
         }
+        toast.success('Financial entry recorded successfully!', 'Finance Saved');
       }
       setShowFinanceModal(false);
       setEditingFinance(null);
@@ -1228,6 +1264,7 @@ const silentRefresh = async (): Promise<boolean> => {
       });
     } catch (err) {
       console.error(err);
+      toast.error('Failed to save financial entry', 'Error');
     }
   };
 
@@ -1254,6 +1291,7 @@ const silentRefresh = async (): Promise<boolean> => {
     localStorage.setItem('vrg_deleted_finances', JSON.stringify([...delSet]));
 
     setFinances(prev => prev.filter(f => f.id !== id));
+    toast.success('Financial entry deleted.', 'Finance Deleted');
     try {
       await authFetch(`/api/admin/finances/${id}`, { method: 'DELETE' }).catch(() => null);
       await authFetch('/api/admin/finances/delete', { method: 'POST', body: JSON.stringify({ id }) }).catch(() => null);

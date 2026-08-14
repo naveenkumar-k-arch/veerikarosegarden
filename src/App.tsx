@@ -11,6 +11,7 @@ import { PhonePeModal } from './components/PhonePeModal';
 import { ExpertAdviceModal } from './components/ExpertAdviceModal';
 import { SplashScreen } from './components/SplashScreen';
 import { MobileCheckoutFlow } from './components/MobileCheckoutFlow';
+import { ToastContainer } from './components/ToastContainer';
 
 import { HomePage } from './pages/HomePage';
 import { ShopPage } from './pages/ShopPage';
@@ -28,6 +29,7 @@ import { INITIAL_PRODUCTS, INITIAL_CATEGORIES } from './data/catalogData';
 
 import { INITIAL_REVIEWS } from './data/reviewsData';
 import { calculateDeliveryFee } from './utils/delivery';
+import { toast } from './utils/toast';
 
 export const App: React.FC = () => {
   // Splash Screen State
@@ -231,8 +233,10 @@ export const App: React.FC = () => {
     setWishlist(prev => {
       const exists = prev.some(p => p.id === product.id);
       if (exists) {
+        toast.info(`Removed "${product.name}" from wishlist`, 'Wishlist');
         return prev.filter(p => p.id !== product.id);
       } else {
+        toast.success(`Added "${product.name}" to wishlist!`, 'Wishlist ❤️');
         return [...prev, product];
       }
     });
@@ -515,6 +519,7 @@ export const App: React.FC = () => {
 
   // Cart Operations
   const handleAddToCart = (product: Product, quantity = 1) => {
+    toast.success(`Added "${product.name}" to cart (${quantity > 1 ? quantity + ' items' : '1 item'})!`, 'Cart Updated');
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
       if (existing) {
@@ -538,7 +543,13 @@ export const App: React.FC = () => {
   };
 
   const handleRemoveFromCart = (productId: string) => {
-    setCart((prev) => prev.filter((i) => i.product.id !== productId));
+    setCart((prev) => {
+      const item = prev.find(i => i.product.id === productId);
+      if (item) {
+        toast.info(`Removed "${item.product.name}" from cart`, 'Cart Updated');
+      }
+      return prev.filter((i) => i.product.id !== productId);
+    });
   };
 
   // Direct "Buy Now" flow
@@ -1208,6 +1219,9 @@ export const App: React.FC = () => {
           </button>
         </nav>
       )}
+
+      {/* Global Toast Notifications */}
+      <ToastContainer />
     </div>
     </>
   );
