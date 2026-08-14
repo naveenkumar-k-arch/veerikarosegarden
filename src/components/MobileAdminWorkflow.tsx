@@ -597,14 +597,20 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   const filteredProducts = useMemo(() => {
     let list = [...products];
     if (productCategoryFilter !== 'ALL') {
-      list = list.filter(p => p.categoryId === productCategoryFilter);
+      const filterLower = productCategoryFilter.toLowerCase();
+      list = list.filter(p => 
+        (p.categoryId && p.categoryId.toLowerCase() === filterLower) ||
+        (p.categoryName && p.categoryName.toLowerCase() === filterLower) ||
+        (p.tags && Array.isArray(p.tags) && p.tags.some(t => t.toLowerCase() === filterLower))
+      );
     }
     if (productSearch.trim()) {
       const q = productSearch.toLowerCase().trim();
       list = list.filter(p => 
         p.name.toLowerCase().includes(q) ||
         (p.tamilName && p.tamilName.toLowerCase().includes(q)) ||
-        (p.sku && p.sku.toLowerCase().includes(q))
+        (p.sku && p.sku.toLowerCase().includes(q)) ||
+        (p.categoryName && p.categoryName.toLowerCase().includes(q))
       );
     }
     return list;
@@ -1852,16 +1858,114 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               </div>
             )}
 
-            {/* Search */}
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search plants by name, Tamil name..."
-                value={productSearch}
-                onChange={e => setProductSearch(e.target.value)}
-                className="w-full pl-9 pr-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700"
-              />
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+            {/* Search & Quick Category Dropdown */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder="Search plants by name, Tamil name..."
+                    value={productSearch}
+                    onChange={e => setProductSearch(e.target.value)}
+                    className="w-full pl-9 pr-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700 shadow-2xs"
+                  />
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  {productSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setProductSearch('')}
+                      className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 p-0.5"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                <select
+                  value={productCategoryFilter}
+                  onChange={e => setProductCategoryFilter(e.target.value)}
+                  className="px-2.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-700 shadow-2xs shrink-0 max-w-[130px] truncate cursor-pointer"
+                  title="Select Plant Variety"
+                >
+                  <option value="ALL">All Varieties ({products.length})</option>
+                  {categories.map(cat => {
+                    const cnt = products.filter(p => p.categoryId === cat.id || p.categoryName?.toLowerCase() === cat.name.toLowerCase()).length;
+                    return (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name} ({cnt})
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              {/* Horizontal Scrollable Variety Selector Chips */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-none no-scrollbar">
+                <button
+                  type="button"
+                  onClick={() => setProductCategoryFilter('ALL')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shrink-0 ${
+                    productCategoryFilter === 'ALL'
+                      ? 'bg-[#14532d] text-white shadow-xs'
+                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  <span>🌿 All Plants</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                    productCategoryFilter === 'ALL' ? 'bg-emerald-800 text-white' : 'bg-slate-100 text-slate-600'
+                  }`}>
+                    {products.length}
+                  </span>
+                </button>
+
+                {categories.map(cat => {
+                  const isSelected = productCategoryFilter === cat.id || productCategoryFilter === cat.name;
+                  const count = products.filter(p => 
+                    p.categoryId === cat.id || 
+                    p.categoryName?.toLowerCase() === cat.name.toLowerCase()
+                  ).length;
+
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setProductCategoryFilter(cat.id)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shrink-0 ${
+                        isSelected
+                          ? 'bg-[#14532d] text-white shadow-xs'
+                          : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span>{cat.name}</span>
+                      {cat.tamilName && <span className="opacity-75 text-[10px]">({cat.tamilName})</span>}
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                        isSelected ? 'bg-emerald-800 text-white' : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Active Variety Header & Count */}
+              <div className="flex items-center justify-between px-1 text-[11px] font-bold text-slate-600">
+                <span>
+                  Showing {filteredProducts.length} {productCategoryFilter !== 'ALL' ? `in "${categories.find(c => c.id === productCategoryFilter)?.name || productCategoryFilter}"` : 'plants'}
+                </span>
+                {(productCategoryFilter !== 'ALL' || productSearch) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProductCategoryFilter('ALL');
+                      setProductSearch('');
+                    }}
+                    className="text-emerald-700 hover:underline font-bold"
+                  >
+                    Reset Filters
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Products List Cards */}
