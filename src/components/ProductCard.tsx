@@ -102,6 +102,7 @@ export const CompactProductCard: React.FC<CompactProductCardProps> = ({
           onError={() => setImgError(true)}
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           loading="lazy"
+          decoding="async"
         />
         {product.stock === 0 && (
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -338,6 +339,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           onError={() => setImgError(true)}
           style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s ease' }}
           loading="lazy"
+          decoding="async"
         />
         {/* Gradient overlay */}
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 40, background: 'linear-gradient(to top, rgba(0,0,0,0.18), transparent)' }} />

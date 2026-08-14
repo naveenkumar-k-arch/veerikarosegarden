@@ -47,6 +47,7 @@ apiRouter.get('/health', async (req, res) => {
 // ================= PRODUCT ROUTES =================
 apiRouter.get('/products', async (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=120');
     const { search, categoryId, featured, bestSeller, minPrice, maxPrice, sort } = req.query;
     const hasFilter = Boolean(search || categoryId || featured === 'true' || bestSeller === 'true' || minPrice || maxPrice || sort);
     const products = await db.getProducts(hasFilter ? {
@@ -121,6 +122,7 @@ apiRouter.delete('/products/:id', requireAdmin, async (req: AuthenticatedRequest
 // ================= CATEGORY ROUTES =================
 apiRouter.get('/categories', async (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=120');
     const { onlyFeatured, showAll } = req.query;
     const isFeaturedOnly = onlyFeatured === 'true';
     const isShowAll = showAll === 'true';
@@ -298,6 +300,7 @@ const DEFAULT_BANNERS = [
 
 apiRouter.get('/banners', async (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=120');
     let banners = await db.getBanners();
     // Auto-seed default banners if table is empty
     if (!banners || banners.length === 0) {
@@ -459,6 +462,7 @@ apiRouter.delete('/admin/coupons/:id', requireAdmin, handleDeleteCoupon);
 // ================= COMBOS & OFFERS =================
 apiRouter.get('/combos', async (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=120');
     const combos = await db.getCombos();
     res.json({ success: true, count: combos.length, combos });
   } catch (error: any) {
@@ -508,6 +512,7 @@ apiRouter.post('/combos/delete', requireAdmin, handleDeleteCombo);
 // ================= REVIEWS =================
 apiRouter.get('/reviews', async (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=120');
     const { productId } = req.query;
     const reviews = await db.getReviews(productId as string | undefined);
     res.json({ success: true, reviews });
@@ -1273,6 +1278,7 @@ apiRouter.post('/admin/finances/:id/update', requireAdmin, handleUpdateFinance);
 // ================= SITE SETTINGS =================
 apiRouter.get('/settings', async (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=120');
     const settings = await db.getSettings();
     if (!settings) {
       return res.json({ success: true, settings: {} });

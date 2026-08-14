@@ -98,7 +98,7 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
         {/* Gallery Column */}
         <div className="space-y-4">
           <div className="h-80 sm:h-96 w-full rounded-2xl overflow-hidden bg-slate-100 relative border border-slate-200">
-            <img src={selectedImg} alt={product.name} className="w-full h-full object-cover" />
+            <img src={selectedImg} alt={product.name} className="w-full h-full object-cover" decoding="async" />
             <span className="absolute top-3 left-3 bg-emerald-800 text-white text-xs font-bold px-3 py-1 rounded-full shadow-xs">
               {product.categoryName}
             </span>
@@ -141,7 +141,7 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
                     selectedImg === img ? 'border-emerald-700 ring-2 ring-emerald-600/30' : 'border-slate-200 opacity-70'
                   }`}
                 >
-                  <img src={img} alt="thumbnail" className="w-full h-full object-cover" />
+                  <img src={img} alt="thumbnail" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                 </button>
               ))}
             </div>

@@ -140,10 +140,39 @@ export const App: React.FC = () => {
   const [careGuideProduct, setCareGuideProduct] = useState<Product | null>(null);
   const [isExpertAdviceOpen, setIsExpertAdviceOpen] = useState<boolean>(false);
 
-  // Data Collections State
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
-  const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
-  const [banners, setBanners] = useState<Banner[]>([]);
+  // Data Collections State — Fast LocalStorage cache hydrate with background SWR sync
+  const [products, setProducts] = useState<Product[]>(() => {
+    try {
+      const saved = localStorage.getItem('vrg_products');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return INITIAL_PRODUCTS;
+  });
+
+  const [categories, setCategories] = useState<Category[]>(() => {
+    try {
+      const saved = localStorage.getItem('vrg_categories');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return INITIAL_CATEGORIES;
+  });
+
+  const [banners, setBanners] = useState<Banner[]>(() => {
+    try {
+      const saved = localStorage.getItem('vrg_banners');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return [];
+  });
   const getInitialReviews = (): Review[] => {
     let deletedIds: string[] = [];
     try {
@@ -280,23 +309,35 @@ export const App: React.FC = () => {
     merchantTxnId: string;
   } | null>(null);
 
-  // Fetch Core Data on Mount
+  // Fetch Core Data on Mount with LocalStorage SWR Persistence
   const fetchCoreData = async () => {
     try {
       const [pRes, cRes, bRes, rRes] = await Promise.all([
-        fetch('/api/products').then((r) => r.json()),
-        fetch('/api/categories').then((r) => r.json()),
-        fetch('/api/banners').then((r) => r.json()),
-        fetch('/api/reviews').then((r) => r.json())
+        fetch('/api/products').then((r) => r.json()).catch(() => null),
+        fetch('/api/categories').then((r) => r.json()).catch(() => null),
+        fetch('/api/banners').then((r) => r.json()).catch(() => null),
+        fetch('/api/reviews').then((r) => r.json()).catch(() => null)
       ]);
 
       if (pRes?.success && Array.isArray(pRes.products) && pRes.products.length > 0) {
         setProducts(pRes.products);
+        try {
+          localStorage.setItem('vrg_products', JSON.stringify(pRes.products));
+        } catch {}
       }
       if (cRes?.success && Array.isArray(cRes.categories) && cRes.categories.length > 0) {
         setCategories(cRes.categories);
+        try {
+          localStorage.setItem('vrg_categories', JSON.stringify(cRes.categories));
+        } catch {}
       }
-      if (rRes.success && Array.isArray(rRes.reviews)) {
+      if (bRes?.success && Array.isArray(bRes.banners) && bRes.banners.length > 0) {
+        setBanners(bRes.banners);
+        try {
+          localStorage.setItem('vrg_banners', JSON.stringify(bRes.banners));
+        } catch {}
+      }
+      if (rRes?.success && Array.isArray(rRes.reviews)) {
         let deletedIds: string[] = [];
         try {
           const dSaved = localStorage.getItem('vrg_deleted_reviews');
