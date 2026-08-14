@@ -121,35 +121,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'categories' | 'orders' | 'inventory' | 'coupons' | 'banners' | 'reviews' | 'settings' | 'audit' | 'finances'>('dashboard');
   const [orderFilterStage, setOrderFilterStage] = useState<'all' | 'pending' | 'packing' | 'dispatched' | 'delivered'>('all');
 
-  const getInitialAdminOrders = (): Order[] => {
-    let localOrders: Order[] = [];
-    const keysToRead = ['veerika_admin_orders', 'vrg_user_orders', 'veerika_customer_orders', 'vrg_orders'];
-
-    keysToRead.forEach(key => {
-      try {
-        const saved = localStorage.getItem(key);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            localOrders = [...localOrders, ...parsed];
-          }
-        }
-      } catch {}
-    });
-
-    const uniqueMap = new Map<string, Order>();
-    localOrders.forEach(o => {
-      if (o && o.id) uniqueMap.set(o.id, o);
-    });
-
-    // Return real local orders only — no hardcoded dummy data
-    return Array.from(uniqueMap.values());
-  };
-
   const [stats, setStats] = useState<any>(null);
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
   const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
-  const [orders, setOrders] = useState<Order[]>(getInitialAdminOrders);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [combos, setCombos] = useState<Combo[]>([]);
   const [showComboModal, setShowComboModal] = useState(false);
@@ -715,11 +690,15 @@ const silentRefresh = async (): Promise<boolean> => {
   };
 
   useEffect(() => {
-    // Purge legacy local storage blacklists that cause multi-device desync
+    // Purge legacy local storage blacklists and stale mock orders
     localStorage.removeItem('vrg_deleted_orders');
     localStorage.removeItem('vrg_deleted_products');
     localStorage.removeItem('vrg_deleted_categories');
     localStorage.removeItem('vrg_deleted_coupons');
+    localStorage.removeItem('veerika_admin_orders');
+    localStorage.removeItem('vrg_orders');
+    localStorage.removeItem('veerika_customer_orders');
+    localStorage.removeItem('vrg_user_orders');
 
     // SWR Cache Fast Render (0ms instant UI load from local cache)
     try {

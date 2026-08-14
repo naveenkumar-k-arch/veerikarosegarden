@@ -5081,44 +5081,7 @@ const DEFAULT_SETTINGS: SiteSettings = {
 
 const DEFAULT_ORDERS: Order[] = loadDiskOrders();
 
-const DEFAULT_FINANCES: FinancialEntry[] = [
-  {
-    id: 'fin-001',
-    type: 'EXPENSE',
-    title: 'Organic Vermicompost 50kg Bags',
-    category: 'Soil & Manure',
-    costAmount: 1850,
-    sellAmount: 0,
-    quantity: 5,
-    notes: 'Bought for potting soil mixture at farm',
-    date: '2026-07-28',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'fin-002',
-    type: 'SALE',
-    title: 'Wholesale Double Delight Roses (50 Plants Batch)',
-    category: 'Plant Wholesale',
-    costAmount: 4500,
-    sellAmount: 8500,
-    quantity: 50,
-    notes: 'Direct farm wholesale sale to Hosur reseller',
-    date: '2026-07-29',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'fin-003',
-    type: 'EXPENSE',
-    title: '6-inch Black HDPE Plastic Potting Bags (1000 Pcs)',
-    category: 'Pots & Bags',
-    costAmount: 1200,
-    sellAmount: 0,
-    quantity: 1000,
-    notes: 'Sapling nursery bag restock',
-    date: '2026-07-30',
-    createdAt: new Date().toISOString()
-  }
-];
+const DEFAULT_FINANCES: FinancialEntry[] = [];
 
 // Persistent deletion tracking across serverless requests
 const deletedProductIds = (globalThis as any)._deletedProductIds || ((globalThis as any)._deletedProductIds = new Set<string>());
