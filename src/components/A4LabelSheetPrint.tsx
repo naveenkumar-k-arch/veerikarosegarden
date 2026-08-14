@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Order } from '../types';
-import { Sprout, Printer, ArrowLeft, Download } from 'lucide-react';
+import { Sprout, Printer, ArrowLeft, Download, Loader2 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface A4LabelSheetPrintProps {
   orders: Order[];
@@ -15,6 +17,8 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
   batchNumber = '#005',
   sheetNumber = '#11106'
 }) => {
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
   // Split orders into chunks of 4 for A4 pages
   const chunkSize = 4;
   const pages: Order[][] = [];
@@ -26,11 +30,58 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
     window.print();
   };
 
+  const handleDownloadPdf = async () => {
+    if (isGeneratingPdf) return;
+    setIsGeneratingPdf(true);
+
+    try {
+      const sheetContainer = document.getElementById('printable-label-sheets-container');
+      if (!sheetContainer) {
+        window.print();
+        return;
+      }
+
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+        compress: true
+      });
+
+      const pageElements = sheetContainer.querySelectorAll('.a4-sheet-page');
+
+      for (let i = 0; i < pageElements.length; i++) {
+        const pageEl = pageElements[i] as HTMLElement;
+        const canvas = await html2canvas(pageEl, {
+          scale: 2, // High resolution crisp text
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff'
+        });
+
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        if (i > 0) {
+          pdf.addPage('a4', 'portrait');
+        }
+        pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+      }
+
+      const cleanBatch = batchNumber.replace(/[^a-zA-Z0-9]/g, '');
+      pdf.save(`VRG_Dispatch_Labels_${cleanBatch}_${Date.now()}.pdf`);
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+      // Safe fallback to native print dialog
+      window.print();
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
   const formatAddress = (address: any) => {
     if (!address) return 'Address not available';
     if (typeof address === 'string') return address;
     const parts = [
-      address.houseNo,
+      address.houseNo ? `${address.houseNo}` : '',
       address.street,
       address.villageTown,
       address.district,
@@ -40,13 +91,46 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
     return parts.join(', ');
   };
 
-  const getPlantsCount = (order: Order) => {
-    if (!order.items || order.items.length === 0) return 1;
-    return order.items.reduce((sum, item) => sum + (item.quantity || 1), 0);
-  };
-
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-xs flex flex-col items-center justify-start overflow-y-auto p-2 sm:p-4 print:p-0 print:bg-white print:static">
+      
+      {/* Scoped Print CSS: Ensures ONLY the label sheets are printed, stripping any generative labs or ambient UI */}
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden !important;
+          }
+          #printable-label-sheets-container,
+          #printable-label-sheets-container * {
+            visibility: visible !important;
+          }
+          #printable-label-sheets-container {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+          }
+          .a4-sheet-page {
+            box-shadow: none !important;
+            border: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            page-break-after: always !important;
+            break-after: page !important;
+            height: 297mm !important;
+            min-height: 297mm !important;
+            width: 210mm !important;
+          }
+          @page {
+            size: A4 portrait;
+            margin: 8mm;
+          }
+        }
+      `}</style>
+
       {/* Non-printed Top Action Toolbar */}
       <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-3.5 mb-4 flex items-center justify-between gap-3 print:hidden sticky top-2 z-10 border border-slate-200">
         <button
@@ -58,35 +142,37 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
         </button>
 
         <div className="text-center hidden sm:block">
-          <h3 className="font-extrabold text-sm text-slate-900">A4 Label Sheet Preview</h3>
-          <p className="text-[11px] text-slate-500">{orders.length} Orders • {pages.length} Page(s)</p>
+          <h3 className="font-extrabold text-sm text-slate-900">A4 Dispatch Label Sheet Preview</h3>
+          <p className="text-[11px] text-slate-500">{orders.length} Selected Orders • {pages.length} Page(s)</p>
         </div>
 
+        {/* 2 Distinct Action Buttons: Print & Download PDF */}
         <div className="flex items-center gap-2">
           <button
             onClick={handlePrint}
-            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors border border-slate-300 cursor-pointer"
+            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors border border-slate-300 cursor-pointer shadow-2xs"
           >
             <Printer className="w-4 h-4 text-slate-600" />
             <span>Print</span>
           </button>
 
           <button
-            onClick={handlePrint}
-            className="px-4 py-2 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
+            onClick={handleDownloadPdf}
+            disabled={isGeneratingPdf}
+            className="px-4 py-2 bg-[#14532d] hover:bg-[#0f3d21] disabled:opacity-70 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
           >
-            <Download className="w-4 h-4" />
-            <span>Download PDF</span>
+            {isGeneratingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            <span>{isGeneratingPdf ? 'Generating PDF...' : 'Download PDF'}</span>
           </button>
         </div>
       </div>
 
-      {/* Printable Sheet Pages */}
-      <div className="w-full max-w-4xl space-y-6 print:space-y-0 print:w-full">
+      {/* Printable Sheet Pages Container */}
+      <div id="printable-label-sheets-container" className="w-full max-w-4xl space-y-6 print:space-y-0 print:w-full">
         {pages.map((pageOrders, pageIndex) => (
           <div
             key={pageIndex}
-            className="bg-white rounded-2xl print:rounded-none shadow-md print:shadow-none p-5 sm:p-6 border border-slate-200 print:border-none print:p-4 mx-auto w-full max-w-[210mm] min-h-[297mm] flex flex-col justify-between print:min-h-[297mm] print:h-[297mm] page-break-after"
+            className="a4-sheet-page bg-white rounded-2xl print:rounded-none shadow-md print:shadow-none p-5 sm:p-6 border border-slate-200 print:border-none print:p-4 mx-auto w-full max-w-[210mm] min-h-[297mm] flex flex-col justify-between print:min-h-[297mm] print:h-[297mm] page-break-after"
             style={{ boxSizing: 'border-box' }}
           >
             {/* Sheet Header */}
@@ -100,7 +186,7 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
                     VRG NURSERY
                   </h1>
                   <p className="text-[11px] font-semibold text-slate-600 mt-1">
-                    Dharmapuri - 636813 | 📞 7904020006
+                    Dharmapuri - 636813 | 📞 7904020206
                   </p>
                 </div>
               </div>
@@ -108,7 +194,7 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
               <div className="text-right text-[11px] font-medium text-slate-600 space-y-0.5">
                 <p className="font-bold text-slate-800">Label Sheet: {sheetNumber}</p>
                 <p>Batch No : {batchNumber}</p>
-                <p className="font-bold text-emerald-800">Total Orders : {pageOrders.length}</p>
+                <p className="font-bold text-emerald-800">Selected Orders : {pageOrders.length}</p>
               </div>
             </div>
 
@@ -210,22 +296,23 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
         ))}
       </div>
 
-      {/* Fixed Bottom Action Buttons for Mobile View matching 9.jpeg */}
+      {/* Fixed Bottom Action Buttons for Mobile View */}
       <div className="w-full max-w-md mt-4 p-3 bg-white rounded-2xl shadow-lg border border-slate-200 flex items-center gap-3 print:hidden sm:hidden sticky bottom-2">
         <button
           onClick={handlePrint}
-          className="flex-1 py-3 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm"
-        >
-          <Download className="w-4 h-4" />
-          <span>Download PDF</span>
-        </button>
-
-        <button
-          onClick={handlePrint}
-          className="flex-1 py-3 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs rounded-xl border border-slate-300 flex items-center justify-center gap-1.5"
+          className="flex-1 py-3 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs rounded-xl border border-slate-300 flex items-center justify-center gap-1.5 shadow-2xs"
         >
           <Printer className="w-4 h-4 text-slate-600" />
           <span>Print</span>
+        </button>
+
+        <button
+          onClick={handleDownloadPdf}
+          disabled={isGeneratingPdf}
+          className="flex-1 py-3 bg-[#14532d] hover:bg-[#0f3d21] disabled:opacity-70 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm"
+        >
+          {isGeneratingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+          <span>{isGeneratingPdf ? 'Generating...' : 'Download PDF'}</span>
         </button>
       </div>
     </div>
