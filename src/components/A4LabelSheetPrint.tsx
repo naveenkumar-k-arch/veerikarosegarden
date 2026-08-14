@@ -56,7 +56,10 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
           scale: 2, // High resolution crisp text
           useCORS: true,
           logging: false,
-          backgroundColor: '#ffffff'
+          backgroundColor: '#ffffff',
+          windowWidth: 1024,
+          scrollX: 0,
+          scrollY: 0
         });
 
         const imgData = canvas.toDataURL('image/jpeg', 0.95);
@@ -198,8 +201,8 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
               </div>
             </div>
 
-            {/* Grid of Labels matching the 3-column format from reference image */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-4 flex-1">
+            {/* Grid of Labels matching the 3-column format from reference image (4 per A4 page) */}
+            <div className="grid grid-cols-2 gap-3.5 flex-1">
               {pageOrders.map((order, orderIdx) => {
                 const labelNumber = pageIndex * chunkSize + orderIdx + 1;
                 const customerName = order.customerName || order.shippingAddress?.fullName || 'Valued Customer';
