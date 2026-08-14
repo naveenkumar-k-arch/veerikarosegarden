@@ -61,39 +61,47 @@ export function generateDispatchLabelsPdf(
     pdf.setTextColor(20, 83, 45); // #14532d
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(22);
-    pdf.text('VRG NURSERY', 125, 16, { align: 'center' });
+    pdf.text('VRG NURSERY', 125, 15, { align: 'center' });
 
     // Subtitle: Location & Phone
     pdf.setTextColor(20, 83, 45);
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(8.5);
-    pdf.text('📍 Dharmapuri – 636813       📞 7904020206', 125, 23, { align: 'center' });
+    pdf.text('Dharmapuri - 636813       Ph: 7904020206', 125, 22, { align: 'center' });
 
-    // Left Plant Emoji / Label
-    pdf.setFontSize(14);
-    pdf.text('🌿', 16, 18);
+    // Left Circular VRG Green Badge
+    pdf.setFillColor(20, 83, 45);
+    pdf.circle(20, 18, 5, 'F');
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(6.5);
+    pdf.text('VRG', 20, 19.5, { align: 'center' });
 
     // Right Metadata Box
     pdf.setTextColor(15, 23, 42);
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(7.5);
-    pdf.text('Order Sheet Date', 216, 12);
+    pdf.text('Order Sheet Date', 214, 12);
     pdf.setFont('helvetica', 'normal');
-    pdf.text(`: ${currentDateStr}`, 242, 12);
+    pdf.text(`: ${currentDateStr}`, 240, 12);
 
     pdf.setFont('helvetica', 'bold');
-    pdf.text('Total Orders', 216, 17);
+    pdf.text('Total Orders', 214, 17);
     pdf.setFont('helvetica', 'normal');
-    pdf.text(`: ${pageOrders.length}`, 242, 17);
+    pdf.text(`: ${pageOrders.length}`, 240, 17);
 
     pdf.setFont('helvetica', 'bold');
-    pdf.text('Prepared By', 216, 22);
+    pdf.text('Prepared By', 214, 22);
     pdf.setFont('helvetica', 'normal');
-    pdf.text(': Admin', 242, 22);
+    pdf.text(': Admin', 240, 22);
 
-    // Right Plant Emoji
-    pdf.setFontSize(14);
-    pdf.text('🌿', 276, 18);
+    // Right Circular VRG Green Badge
+    pdf.setFillColor(20, 83, 45);
+    pdf.circle(272, 18, 5, 'F');
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(6.5);
+    pdf.text('VRG', 272, 19.5, { align: 'center' });
 
     // ================= 2x2 GRID OF 4 LABELS =================
     // Card 1: Top-Left (x=8, y=34)
@@ -143,11 +151,11 @@ export function generateDispatchLabelsPdf(
       pdf.setFontSize(9);
       pdf.text('VRG NURSERY', pos.x + 2.5, pos.y + 21);
 
-      // "Dharmapuri – 636813"
+      // "Dharmapuri - 636813"
       pdf.setTextColor(51, 65, 85);
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(7.2);
-      pdf.text('Dharmapuri – 636813', pos.x + 2.5, pos.y + 27);
+      pdf.text('Dharmapuri - 636813', pos.x + 2.5, pos.y + 27);
 
       // Nursery Phone "7904020206"
       pdf.setTextColor(30, 41, 59);
@@ -235,11 +243,11 @@ export function generateDispatchLabelsPdf(
     pdf.line(8, 109.5, 289, 109.5);
     pdf.setLineDashPattern([], 0); // reset to solid
 
-    // Scissor icon/text in the middle
-    pdf.setTextColor(100, 116, 139);
-    pdf.setFontSize(8);
-    pdf.text('✂', 10, 110.5);
-    pdf.text('✂', 148, 110.5);
+    // Clean cut guide text
+    pdf.setTextColor(140, 150, 165);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(6.5);
+    pdf.text('-- FOLD & CUT HERE --', 148.5, 110.2, { align: 'center' });
 
     // ================= BOTTOM FOOTER =================
     pdf.setDrawColor(180, 190, 205);
@@ -250,7 +258,7 @@ export function generateDispatchLabelsPdf(
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(8.5);
     pdf.text(
-      '🌿   Thank you for your order!    |    We will pack your plants with care and deliver safe & fresh.   🌿',
+      'Thank you for your order!   |   We will pack your plants with care and deliver safe & fresh.',
       148.5,
       198.5,
       { align: 'center' }
