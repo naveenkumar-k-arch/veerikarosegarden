@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Order } from '../types';
 import { Sprout, Printer, ArrowLeft, Download, Loader2 } from 'lucide-react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import * as jspdfPkg from 'jspdf';
+
+const jsPDFClass: any = (jspdfPkg as any).jsPDF || (jspdfPkg as any).default || jspdfPkg;
 
 interface A4LabelSheetPrintProps {
   orders: Order[];
@@ -35,7 +36,7 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
     setIsGeneratingPdf(true);
 
     try {
-      const pdf = new jsPDF({
+      const pdf = new jsPDFClass({
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4',

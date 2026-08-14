@@ -20,6 +20,7 @@ import {
 } from './schemas.js';
 import { isPrismaConnected } from './prisma.js';
 import { calculateDeliveryFee } from '../utils/delivery.js';
+import { generateDispatchLabelsPdf } from './utils/labelPdf.js';
 
 export const apiRouter = express.Router();
 
@@ -1001,6 +1002,46 @@ const handleDeleteOrderRoute = async (req: AuthenticatedRequest, res: express.Re
 apiRouter.delete('/admin/orders/:id', requireAdmin, handleDeleteOrderRoute);
 apiRouter.post('/admin/orders/delete', requireAdmin, handleDeleteOrderRoute);
 apiRouter.post('/admin/orders/:id/delete', requireAdmin, handleDeleteOrderRoute);
+
+// ================= DISPATCH LABELS PDF ENDPOINT =================
+const handleGenerateLabelsPdf = async (req: express.Request, res: express.Response) => {
+  try {
+    const orderIdsParam = (req.query.orderIds as string) || req.body?.orderIds;
+    const batchNumber = (req.query.batch as string) || req.body?.batch || '#005';
+    const sheetNumber = (req.query.sheet as string) || req.body?.sheet || '#11106';
+
+    const allOrders = await db.getOrders();
+    let targetOrders = allOrders;
+
+    if (orderIdsParam) {
+      const idList = Array.isArray(orderIdsParam)
+        ? orderIdsParam
+        : String(orderIdsParam).split(',').map(s => s.trim()).filter(Boolean);
+      if (idList.length > 0) {
+        targetOrders = allOrders.filter(o => idList.includes(o.id));
+      }
+    }
+
+    if (targetOrders.length === 0 && allOrders.length > 0) {
+      targetOrders = allOrders.slice(0, 4);
+    }
+
+    const pdfBuffer = generateDispatchLabelsPdf(targetOrders, batchNumber, sheetNumber);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="VRG_Dispatch_Labels_${batchNumber.replace(/[^a-zA-Z0-9]/g, '') || '001'}.pdf"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    return res.send(pdfBuffer);
+  } catch (error: any) {
+    console.error('Error generating PDF labels:', error);
+    res.status(500).json({ success: false, message: 'Failed to generate dispatch label PDF' });
+  }
+};
+
+apiRouter.get('/orders/labels/pdf', handleGenerateLabelsPdf);
+apiRouter.post('/orders/labels/pdf', handleGenerateLabelsPdf);
+apiRouter.get('/admin/orders/labels/pdf', handleGenerateLabelsPdf);
+apiRouter.post('/admin/orders/labels/pdf', handleGenerateLabelsPdf);
 
 
 // PHONEPE VERIFIED CHECK STATUS API
