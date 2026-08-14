@@ -1827,11 +1827,12 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 onClick={() => {
                   setEditingProduct(null);
                   setProductModalError(null);
+                  const activeCat = (productCategoryFilter !== 'ALL' ? categories.find(c => c.id === productCategoryFilter || c.name === productCategoryFilter) : null) || categories[0];
                   setProductForm({
                     name: '',
                     tamilName: '',
-                    categoryId: categories[0]?.id || 'cat-roses',
-                    categoryName: categories[0]?.name || 'Roses',
+                    categoryId: activeCat?.id || 'cat-roses',
+                    categoryName: activeCat?.name || 'Roses',
                     mrp: 299,
                     sellingPrice: 199,
                     stock: 25,
@@ -3374,8 +3375,43 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700 block">Category *</label>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-700 block">Category / Variety *</label>
+                  <span className="text-[10px] text-emerald-800 font-extrabold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 truncate max-w-[170px]">
+                    {productForm.categoryName || 'Roses'}
+                  </span>
+                </div>
+
+                {/* Touch-Friendly Category Selection Pills */}
+                <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1.5 bg-slate-50 border border-slate-200 rounded-xl">
+                  {categories.map(c => {
+                    const isSelected = productForm.categoryId === c.id || productForm.categoryName === c.name;
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => {
+                          setProductForm({
+                            ...productForm,
+                            categoryId: c.id,
+                            categoryName: c.name
+                          });
+                        }}
+                        className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer active:scale-95 text-left shrink-0 ${
+                          isSelected
+                            ? 'bg-[#14532d] text-white shadow-xs ring-2 ring-emerald-600'
+                            : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span>{isSelected ? '✓ ' : ''}{c.name}</span>
+                        {c.tamilName && <span className="text-[9px] opacity-75 truncate max-w-[100px]">({c.tamilName})</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Dropdown Alternative */}
                 <select
                   value={productForm.categoryId}
                   onChange={e => {
@@ -3386,7 +3422,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                       categoryName: selCat?.name || productForm.categoryName
                     });
                   }}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-xs"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-700 shadow-2xs cursor-pointer"
                 >
                   {categories.map(c => (
                     <option key={c.id} value={c.id}>
