@@ -73,21 +73,21 @@ async function startServer() {
   // Mount API routes
   app.use('/api', apiRouter);
 
-  // Catch-all 404 handler for unmatched API routes (ensures API always returns JSON, never HTML)
-  app.use('/api/*', (req, res) => {
-    res.status(404).json({
-      success: false,
-      code: 'NOT_FOUND',
-      message: `API endpoint '${req.originalUrl}' not found`
-    });
-  });
-
   // Health check endpoint
   app.get('/api/health', (req, res) => {
     res.json({
       status: 'ok',
       service: 'Veerika Rose Garden Nursery E-Commerce',
       timestamp: new Date().toISOString()
+    });
+  });
+
+  // Catch-all 404 handler for unmatched API routes (ensures API always returns JSON, never HTML)
+  app.use('/api/*', (req, res) => {
+    res.status(404).json({
+      success: false,
+      code: 'NOT_FOUND',
+      message: `API endpoint '${req.originalUrl}' not found`
     });
   });
 
