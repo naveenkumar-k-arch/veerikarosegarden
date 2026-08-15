@@ -1533,6 +1533,7 @@ const silentRefresh = async (): Promise<boolean> => {
               description: cat.description || '',
               order: cat.order || categories.length + 1,
               isActive: cat.isActive !== false,
+              isFeatured: Boolean(cat.isFeatured),
               productCount: 0
             };
 
@@ -5304,10 +5305,14 @@ const silentRefresh = async (): Promise<boolean> => {
                   return;
                 }
 
+                const orig = Number(comboForm.originalPrice || 0);
+                const comboP = Number(comboForm.comboPrice || 0);
+                const discPct = orig > comboP ? Math.round(((orig - comboP) / orig) * 100) : 0;
                 const payload = {
                   ...comboForm,
-                  originalPrice: Number(comboForm.originalPrice || 0),
-                  comboPrice: Number(comboForm.comboPrice || 0)
+                  originalPrice: orig,
+                  comboPrice: comboP,
+                  discountPercent: discPct
                 };
 
                 const prodMap = new Map(products.map(p => [p.id, p]));

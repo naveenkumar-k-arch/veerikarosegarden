@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CartItem } from '../types';
+import { CartItem, Product } from '../types';
 import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Tag, Truck, ShieldCheck, MapPin } from 'lucide-react';
 import { calculateDeliveryFee } from '../utils/delivery';
 

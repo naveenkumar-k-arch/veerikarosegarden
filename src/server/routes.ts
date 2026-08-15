@@ -610,19 +610,22 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
   try {
     const { customerName, customerPhone, customerEmail, shippingAddress, items, couponCode, paymentMethod, paymentProofUrl, transactionId } = req.body;
 
-    // Check if the selected payment method is enabled in Site Settings
+    // Check if payment method is valid and enabled in Site Settings
     const settings = await db.getSettings();
+    if (!paymentMethod) {
+      return res.status(400).json({ success: false, message: 'Please select a payment method.' });
+    }
     if (paymentMethod === 'PHONEPE' && settings.enablePhonePe === false) {
-      return res.status(400).json({ success: false, message: 'PhonePe payment method is currently disabled by admin.' });
+      return res.status(400).json({ success: false, message: 'PhonePe payment method is currently disabled by admin. Please select another payment method.' });
     }
     if (paymentMethod === 'RAZORPAY' && settings.enableRazorpay === false) {
-      return res.status(400).json({ success: false, message: 'Razorpay payment method is currently disabled by admin.' });
+      return res.status(400).json({ success: false, message: 'Razorpay payment method is currently disabled by admin. Please select another payment method.' });
     }
     if (paymentMethod === 'COD' && settings.enableCod === false) {
-      return res.status(400).json({ success: false, message: 'Cash on Delivery (COD) is currently disabled by admin.' });
+      return res.status(400).json({ success: false, message: 'Cash on Delivery (COD) is currently disabled by admin. Please select another payment method.' });
     }
     if ((paymentMethod === 'QR_PAYMENT' || paymentMethod === 'UPI_DIRECT') && settings.enableQrPayment === false) {
-      return res.status(400).json({ success: false, message: 'Scan QR Code payment method is currently disabled by admin.' });
+      return res.status(400).json({ success: false, message: 'Scan QR Code payment method is currently disabled by admin. Please select another payment method.' });
     }
 
     // Enforce mandatory payment screenshot ONLY for manual QR/UPI transfers
@@ -771,27 +774,33 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
     });
 
     if (paymentMethod === 'PHONEPE') {
-      const origin = req.headers.origin || `${req.protocol}://${req.get('host')}`;
-      const redirectUrl = `${origin}/#/order-status/${newOrder.id}`;
+      try {
+        const origin = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+        const redirectUrl = `${origin}/#/order-status/${newOrder.id}`;
 
-      const phonepeRes = await PhonePeService.initiatePayment({
-        merchantTransactionId,
-        merchantUserId: finalPhone || 'CUST_' + Date.now(),
-        amountInRupees: calculatedGrandTotal,
-        redirectUrl,
-        callbackUrl: `${origin}/api/phonepe/webhook`,
-        mobileNumber: finalPhone,
-        orderId: newOrder.id
-      });
+        const phonepeRes = await PhonePeService.initiatePayment({
+          merchantTransactionId,
+          merchantUserId: finalPhone || 'CUST_' + Date.now(),
+          amountInRupees: calculatedGrandTotal,
+          redirectUrl,
+          callbackUrl: `${origin}/api/phonepe/webhook`,
+          mobileNumber: finalPhone,
+          orderId: newOrder.id
+        });
 
-      return res.json({
-        success: true,
-        order: newOrder,
-        orderId: newOrder.id,
-        phonepe: phonepeRes,
-        phonepePayUrl: phonepeRes?.payUrl,
-        message: 'Order created. Proceed to PhonePe payment.'
-      });
+        return res.json({
+          success: true,
+          order: newOrder,
+          orderId: newOrder.id,
+          phonepe: phonepeRes,
+          phonepePayUrl: phonepeRes?.payUrl,
+          message: 'Order created. Proceed to PhonePe payment.'
+        });
+      } catch (err: any) {
+        // Rollback order from DB if PhonePe initiation fails completely
+        await db.deleteOrder(newOrder.id).catch(() => {});
+        return res.status(500).json({ success: false, message: 'Failed to initiate PhonePe payment. Please try another payment method.' });
+      }
     }
 
     if (paymentMethod === 'RAZORPAY') {
@@ -811,6 +820,8 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
       );
 
       if (!rzpRes.success || !rzpRes.razorpayOrderId) {
+        // Rollback order from DB if Razorpay order initialization fails
+        await db.deleteOrder(newOrder.id).catch(() => {});
         let errorMsg = rzpRes.message || 'Failed to initialize Razorpay payment order.';
         if (errorMsg.toLowerCase().includes('authentication failed')) {
           errorMsg = 'Razorpay Authentication Failed: The API Key Secret for this Key ID is invalid or was regenerated. Please copy the latest Key ID and Secret from Razorpay Dashboard (Settings → API Keys) and save them in Admin Settings or Vercel.';

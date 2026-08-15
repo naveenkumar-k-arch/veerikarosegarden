@@ -5,7 +5,7 @@ import {
   CheckCircle, Upload, AlertCircle, Image as ImageIcon, Trash2, Plus, Minus,
   Download, ExternalLink, RefreshCw, FileText
 } from 'lucide-react';
-import { CartItem, ShippingAddress, PaymentMethod, User, SiteSettings } from '../types';
+import { CartItem, ShippingAddress, PaymentMethod, User, SiteSettings, Product } from '../types';
 import { INDIAN_STATES, isTamilNadu } from '../utils/delivery';
 import { computeOrderTotals } from '../utils/orderTotals';
 
@@ -283,7 +283,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
   const [termsAccepted, setTermsAccepted] = useState(false);
 
   // ── Payment ────────────────────────────────────────────────────────────────
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('PHONEPE');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
   const [paymentProofUrl, setPaymentProofUrl] = useState('');
   const [proofPreview, setProofPreview] = useState<string | null>(null);
@@ -308,7 +308,22 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
   useEffect(() => {
     fetch('/api/settings')
       .then(r => r.json())
-      .then(d => { if (d.success && d.settings) setSiteSettings(d.settings); })
+      .then(d => {
+        if (d.success && d.settings) {
+          setSiteSettings(d.settings);
+          const s = d.settings;
+          // Auto-select first genuinely enabled payment method
+          if (s.enableRazorpay) {
+            setPaymentMethod('RAZORPAY');
+          } else if (s.enablePhonePe !== false) {
+            setPaymentMethod('PHONEPE');
+          } else if (s.enableQrPayment !== false) {
+            setPaymentMethod('QR_PAYMENT');
+          } else if (s.enableCod !== false) {
+            setPaymentMethod('COD');
+          }
+        }
+      })
       .catch(() => {});
   }, []);
 
@@ -337,10 +352,10 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
   const upiDeepLink = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(upiName)}&am=${grandTotal}&cu=INR`;
   const qrCodeUrl = `https://quickchart.io/qr?size=300&text=${encodeURIComponent(`upi://pay?pa=${upiId}&pn=${upiName}&cu=INR`)}`;
 
-  const isPhonePeEnabled = siteSettings ? siteSettings.enablePhonePe !== false : true;
+  const isPhonePeEnabled = siteSettings ? siteSettings.enablePhonePe !== false : false;
   const isCodEnabled = siteSettings ? siteSettings.enableCod !== false : true;
   const isQrEnabled = siteSettings ? siteSettings.enableQrPayment !== false : true;
-  const isRazorpayEnabled = siteSettings?.enableRazorpay === true;
+  const isRazorpayEnabled = siteSettings ? siteSettings.enableRazorpay === true : false;
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
@@ -486,6 +501,26 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
 
   const handlePlaceOrder = async () => {
     if (!user) { setOrderError('🔒 Login required to place an order.'); return; }
+    if (!paymentMethod) {
+      setOrderError('⚠️ Please select a payment method before placing your order.');
+      return;
+    }
+    if (paymentMethod === 'PHONEPE' && !isPhonePeEnabled) {
+      setOrderError('⚠️ PhonePe payment is currently disabled. Please select QR Code or another payment option.');
+      return;
+    }
+    if (paymentMethod === 'RAZORPAY' && !isRazorpayEnabled) {
+      setOrderError('⚠️ Razorpay payment is currently disabled. Please select another payment option.');
+      return;
+    }
+    if (paymentMethod === 'COD' && !isCodEnabled) {
+      setOrderError('⚠️ Cash on Delivery is currently disabled. Please select another payment option.');
+      return;
+    }
+    if (paymentMethod === 'QR_PAYMENT' && !isQrEnabled) {
+      setOrderError('⚠️ Scan QR payment is currently disabled. Please select another payment option.');
+      return;
+    }
     if (uploadingImage) { setOrderError('Please wait — processing payment screenshot.'); return; }
     const effectivePM: PaymentMethod = (paymentMethod === 'QR_PAYMENT' || Boolean(paymentProofUrl)) ? 'QR_PAYMENT' : paymentMethod;
     if (effectivePM === 'QR_PAYMENT' && !paymentProofUrl) {
@@ -1491,17 +1526,22 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
             </div>
 
             <div className="px-4 pb-6 pt-3 border-t border-slate-100 bg-white">
+              {!paymentMethod && (
+                <p className="text-center text-[11px] text-amber-700 font-bold mb-2">
+                  👆 Please tap to select your payment option above
+                </p>
+              )}
               <button
                 onClick={handlePlaceOrder}
-                disabled={loading || !user}
+                disabled={loading || !user || !paymentMethod}
                 className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 text-white font-extrabold text-sm rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
               >
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <>
-                    <span>CONFIRM & PLACE ORDER</span>
-                    <Check className="w-4 h-4" />
+                    <span>{!paymentMethod ? 'SELECT PAYMENT METHOD' : 'CONFIRM & PLACE ORDER'}</span>
+                    {paymentMethod && <Check className="w-4 h-4" />}
                   </>
                 )}
               </button>

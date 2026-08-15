@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CartItem, ShippingAddress, PaymentMethod, User, SiteSettings } from '../types';
+import { CartItem, ShippingAddress, PaymentMethod, User, SiteSettings, Product } from '../types';
 import { ShieldCheck, Truck, ArrowLeft, Check, Lock, Smartphone, Home, MapPin, Building2, CreditCard, QrCode, Upload, Copy, CheckCircle2, AlertCircle, Image as ImageIcon } from 'lucide-react';
 import { calculateDeliveryFee, INDIAN_STATES, isSouthState, isTamilNadu, isGrapeItem } from '../utils/delivery';
 import { computeOrderTotals } from '../utils/orderTotals';
@@ -95,16 +95,26 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       .then(data => {
         if (data.success && data.settings) {
           setSiteSettings(data.settings);
-          // Auto-select first available payment method ONLY if not restored from session
+          const s = data.settings;
+          const isMethodEnabled = (m: string) => {
+            if (m === 'RAZORPAY') return s.enableRazorpay === true;
+            if (m === 'PHONEPE') return s.enablePhonePe !== false;
+            if (m === 'QR_PAYMENT' || m === 'UPI_DIRECT') return s.enableQrPayment !== false;
+            if (m === 'COD') return s.enableCod !== false;
+            return false;
+          };
+
           const savedPayment = getSessionItem<string>('vrg_checkout_payment', '');
-          if (!savedPayment) {
-            if (data.settings.enableRazorpay) {
+          if (savedPayment && isMethodEnabled(savedPayment)) {
+            setPaymentMethod(savedPayment as PaymentMethod);
+          } else {
+            if (s.enableRazorpay) {
               setPaymentMethod('RAZORPAY');
-            } else if (data.settings.enablePhonePe !== false) {
+            } else if (s.enablePhonePe !== false) {
               setPaymentMethod('PHONEPE');
-            } else if (data.settings.enableQrPayment) {
+            } else if (s.enableQrPayment !== false) {
               setPaymentMethod('QR_PAYMENT');
-            } else if (data.settings.enableCod !== false) {
+            } else if (s.enableCod !== false) {
               setPaymentMethod('COD');
             }
           }
@@ -267,6 +277,30 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
     if (!user) {
       setErrorMsg('🔒 Login or Sign Up is required to complete your purchase.');
       return;
+    }
+
+    if (!paymentMethod) {
+      setErrorMsg('⚠️ Please select a payment method before placing your order.');
+      return;
+    }
+
+    if (siteSettings) {
+      if (paymentMethod === 'PHONEPE' && siteSettings.enablePhonePe === false) {
+        setErrorMsg('⚠️ PhonePe payment is currently disabled. Please select QR Code or another payment option.');
+        return;
+      }
+      if (paymentMethod === 'RAZORPAY' && !siteSettings.enableRazorpay) {
+        setErrorMsg('⚠️ Razorpay payment is currently disabled. Please select another payment option.');
+        return;
+      }
+      if (paymentMethod === 'COD' && siteSettings.enableCod === false) {
+        setErrorMsg('⚠️ Cash on Delivery is currently disabled. Please select another payment option.');
+        return;
+      }
+      if ((paymentMethod === 'QR_PAYMENT' || paymentMethod === 'UPI_DIRECT') && siteSettings.enableQrPayment === false) {
+        setErrorMsg('⚠️ Scan QR payment is currently disabled. Please select another payment option.');
+        return;
+      }
     }
 
     if (uploadingImage) {
