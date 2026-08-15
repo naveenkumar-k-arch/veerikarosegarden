@@ -967,7 +967,9 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
                         </div>
                       )}
                       <p className="text-[10px] text-slate-500 font-mono">
-                        Qty: {item.quantity} × ₹{item.product.sellingPrice}
+                        {isCombo
+                          ? `Qty: ${item.quantity} Bundle (${(item.comboProducts || (item.product as any).comboProducts || []).length * item.quantity} Plants) × ₹${item.product.sellingPrice}`
+                          : `Qty: ${item.quantity} × ₹${item.product.sellingPrice}`}
                       </p>
                     </div>
                     <span className="font-bold text-slate-900 text-xs">₹{item.product.sellingPrice * item.quantity}</span>

@@ -881,7 +881,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
             {items.length > 0 && (
               <div className="px-4 pb-6 pt-3 border-t border-slate-100 bg-white space-y-3">
                 <div className="flex justify-between items-center text-xs text-slate-600">
-                  <span className="font-medium">{items.reduce((s, i) => s + i.quantity, 0)} plant(s) in cart</span>
+                  <span className="font-semibold text-slate-700">🌱 {totalPlantCount} Live Plant{totalPlantCount !== 1 ? 's' : ''} ({items.length} cart item{items.length !== 1 ? 's' : ''})</span>
                   <span className="font-extrabold text-slate-900">₹{items.reduce((s, i) => s + i.product.sellingPrice * i.quantity, 0)}</span>
                 </div>
                 <ProceedBtn label="PROCEED TO CHECKOUT" onClick={() => goTo(2)} />
@@ -1080,16 +1080,44 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
             <div className="flex-1 px-4 py-3 space-y-4">
               {/* Items Summary */}
               <div className="space-y-2">
-                {items.map(item => (
-                  <div key={item.product.id} className="flex gap-3 bg-white p-3 rounded-2xl border border-slate-200 items-center">
-                    <img src={item.product.images?.[0] || '/products/double-delight.jpeg'} alt={item.product.name} className="w-12 h-12 object-cover rounded-xl border shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-[11px] text-slate-900 truncate">{item.product.name}</p>
-                      <p className="text-[10px] text-slate-500 font-mono">Qty: {item.quantity}</p>
+                {items.map(item => {
+                  const isCombo = item.isCombo || item.product.id.startsWith('combo-') || item.product.categoryId === 'combos';
+                  const comboPlants = item.comboProducts || (item.product as any).comboProducts || [];
+                  const plantCount = comboPlants.length || (isCombo ? 4 : 1);
+
+                  return (
+                    <div key={item.product.id} className="bg-white p-3 rounded-2xl border border-slate-200 space-y-2">
+                      <div className="flex gap-3 items-center">
+                        <img src={item.product.images?.[0] || '/products/double-delight.jpeg'} alt={item.product.name} className="w-12 h-12 object-cover rounded-xl border shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-[11px] text-slate-900 truncate">{item.product.name}</p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-[10px] text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                              {isCombo ? `Qty: ${item.quantity} Bundle (${plantCount * item.quantity} Plants)` : `Qty: ${item.quantity} Plant${item.quantity > 1 ? 's' : ''}`}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="font-bold text-xs text-slate-900 shrink-0">₹{item.product.sellingPrice * item.quantity}</span>
+                      </div>
+
+                      {isCombo && comboPlants.length > 0 && (
+                        <div className="bg-emerald-50/70 rounded-xl p-2 border border-emerald-100/80">
+                          <p className="text-[9px] font-extrabold text-emerald-900 mb-1 flex items-center gap-1">
+                            <span>🌿 Included {comboPlants.length} Live Plants:</span>
+                          </p>
+                          <div className="grid grid-cols-2 gap-1">
+                            {comboPlants.map((cp: Product, idx: number) => (
+                              <div key={cp.id || idx} className="flex items-center gap-1 text-[9px] text-slate-700 font-medium bg-white px-1.5 py-1 rounded-md border border-emerald-100">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                                <span className="truncate">{cp.name}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <span className="font-bold text-xs text-slate-900">₹{item.product.sellingPrice * item.quantity}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Delivery / Packing options */}
