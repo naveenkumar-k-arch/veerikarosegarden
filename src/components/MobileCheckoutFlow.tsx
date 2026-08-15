@@ -327,7 +327,10 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [step]);
+    if ((step === 7 || step === 8) && placedOrderId) {
+      handleFetchOrderForTracking();
+    }
+  }, [step, placedOrderId]);
 
   // fetch site settings
   useEffect(() => {
@@ -1542,45 +1545,82 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
               </div>
 
               {/* Order details card */}
-              <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3 text-xs">
-                {fetchedOrder ? (
-                  <>
-                    {fetchedOrder.items.map((item: any, idx: number) => (
-                      <div key={idx} className="flex justify-between items-center py-1.5 border-b border-slate-100 last:border-none">
-                        <span className="font-semibold text-slate-800">{item.name} × {item.quantity}</span>
-                        <span className="font-bold text-slate-900">₹{item.price * item.quantity}</span>
+              <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3 text-xs shadow-xs">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                  <span className="font-bold text-slate-500 text-[11px]">ORDER SUMMARY</span>
+                  <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${
+                    (fetchedOrder?.paymentStatus === 'SUCCESS' || paymentMethod === 'RAZORPAY')
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                      : paymentMethod === 'COD'
+                      ? 'bg-blue-100 text-blue-900 border border-blue-300'
+                      : 'bg-amber-100 text-amber-900 border border-amber-300'
+                  }`}>
+                    {fetchedOrder?.paymentStatus === 'SUCCESS' ? '✅ PAID & CONFIRMED' : paymentMethod === 'COD' ? '💵 COD CONFIRMED' : '⏳ PENDING VERIFICATION'}
+                  </span>
+                </div>
+
+                {/* Items */}
+                <div className="space-y-2">
+                  {(fetchedOrder?.items || items.map(i => ({ name: i.product.name, quantity: i.quantity, price: i.product.sellingPrice, image: i.product.images?.[0] }))).map((item: any, idx: number) => (
+                    <div key={idx} className="flex items-center justify-between py-1 border-b border-slate-100 last:border-none gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {item.image && (
+                          <img src={item.image} alt={item.name} className="w-8 h-8 rounded-lg object-cover shrink-0 border border-slate-200" />
+                        )}
+                        <div className="truncate">
+                          <p className="font-bold text-slate-800 text-xs truncate">{item.name}</p>
+                          <p className="text-[10px] text-slate-500">Qty: {item.quantity} × ₹{item.price}</p>
+                        </div>
                       </div>
-                    ))}
-                    <div className="flex justify-between pt-1">
-                      <span className="text-slate-600">Plant Total</span>
-                      <span className="font-bold text-slate-900">₹{fetchedOrder.subtotal}</span>
+                      <span className="font-extrabold text-slate-900 shrink-0">₹{item.price * item.quantity}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">Delivery</span>
-                      <span className="font-bold text-slate-900">
-                        {fetchedOrder.potOption && fetchedOrder.potOption !== 'NONE' ? 'Reduced Soil' : `₹${fetchedOrder.shippingCharge}`}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm font-extrabold text-slate-900 pt-2 border-t border-slate-200">
-                      <span>Grand Total</span>
-                      <span className="text-emerald-800">₹{fetchedOrder.grandTotal}</span>
-                    </div>
-                    <div className="flex justify-between items-center pt-1">
-                      <span className="text-slate-600">Status</span>
-                      <span className="bg-emerald-100 text-emerald-800 font-extrabold text-[10px] px-2.5 py-0.5 rounded-full">
-                        {fetchedOrder.paymentMethod === 'COD' ? 'COD CONFIRMED' : fetchedOrder.paymentStatus}
-                      </span>
-                    </div>
-                  </>
-                ) : (
-                  <div className="py-4 text-center">
-                    <div className="w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto" />
-                    <p className="text-xs text-slate-500 mt-2">Loading order details...</p>
+                  ))}
+                </div>
+
+                {/* Price Breakdown */}
+                <div className="border-t border-slate-100 pt-2 space-y-1.5 text-[11px]">
+                  <div className="flex justify-between text-slate-600">
+                    <span>Plants Subtotal</span>
+                    <span className="font-bold text-slate-900">₹{fetchedOrder?.subtotal ?? subtotal}</span>
                   </div>
-                )}
+
+                  <div className="flex justify-between text-slate-600">
+                    <span>Courier ({fetchedOrder?.courierName || (courierPartner === 'METTUR_PARCEL' ? 'Mettur Parcel Service' : 'Professional Courier')})</span>
+                    <span className="font-bold text-slate-900">₹{fetchedOrder?.shippingCharge ?? shippingCharge}</span>
+                  </div>
+
+                  {(fetchedOrder?.packingCharge > 0 || packingCharge > 0) && (
+                    <div className="flex justify-between text-slate-600">
+                      <span>Protective Packing</span>
+                      <span className="font-bold text-slate-900">₹{fetchedOrder?.packingCharge ?? packingCharge}</span>
+                    </div>
+                  )}
+
+                  {(fetchedOrder?.discount > 0 || discountAmount > 0) && (
+                    <div className="flex justify-between text-emerald-700 font-bold">
+                      <span>Discount Coupon</span>
+                      <span>-₹{fetchedOrder?.discount ?? discountAmount}</span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between text-sm font-black text-slate-900 pt-2 border-t border-slate-200">
+                    <span>Grand Total Paid</span>
+                    <span className="text-emerald-800 text-base">₹{fetchedOrder?.grandTotal ?? grandTotal}</span>
+                  </div>
+                </div>
+
+                {/* Delivery Address */}
+                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 text-[11px] space-y-0.5">
+                  <p className="font-bold text-slate-700 flex items-center gap-1">
+                    <MapPin className="w-3 h-3 text-emerald-700" />
+                    <span>Delivery Address</span>
+                  </p>
+                  <p className="text-slate-800 font-semibold">{address.fullName || user?.name} • {address.phone || user?.phone}</p>
+                  <p className="text-slate-600 text-[10px]">{[address.houseNo, address.street, address.villageTown, address.district, address.state, address.pincode].filter(Boolean).join(', ')}</p>
+                </div>
               </div>
 
-              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 text-[11px] text-emerald-800 font-medium">
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 text-[11px] text-emerald-800 font-medium leading-relaxed">
                 🌱 Your order will normally be dispatched within 5–6 working days after order confirmation. After dispatch, you will normally receive the plants within 1–2 days.
               </div>
             </div>
@@ -1588,9 +1628,9 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
             <div className="px-4 pb-6 pt-3 border-t border-slate-100 bg-white">
               <button
                 onClick={() => goTo(8)}
-                className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-sm rounded-2xl shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-sm rounded-2xl shadow-md flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-all"
               >
-                <span>VIEW RECEIPT →</span>
+                <span>VIEW OFFICIAL RECEIPT →</span>
               </button>
             </div>
           </div>
@@ -1625,36 +1665,42 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                     <span className="font-mono font-extrabold text-slate-900">{fetchedOrder?.id || placedOrderId}</span>
                   </div>
 
-                  {fetchedOrder?.items?.map((item: any, idx: number) => (
-                    <div key={idx} className="flex justify-between items-center">
+                  {(fetchedOrder?.items || items.map(i => ({ name: i.product.name, quantity: i.quantity, price: i.product.sellingPrice }))).map((item: any, idx: number) => (
+                    <div key={idx} className="flex justify-between items-center py-0.5">
                       <span className="font-semibold text-slate-700">{item.name} × {item.quantity}</span>
                       <span className="font-bold text-slate-900">₹{item.price * item.quantity}</span>
                     </div>
                   ))}
 
-                  <div className="border-t border-slate-200 pt-2 space-y-2">
+                  <div className="border-t border-slate-200 pt-2 space-y-1.5">
                     <div className="flex justify-between">
                       <span className="text-slate-600">Plant Total</span>
                       <span className="font-semibold text-slate-900">₹{fetchedOrder?.subtotal ?? subtotal}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-600">Delivery Charge</span>
+                      <span className="text-slate-600">Courier ({fetchedOrder?.courierName || (courierPartner === 'METTUR_PARCEL' ? 'Mettur Parcel' : 'Professional')})</span>
                       <span className="font-semibold text-slate-900">₹{fetchedOrder?.shippingCharge ?? shippingCharge}</span>
                     </div>
-                    {(fetchedOrder?.potCharge > 0 || potCharge > 0) && (
+                    {(fetchedOrder?.packingCharge > 0 || packingCharge > 0) && (
                       <div className="flex justify-between">
-                        <span className="text-slate-600">Pot Charge</span>
-                        <span className="font-semibold text-slate-900">₹{fetchedOrder?.potCharge ?? potCharge}</span>
+                        <span className="text-slate-600">Packing Charge</span>
+                        <span className="font-semibold text-slate-900">₹{fetchedOrder?.packingCharge ?? packingCharge}</span>
+                      </div>
+                    )}
+                    {(fetchedOrder?.discount > 0 || discountAmount > 0) && (
+                      <div className="flex justify-between text-emerald-700 font-bold">
+                        <span>Discount Coupon</span>
+                        <span>-₹{fetchedOrder?.discount ?? discountAmount}</span>
                       </div>
                     )}
                     <div className="flex justify-between font-extrabold text-sm border-t border-slate-300 pt-2">
                       <span className="text-slate-900">Grand Total</span>
                       <span className="text-emerald-800">₹{fetchedOrder?.grandTotal ?? grandTotal}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">Payment</span>
-                      <span className={`font-extrabold text-[11px] px-2.5 py-0.5 rounded-full ${fetchedOrder?.paymentStatus === 'SUCCESS' || fetchedOrder?.paymentMethod === 'COD' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                        {fetchedOrder?.paymentMethod === 'COD' ? 'COD' : fetchedOrder?.paymentStatus || 'Pending'}
+                    <div className="flex justify-between pt-1">
+                      <span className="text-slate-600">Payment Status</span>
+                      <span className={`font-extrabold text-[11px] px-2.5 py-0.5 rounded-full ${fetchedOrder?.paymentStatus === 'SUCCESS' || paymentMethod === 'RAZORPAY' || fetchedOrder?.paymentMethod === 'COD' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                        {fetchedOrder?.paymentMethod === 'COD' ? '💵 COD' : (fetchedOrder?.paymentStatus === 'SUCCESS' || paymentMethod === 'RAZORPAY') ? '⚡ Razorpay (Paid)' : 'Pending'}
                       </span>
                     </div>
                   </div>

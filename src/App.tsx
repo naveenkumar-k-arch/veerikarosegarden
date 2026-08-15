@@ -420,12 +420,20 @@ export const App: React.FC = () => {
       apiOrders.forEach((o: Order) => { if (o && o.id) orderMap.set(o.id, o); });
       localOrders.forEach((o: Order) => { if (o && o.id && !orderMap.has(o.id)) orderMap.set(o.id, o); });
 
-      setUserOrders(Array.from(orderMap.values()));
+      const finalOrders = Array.from(orderMap.values());
+      setUserOrders(finalOrders);
+      try {
+        localStorage.setItem('vrg_my_orders', JSON.stringify(finalOrders));
+      } catch {}
     } catch (err) {
       console.error('Error fetching user orders:', err);
       setUserOrders(localOrders);
     }
   };
+
+  useEffect(() => {
+    fetchUserOrders();
+  }, [user]);
 
   useEffect(() => {
     fetchCoreData();
@@ -770,6 +778,7 @@ export const App: React.FC = () => {
     courierName?: string;
     courierDistrict?: string;
     courierBranch?: string;
+    shippingCharge?: number;
   }) => {
     const subtotal = cart.reduce((sum, i) => sum + i.product.sellingPrice * i.quantity, 0);
     const totalPlantCount = cart.reduce((sum, i) => sum + i.quantity, 0);
@@ -781,7 +790,9 @@ export const App: React.FC = () => {
     const packingOption = orderData.packingOption || 'STANDARD';
     const packingCharge = orderData.packingCharge ?? (packingOption === 'EXTRA_SECURE' ? 10 : packingOption === 'MAX_PROTECTION' ? 15 : 0);
 
-    const shippingCharge = potOption !== 'NONE' ? 0 : calculateDeliveryFee(cart, orderData.shippingAddress?.state);
+    const shippingCharge = orderData.shippingCharge !== undefined
+      ? orderData.shippingCharge
+      : (potOption !== 'NONE' ? 0 : calculateDeliveryFee(cart, orderData.shippingAddress?.state));
     const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
     const grandTotal = Math.max(0, subtotal + potCharge + packingCharge + shippingCharge - discountAmount);
 

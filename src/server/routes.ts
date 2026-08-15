@@ -985,16 +985,55 @@ apiRouter.get('/orders', requireAuth, async (req: AuthenticatedRequest, res) => 
     const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN';
 
     if (!isAdmin) {
-      orders = orders.filter(o => 
-        (o.userId && o.userId === user.id) ||
-        (o.customerEmail && user.email && o.customerEmail.toLowerCase() === user.email.toLowerCase()) ||
-        (o.customerPhone && user.phone && o.customerPhone.replace(/\D/g, '').slice(-10) === user.phone.replace(/\D/g, '').slice(-10))
-      );
+      const userPhoneClean = (user.phone || '').replace(/\D/g, '').slice(-10);
+      const userEmailClean = (user.email || '').toLowerCase().trim();
+      const userIdClean = user.id;
+
+      orders = orders.filter(o => {
+        if (!o) return false;
+        if (o.userId && o.userId === userIdClean) return true;
+        if (userEmailClean && o.customerEmail && o.customerEmail.toLowerCase().trim() === userEmailClean) return true;
+        if (userPhoneClean && userPhoneClean.length >= 10 && o.customerPhone) {
+          const ordPhone = o.customerPhone.replace(/\D/g, '').slice(-10);
+          if (ordPhone === userPhoneClean) return true;
+        }
+        return false;
+      });
     }
 
     res.json({ success: true, count: orders.length, orders });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
+  }
+});
+
+// Direct user orders lookup by ID, Phone, or Email
+apiRouter.get('/orders/user/:identifier', async (req, res) => {
+  try {
+    const rawIdentifier = decodeURIComponent(req.params.identifier || '').trim();
+    if (!rawIdentifier) {
+      return res.json({ success: true, count: 0, orders: [] });
+    }
+
+    const allOrders = await db.getOrders();
+    const cleanPhone = rawIdentifier.replace(/\D/g, '').slice(-10);
+    const cleanEmail = rawIdentifier.toLowerCase();
+    const cleanId = rawIdentifier;
+
+    const userOrders = allOrders.filter(o => {
+      if (!o) return false;
+      if (o.userId && o.userId === cleanId) return true;
+      if (cleanEmail.includes('@') && o.customerEmail && o.customerEmail.toLowerCase().trim() === cleanEmail) return true;
+      if (cleanPhone.length >= 10 && o.customerPhone) {
+        const ordPhone = o.customerPhone.replace(/\D/g, '').slice(-10);
+        if (ordPhone === cleanPhone) return true;
+      }
+      return false;
+    });
+
+    res.json({ success: true, count: userOrders.length, orders: userOrders });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message || 'Failed to fetch user orders.' });
   }
 });
 
