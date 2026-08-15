@@ -261,10 +261,10 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
               <div className="space-y-0.5">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <h4 className="text-xs sm:text-sm font-black text-slate-900">
-                    🏢 Mettur Parcel Service (Regional Hubs &amp; Depots)
+                    📦 Mettur Parcel Service
                   </h4>
                   <span className="text-[9px] font-black bg-amber-100 text-amber-900 px-2 py-0.5 rounded-md">
-                    Full Soil / Open Box Available
+                    All India • Available from 3 plants • Full Soil / Open Box
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-600">
@@ -276,7 +276,7 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
               <span className="text-xs sm:text-sm font-black text-emerald-900 block">
                 {hasFreeDelivery ? '₹0' : totalPlantCount < 3 ? '₹60' : `₹${Math.ceil(totalPlantCount / 6) * 60}`}
               </span>
-              <span className="text-[9px] text-emerald-800 font-bold">Bulk Flat Rate</span>
+              <span className="text-[9px] text-slate-400 font-medium">Packing / Delivery Charge</span>
             </div>
           </div>
 
