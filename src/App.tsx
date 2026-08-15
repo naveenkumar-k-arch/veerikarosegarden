@@ -538,6 +538,13 @@ export const App: React.FC = () => {
     localStorage.setItem('vrg_cart', JSON.stringify(cart));
   }, [cart]);
 
+  // Preload AdminPage chunk in background when admin session is detected to eliminate lazy-load chunk download latency
+  useEffect(() => {
+    if (user && ['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(user.role)) {
+      import('./pages/AdminPage').catch(() => {});
+    }
+  }, [user]);
+
   // Auto-sync cart items if product prices change in live catalog
   useEffect(() => {
     if (products.length > 0 && cart.length > 0) {
