@@ -101,24 +101,7 @@ function saveDiskFinances(finances: FinancialEntry[]) {
 
 const COMBOS_STORE_FILE = path.resolve(process.cwd(), 'src/data/combos_store.json');
 
-const DEFAULT_COMBOS_SEED: Combo[] = [
-  {
-    id: 'combo-rose-trio',
-    title: 'Top 3 Fragrant Rose Saplings Combo',
-    subtitle: 'Damask Paneer Rose + Button Rose + Kashmiri Red Rose',
-    badge: '3-IN-1 SPECIAL',
-    productIds: ['prod-damask-rose', 'prod-button-rose', 'prod-kashmiri-rose'],
-    originalPrice: 450,
-    comboPrice: 299,
-    discountPercent: 34,
-    imageUrl: '/products/double-delight.jpeg',
-    active: true,
-    freeDelivery: true,
-    order: 1,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  }
-];
+const DEFAULT_COMBOS_SEED: Combo[] = [];
 
 const DELETED_COMBOS_STORE_FILE = path.resolve(process.cwd(), 'src/data/deleted_combos.json');
 
