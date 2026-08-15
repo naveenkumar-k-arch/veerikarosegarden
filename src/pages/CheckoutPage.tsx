@@ -951,14 +951,17 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
                           </span>
                         )}
                       </div>
-                      {isCombo && item.comboProducts && item.comboProducts.length > 0 && (
-                        <div className="bg-amber-50 border border-amber-200/80 rounded-md p-1 mt-0.5 text-[9px] space-y-0.5">
-                          <span className="font-bold text-amber-900 block">🌿 Bundle ({item.comboProducts.length} Plants):</span>
-                          <div className="flex flex-wrap gap-1">
-                            {item.comboProducts.map((p, idx) => (
-                              <span key={p.id || idx} className="bg-white px-1 py-0.2 rounded text-[8.5px] font-semibold text-slate-700 border border-amber-200 truncate max-w-[130px]">
-                                {p.name}
-                              </span>
+                      {isCombo && (
+                        <div className="bg-amber-50/90 border border-amber-300/80 rounded-lg p-1.5 mt-1 text-[9px] space-y-1">
+                          <span className="font-bold text-amber-900 block border-b border-amber-200/60 pb-0.5">
+                            🌿 Included in Bundle ({(item.comboProducts || (item.product as any).comboProducts || []).length} Plants):
+                          </span>
+                          <div className="space-y-0.5">
+                            {(item.comboProducts || (item.product as any).comboProducts || []).map((p: Product, idx: number) => (
+                              <div key={p.id || idx} className="flex items-center justify-between bg-white px-1.5 py-0.5 rounded border border-amber-200/70 text-[9px]">
+                                <span className="font-medium text-slate-800 truncate">{p.name}</span>
+                                <span className="font-mono text-emerald-800 font-bold ml-1 shrink-0">₹{p.sellingPrice}</span>
+                              </div>
                             ))}
                           </div>
                         </div>

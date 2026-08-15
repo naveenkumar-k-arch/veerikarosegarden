@@ -38,11 +38,45 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
 
   const fetchCombos = async () => {
     try {
-      const res = await fetch('/api/combos');
-      const data = await res.json();
-      if (data.success && Array.isArray(data.combos)) {
+      const [cRes, pRes] = await Promise.all([
+        fetch('/api/combos').then(r => r.json()).catch(() => null),
+        fetch('/api/products').then(r => r.json()).catch(() => null)
+      ]);
+
+      if (cRes && cRes.success && Array.isArray(cRes.combos)) {
         const deletedSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_combos') || '[]'));
-        setCombos(data.combos.filter((c: Combo) => c.active !== false && !deletedSet.has(c.id)));
+        const allProds: Product[] = (pRes && pRes.success && Array.isArray(pRes.products)) ? pRes.products : [];
+        const prodMap = new Map<string, Product>();
+        allProds.forEach(p => {
+          if (p.id) {
+            prodMap.set(p.id, p);
+            prodMap.set(p.id.toLowerCase(), p);
+          }
+          if (p.sku) {
+            prodMap.set(p.sku, p);
+            prodMap.set(p.sku.toLowerCase(), p);
+          }
+        });
+
+        const resolvedCombos = cRes.combos.map((c: Combo) => {
+          const pIds = Array.isArray(c.productIds) ? c.productIds : [];
+          // Resolve every product ID to full product object
+          const resolvedProds = pIds.map(pid => {
+            if (!pid) return null;
+            return prodMap.get(pid) || prodMap.get(pid.toLowerCase()) || allProds.find(p => p.id === pid || p.id.toLowerCase() === pid.toLowerCase() || p.sku === pid) || null;
+          }).filter(Boolean) as Product[];
+
+          const finalProds = (resolvedProds.length >= pIds.length && resolvedProds.length > 0)
+            ? resolvedProds
+            : ((c.products && c.products.length > 0) ? c.products : resolvedProds);
+
+          return {
+            ...c,
+            products: finalProds
+          };
+        });
+
+        setCombos(resolvedCombos.filter((c: Combo) => c.active !== false && !deletedSet.has(c.id)));
       }
     } catch (err) {
       console.error('Failed to load combos:', err);
@@ -55,7 +89,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
     if (e) e.stopPropagation();
 
     const comboProducts = combo.products || [];
-    const firstImg = combo.imageUrl || comboProducts[0]?.images?.[0] || '/products/pink-guava-plant.jpeg';
+    const firstImg = combo.imageUrl || comboProducts[0]?.images?.[0] || '/products/double-delight.jpeg';
 
     // Create a virtual Product representation for the Combo bundle
     const comboCartProduct: Product = {

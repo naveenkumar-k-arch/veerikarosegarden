@@ -169,16 +169,32 @@ export const CartPage: React.FC<CartPageProps> = ({
                     )}
 
                     {/* Included plants in combo bundle */}
-                    {isCombo && item.comboProducts && item.comboProducts.length > 0 && (
-                      <div className="bg-amber-50/70 border border-amber-200/60 rounded-xl p-2 text-[11px] text-amber-950 font-medium space-y-1">
-                        <span className="font-bold text-amber-900 flex items-center gap-1">
-                          <span>🌿 Included in Bundle ({item.comboProducts.length} Plants):</span>
-                        </span>
-                        <div className="flex flex-wrap gap-1.5 pt-0.5">
-                          {item.comboProducts.map((p, idx) => (
-                            <span key={p.id || idx} className="bg-white px-2 py-0.5 rounded-md text-[10px] font-semibold text-slate-700 border border-amber-200">
-                              {p.name}
-                            </span>
+                    {isCombo && (
+                      <div className="bg-amber-50/80 border border-amber-300/70 rounded-2xl p-3 text-xs text-amber-950 font-medium space-y-2">
+                        <div className="flex items-center justify-between font-bold text-amber-900 border-b border-amber-200/70 pb-1.5 text-xs">
+                          <span className="flex items-center gap-1.5">
+                            <span>🌿 All Plants Included in this Combo ({(item.comboProducts || (item.product as any).comboProducts || []).length} Saplings):</span>
+                          </span>
+                          <span className="bg-amber-200 text-amber-950 text-[10px] font-bold px-2 py-0.5 rounded-full font-mono">
+                            Special Bundle
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
+                          {(item.comboProducts || (item.product as any).comboProducts || []).map((p: Product, idx: number) => (
+                            <div key={p.id || idx} className="flex items-center gap-2.5 bg-white p-2 rounded-xl border border-amber-200/80 shadow-2xs">
+                              <img
+                                src={p.images?.[0] || '/products/double-delight.jpeg'}
+                                alt={p.name}
+                                className="w-9 h-9 rounded-lg object-cover border border-slate-200 shrink-0"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-slate-900 text-xs truncate">{p.name}</p>
+                                {p.tamilName && <p className="text-[10px] text-slate-400 truncate">{p.tamilName}</p>}
+                              </div>
+                              <span className="text-xs font-mono font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 shrink-0">
+                                ₹{p.sellingPrice}
+                              </span>
+                            </div>
                           ))}
                         </div>
                       </div>

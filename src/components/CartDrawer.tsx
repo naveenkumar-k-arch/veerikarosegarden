@@ -154,14 +154,22 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                         <Truck className="w-2.5 h-2.5" /> Free Delivery
                       </span>
                     )}
-                    {isCombo && item.comboProducts && item.comboProducts.length > 0 && (
-                      <div className="bg-amber-50 border border-amber-200/80 rounded-lg p-1.5 mt-1 text-[10px] space-y-0.5">
-                        <span className="font-bold text-amber-900 block">🌿 Bundle ({item.comboProducts.length} Plants):</span>
-                        <div className="flex flex-wrap gap-1">
-                          {item.comboProducts.map((p, idx) => (
-                            <span key={p.id || idx} className="bg-white px-1.5 py-0.5 rounded text-[9px] font-semibold text-slate-700 border border-amber-200 truncate max-w-[150px]">
-                              {p.name}
-                            </span>
+                    {isCombo && (
+                      <div className="bg-amber-50/90 border border-amber-300/80 rounded-xl p-2 mt-1.5 space-y-1.5">
+                        <div className="flex items-center justify-between text-[10px] font-bold text-amber-900 border-b border-amber-200/60 pb-1">
+                          <span>🌿 Included in Bundle ({(item.comboProducts || (item.product as any).comboProducts || []).length} Plants):</span>
+                        </div>
+                        <div className="space-y-1">
+                          {(item.comboProducts || (item.product as any).comboProducts || []).map((p: Product, idx: number) => (
+                            <div key={p.id || idx} className="flex items-center gap-1.5 bg-white p-1 rounded-lg border border-amber-200/80 text-[10px]">
+                              {p.images?.[0] ? (
+                                <img src={p.images[0]} alt={p.name} className="w-5 h-5 rounded object-cover border border-slate-200 shrink-0" />
+                              ) : (
+                                <span className="text-xs shrink-0">🌿</span>
+                              )}
+                              <span className="truncate flex-1 font-semibold text-slate-800">{p.name}</span>
+                              <span className="text-[9px] font-mono text-emerald-800 font-bold shrink-0">₹{p.sellingPrice}</span>
+                            </div>
                           ))}
                         </div>
                       </div>
