@@ -122,8 +122,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
   const [orderFilterStage, setOrderFilterStage] = useState<'all' | 'pending' | 'packing' | 'dispatched' | 'delivered'>('all');
 
   const [stats, setStats] = useState<any>(null);
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
-  const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [combos, setCombos] = useState<Combo[]>([]);
@@ -731,7 +731,7 @@ const silentRefresh = async (): Promise<boolean> => {
   };
 
   useEffect(() => {
-    // Purge legacy local storage blacklists and stale mock orders
+    // Purge legacy local storage blacklists and stale caches
     localStorage.removeItem('vrg_deleted_orders');
     localStorage.removeItem('vrg_deleted_products');
     localStorage.removeItem('vrg_deleted_categories');
@@ -740,27 +740,8 @@ const silentRefresh = async (): Promise<boolean> => {
     localStorage.removeItem('vrg_orders');
     localStorage.removeItem('veerika_customer_orders');
     localStorage.removeItem('vrg_user_orders');
-
-    // SWR Cache Fast Render (0ms instant UI load from local cache)
-    try {
-      const cachedStr = localStorage.getItem('vrg_admin_bootstrap_cache');
-      if (cachedStr) {
-        const cached = JSON.parse(cachedStr);
-        if (cached?.stats) setStats(cached.stats);
-        if (Array.isArray(cached?.combos)) {
-          const deletedComboSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_combos') || '[]'));
-          setCombos(cached.combos.filter((c: Combo) => !deletedComboSet.has(c.id)));
-        }
-        if (Array.isArray(cached?.products)) setProducts(cached.products);
-        if (Array.isArray(cached?.categories)) setCategories(cached.categories);
-        if (Array.isArray(cached?.coupons)) setCoupons(cached.coupons);
-        if (Array.isArray(cached?.orders)) setOrders(cached.orders);
-        if (Array.isArray(cached?.banners)) setBanners(cached.banners);
-        if (Array.isArray(cached?.reviews)) setReviews(cached.reviews);
-        if (cached?.settings) setSettings(cached.settings);
-        if (Array.isArray(cached?.paymentLogs)) setPaymentLogs(cached.paymentLogs);
-      }
-    } catch {}
+    localStorage.removeItem('vrg_admin_bootstrap_cache');
+    localStorage.removeItem('vrg_products');
 
     fetchData(false);
 

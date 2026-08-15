@@ -162,7 +162,7 @@ export const App: React.FC = () => {
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch {}
-    return INITIAL_PRODUCTS;
+    return [];
   });
 
   const [categories, setCategories] = useState<Category[]>(() => {
@@ -173,7 +173,7 @@ export const App: React.FC = () => {
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch {}
-    return INITIAL_CATEGORIES;
+    return [];
   });
 
   const [banners, setBanners] = useState<Banner[]>(() => {
