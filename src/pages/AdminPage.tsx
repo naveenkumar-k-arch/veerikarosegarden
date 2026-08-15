@@ -635,7 +635,16 @@ const silentRefresh = async (): Promise<boolean> => {
         if (bRes.stats) setStats(bRes.stats);
         if (Array.isArray(bRes.combos)) {
           const deletedComboSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_combos') || '[]'));
-          setCombos(bRes.combos.filter((c: Combo) => !deletedComboSet.has(c.id)));
+          setCombos(prev => {
+            const serverMap = new Map(bRes.combos.map((c: Combo) => [c.id, c]));
+            const merged = bRes.combos.filter((c: Combo) => !deletedComboSet.has(c.id));
+            prev.forEach(localC => {
+              if (!deletedComboSet.has(localC.id) && !serverMap.has(localC.id)) {
+                merged.unshift(localC);
+              }
+            });
+            return merged;
+          });
         }
         if (Array.isArray(bRes.finances)) {
           const deletedFinSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_finances') || '[]'));
@@ -679,7 +688,16 @@ const silentRefresh = async (): Promise<boolean> => {
 
         if (cbRes?.success && Array.isArray(cbRes.combos)) {
           const deletedComboSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_combos') || '[]'));
-          setCombos(cbRes.combos.filter((c: Combo) => !deletedComboSet.has(c.id)));
+          setCombos(prev => {
+            const serverMap = new Map(cbRes.combos.map((c: Combo) => [c.id, c]));
+            const merged = cbRes.combos.filter((c: Combo) => !deletedComboSet.has(c.id));
+            prev.forEach(localC => {
+              if (!deletedComboSet.has(localC.id) && !serverMap.has(localC.id)) {
+                merged.unshift(localC);
+              }
+            });
+            return merged;
+          });
         }
         if (pRes?.success && Array.isArray(pRes.products)) setProducts(pRes.products);
         if (cRes?.success && Array.isArray(cRes.categories)) setCategories(cRes.categories);
@@ -1646,10 +1664,11 @@ const silentRefresh = async (): Promise<boolean> => {
             // Map products list for instant display
             const prodMap = new Map(products.map(p => [p.id, p]));
             const matchedProds = (comboData.productIds || []).map((pid: string) => prodMap.get(pid)).filter(Boolean) as Product[];
+            const tempId = comboData.id || 'combo-' + Date.now();
             const fullComboItem = {
               ...comboData,
               products: matchedProds,
-              id: comboData.id || 'combo-' + Date.now()
+              id: tempId
             };
 
             if (isEdit) {
@@ -1678,7 +1697,22 @@ const silentRefresh = async (): Promise<boolean> => {
               const res = await authFetch(url, { method, body: JSON.stringify(comboData) });
               const data = await res.json().catch(() => null);
               if (data && data.success && data.combo) {
-                setCombos(prev => prev.map(c => (c.id === data.combo.id || c.id === comboData.id) ? { ...c, ...data.combo } : c));
+                // Clear from deleted set just in case
+                try {
+                  const deleted = JSON.parse(localStorage.getItem('vrg_deleted_combos') || '[]');
+                  const filtered = deleted.filter((delId: string) => delId !== data.combo.id && delId !== tempId);
+                  localStorage.setItem('vrg_deleted_combos', JSON.stringify(filtered));
+                } catch {}
+
+                setCombos(prev => {
+                  const next = prev.map(c => (c.id === tempId || c.id === data.combo.id || c.id === comboData.id) ? { ...c, ...data.combo } : c);
+                  try {
+                    const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
+                    cached.combos = next;
+                    localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+                  } catch {}
+                  return next;
+                });
               }
               window.dispatchEvent(new CustomEvent('vrg_combos_updated'));
             } catch (e: any) {
@@ -5277,11 +5311,19 @@ const silentRefresh = async (): Promise<boolean> => {
 
                 const prodMap = new Map(products.map(p => [p.id, p]));
                 const matchedProds = (comboForm.productIds || []).map(pid => prodMap.get(pid)).filter(Boolean) as Product[];
+                const tempId = editingCombo?.id || 'combo-' + Date.now();
                 const fullComboItem = {
                   ...payload,
                   products: matchedProds,
-                  id: editingCombo?.id || 'combo-' + Date.now()
+                  id: tempId
                 };
+
+                // Clear from deleted set
+                try {
+                  const deleted = JSON.parse(localStorage.getItem('vrg_deleted_combos') || '[]');
+                  const filtered = deleted.filter((delId: string) => delId !== tempId && (editingCombo ? delId !== editingCombo.id : true));
+                  localStorage.setItem('vrg_deleted_combos', JSON.stringify(filtered));
+                } catch {}
 
                 if (editingCombo) {
                   setCombos(prev => {
@@ -5305,7 +5347,6 @@ const silentRefresh = async (): Promise<boolean> => {
                   });
                 }
 
-                window.dispatchEvent(new CustomEvent('vrg_combos_updated'));
                 setShowComboModal(false);
 
                 try {
@@ -5316,7 +5357,15 @@ const silentRefresh = async (): Promise<boolean> => {
                     });
                     const data = await res.json().catch(() => null);
                     if (data && data.success && data.combo) {
-                      setCombos(prev => prev.map(c => c.id === data.combo.id ? { ...c, ...data.combo } : c));
+                      setCombos(prev => {
+                        const next = prev.map(c => (c.id === data.combo.id || c.id === editingCombo.id) ? { ...c, ...data.combo } : c);
+                        try {
+                          const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
+                          cached.combos = next;
+                          localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+                        } catch {}
+                        return next;
+                      });
                     }
                   } else {
                     const res = await authFetch('/api/admin/combos', {
@@ -5325,7 +5374,15 @@ const silentRefresh = async (): Promise<boolean> => {
                     });
                     const data = await res.json().catch(() => null);
                     if (data && data.success && data.combo) {
-                      setCombos(prev => prev.map(c => c.id === fullComboItem.id ? { ...c, ...data.combo } : c));
+                      setCombos(prev => {
+                        const next = prev.map(c => (c.id === tempId || c.id === data.combo.id) ? { ...c, ...data.combo } : c);
+                        try {
+                          const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
+                          cached.combos = next;
+                          localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+                        } catch {}
+                        return next;
+                      });
                     }
                   }
                   window.dispatchEvent(new CustomEvent('vrg_combos_updated'));
