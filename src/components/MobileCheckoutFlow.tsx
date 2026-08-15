@@ -143,6 +143,13 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
   const [animating, setAnimating] = useState(false);
   const isPaymentInProgressRef = useRef(false);
 
+  // Eagerly pre-load Razorpay SDK in background as soon as checkout modal is opened
+  useEffect(() => {
+    if (isOpen) {
+      loadRazorpayScript().catch(() => {});
+    }
+  }, [isOpen]);
+
   // Go to step with browser history push
   const goTo = useCallback((next: number, replace = false) => {
     if (animating) return;

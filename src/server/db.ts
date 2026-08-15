@@ -7002,23 +7002,31 @@ class Store {
 
   // ORDERS
   async createOrder(orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>): Promise<Order> {
-    // Determine next sequential Order ID starting from 0 (ORD-0, ORD-1, ORD-2...)
-    const existingOrders = await this.getOrders();
-    let maxNum = -1;
-    for (const o of existingOrders) {
-      if (o && o.id) {
-        // extract numeric part of order ID
-        const match = o.id.match(/^ORD-(\d+)$/i) || o.id.match(/^(\d+)$/i) || o.id.match(/(\d+)/);
-        if (match) {
-          const num = parseInt(match[1], 10);
-          if (!isNaN(num) && num < 1000000 && num > maxNum) {
-            maxNum = num;
+    const prisma = getPrismaClient();
+    let nextIndex = 1001;
+
+    if (prisma) {
+      try {
+        const latest = await prisma.order.findFirst({
+          orderBy: { createdAt: 'desc' },
+          select: { id: true, orderNumber: true }
+        });
+        if (latest) {
+          const match = (latest.orderNumber || latest.id || '').match(/(\d+)/);
+          if (match) {
+            const num = parseInt(match[1], 10);
+            if (!isNaN(num) && num > 0 && num < 10000000) {
+              nextIndex = num + 1;
+            }
           }
         }
+      } catch {
+        nextIndex = 1000 + Math.floor(Math.random() * 9000);
       }
+    } else {
+      nextIndex = (this.memoryOrders.length > 0 ? this.memoryOrders.length + 1000 : Date.now() % 100000);
     }
 
-    const nextIndex = maxNum + 1; // Starts at 0 if no previous ORD-N orders exist
     const id = `ORD-${nextIndex}`;
     const order: Order = {
       ...orderData,
@@ -7027,163 +7035,109 @@ class Store {
       updatedAt: new Date().toISOString()
     };
 
-    const prisma = getPrismaClient();
     if (prisma) {
       try {
-        // Step 1: Ensure missing products exist in PostgreSQL BEFORE starting order transaction
-        for (const item of order.items) {
-          try {
-            const existingProd = await prisma.product.findUnique({ where: { id: item.productId } });
-            if (!existingProd) {
-              const defProd = DEFAULT_PRODUCTS.find(p => p.id === item.productId);
-              const uniqueSku = item.sku || `VRG-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
-              await prisma.product.create({
-                data: {
-                  id: item.productId,
-                  sku: uniqueSku,
-                  name: item.name,
-                  nameTamil: item.tamilName || item.name,
-                  price: item.price,
-                  originalPrice: item.mrp || item.price,
-                  category: defProd?.categoryName || 'Roses',
-                  categoryId: null, // set null so FK constraint to Category table is not triggered if Category record absent
-                  image: item.image || '',
-                  description: defProd?.description || item.name || 'Live Plant Sapling',
-                  inventory: {
-                    create: {
-                      quantity: 100
-                    }
+        const notesPayload = JSON.stringify({
+          proof: order.paymentProofUrl || null,
+          txnId: order.transactionId || null,
+          packingOption: order.packingOption || 'STANDARD',
+          packingCharge: order.packingCharge || 0,
+          potOption: order.potOption || null,
+          potCharge: order.potCharge || 0,
+          courierName: order.courierName || null,
+          courierDistrict: order.courierDistrict || null,
+          courierBranch: order.courierBranch || null
+        });
+
+        // 1 single batch query to check existing products
+        const pIds = order.items.map(i => i.productId);
+        const existingProds = await prisma.product.findMany({
+          where: { id: { in: pIds } },
+          select: { id: true }
+        }).catch(() => []);
+        const existingSet = new Set(existingProds.map(p => p.id));
+
+        // Create any missing product in parallel if needed
+        const missingItems = order.items.filter(i => !existingSet.has(i.productId));
+        if (missingItems.length > 0) {
+          await Promise.all(missingItems.map(item => {
+            const defProd = DEFAULT_PRODUCTS.find(p => p.id === item.productId);
+            const uniqueSku = item.sku || `VRG-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
+            return prisma.product.create({
+              data: {
+                id: item.productId,
+                sku: uniqueSku,
+                name: item.name || 'Nursery Plant',
+                nameTamil: item.tamilName || item.name || 'நார்சரி செடி',
+                price: item.price || 199,
+                originalPrice: item.mrp || item.price || 230,
+                category: defProd?.categoryName || 'Roses',
+                categoryId: null,
+                image: item.image || '/products/double-delight.jpeg',
+                description: defProd?.description || item.name || 'Live Plant Sapling',
+                inventory: {
+                  create: {
+                    quantity: 100
                   }
                 }
-              }).catch((e) => console.warn('Product pre-creation soft error:', e?.message));
-            }
-          } catch (pErr) {
-            console.warn('Product pre-creation check notice:', pErr);
-          }
+              }
+            }).catch(() => null);
+          }));
         }
 
-        // Step 2: Create Order & OrderItems in transaction
-        await executeInTransaction(async (tx) => {
-          let validUserId: string | null = null;
-          if (order.userId) {
-            try {
-              const userExists = await tx.user.findUnique({ where: { id: order.userId } });
-              if (userExists) validUserId = order.userId;
-            } catch {}
-          }
-
-          // Pre-resolve all product IDs to ensure valid FK references in OrderItem table
-          const resolvedItems = [];
-          for (const item of order.items) {
-            let targetProdId = item.productId;
-            const existing = await tx.product.findUnique({ where: { id: item.productId } }).catch(() => null);
-            if (!existing) {
-              const matched = await tx.product.findFirst({
-                where: { OR: [{ sku: item.sku }, { name: item.name }] }
-              }).catch(() => null);
-
-              if (matched) {
-                targetProdId = matched.id;
-              } else {
-                const freshSku = `VRG-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
-                const created = await tx.product.create({
-                  data: {
-                    id: item.productId,
-                    sku: freshSku,
-                    name: item.name || 'Nursery Plant Sapling',
-                    nameTamil: item.tamilName || item.name || 'ரோஜா செடி',
-                    price: item.price || 199,
-                    originalPrice: item.mrp || 230,
-                    category: 'Roses',
-                    categoryId: null,
-                    image: item.image || '/products/double-delight.jpeg',
-                    description: item.name || 'Live Nursery Plant'
-                  }
-                }).catch(() => null);
-
-                if (created) {
-                  targetProdId = created.id;
-                } else {
-                  const firstAny = await tx.product.findFirst().catch(() => null);
-                  if (firstAny) targetProdId = firstAny.id;
-                }
-              }
+        // Direct atomic single order create with order items
+        await prisma.order.create({
+          data: {
+            id: order.id,
+            orderNumber: order.id,
+            merchantTransactionId: order.merchantTransactionId,
+            customerName: order.customerName,
+            customerPhone: order.customerPhone,
+            customerEmail: order.customerEmail || null,
+            userId: order.userId || null,
+            shippingAddress: typeof order.shippingAddress === 'string' ? order.shippingAddress : JSON.stringify(order.shippingAddress),
+            subtotal: order.subtotal,
+            discount: order.discount,
+            deliveryFee: order.shippingCharge,
+            totalAmount: order.grandTotal,
+            status: 'PENDING',
+            paymentStatus: order.paymentStatus === 'SUCCESS' ? 'SUCCESS' : 'PENDING',
+            paymentMethod: (order.paymentMethod === 'RAZORPAY'
+              ? 'RAZORPAY'
+              : order.paymentMethod === 'COD'
+              ? 'COD'
+              : (order.paymentMethod === 'QR_PAYMENT' || order.paymentMethod === 'UPI_DIRECT' || Boolean(order.paymentProofUrl))
+              ? 'UPI'
+              : 'PHONEPE') as any,
+            notes: notesPayload,
+            items: {
+              create: order.items.map(item => ({
+                productId: item.productId,
+                productName: item.name,
+                price: item.price,
+                quantity: item.quantity,
+                totalPrice: item.price * item.quantity
+              }))
             }
-            resolvedItems.push({
-              ...item,
-              resolvedProductId: targetProdId
-            });
-          }
-
-          // Pack paymentProofUrl and options into notes column for persistence
-          const notesPayload = JSON.stringify({
-            proof: order.paymentProofUrl || null,
-            txnId: order.transactionId || null,
-            packingOption: order.packingOption || 'STANDARD',
-            packingCharge: order.packingCharge || 0,
-            potOption: order.potOption || null,
-            potCharge: order.potCharge || 0,
-            courierName: order.courierName || null,
-            courierDistrict: order.courierDistrict || null,
-            courierBranch: order.courierBranch || null
-          });
-
-          await tx.order.create({
-            data: {
-              id: order.id,
-              orderNumber: order.id,
-              merchantTransactionId: order.merchantTransactionId,
-              customerName: order.customerName,
-              customerPhone: order.customerPhone,
-              customerEmail: order.customerEmail || null,
-              userId: validUserId,
-              shippingAddress: typeof order.shippingAddress === 'string' ? order.shippingAddress : JSON.stringify(order.shippingAddress),
-              subtotal: order.subtotal,
-              discount: order.discount,
-              deliveryFee: order.shippingCharge,
-              totalAmount: order.grandTotal,
-              status: 'PENDING',
-              paymentStatus: order.paymentStatus === 'SUCCESS' ? 'SUCCESS' : 'PENDING',
-              paymentMethod: (order.paymentMethod === 'RAZORPAY'
-                ? 'RAZORPAY'
-                : order.paymentMethod === 'COD'
-                ? 'COD'
-                : (order.paymentMethod === 'QR_PAYMENT' || order.paymentMethod === 'UPI_DIRECT' || Boolean(order.paymentProofUrl))
-                ? 'UPI'
-                : 'PHONEPE') as any,
-              notes: notesPayload,
-              items: {
-                create: resolvedItems.map(item => ({
-                  productId: item.resolvedProductId,
-                  productName: item.name,
-                  price: item.price,
-                  quantity: item.quantity,
-                  totalPrice: item.price * item.quantity
-                }))
-              }
-            }
-          });
-
-          // Reduce stock in inventory
-          for (const item of orderData.items) {
-            await tx.inventory.updateMany({
-              where: { productId: item.productId },
-              data: {
-                quantity: { decrement: item.quantity }
-              }
-            }).catch(() => {});
           }
         });
+
+        // Decrement inventory in parallel (non-blocking)
+        Promise.all(order.items.map(item =>
+          prisma.inventory.updateMany({
+            where: { productId: item.productId },
+            data: { quantity: { decrement: item.quantity } }
+          }).catch(() => null)
+        )).catch(() => null);
+
       } catch (err: any) {
-        console.error('Prisma createOrder transaction error:', err?.message || err);
+        console.error('Prisma createOrder error:', err?.message || err);
       }
     }
 
     this.memoryOrders.unshift(order);
     if (!(globalThis as any).globalMemoryOrdersBuffer) (globalThis as any).globalMemoryOrdersBuffer = [];
     (globalThis as any).globalMemoryOrdersBuffer.unshift(order);
-    // Persist to Firestore for cross-device/cross-request access
-    firestoreSaveOrder(order).catch(() => {});
     this.invalidateOrdersCache();
     return order;
   }

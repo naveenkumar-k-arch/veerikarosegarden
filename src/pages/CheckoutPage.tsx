@@ -246,6 +246,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   const [fetchedOrder, setFetchedOrder] = useState<any>(null);
   const [trackLoading, setTrackLoading] = useState(false);
 
+  // Eagerly pre-load Razorpay SDK on mount
+  useEffect(() => {
+    loadRazorpayScript().catch(() => {});
+  }, []);
+
   // Fetch site settings
   useEffect(() => {
     fetch('/api/settings')
