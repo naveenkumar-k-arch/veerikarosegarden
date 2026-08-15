@@ -946,7 +946,12 @@ export const App: React.FC = () => {
         <Header
           cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
           wishlistCount={wishlist.length}
-          onOpenCart={() => navigateTo('cart')}
+          onOpenCart={() => {
+            if (cart.length === 0) { toast.info('Your cart is empty. Add some plants first! 🌿'); return; }
+            if (!user) { alert('🔑 Login or Sign Up Required:\nPlease login to your account before placing an order.'); navigateTo('account'); return; }
+            navigateTo('checkout');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
           onNavigate={(page, params) => {
             navigateTo(page, params);
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -976,6 +981,14 @@ export const App: React.FC = () => {
           onNavigate={(page, params) => {
             if (isMobileCheckoutOpen && page !== 'cart') {
               setIsMobileCheckoutOpen(false);
+            }
+            // Cart icon → go directly to 9-step checkout (Step 1 = Cart Items)
+            if (page === 'cart') {
+              if (cart.length === 0) { toast.info('Your cart is empty. Add some plants first! 🌿'); return; }
+              if (!user) { alert('🔑 Login or Sign Up Required:\nPlease login to your account before placing an order.'); navigateTo('account'); return; }
+              navigateTo('checkout');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+              return;
             }
             navigateTo(page, params);
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1258,7 +1271,12 @@ export const App: React.FC = () => {
 
       {/* Floating Sticky Cart Button */}
       <button
-        onClick={() => navigateTo('cart')}
+        onClick={() => {
+          if (cart.length === 0) { toast.info('Your cart is empty. Add some plants first! 🌿'); return; }
+          if (!user) { alert('🔑 Login or Sign Up Required:\nPlease login to your account before placing an order.'); navigateTo('account'); return; }
+          navigateTo('checkout');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
         className="fixed bottom-6 left-6 z-40 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white px-4 py-3 rounded-full shadow-2xl transition-all duration-200 items-center gap-2.5 border-2 border-emerald-500/40 cursor-pointer hidden sm:flex"
         title="Open Shopping Cart Page"
         aria-label="Open Shopping Cart Page"
@@ -1311,7 +1329,12 @@ export const App: React.FC = () => {
             <Store />
             <span>Shop</span>
           </button>
-          <button className={`nav-item ${currentPage === 'cart' || isMobileCheckoutOpen ? 'active' : ''} cart-btn`} onClick={() => navigateTo('cart')} aria-label="Open cart page">
+          <button className={`nav-item ${currentPage === 'cart' || currentPage === 'checkout' || isMobileCheckoutOpen ? 'active' : ''} cart-btn`} onClick={() => {
+            if (cart.length === 0) { toast.info('Your cart is empty. Add some plants first! 🌿'); return; }
+            if (!user) { alert('🔑 Login or Sign Up Required:\nPlease login to your account before placing an order.'); navigateTo('account'); return; }
+            navigateTo('checkout');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }} aria-label="Open checkout">
             {cartCount > 0 && <span className="cart-badge">{cartCount > 9 ? '9+' : cartCount}</span>}
             <ShoppingCart />
             <span>Cart</span>
