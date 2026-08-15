@@ -7144,7 +7144,13 @@ class Store {
               totalAmount: order.grandTotal,
               status: 'PENDING',
               paymentStatus: order.paymentStatus === 'SUCCESS' ? 'SUCCESS' : 'PENDING',
-              paymentMethod: (order.paymentMethod === 'COD' ? 'COD' : (order.paymentMethod === 'QR_PAYMENT' || order.paymentMethod === 'UPI_DIRECT' || Boolean(order.paymentProofUrl)) ? 'UPI' : 'PHONEPE') as any,
+              paymentMethod: (order.paymentMethod === 'RAZORPAY'
+                ? 'RAZORPAY'
+                : order.paymentMethod === 'COD'
+                ? 'COD'
+                : (order.paymentMethod === 'QR_PAYMENT' || order.paymentMethod === 'UPI_DIRECT' || Boolean(order.paymentProofUrl))
+                ? 'UPI'
+                : 'PHONEPE') as any,
               notes: notesPayload,
               items: {
                 create: resolvedItems.map(item => ({
@@ -7299,11 +7305,15 @@ class Store {
             grandTotal: o.totalAmount,
             orderStatus: dbOrderStatus,
             paymentStatus: o.paymentStatus === 'SUCCESS' ? 'SUCCESS' : o.paymentStatus === 'FAILED' ? 'FAILED' : 'PENDING',
-            paymentMethod: ((o as any).paymentMethod === 'COD' 
+            paymentMethod: ((o as any).paymentMethod === 'RAZORPAY' || (o as any).paymentMethod === 'CARD'
+              ? 'RAZORPAY'
+              : (o as any).paymentMethod === 'COD' 
               ? 'COD' 
               : ((o as any).paymentMethod === 'UPI' || (o as any).paymentMethod === 'QR_PAYMENT' || hasProof)
               ? 'QR_PAYMENT'
-              : 'PHONEPE') as PaymentMethod,
+              : (o as any).paymentMethod === 'PHONEPE'
+              ? 'PHONEPE'
+              : 'RAZORPAY') as PaymentMethod,
             paymentProofUrl: unpackedProofUrl,
             transactionId: unpackedTxnId || o.merchantTransactionId || '',
             merchantTransactionId: o.merchantTransactionId || '',
@@ -7553,11 +7563,15 @@ class Store {
         grandTotal: o.totalAmount,
         orderStatus: dbStatus,
         paymentStatus: o.paymentStatus === 'SUCCESS' ? 'SUCCESS' : o.paymentStatus === 'FAILED' ? 'FAILED' : 'PENDING',
-        paymentMethod: ((o as any).paymentMethod === 'COD' 
+        paymentMethod: ((o as any).paymentMethod === 'RAZORPAY' || (o as any).paymentMethod === 'CARD'
+          ? 'RAZORPAY'
+          : (o as any).paymentMethod === 'COD' 
           ? 'COD' 
           : ((o as any).paymentMethod === 'UPI' || (o as any).paymentMethod === 'QR_PAYMENT' || hasProof)
           ? 'QR_PAYMENT'
-          : 'PHONEPE') as PaymentMethod,
+          : (o as any).paymentMethod === 'PHONEPE'
+          ? 'PHONEPE'
+          : 'RAZORPAY') as PaymentMethod,
         paymentProofUrl: unpackedProofUrl || memMatch?.paymentProofUrl,
         transactionId: unpackedTxnId || o.merchantTransactionId || '',
         merchantTransactionId: o.merchantTransactionId || '',
