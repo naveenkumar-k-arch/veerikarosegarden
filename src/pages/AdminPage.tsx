@@ -887,9 +887,16 @@ const silentRefresh = async (): Promise<boolean> => {
           fertilizer: 'Apply vermicompost every 15 days.',
           soil: 'Red soil mixed with coco peat.'
         },
-        images: prodForm.images?.filter(Boolean).length
-          ? prodForm.images.filter(Boolean)
-          : ['https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80'],
+        images: (() => {
+          let imgs = (prodForm.images || []).filter(Boolean);
+          if (prodUrlInput.trim() && !imgs.includes(prodUrlInput.trim())) {
+            const isDefaultOnly = imgs.length === 1 && imgs[0].includes('unsplash.com');
+            imgs = isDefaultOnly ? [prodUrlInput.trim()] : [...imgs, prodUrlInput.trim()];
+          }
+          return imgs.length > 0
+            ? imgs
+            : ['https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80'];
+        })(),
         featured: Boolean(prodForm.featured),
         bestSeller: Boolean(prodForm.bestSeller),
         trending: Boolean(prodForm.trending),

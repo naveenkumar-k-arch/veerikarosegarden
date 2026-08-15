@@ -5517,30 +5517,28 @@ class Store {
             careWatering: typeof product.careInstructions === 'object' ? product.careInstructions?.watering || 'Daily' : 'Daily',
             careSunlight: typeof product.careInstructions === 'object' ? product.careInstructions?.sunlight || 'Full Sun' : 'Full Sun',
             careFertilizer: typeof product.careInstructions === 'object' ? product.careInstructions?.fertilizer || 'Organic compost' : 'Organic compost',
-            careSoil: typeof product.careInstructions === 'object' ? product.careInstructions?.soil || 'Red soil' : 'Red soil'
+            careSoil: typeof product.careInstructions === 'object' ? product.careInstructions?.soil || 'Red soil' : 'Red soil',
+            inventory: {
+              create: {
+                quantity: Number(product.stock) >= 0 ? Number(product.stock) : 50
+              }
+            }
           }
         });
-
-        await prisma.inventory.create({
-          data: {
-            productId: id,
-            quantity: Number(product.stock) >= 0 ? Number(product.stock) : 50
-          }
-        }).catch(() => {});
 
         newProd.createdAt = created.createdAt.toISOString();
         newProd.updatedAt = created.updatedAt.toISOString();
       } catch (err) {
-        console.warn('Prisma addProduct notice:', err);
+        console.error('Prisma addProduct error:', err);
       }
     }
 
-    // Always maintain in DEFAULT_PRODUCTS memory array
+    // Always maintain in DEFAULT_PRODUCTS memory array and update productsCache
     DEFAULT_PRODUCTS.unshift(newProd);
     if (this.productsCache && Array.isArray(this.productsCache.data)) {
-      this.productsCache.data.unshift(newProd);
+      this.productsCache.data = [newProd, ...this.productsCache.data.filter(p => p.id !== newProd.id)];
+      this.productsCache.expiresAt = Date.now() + 300000;
     }
-    this.invalidateProductsCache();
     return newProd;
   }
 
