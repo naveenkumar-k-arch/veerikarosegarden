@@ -462,6 +462,17 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
     paymentCompletedRef.current = false;
     setLoading(true);
     setOrderError(null);
+
+    // Save pending payment in localStorage so return from GPay / app switch is automatically reconciled
+    try {
+      localStorage.setItem('vrg_pending_razorpay_order', JSON.stringify({
+        orderId: orderRes.orderId,
+        razorpayOrderId: orderRes.razorpayOrderId,
+        amount: orderRes.amount || grandTotal,
+        timestamp: Date.now()
+      }));
+    } catch {}
+
     const loaded = await loadRazorpayScript();
     if (!loaded) {
       isPaymentInProgressRef.current = false;
@@ -477,6 +488,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
         const d = await check.json();
         if (d.success && d.order && (d.order.paymentStatus === 'SUCCESS' || d.order.orderStatus === 'CONFIRMED')) {
           clearInterval(pollInterval);
+          try { localStorage.removeItem('vrg_pending_razorpay_order'); } catch {}
           paymentCompletedRef.current = true;
           isPaymentInProgressRef.current = false;
           setLoading(false);
@@ -502,6 +514,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
       description: `Plant Order #${orderRes.orderId}`,
       image: '/products/double-delight.jpeg',
       order_id: orderRes.razorpayOrderId,
+      callback_url: `${window.location.origin}/api/razorpay/callback?orderId=${orderRes.orderId}`,
       modal: {
         ondismiss: async () => {
           if (paymentCompletedRef.current) return;

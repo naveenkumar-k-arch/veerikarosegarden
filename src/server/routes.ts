@@ -1610,6 +1610,90 @@ const handleVerifyRazorpayPayment = async (req: AuthenticatedRequest, res: any) 
 apiRouter.post('/verify-payment', checkoutLimiter, handleVerifyRazorpayPayment);
 apiRouter.post('/razorpay/verify', checkoutLimiter, handleVerifyRazorpayPayment);
 
+// ================= RAZORPAY MOBILE CALLBACK / REDIRECT HANDLER =================
+apiRouter.all('/razorpay/callback', async (req: express.Request, res: express.Response) => {
+  try {
+    const razorpayOrderId = req.body?.razorpay_order_id || req.query?.razorpay_order_id;
+    const razorpayPaymentId = req.body?.razorpay_payment_id || req.query?.razorpay_payment_id;
+    const razorpaySignature = req.body?.razorpay_signature || req.query?.razorpay_signature;
+    const orderId = req.body?.orderId || req.query?.orderId || req.query?.order_id;
+
+    const settings = await db.getSettings();
+    const keySecret = (settings?.razorpayKeySecret && settings.razorpayKeySecret.trim()) || process.env.RAZORPAY_KEY_SECRET || 'FfkwntR4ygvIapq4ex50ajp0';
+    const keyId = (settings?.razorpayKeyId && settings.razorpayKeyId.trim()) || process.env.RAZORPAY_KEY_ID || 'rzp_live_TQ5xDdZB7QWIn2';
+
+    let targetOrderId = (orderId as string) || '';
+    let order = targetOrderId ? await db.getOrderById(targetOrderId) : null;
+    if (!order && razorpayOrderId) {
+      const allOrders = await db.getOrders();
+      order = allOrders.find(o => (o as any).razorpayOrderId === razorpayOrderId || o.merchantTransactionId === razorpayOrderId) || null;
+      if (order) targetOrderId = order.id;
+    }
+
+    let isPaymentValid = false;
+    if (razorpayOrderId && razorpayPaymentId && razorpaySignature) {
+      isPaymentValid = RazorpayService.verifySignature(razorpayOrderId as string, razorpayPaymentId as string, razorpaySignature as string, keySecret);
+    }
+    if (!isPaymentValid && razorpayOrderId) {
+      const checkRes = await RazorpayService.checkOrderPayments(razorpayOrderId as string, keyId, keySecret);
+      isPaymentValid = checkRes.success && checkRes.isPaid;
+    }
+
+    if (isPaymentValid && targetOrderId) {
+      const confirmedOrder = await db.updateOrderStatus(targetOrderId, 'CONFIRMED', undefined, undefined, 'SUCCESS');
+      await db.addPaymentLog({
+        merchantTransactionId: (order && order.merchantTransactionId) || (razorpayPaymentId as string) || targetOrderId,
+        orderId: targetOrderId,
+        amount: order ? order.grandTotal : 0,
+        status: 'SUCCESS',
+        checksum: (razorpaySignature as string) || 'RAZORPAY_CALLBACK_CAPTURED',
+        payload: JSON.stringify({ razorpayOrderId, razorpayPaymentId, via: 'callback' })
+      }).catch(() => {});
+      invalidateBootstrapCache();
+
+      const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Payment Successful - Veerika Rose Garden</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f0fdf4; color: #166534; text-align: center; }
+    .card { background: white; padding: 32px; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-width: 360px; }
+    .spinner { width: 36px; height: 36px; border: 4px solid #16a34a; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 16px auto; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div style="font-size: 40px;">🌸</div>
+    <h2 style="margin: 12px 0 6px;">Payment Successful!</h2>
+    <p style="font-size: 13px; color: #475569; margin: 0 0 16px;">Confirming your plant order #${targetOrderId}...</p>
+    <div class="spinner"></div>
+  </div>
+  <script>
+    try {
+      localStorage.removeItem('vrg_pending_razorpay_order');
+      localStorage.removeItem('vrg_cart');
+      const prev = JSON.parse(localStorage.getItem('vrg_my_orders') || '[]');
+      const orderObj = ${JSON.stringify(confirmedOrder || order || { id: targetOrderId })};
+      localStorage.setItem('vrg_my_orders', JSON.stringify([orderObj, ...prev.filter(o => o.id !== '${targetOrderId}')]));
+      window.dispatchEvent(new Event('orderStatusUpdated'));
+    } catch(e){}
+    window.location.replace('/order-status/${targetOrderId}?payment=success');
+  </script>
+</body>
+</html>`;
+      return res.status(200).send(html);
+    }
+
+    return res.redirect(302, `/checkout?error=payment_unverified&orderId=${targetOrderId || ''}`);
+  } catch (err: any) {
+    console.error('Razorpay callback error:', err);
+    return res.redirect(302, '/checkout?error=server_error');
+  }
+});
+
 // ================= CANCEL UNCOMPLETED / DISMISSED PAYMENTS =================
 apiRouter.post('/orders/:id/cancel-pending', async (req: AuthenticatedRequest, res) => {
   try {

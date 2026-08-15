@@ -466,6 +466,44 @@ export const App: React.FC = () => {
     window.addEventListener('storage', handleProductSync);
     window.addEventListener('focus', handleProductSync);
 
+    // Reconcile pending Razorpay mobile payments when returning from UPI app (GPay / PhonePe)
+    const checkPendingRazorpayPayment = async () => {
+      try {
+        const raw = localStorage.getItem('vrg_pending_razorpay_order');
+        if (!raw) return;
+        const pending = JSON.parse(raw);
+        if (!pending || !pending.orderId) return;
+
+        // Only check if initiated within the last 30 minutes
+        const ageMs = Date.now() - (pending.timestamp || 0);
+        if (ageMs > 30 * 60 * 1000) {
+          localStorage.removeItem('vrg_pending_razorpay_order');
+          return;
+        }
+
+        const res = await fetch(`/api/orders/${encodeURIComponent(pending.orderId)}?verify=razorpay`);
+        const data = await res.json();
+        if (data.success && data.order && (data.order.paymentStatus === 'SUCCESS' || data.order.orderStatus === 'CONFIRMED')) {
+          localStorage.removeItem('vrg_pending_razorpay_order');
+          handleOrderConfirmed(data.order);
+          setIsMobileCheckoutOpen(false);
+          navigateTo('order-status', { orderId: data.order.id });
+        }
+      } catch (err) {
+        console.warn('Pending Razorpay reconciliation notice:', err);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkPendingRazorpayPayment();
+      }
+    };
+
+    checkPendingRazorpayPayment();
+    window.addEventListener('focus', checkPendingRazorpayPayment);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     // Verify backend auth session — skip if user is already an admin (local-auth login)
     fetch('/api/auth/me', {
       credentials: 'include'

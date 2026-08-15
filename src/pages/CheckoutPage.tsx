@@ -460,6 +460,17 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     paymentCompletedRef.current = false;
     setLoading(true);
     setOrderError(null);
+
+    // Save pending payment in localStorage so return from GPay / app switch is automatically reconciled
+    try {
+      localStorage.setItem('vrg_pending_razorpay_order', JSON.stringify({
+        orderId: orderRes.orderId,
+        razorpayOrderId: orderRes.razorpayOrderId,
+        amount: orderRes.amount,
+        timestamp: Date.now()
+      }));
+    } catch {}
+
     const loaded = await loadRazorpayScript();
     if (!loaded) {
       setOrderError('Failed to load Razorpay SDK. Please check internet connection.');
@@ -474,6 +485,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         const d = await check.json();
         if (d.success && d.order && (d.order.paymentStatus === 'SUCCESS' || d.order.orderStatus === 'CONFIRMED')) {
           clearInterval(pollInterval);
+          try { localStorage.removeItem('vrg_pending_razorpay_order'); } catch {}
           paymentCompletedRef.current = true;
           setLoading(false);
           setOrderError(null);
@@ -499,6 +511,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       description: `Plant Order #${orderRes.orderId}`,
       image: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=200&q=80',
       order_id: orderRes.razorpayOrderId,
+      callback_url: `${window.location.origin}/api/razorpay/callback?orderId=${orderRes.orderId}`,
       modal: {
         ondismiss: async () => {
           if (paymentCompletedRef.current) return;
