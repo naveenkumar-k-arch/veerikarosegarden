@@ -461,7 +461,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       return;
     }
     const options = {
-      key: orderRes.razorpayKeyId || (import.meta as any).env?.VITE_RAZORPAY_KEY_ID || 'rzp_test_TPhhoBxVXsxTpD',
+      key: orderRes.razorpayKeyId || (import.meta as any).env?.VITE_RAZORPAY_KEY_ID || 'rzp_live_TQ5xDdZB7QWIn2',
       amount: Math.round(orderRes.amount * 100),
       currency: 'INR',
       name: siteSettings?.businessName || 'Veerika Rose Garden',
