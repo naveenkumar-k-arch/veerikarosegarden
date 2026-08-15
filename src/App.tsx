@@ -538,6 +538,31 @@ export const App: React.FC = () => {
     localStorage.setItem('vrg_cart', JSON.stringify(cart));
   }, [cart]);
 
+  // Auto-sync cart items if product prices change in live catalog
+  useEffect(() => {
+    if (products.length > 0 && cart.length > 0) {
+      setCart((prevCart) => {
+        let changed = false;
+        const updated = prevCart.map((item) => {
+          const matched = products.find((p) => p.id === item.product.id);
+          if (matched && matched.sellingPrice !== item.product.sellingPrice) {
+            changed = true;
+            return {
+              ...item,
+              product: {
+                ...item.product,
+                sellingPrice: matched.sellingPrice,
+                mrp: matched.mrp || item.product.mrp
+              }
+            };
+          }
+          return item;
+        });
+        return changed ? updated : prevCart;
+      });
+    }
+  }, [products]);
+
   // Persist current page to sessionStorage so refresh keeps user on the same page (e.g. checkout)
   useEffect(() => {
     try {
