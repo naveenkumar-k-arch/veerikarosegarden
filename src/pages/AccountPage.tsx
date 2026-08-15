@@ -693,15 +693,31 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                     </div>
 
                     <div className="flex items-center gap-3 shrink-0">
-                      <div className="text-right font-bold">
-                        <span className="text-emerald-800 text-sm block">₹{o.grandTotal}</span>
-                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
-                          o.orderStatus === 'DELIVERED' ? 'bg-emerald-700 text-white' :
-                          o.orderStatus === 'DISPATCHED' ? 'bg-blue-600 text-white' :
-                          'bg-slate-100 text-slate-700'
-                        }`}>
-                          {o.orderStatus}
-                        </span>
+                      <div className="text-right font-bold space-y-1">
+                        <span className="text-emerald-800 text-sm block font-black">₹{o.grandTotal}</span>
+                        {(() => {
+                          const s = (o.orderStatus || '').toUpperCase();
+                          const isDelivered = s === 'DELIVERED' || s === 'COMPLETED';
+                          const isDispatched = s === 'DISPATCHED' || s === 'SHIPPED' || s === 'COURIER' || s === 'OUT_FOR_DELIVERY';
+                          const isPacking = s === 'PROCESSING' || s === 'PACKING' || s === 'PACKED';
+                          const isCancelled = s === 'CANCELLED';
+
+                          return (
+                            <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full inline-block ${
+                              isDelivered ? 'bg-emerald-700 text-white shadow-2xs' :
+                              isDispatched ? 'bg-blue-600 text-white shadow-2xs' :
+                              isPacking ? 'bg-purple-700 text-white shadow-2xs' :
+                              isCancelled ? 'bg-rose-700 text-white shadow-2xs' :
+                              'bg-amber-600 text-white shadow-2xs'
+                            }`}>
+                              {isDelivered ? '4. Delivered' :
+                               isDispatched ? '3. Dispatched' :
+                               isPacking ? '2. Nursery Packing' :
+                               isCancelled ? '❌ Cancelled' :
+                               '1. Confirmed'}
+                            </span>
+                          );
+                        })()}
                       </div>
                       <ChevronRight className="w-5 h-5 text-slate-400" />
                     </div>

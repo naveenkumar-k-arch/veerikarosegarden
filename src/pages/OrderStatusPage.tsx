@@ -51,8 +51,33 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
 
   useEffect(() => {
     fetchOrder();
-    const interval = setInterval(fetchOrder, 3000); // Live poll for stage and dispatch updates
-    return () => clearInterval(interval);
+
+    // Fast live poll every 2 seconds
+    const interval = setInterval(fetchOrder, 2000);
+
+    // Instant 0ms cross-tab and in-window event listener
+    const handleSync = (e: any) => {
+      const detail = e?.detail;
+      const targetClean = (orderId || '').trim().toLowerCase();
+      if (detail && detail.orderId && detail.orderId.toLowerCase() === targetClean) {
+        setOrder(prev => prev ? {
+          ...prev,
+          orderStatus: detail.status || prev.orderStatus,
+          paymentStatus: detail.paymentStatus || prev.paymentStatus,
+          updatedAt: new Date().toISOString()
+        } : prev);
+      }
+      fetchOrder();
+    };
+
+    window.addEventListener('orderStatusUpdated', handleSync);
+    window.addEventListener('storage', handleSync);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('orderStatusUpdated', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
   }, [orderId]);
 
   if (loading && !order) {
@@ -87,13 +112,19 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
   const isCod = order.paymentMethod === 'COD';
   const isSuccess = order.paymentStatus === 'SUCCESS' || isCod;
 
+  const s = (order.orderStatus || '').toUpperCase();
+  const isDelivered = s === 'DELIVERED' || s === 'COMPLETED';
+  const isDispatched = isDelivered || s === 'DISPATCHED' || s === 'SHIPPED' || s === 'COURIER' || s === 'OUT_FOR_DELIVERY';
+  const isPacking = isDispatched || s === 'PROCESSING' || s === 'PACKING' || s === 'PACKED';
+  const isConfirmed = true;
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
       {/* Back Button */}
       <div className="flex items-center justify-between border-b border-slate-200 pb-3">
         <button
           onClick={onBackToHome}
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-emerald-700"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-emerald-700 cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Return to Nursery Shop</span>
@@ -101,7 +132,7 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
 
         <button
           onClick={fetchOrder}
-          className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200"
+          className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-1 rounded-lg border border-emerald-200 cursor-pointer transition-colors"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           <span>Refresh Live Status</span>
@@ -125,7 +156,7 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
                   ? '💵 Cash on Delivery Order Confirmed' 
                   : (order.paymentMethod === 'QR_PAYMENT' || order.paymentMethod === 'UPI_DIRECT')
                   ? (order.paymentStatus === 'SUCCESS' ? '✅ Scan QR Payment Verified' : order.paymentStatus === 'FAILED' ? '❌ Scan QR Payment Rejected (Unverified)' : '⏳ Scan QR Payment Pending Verification')
-                  : isSuccess ? 'PhonePe Payment Verified' : 'PhonePe Payment Pending'}
+                  : isSuccess ? 'Payment Verified' : 'Payment Pending'}
               </span>
               <h1 className="text-2xl font-black text-white">Order Reference #{order.id}</h1>
               <p className="text-xs text-emerald-200 font-medium mt-0.5">
@@ -148,52 +179,95 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
 
       {/* Dispatch & Courier Tracking Timeline */}
       <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-6">
-        <h3 className="font-bold text-base text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
-          <Truck className="w-5 h-5 text-emerald-700" /> Live Nursery Delivery Timeline
-        </h3>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
+            <Truck className="w-5 h-5 text-emerald-700" /> Live Nursery Delivery Timeline
+          </h3>
+          <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 inline-block w-fit">
+            Current Stage: {isDelivered ? '4. Delivered' : isDispatched ? '3. Dispatched' : isPacking ? '2. Nursery Packing' : '1. Order Confirmed'}
+          </span>
+        </div>
 
         {/* Horizontal Timeline Steps */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-semibold">
-          <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-900 space-y-1">
-            <CheckCircle2 className="w-5 h-5 text-emerald-700" />
-            <p className="font-bold">1. Order Confirmed</p>
-            <p className="text-[10px] text-emerald-700">
-              {isCod ? 'Cash on Delivery' : order.paymentMethod === 'RAZORPAY' ? 'Razorpay PG Paid' : (order.paymentMethod === 'QR_PAYMENT' || order.paymentMethod === 'UPI_DIRECT') ? 'Scan QR Paid' : 'PhonePe PG Paid'}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          {/* Stage 1 */}
+          <div className="p-3.5 bg-emerald-50 border-2 border-emerald-300 rounded-2xl text-emerald-950 space-y-1 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <CheckCircle2 className="w-5 h-5 text-emerald-700" />
+              <span className="text-[10px] font-black text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded-md">✓ DONE</span>
+            </div>
+            <p className="font-bold text-xs">1. Order Confirmed</p>
+            <p className="text-[10.5px] text-emerald-800">
+              {isCod ? 'Cash on Delivery' : order.paymentMethod === 'RAZORPAY' ? 'Razorpay Paid' : (order.paymentMethod === 'QR_PAYMENT' || order.paymentMethod === 'UPI_DIRECT') ? 'Scan QR Paid' : 'Paid Online'}
             </p>
           </div>
 
-          <div className={`p-3 rounded-2xl border space-y-1 transition-all ${
-            order.orderStatus === 'PACKED' || order.orderStatus === 'PROCESSING' || order.orderStatus === 'DISPATCHED' || order.orderStatus === 'DELIVERED'
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-900 font-bold' 
+          {/* Stage 2 */}
+          <div className={`p-3.5 rounded-2xl border-2 space-y-1 transition-all shadow-2xs ${
+            isPacking
+              ? (s === 'PROCESSING' || s === 'PACKING' || s === 'PACKED')
+                ? 'bg-purple-50 border-purple-400 text-purple-950 font-bold ring-2 ring-purple-300'
+                : 'bg-emerald-50 border-emerald-300 text-emerald-950'
               : 'bg-slate-50 border-slate-200 text-slate-400'
           }`}>
-            <Package className="w-5 h-5 text-emerald-700" />
-            <p className="font-bold">2. Nursery Packing</p>
-            <p className="text-[10px] text-slate-500">
-              {order.orderStatus === 'PACKED' || order.orderStatus === 'PROCESSING' || order.orderStatus === 'DISPATCHED' || order.orderStatus === 'DELIVERED'
-                ? 'Roots Packed with Cocopeat' 
-                : 'Pending Packaging'}
+            <div className="flex items-center justify-between">
+              <Package className={`w-5 h-5 ${isPacking ? ((s === 'PROCESSING' || s === 'PACKING' || s === 'PACKED') ? 'text-purple-700' : 'text-emerald-700') : 'text-slate-400'}`} />
+              {isPacking && (
+                <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md ${
+                  (s === 'PROCESSING' || s === 'PACKING' || s === 'PACKED')
+                    ? 'text-purple-900 bg-purple-100 animate-pulse'
+                    : 'text-emerald-800 bg-emerald-100'
+                }`}>
+                  {(s === 'PROCESSING' || s === 'PACKING' || s === 'PACKED') ? '⚡ IN PROGRESS' : '✓ DONE'}
+                </span>
+              )}
+            </div>
+            <p className="font-bold text-xs">2. Nursery Packing</p>
+            <p className="text-[10.5px] text-slate-600">
+              {isPacking ? 'Roots packed with cocopeat' : 'Pending packaging'}
             </p>
           </div>
 
-          <div className={`p-3 rounded-2xl border space-y-1 transition-all ${
-            order.orderStatus === 'DISPATCHED' || order.orderStatus === 'OUT_FOR_DELIVERY' || order.orderStatus === 'DELIVERED'
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-900 font-bold'
+          {/* Stage 3 */}
+          <div className={`p-3.5 rounded-2xl border-2 space-y-1 transition-all shadow-2xs ${
+            isDispatched
+              ? (!isDelivered)
+                ? 'bg-blue-50 border-blue-400 text-blue-950 font-bold ring-2 ring-blue-300'
+                : 'bg-emerald-50 border-emerald-300 text-emerald-950'
               : 'bg-slate-50 border-slate-200 text-slate-400'
           }`}>
-            <Truck className="w-5 h-5 text-emerald-700" />
-            <p className="font-bold">3. Dispatched</p>
-            <p className="text-[10px] text-slate-500">
-              {order.courierName ? `${order.courierName}` : order.orderStatus === 'DISPATCHED' ? 'Courier In Transit' : 'Awaiting Dispatch'}
+            <div className="flex items-center justify-between">
+              <Truck className={`w-5 h-5 ${isDispatched ? (!isDelivered ? 'text-blue-700' : 'text-emerald-700') : 'text-slate-400'}`} />
+              {isDispatched && (
+                <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md ${
+                  !isDelivered ? 'text-blue-900 bg-blue-100 animate-pulse' : 'text-emerald-800 bg-emerald-100'
+                }`}>
+                  {!isDelivered ? '🚚 IN TRANSIT' : '✓ DONE'}
+                </span>
+              )}
+            </div>
+            <p className="font-bold text-xs">3. Dispatched</p>
+            <p className="text-[10.5px] text-slate-600">
+              {order.courierName ? `${order.courierName}` : isDispatched ? 'Courier in transit' : 'Awaiting dispatch'}
             </p>
           </div>
 
-          <div className={`p-3 rounded-2xl border space-y-1 transition-all ${
-            order.orderStatus === 'DELIVERED' ? 'bg-emerald-50 border-emerald-200 text-emerald-900 font-bold' : 'bg-slate-50 border-slate-200 text-slate-400'
+          {/* Stage 4 */}
+          <div className={`p-3.5 rounded-2xl border-2 space-y-1 transition-all shadow-2xs ${
+            isDelivered
+              ? 'bg-emerald-100 border-emerald-500 text-emerald-950 font-black ring-2 ring-emerald-400'
+              : 'bg-slate-50 border-slate-200 text-slate-400'
           }`}>
-            <CheckCircle2 className="w-5 h-5 text-emerald-700" />
-            <p className="font-bold">4. Delivered</p>
-            <p className="text-[10px] text-slate-500">{order.orderStatus === 'DELIVERED' ? 'Delivered Safely' : 'In Transit'}</p>
+            <div className="flex items-center justify-between">
+              <CheckCircle2 className={`w-5 h-5 ${isDelivered ? 'text-emerald-700' : 'text-slate-400'}`} />
+              {isDelivered && (
+                <span className="text-[10px] font-black text-emerald-900 bg-emerald-200 px-1.5 py-0.5 rounded-md">
+                  🎉 DELIVERED
+                </span>
+              )}
+            </div>
+            <p className="font-bold text-xs">4. Delivered</p>
+            <p className="text-[10.5px] text-slate-600">{isDelivered ? 'Delivered safely' : 'Awaiting delivery'}</p>
           </div>
         </div>
 
@@ -201,14 +275,14 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
         {order.trackingNumber && (
           <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
             <div>
-              <span className="font-bold text-emerald-900 block text-sm">Courier Partner: {order.courierName}</span>
+              <span className="font-bold text-emerald-900 block text-sm">Courier Partner: {order.courierName || 'ST Courier'}</span>
               <span className="font-mono font-semibold text-emerald-800">AWB Tracking No: {order.trackingNumber}</span>
             </div>
             <a
-              href={`https://www.google.com/search?q=${order.courierName}+tracking+${order.trackingNumber}`}
+              href={`https://www.google.com/search?q=${encodeURIComponent(order.courierName || 'Courier')}+tracking+${encodeURIComponent(order.trackingNumber)}`}
               target="_blank"
               rel="noreferrer"
-              className="px-4 py-2 bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1 hover:bg-emerald-800"
+              className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl text-xs flex items-center gap-1 cursor-pointer transition-colors shadow-xs"
             >
               <span>Track Courier Online</span>
               <ExternalLink className="w-3.5 h-3.5" />

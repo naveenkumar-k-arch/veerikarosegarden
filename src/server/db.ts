@@ -7175,14 +7175,23 @@ class Store {
             if (txnMatch) unpackedTxnId = txnMatch.trim();
           }
 
+          const rawTracking = (o as any).trackingNumber || '';
+          let parsedCourier: string | undefined = undefined;
+          let parsedTracking: string | undefined = rawTracking || undefined;
+          if (rawTracking.includes(' | ')) {
+            const parts = rawTracking.split(' | ');
+            parsedCourier = parts[0]?.trim();
+            parsedTracking = parts[1]?.trim();
+          }
+
           const hasProof = Boolean(unpackedProofUrl);
-          const stStr = String(o.status || '');
-          const dbOrderStatus: Order['orderStatus'] = (stStr === 'DELIVERED' 
+          const stStr = String(o.status || '').toUpperCase();
+          const dbOrderStatus: Order['orderStatus'] = (stStr === 'DELIVERED' || stStr === 'COMPLETED'
             ? 'DELIVERED' 
-            : stStr === 'DISPATCHED' || stStr === 'OUT_FOR_DELIVERY'
+            : stStr === 'DISPATCHED' || stStr === 'OUT_FOR_DELIVERY' || stStr === 'SHIPPED'
             ? 'DISPATCHED' 
             : stStr === 'PACKING' || stStr === 'PACKED' || stStr === 'PROCESSING'
-            ? 'PACKED' 
+            ? 'PROCESSING' 
             : stStr === 'PAID' || stStr === 'CONFIRMED'
             ? 'CONFIRMED' 
             : stStr === 'CANCELLED' 
@@ -7210,6 +7219,8 @@ class Store {
             paymentProofUrl: unpackedProofUrl,
             transactionId: unpackedTxnId || o.merchantTransactionId || '',
             merchantTransactionId: o.merchantTransactionId || '',
+            trackingNumber: parsedTracking,
+            courierName: parsedCourier,
             createdAt: o.createdAt.toISOString(),
             updatedAt: o.updatedAt.toISOString()
           };
@@ -7249,16 +7260,21 @@ class Store {
         if (!existing) {
           uniqueMap.set(o.id, o);
         } else {
-          // If existing is already present (from earlier priority list), retain its newer orderStatus
+          // Compare updatedAt timestamps to pick the fresher status
+          const existingTime = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
+          const incomingTime = o.updatedAt ? new Date(o.updatedAt).getTime() : 0;
+          const fresher = incomingTime >= existingTime ? o : existing;
+          const older = incomingTime >= existingTime ? existing : o;
+
           uniqueMap.set(o.id, {
-            ...o,
-            ...existing,
-            orderStatus: existing.orderStatus || o.orderStatus,
-            paymentStatus: existing.paymentStatus || o.paymentStatus,
-            trackingNumber: existing.trackingNumber || (o as any).trackingNumber,
-            courierName: existing.courierName || (o as any).courierName,
-            paymentProofUrl: existing.paymentProofUrl || o.paymentProofUrl,
-            deliveryNotes: existing.deliveryNotes || (o as any).deliveryNotes
+            ...older,
+            ...fresher,
+            orderStatus: fresher.orderStatus || older.orderStatus,
+            paymentStatus: fresher.paymentStatus || older.paymentStatus,
+            trackingNumber: fresher.trackingNumber || older.trackingNumber,
+            courierName: fresher.courierName || older.courierName,
+            paymentProofUrl: fresher.paymentProofUrl || older.paymentProofUrl,
+            deliveryNotes: fresher.deliveryNotes || (older as any).deliveryNotes
           });
         }
       }
@@ -7280,8 +7296,39 @@ class Store {
     const prisma = getPrismaClient();
     if (prisma) {
       try {
-        await prisma.orderItem.deleteMany({ where: { order: { OR: [{ id: clean }, { merchantTransactionId: clean }] } } }).catch(() => {});
-        await prisma.order.deleteMany({ where: { OR: [{ id: clean }, { merchantTransactionId: clean }] } }).catch(() => {});
+        await prisma.orderItem.deleteMany({
+          where: {
+            order: {
+              OR: [
+                { id: clean },
+                { orderNumber: clean },
+                { merchantTransactionId: clean }
+              ]
+            }
+          }
+        }).catch(() => {});
+
+        await prisma.payment.deleteMany({
+          where: {
+            order: {
+              OR: [
+                { id: clean },
+                { orderNumber: clean },
+                { merchantTransactionId: clean }
+              ]
+            }
+          }
+        }).catch(() => {});
+
+        await prisma.order.deleteMany({
+          where: {
+            OR: [
+              { id: clean },
+              { orderNumber: clean },
+              { merchantTransactionId: clean }
+            ]
+          }
+        }).catch(() => {});
       } catch (err) {
         console.error('Prisma deleteOrder error:', err);
       }
@@ -7290,71 +7337,33 @@ class Store {
   }
 
 
-  async getOrderById(id: string): Promise<Order | undefined> {
-    const clean = (id || '').trim();
-    if (!clean) return undefined;
-
-    const cleanLower = clean.toLowerCase();
-    const numOnly = clean.replace(/\D/g, '');
-
-    // 0. Instant memory lookup (< 1ms)
-    const gBuffer = ((globalThis as any).globalMemoryOrdersBuffer || []) as Order[];
-    const directMem = this.memoryOrders.find(o => 
-      (o.id && o.id.toLowerCase() === cleanLower) ||
-      (o.merchantTransactionId && o.merchantTransactionId.toLowerCase() === cleanLower) ||
-      (o.trackingNumber && o.trackingNumber.toLowerCase() === cleanLower)
-    ) || gBuffer.find(o => 
-      (o.id && o.id.toLowerCase() === cleanLower) ||
-      (o.merchantTransactionId && o.merchantTransactionId.toLowerCase() === cleanLower) ||
-      (o.trackingNumber && o.trackingNumber.toLowerCase() === cleanLower)
+  async getOrderById(id: string): Promise<Order | null> {
+    const clean = (id || '').trim().toLowerCase();
+    const memMatch = this.memoryOrders.find(o => 
+      (o.id && o.id.toLowerCase() === clean) ||
+      (o.merchantTransactionId && o.merchantTransactionId.toLowerCase() === clean) ||
+      (o.trackingNumber && o.trackingNumber.toLowerCase() === clean)
     );
-    if (directMem) return directMem;
-
-    // 1. Query combined orders
-    const all = await this.getOrders();
-
-    // Direct match on ID, orderNumber, merchantTransactionId, or trackingNumber
-    let match = all.find(o =>
-      (o.id && o.id.toLowerCase() === cleanLower) ||
-      (o.merchantTransactionId && o.merchantTransactionId.toLowerCase() === cleanLower) ||
-      (o.trackingNumber && o.trackingNumber.toLowerCase() === cleanLower)
-    );
-
-    // Flexible numeric match (e.g., searching "0" matches "ORD-0")
-    if (!match && numOnly !== '') {
-      match = all.find(o => {
-        if (!o.id) return false;
-        const oNum = o.id.replace(/\D/g, '');
-        return oNum === numOnly;
-      });
-    }
-
-    // Phone number match (10 digits)
-    if (!match && numOnly.length >= 10) {
-      match = all.find(o => o.customerPhone && o.customerPhone.replace(/\D/g, '').slice(-10) === numOnly.slice(-10));
-    }
-
-    if (match) return match;
-
-    const memMatch = this.memoryOrders.find(o => o.id === id || o.merchantTransactionId === id);
 
     const prisma = getPrismaClient();
-    if (!prisma) return memMatch;
+    if (!prisma) {
+      return memMatch || null;
+    }
 
     try {
       const o = await prisma.order.findFirst({
         where: {
           OR: [
-            { id: clean },
-            { orderNumber: clean },
-            { merchantTransactionId: clean },
-            { trackingNumber: clean }
+            { id: { equals: id, mode: 'insensitive' } },
+            { orderNumber: { equals: id, mode: 'insensitive' } },
+            { merchantTransactionId: { equals: id, mode: 'insensitive' } },
+            { trackingNumber: { contains: id, mode: 'insensitive' } }
           ]
         },
         include: { items: { include: { product: true } } }
       });
 
-      if (!o) return memMatch;
+      if (!o) return memMatch || null;
 
       const parsedAddress = {
         fullName: o.customerName,
@@ -7379,13 +7388,37 @@ class Store {
         image: i.product?.image || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80'
       }));
 
-      const stStr = String(o.status || '');
-      const dbStatus: Order['orderStatus'] = (stStr === 'DELIVERED' 
+      // Unpack notes
+      const notesStr = (o as any).notes || '';
+      let unpackedProofUrl: string | undefined = undefined;
+      let unpackedTxnId: string | undefined = undefined;
+      if (notesStr.includes('|||PROOF|||')) {
+        const proofMatch = notesStr.split('|||PROOF|||')[1]?.split('|||TXNID|||')[0];
+        const txnMatch = notesStr.split('|||TXNID|||')[1];
+        if (proofMatch) unpackedProofUrl = proofMatch.trim();
+        if (txnMatch) unpackedTxnId = txnMatch.trim();
+      } else if (notesStr.includes('|||TXNID|||')) {
+        const txnMatch = notesStr.split('|||TXNID|||')[1];
+        if (txnMatch) unpackedTxnId = txnMatch.trim();
+      }
+
+      const rawTracking = (o as any).trackingNumber || '';
+      let parsedCourier: string | undefined = undefined;
+      let parsedTracking: string | undefined = rawTracking || undefined;
+      if (rawTracking.includes(' | ')) {
+        const parts = rawTracking.split(' | ');
+        parsedCourier = parts[0]?.trim();
+        parsedTracking = parts[1]?.trim();
+      }
+
+      const hasProof = Boolean(unpackedProofUrl);
+      const stStr = String(o.status || '').toUpperCase();
+      const dbStatus: Order['orderStatus'] = (stStr === 'DELIVERED' || stStr === 'COMPLETED'
         ? 'DELIVERED' 
-        : stStr === 'DISPATCHED' || stStr === 'OUT_FOR_DELIVERY'
+        : stStr === 'DISPATCHED' || stStr === 'OUT_FOR_DELIVERY' || stStr === 'SHIPPED'
         ? 'DISPATCHED' 
         : stStr === 'PACKING' || stStr === 'PACKED' || stStr === 'PROCESSING'
-        ? 'PACKED' 
+        ? 'PROCESSING' 
         : stStr === 'PAID' || stStr === 'CONFIRMED'
         ? 'CONFIRMED' 
         : stStr === 'CANCELLED' 
@@ -7405,8 +7438,16 @@ class Store {
         grandTotal: o.totalAmount,
         orderStatus: dbStatus,
         paymentStatus: o.paymentStatus === 'SUCCESS' ? 'SUCCESS' : o.paymentStatus === 'FAILED' ? 'FAILED' : 'PENDING',
-        paymentMethod: ((o as any).paymentMethod === 'COD' ? 'COD' : 'PHONEPE') as PaymentMethod,
+        paymentMethod: ((o as any).paymentMethod === 'COD' 
+          ? 'COD' 
+          : ((o as any).paymentMethod === 'UPI' || (o as any).paymentMethod === 'QR_PAYMENT' || hasProof)
+          ? 'QR_PAYMENT'
+          : 'PHONEPE') as PaymentMethod,
+        paymentProofUrl: unpackedProofUrl || memMatch?.paymentProofUrl,
+        transactionId: unpackedTxnId || o.merchantTransactionId || '',
         merchantTransactionId: o.merchantTransactionId || '',
+        trackingNumber: parsedTracking || (memMatch as any)?.trackingNumber,
+        courierName: parsedCourier || (memMatch as any)?.courierName,
         createdAt: o.createdAt.toISOString(),
         updatedAt: o.updatedAt.toISOString()
       };
@@ -7437,7 +7478,12 @@ class Store {
   }
 
   async updateOrderStatus(orderId: string, status?: Order['orderStatus'], trackingNumber?: string, courierName?: string, paymentStatus?: string, paymentProofUrl?: string): Promise<Order | null> {
-    let memOrder = this.memoryOrders.find(o => o.id === orderId);
+    const cleanId = (orderId || '').trim().toLowerCase();
+    let memOrder = this.memoryOrders.find(o => 
+      (o.id && o.id.toLowerCase() === cleanId) || 
+      (o.merchantTransactionId && o.merchantTransactionId.toLowerCase() === cleanId)
+    );
+
     if (!memOrder) {
       memOrder = {
         id: orderId,
@@ -7458,12 +7504,12 @@ class Store {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
-      this.memoryOrders.push(memOrder);
+      this.memoryOrders.unshift(memOrder);
     } else {
       if (status) memOrder.orderStatus = status;
       if (paymentStatus) memOrder.paymentStatus = paymentStatus as any;
-      if (trackingNumber) (memOrder as any).trackingNumber = trackingNumber;
-      if (courierName) (memOrder as any).courierName = courierName;
+      if (trackingNumber !== undefined) (memOrder as any).trackingNumber = trackingNumber;
+      if (courierName !== undefined) (memOrder as any).courierName = courierName;
       if (paymentProofUrl) {
         memOrder.paymentProofUrl = paymentProofUrl;
         memOrder.paymentMethod = 'QR_PAYMENT';
@@ -7474,7 +7520,7 @@ class Store {
     // Update in global buffer and cache
     if (!(globalThis as any).globalMemoryOrdersBuffer) (globalThis as any).globalMemoryOrdersBuffer = [];
     const gBuffer = (globalThis as any).globalMemoryOrdersBuffer as Order[];
-    const gIndex = gBuffer.findIndex(o => o.id === orderId);
+    const gIndex = gBuffer.findIndex(o => (o.id && o.id.toLowerCase() === cleanId) || (o.merchantTransactionId && o.merchantTransactionId.toLowerCase() === cleanId));
     if (gIndex !== -1) {
       gBuffer[gIndex] = { ...gBuffer[gIndex], ...memOrder };
     } else {
@@ -7482,15 +7528,20 @@ class Store {
     }
 
     if (typeof DEFAULT_ORDERS !== 'undefined') {
-      const defIdx = DEFAULT_ORDERS.findIndex(o => o.id === orderId);
+      const defIdx = DEFAULT_ORDERS.findIndex(o => (o.id && o.id.toLowerCase() === cleanId) || (o.merchantTransactionId && o.merchantTransactionId.toLowerCase() === cleanId));
       if (defIdx !== -1) {
         DEFAULT_ORDERS[defIdx] = { ...DEFAULT_ORDERS[defIdx], ...memOrder };
       }
     }
 
     if (this.ordersCache && this.ordersCache.data) {
-      this.ordersCache.data = this.ordersCache.data.map(o => o.id === orderId ? { ...o, ...memOrder } : o);
+      this.ordersCache.data = this.ordersCache.data.map(o => 
+        ((o.id && o.id.toLowerCase() === cleanId) || (o.merchantTransactionId && o.merchantTransactionId.toLowerCase() === cleanId)) 
+          ? { ...o, ...memOrder } 
+          : o
+      );
     }
+    this.invalidateOrdersCache();
 
     const prisma = getPrismaClient();
     if (prisma) {
@@ -7510,13 +7561,14 @@ class Store {
       prisma.order.updateMany({
         where: {
           OR: [
-            { id: orderId },
-            { orderNumber: orderId },
-            { merchantTransactionId: orderId }
+            { id: { equals: orderId, mode: 'insensitive' } },
+            { orderNumber: { equals: orderId, mode: 'insensitive' } },
+            { merchantTransactionId: { equals: orderId, mode: 'insensitive' } }
           ]
         },
         data: {
           status: dbStatus as any,
+          updatedAt: new Date(),
           ...(dbPayment ? { paymentStatus: dbPayment as any } : {}),
           ...(finalTracking ? { trackingNumber: finalTracking } : {})
         }

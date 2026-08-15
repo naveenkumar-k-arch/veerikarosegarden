@@ -448,6 +448,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
 
   // Track recently-edited stock so auto-poll doesn't overwrite user changes
   const pendingStockRef = React.useRef<Map<string, number>>(new Map());
+  // Track recently-edited order status so auto-poll doesn't overwrite user changes
+  const pendingOrderStatusRef = React.useRef<Map<string, { status: string; paymentStatus?: string; courierName?: string; trackingNumber?: string; time: number }>>(new Map());
 
   // Modals state
   const [showProductModal, setShowProductModal] = useState(false);
@@ -665,7 +667,22 @@ const silentRefresh = async (): Promise<boolean> => {
         }
         if (Array.isArray(bRes.categories) && bRes.categories.length > 0) setCategories(bRes.categories);
         if (Array.isArray(bRes.coupons)) setCoupons(bRes.coupons);
-        if (Array.isArray(bRes.orders)) setOrders(bRes.orders);
+        if (Array.isArray(bRes.orders)) {
+          const now = Date.now();
+          setOrders(bRes.orders.map((apiOrder: Order) => {
+            const pending = pendingOrderStatusRef.current.get(apiOrder.id) || (apiOrder.merchantTransactionId ? pendingOrderStatusRef.current.get(apiOrder.merchantTransactionId) : undefined);
+            if (pending && now - pending.time < 15000) {
+              return {
+                ...apiOrder,
+                orderStatus: (pending.status as any) || apiOrder.orderStatus,
+                paymentStatus: (pending.paymentStatus as any) || apiOrder.paymentStatus,
+                courierName: pending.courierName || (apiOrder as any).courierName,
+                trackingNumber: pending.trackingNumber || (apiOrder as any).trackingNumber
+              };
+            }
+            return apiOrder;
+          }));
+        }
         if (Array.isArray(bRes.banners)) setBanners(bRes.banners);
         if (Array.isArray(bRes.reviews)) setReviews(bRes.reviews);
         if (bRes.settings) setSettings(bRes.settings);
@@ -1122,11 +1139,46 @@ const silentRefresh = async (): Promise<boolean> => {
     if (!dispatchOrder) return;
     const finalCourier = customCourier || courierName || 'Self Delivery (Nursery Farm Team)';
     const finalTracking = customTracking || trackingNumber.trim() || 'VRG-SELF-DELIVERY';
+    const targetOrderId = dispatchOrder.id;
 
-    toast.success(`Order #${dispatchOrder.id} dispatched via ${finalCourier}!`, 'Order Dispatched');
+    pendingOrderStatusRef.current.set(targetOrderId, {
+      status: 'DISPATCHED',
+      courierName: finalCourier,
+      trackingNumber: finalTracking,
+      time: Date.now()
+    });
 
+    // 1. Instant 0ms UI update
+    setOrders(prev => {
+      const updatedList = prev.map(o => o.id === targetOrderId ? {
+        ...o,
+        orderStatus: 'DISPATCHED' as any,
+        courierName: finalCourier,
+        trackingNumber: finalTracking,
+        updatedAt: new Date().toISOString()
+      } : o);
+
+      const keysToSave = ['veerika_admin_orders', 'vrg_user_orders', 'veerika_customer_orders', 'vrg_orders', 'vrg_my_orders'];
+      keysToSave.forEach(key => {
+        try {
+          localStorage.setItem(key, JSON.stringify(updatedList));
+        } catch {}
+      });
+      try {
+        const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
+        cached.orders = updatedList;
+        localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+      } catch {}
+      return updatedList;
+    });
+
+    setDispatchOrder(null);
+    setTrackingNumber('');
+    toast.success(`Order #${targetOrderId} dispatched via ${finalCourier}!`, 'Order Dispatched');
+
+    // 2. Await backend sync
     try {
-      const res = await authFetch(`/api/admin/orders/${dispatchOrder.id}/status`, {
+      const res = await authFetch(`/api/admin/orders/${targetOrderId}/status`, {
         method: 'PUT',
         body: JSON.stringify({
           orderStatus: 'DISPATCHED',
@@ -1134,35 +1186,34 @@ const silentRefresh = async (): Promise<boolean> => {
           trackingNumber: finalTracking
         })
       });
-      const data = await res.json();
-      if (data.success || res.ok) {
-        setDispatchOrder(null);
-        setTrackingNumber('');
-        fetchData();
-      } else {
-        // Fallback update local orders state
-        setOrders(prev => prev.map(o => o.id === dispatchOrder.id ? { ...o, orderStatus: 'DISPATCHED', courierName: finalCourier, trackingNumber: finalTracking } : o));
-        setDispatchOrder(null);
-        setTrackingNumber('');
+      const data = await res.json().catch(() => null);
+      if (data && data.order) {
+        setOrders(prev => prev.map(o => (o.id === data.order.id || o.merchantTransactionId === data.order.merchantTransactionId) ? { ...o, ...data.order } : o));
       }
     } catch (err) {
-      console.error(err);
-      setOrders(prev => prev.map(o => o.id === dispatchOrder.id ? { ...o, orderStatus: 'DISPATCHED', courierName: finalCourier, trackingNumber: finalTracking } : o));
-      setDispatchOrder(null);
-      setTrackingNumber('');
+      console.error('Error dispatching order:', err);
     }
+
+    try {
+      window.dispatchEvent(new CustomEvent('orderStatusUpdated', { detail: { orderId: targetOrderId, status: 'DISPATCHED' } }));
+    } catch {}
   };
 
   // Handle Quick Order Status Updates (Instant 0ms UI response)
   const handleUpdateOrderStatus = async (orderId: string, status: string, paymentStatus?: string) => {
-    toast.success(`Order #${orderId} status updated to ${status}!`, 'Order Updated');
+    pendingOrderStatusRef.current.set(orderId, {
+      status,
+      paymentStatus,
+      time: Date.now()
+    });
 
     const updateSingleOrder = (o: Order): Order => {
-      if (o.id === orderId) {
+      if (o.id === orderId || o.merchantTransactionId === orderId) {
         return {
           ...o,
           orderStatus: status as any,
-          paymentStatus: paymentStatus ? (paymentStatus as any) : o.paymentStatus
+          paymentStatus: paymentStatus ? (paymentStatus as any) : o.paymentStatus,
+          updatedAt: new Date().toISOString()
         };
       }
       return o;
@@ -1170,27 +1221,37 @@ const silentRefresh = async (): Promise<boolean> => {
 
     setOrders(prev => {
       const updatedOrdersList = prev.map(updateSingleOrder);
-
       const keysToSave = ['veerika_admin_orders', 'vrg_user_orders', 'veerika_customer_orders', 'vrg_orders', 'vrg_my_orders'];
       keysToSave.forEach(key => {
         try {
           localStorage.setItem(key, JSON.stringify(updatedOrdersList));
         } catch {}
       });
-
+      try {
+        const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
+        cached.orders = updatedOrdersList;
+        localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+      } catch {}
       return updatedOrdersList;
     });
 
-    try {
-      window.dispatchEvent(new CustomEvent('orderStatusUpdated', { detail: { orderId, status, paymentStatus } }));
-    } catch {}
+    toast.success(`Order #${orderId} moved to ${status}!`, 'Stage Updated');
 
-    // Async backend update
     try {
-      authFetch(`/api/admin/orders/${orderId}/status`, {
+      const res = await authFetch(`/api/admin/orders/${orderId}/status`, {
         method: 'PUT',
         body: JSON.stringify({ orderStatus: status, paymentStatus })
-      }).catch(() => null);
+      });
+      const data = await res.json().catch(() => null);
+      if (data && data.order) {
+        setOrders(prev => prev.map(o => (o.id === data.order.id || o.merchantTransactionId === data.order.merchantTransactionId) ? { ...o, ...data.order } : o));
+      }
+    } catch (err) {
+      console.warn('Backend updateOrderStatus error:', err);
+    }
+
+    try {
+      window.dispatchEvent(new CustomEvent('orderStatusUpdated', { detail: { orderId, status, paymentStatus } }));
     } catch {}
   };
 
