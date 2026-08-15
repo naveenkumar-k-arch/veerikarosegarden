@@ -121,12 +121,26 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'categories' | 'orders' | 'inventory' | 'coupons' | 'banners' | 'reviews' | 'settings' | 'audit' | 'finances' | 'payment_logs'>('dashboard');
   const [orderFilterStage, setOrderFilterStage] = useState<'all' | 'pending' | 'packing' | 'dispatched' | 'delivered'>('all');
 
-  const [stats, setStats] = useState<any>(null);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [coupons, setCoupons] = useState<Coupon[]>([]);
-  const [combos, setCombos] = useState<Combo[]>([]);
+  // Secure session-scoped cache for instant (<30ms) Stale-While-Revalidate UI hydration
+  const getAdminSessionCache = (): any => {
+    try {
+      const saved = sessionStorage.getItem('vrg_admin_session_cache');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object' && parsed.success) return parsed;
+      }
+    } catch {}
+    return null;
+  };
+
+  const initialCache = React.useMemo(() => getAdminSessionCache(), []);
+
+  const [stats, setStats] = useState<any>(() => initialCache?.stats || null);
+  const [products, setProducts] = useState<Product[]>(() => Array.isArray(initialCache?.products) ? initialCache.products : []);
+  const [categories, setCategories] = useState<Category[]>(() => Array.isArray(initialCache?.categories) ? initialCache.categories : []);
+  const [orders, setOrders] = useState<Order[]>(() => Array.isArray(initialCache?.orders) ? initialCache.orders : []);
+  const [coupons, setCoupons] = useState<Coupon[]>(() => Array.isArray(initialCache?.coupons) ? initialCache.coupons : []);
+  const [combos, setCombos] = useState<Combo[]>(() => Array.isArray(initialCache?.combos) ? initialCache.combos : []);
   const [showComboModal, setShowComboModal] = useState(false);
   const [editingCombo, setEditingCombo] = useState<Combo | null>(null);
   const [comboSearchQuery, setComboSearchQuery] = useState('');
@@ -152,7 +166,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
     return INITIAL_REVIEWS;
   };
 
-  const [banners, setBanners] = useState<Banner[]>([]);
+  const [banners, setBanners] = useState<Banner[]>(() => Array.isArray(initialCache?.banners) ? initialCache.banners : []);
   const [reviews, setReviews] = useState<Review[]>(propsReviews || getInitialAdminReviews());
 
   useEffect(() => {
@@ -412,16 +426,16 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
       console.error('API save review reply error:', err);
     }
   };
-  const [settings, setSettings] = useState<SiteSettings | null>({} as SiteSettings);
+  const [settings, setSettings] = useState<SiteSettings | null>(() => initialCache?.settings || ({} as SiteSettings));
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsMsg, setSettingsMsg] = useState<string | null>(null);
-  const [paymentLogs, setPaymentLogs] = useState<PaymentLog[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [paymentLogs, setPaymentLogs] = useState<PaymentLog[]>(() => Array.isArray(initialCache?.paymentLogs) ? initialCache.paymentLogs : []);
+  const [loading, setLoading] = useState<boolean>(() => !initialCache || (!initialCache.products?.length && !initialCache.orders?.length));
   const [selectedProofOrder, setSelectedProofOrder] = useState<Order | null>(null);
 
 
   // Financial P&L Entries state
-  const [finances, setFinances] = useState<FinancialEntry[]>([]);
+  const [finances, setFinances] = useState<FinancialEntry[]>(() => Array.isArray(initialCache?.finances) ? initialCache.finances : []);
   const [editingFinance, setEditingFinance] = useState<FinancialEntry | null>(null);
   const [showFinanceModal, setShowFinanceModal] = useState(false);
 
@@ -689,7 +703,7 @@ const silentRefresh = async (): Promise<boolean> => {
         if (Array.isArray(bRes.paymentLogs)) setPaymentLogs(bRes.paymentLogs);
 
         try {
-          localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(bRes));
+          sessionStorage.setItem('vrg_admin_session_cache', JSON.stringify(bRes));
         } catch {}
       } else {
         // Fast fallback: fetch public endpoints without 401 retry overhead
@@ -1982,6 +1996,7 @@ const silentRefresh = async (): Promise<boolean> => {
             setAdminLayoutMode('desktop_full');
           }}
           onLogout={() => {
+            sessionStorage.removeItem('vrg_admin_session_cache');
             localStorage.removeItem('vrg_user');
             localStorage.removeItem('vrg_admin_email');
             localStorage.removeItem('vrg_admin_role');
@@ -2137,6 +2152,7 @@ const silentRefresh = async (): Promise<boolean> => {
 
               <button
                 onClick={() => {
+                  sessionStorage.removeItem('vrg_admin_session_cache');
                   localStorage.removeItem('vrg_user');
                   localStorage.removeItem('vrg_admin_email');
                   localStorage.removeItem('vrg_admin_role');
