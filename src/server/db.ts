@@ -5449,10 +5449,17 @@ class Store {
     return DEFAULT_PRODUCTS.find(p => (p.id === id || p.sku === id) && !deletedProductIds.has(p.id));
   }
 
+  async updateStock(id: string, newStock: number): Promise<boolean> {
+    const updated = await this.updateProduct(id, { stock: Number(newStock) });
+    return Boolean(updated);
+  }
+
   async addProduct(product: Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'rating' | 'reviewCount'>): Promise<Product> {
     const prisma = getPrismaClient();
     const id = 'prod-' + Date.now();
     const sku = product.sku || `VRG-${id.slice(-6).toUpperCase()}`;
+    deletedProductIds.delete(id);
+    deletedProductIds.delete(sku);
 
     // Verify categoryId exists in Prisma to avoid FK constraint failure
     let validCategoryId: string | null = null;
@@ -5538,6 +5545,8 @@ class Store {
   }
 
   async updateProduct(id: string, updates: Partial<Product>): Promise<Product | null> {
+    deletedProductIds.delete(id);
+    if (updates.sku) deletedProductIds.delete(updates.sku);
     const cleanImages = Array.isArray(updates.images) && updates.images.filter(Boolean).length > 0
       ? updates.images.filter(Boolean)
       : (updates as any).imageUrl ? [String((updates as any).imageUrl).trim()]

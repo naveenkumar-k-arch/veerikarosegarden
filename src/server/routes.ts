@@ -44,22 +44,31 @@ apiRouter.get('/health', async (req, res) => {
   });
 });
 
+// In-memory bootstrap response cache (15s TTL) — eliminates repeated DB hits from 30s polling
+let bootstrapCache: { data: any; expiresAt: number } = { data: null, expiresAt: 0 };
+export const invalidateBootstrapCache = () => {
+  bootstrapCache.expiresAt = 0;
+  bootstrapCache.data = null;
+};
+
 // ================= PRODUCT ROUTES =================
 apiRouter.get('/products', async (req, res) => {
   try {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
-    const { search, categoryId, featured, bestSeller, minPrice, maxPrice, sort } = req.query;
-    const hasFilter = Boolean(search || categoryId || featured === 'true' || bestSeller === 'true' || minPrice || maxPrice || sort);
+    const { category, categoryId, search, minPrice, maxPrice, featured, bestSeller, sort, sortBy } = req.query;
+    const resolvedCat = (categoryId || category) ? String(categoryId || category) : undefined;
+    const resolvedSort = (sortBy || sort) ? String(sortBy || sort) : undefined;
+    const hasFilter = Boolean(resolvedCat || search || minPrice || maxPrice || featured !== undefined || bestSeller !== undefined || resolvedSort);
     const products = await db.getProducts(hasFilter ? {
-      search: search as string,
-      categoryId: categoryId as string,
-      featured: featured === 'true',
-      bestSeller: bestSeller === 'true',
+      categoryId: resolvedCat,
+      search: search ? String(search) : undefined,
       minPrice: minPrice ? Number(minPrice) : undefined,
       maxPrice: maxPrice ? Number(maxPrice) : undefined,
-      sort: sort as string
+      featured: featured !== undefined ? featured === 'true' : undefined,
+      bestSeller: bestSeller !== undefined ? bestSeller === 'true' : undefined,
+      sort: resolvedSort
     } : undefined);
     res.json({ success: true, count: products.length, products });
   } catch (error: any) {
@@ -69,6 +78,9 @@ apiRouter.get('/products', async (req, res) => {
 
 apiRouter.get('/products/:id', async (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     const product = await db.getProductById(req.params.id);
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found' });
@@ -82,6 +94,7 @@ apiRouter.get('/products/:id', async (req, res) => {
 apiRouter.post('/products', requireAdmin, validateBody(productSchema), async (req: AuthenticatedRequest, res) => {
   try {
     const product = await db.addProduct(req.body);
+    invalidateBootstrapCache();
     res.status(201).json({ success: true, product, message: 'Product added successfully' });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -94,6 +107,7 @@ apiRouter.put('/products/:id', requireAdmin, validateBody(productSchema.partial(
     if (!updated) {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
+    invalidateBootstrapCache();
     res.json({ success: true, product: updated, message: 'Product updated successfully' });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -106,6 +120,7 @@ apiRouter.delete('/products/all', requireAdmin, async (req: AuthenticatedRequest
       return res.status(400).json({ success: false, message: 'Bulk deletion requires explicit confirmation parameter (?confirm=CONFIRM_DELETE_ALL).' });
     }
     await db.deleteAllProducts();
+    invalidateBootstrapCache();
     res.json({ success: true, message: 'All products removed successfully' });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
@@ -115,6 +130,7 @@ apiRouter.delete('/products/all', requireAdmin, async (req: AuthenticatedRequest
 apiRouter.delete('/products/:id', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     await db.deleteProduct(req.params.id);
+    invalidateBootstrapCache();
     res.json({ success: true, message: 'Product deleted' });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
@@ -1140,9 +1156,6 @@ apiRouter.get('/admin/dashboard', requireAdmin, async (req: AuthenticatedRequest
     res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
 });
-
-// In-memory bootstrap response cache (15s TTL) — eliminates repeated DB hits from 30s polling
-let bootstrapCache: { data: any; expiresAt: number } = { data: null, expiresAt: 0 };
 
 apiRouter.get('/admin/bootstrap', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {

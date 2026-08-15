@@ -884,9 +884,10 @@ const silentRefresh = async (): Promise<boolean> => {
           : [{ ...savedProd } as Product, ...prev.filter(p => p.id !== savedProd.id)];
         updatedProductsList = next;
         try {
-          const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
+          const raw = sessionStorage.getItem('vrg_admin_session_cache');
+          const cached = raw ? JSON.parse(raw) : {};
           cached.products = next;
-          localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+          sessionStorage.setItem('vrg_admin_session_cache', JSON.stringify(cached));
           localStorage.setItem('vrg_products', JSON.stringify(next));
         } catch {}
         return next;
@@ -916,9 +917,10 @@ const silentRefresh = async (): Promise<boolean> => {
       nextList = prev.filter(p => p.id !== id);
       try {
         localStorage.setItem('vrg_products', JSON.stringify(nextList));
-        const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
+        const raw = sessionStorage.getItem('vrg_admin_session_cache');
+        const cached = raw ? JSON.parse(raw) : {};
         cached.products = nextList;
-        localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+        sessionStorage.setItem('vrg_admin_session_cache', JSON.stringify(cached));
       } catch {}
       return nextList;
     });
@@ -1283,7 +1285,18 @@ const silentRefresh = async (): Promise<boolean> => {
     const validStock = Math.max(0, newStock);
     // Mark this product as recently edited (prevents fetchData from reverting it for 10s)
     pendingStockRef.current.set(productId, Date.now());
-    setProducts(prev => prev.map(p => p.id === productId ? { ...p, stock: validStock } : p));
+    let nextList: Product[] = [];
+    setProducts(prev => {
+      nextList = prev.map(p => p.id === productId ? { ...p, stock: validStock } : p);
+      try {
+        const raw = sessionStorage.getItem('vrg_admin_session_cache');
+        const cached = raw ? JSON.parse(raw) : {};
+        cached.products = nextList;
+        sessionStorage.setItem('vrg_admin_session_cache', JSON.stringify(cached));
+        localStorage.setItem('vrg_products', JSON.stringify(nextList));
+      } catch {}
+      return nextList;
+    });
 
     try {
       await authFetch(`/api/products/${productId}`, {
