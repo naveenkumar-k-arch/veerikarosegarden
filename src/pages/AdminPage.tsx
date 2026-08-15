@@ -118,7 +118,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
   });
   const [desktopLabelOrders, setDesktopLabelOrders] = useState<Order[] | null>(null);
   const [showAdminMenuDrawer, setShowAdminMenuDrawer] = useState(false);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'categories' | 'orders' | 'inventory' | 'coupons' | 'banners' | 'reviews' | 'settings' | 'audit' | 'finances'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'categories' | 'orders' | 'inventory' | 'coupons' | 'banners' | 'reviews' | 'settings' | 'audit' | 'finances' | 'payment_logs'>('dashboard');
   const [orderFilterStage, setOrderFilterStage] = useState<'all' | 'pending' | 'packing' | 'dispatched' | 'delivered'>('all');
 
   const [stats, setStats] = useState<any>(null);
@@ -2103,6 +2103,7 @@ const silentRefresh = async (): Promise<boolean> => {
                 { key: 'products', label: `Products (${products.length})`, icon: <Package className="w-4 h-4" /> },
                 { key: 'categories', label: `Categories (${categories.length})`, icon: <FolderTree className="w-4 h-4" /> },
                 { key: 'orders', label: `All Orders (${orders.length})`, icon: <ShoppingBag className="w-4 h-4" /> },
+                { key: 'payment_logs', label: `Payment Gateway Logs (${paymentLogs.length})`, icon: <CreditCard className="w-4 h-4 text-indigo-600" /> },
                 { key: 'inventory', label: 'Inventory & Stock Alerts', icon: <AlertTriangle className="w-4 h-4 text-amber-500" /> },
                 { key: 'coupons', label: 'Discount Coupons', icon: <Tag className="w-4 h-4" /> },
                 { key: 'banners', label: 'Homepage Banners', icon: <Image className="w-4 h-4" /> },
@@ -2163,6 +2164,7 @@ const silentRefresh = async (): Promise<boolean> => {
             { key: 'dashboard', icon: <LayoutDashboard className="w-4 h-4" />, label: 'Dashboard' },
             { key: 'products', icon: <Package className="w-4 h-4" />, label: `Products (${products.length})` },
             { key: 'orders', icon: <ShoppingBag className="w-4 h-4" />, label: `Orders (${orders.length})` },
+            { key: 'payment_logs', icon: <CreditCard className="w-4 h-4 text-indigo-600" />, label: `Payment Logs (${paymentLogs.length})` },
             { key: 'categories', icon: <FolderTree className="w-4 h-4" />, label: 'Categories' },
             { key: 'inventory', icon: <AlertTriangle className="w-4 h-4 text-amber-500" />, label: 'Inventory' },
             { key: 'coupons', icon: <Tag className="w-4 h-4" />, label: 'Coupons' },
@@ -2739,17 +2741,21 @@ const silentRefresh = async (): Promise<boolean> => {
                         <span className={`px-2.5 py-0.5 rounded-full font-bold text-[11px] ${
                           isCod 
                             ? 'bg-amber-100 text-amber-900 border border-amber-300' 
+                            : o.paymentMethod === 'RAZORPAY'
+                            ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
                             : (o.paymentMethod === 'QR_PAYMENT' || o.paymentMethod === 'UPI_DIRECT' || o.paymentProofUrl)
                             ? 'bg-indigo-100 text-indigo-950 border border-indigo-300'
                             : 'bg-blue-100 text-blue-900 border border-blue-300'
                         }`}>
                           {isCod 
                             ? '💵 Cash on Delivery (COD)' 
+                            : o.paymentMethod === 'RAZORPAY'
+                            ? '⚡ Razorpay (Auto-Verified)'
                             : (o.paymentMethod === 'QR_PAYMENT' || o.paymentMethod === 'UPI_DIRECT' || o.paymentProofUrl)
                             ? '📸 Scan QR Code Payment'
-                            : '📱 PhonePe UPI'}
+                            : '📱 PhonePe (Auto-Verified)'}
                         </span>
-                        {(o.paymentProofUrl || o.paymentMethod === 'QR_PAYMENT') && (
+                        {(o.paymentMethod === 'QR_PAYMENT' || o.paymentMethod === 'UPI_DIRECT' || Boolean(o.paymentProofUrl)) && o.paymentProofUrl && (
                           <button
                             onClick={() => setSelectedProofOrder(o)}
                             className="px-2.5 py-0.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-full text-[11px] flex items-center gap-1 transition-all cursor-pointer shadow-2xs"
@@ -2892,77 +2898,99 @@ const silentRefresh = async (): Promise<boolean> => {
                         )}
                       </div>
 
-                      {/* Manual Online & Scan QR Payment Verification Box */}
+                      {/* Payment Verification Box: Automated Gateway vs QR Screenshot Proof */}
                       {!isCod && (
-                        <div className="bg-indigo-50/90 border-2 border-indigo-200 rounded-2xl p-4 space-y-3 shadow-xs">
-                          {/* Header bar with Amount & Payment Method */}
-                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-indigo-200/80 pb-2.5">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-extrabold text-slate-900 text-xs flex items-center gap-1.5 bg-indigo-100 px-3 py-1 rounded-xl border border-indigo-300">
-                                <Camera className="w-4 h-4 text-indigo-700" />
-                                <span>Payment Method: <strong>{(o.paymentMethod === 'QR_PAYMENT' || o.paymentMethod === 'UPI_DIRECT' || o.paymentProofUrl) ? 'Scan QR Code Payment' : 'PhonePe UPI'}</strong></span>
-                              </span>
-
-                              <span className="font-extrabold text-emerald-900 text-xs bg-emerald-100 px-3 py-1 rounded-xl border border-emerald-300">
-                                💰 Amount to Verify: <strong>₹{o.grandTotal}</strong>
-                              </span>
+                        (o.paymentMethod === 'RAZORPAY' || o.paymentMethod === 'PHONEPE') && !o.paymentProofUrl ? (
+                          <div className="bg-emerald-50 border border-emerald-300 rounded-2xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-xl bg-emerald-700 text-white flex items-center justify-center font-black text-xs shrink-0">
+                                ⚡
+                              </div>
+                              <div>
+                                <p className="font-extrabold text-emerald-950 text-xs">
+                                  {o.paymentMethod === 'RAZORPAY' ? '⚡ Razorpay Payment Gateway' : '📱 PhonePe Online Gateway'} • Auto-Verified
+                                </p>
+                                <p className="text-[11px] text-emerald-800 font-medium">
+                                  Gateway Transaction: <span className="font-mono font-bold">{o.merchantTransactionId || o.id}</span> • Verified Amount: <strong className="font-mono">₹{o.grandTotal}</strong>
+                                </p>
+                              </div>
                             </div>
-
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className={`text-xs font-black px-3 py-1 rounded-xl border ${
-                                o.paymentStatus === 'SUCCESS' 
-                                  ? 'bg-emerald-700 text-white border-emerald-800' 
-                                  : o.paymentStatus === 'FAILED' 
-                                  ? 'bg-rose-600 text-white border-rose-700' 
-                                  : 'bg-amber-500 text-white border-amber-600'
-                              }`}>
-                                {o.paymentStatus === 'SUCCESS' ? '✅ VERIFIED (PAID)' : o.paymentStatus === 'FAILED' ? '❌ REJECTED / UNVERIFIED' : '⏳ PENDING MANUAL VERIFICATION'}
-                              </span>
-
-                              {o.transactionId && (
-                                <span className="font-mono text-[11px] text-indigo-950 font-black bg-white px-2.5 py-1 rounded-lg border border-indigo-200">
-                                  UTR / Ref: {o.transactionId}
-                                </span>
-                              )}
-                            </div>
+                            <span className={`text-xs font-black px-3 py-1 rounded-xl border ${
+                              o.paymentStatus === 'SUCCESS' ? 'bg-emerald-700 text-white border-emerald-800' : 'bg-amber-500 text-white border-amber-600'
+                            }`}>
+                              {o.paymentStatus === 'SUCCESS' ? '✓ PAID (AUTO-VERIFIED)' : '⏳ PENDING'}
+                            </span>
                           </div>
+                        ) : (
+                          <div className="bg-indigo-50/90 border-2 border-indigo-200 rounded-2xl p-4 space-y-3 shadow-xs">
+                            {/* Header bar with Amount & Payment Method */}
+                            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-indigo-200/80 pb-2.5">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-extrabold text-slate-900 text-xs flex items-center gap-1.5 bg-indigo-100 px-3 py-1 rounded-xl border border-indigo-300">
+                                  <Camera className="w-4 h-4 text-indigo-700" />
+                                  <span>Payment Method: <strong>Scan QR Code Payment (Manual Verification)</strong></span>
+                                </span>
 
-                          {/* Proof Image Box & Manual Verification Action Controls */}
-                          <div className="flex flex-col md:flex-row items-center gap-4">
-                            {/* Receipt Screenshot Image */}
-                            {o.paymentProofUrl ? (
-                              <div className="flex flex-col items-center gap-1.5 shrink-0 w-full md:w-48">
-                                <div 
-                                  onClick={() => setSelectedProofOrder(o)}
-                                  className="relative group cursor-pointer w-full h-32 rounded-xl overflow-hidden border-2 border-indigo-400 bg-slate-900 flex items-center justify-center shadow-sm"
-                                  title="Click to zoom receipt photo"
-                                >
-                                  <img
-                                    src={o.paymentProofUrl}
-                                    alt="Customer Payment Receipt Proof"
-                                    className="w-full h-full object-contain group-hover:scale-105 transition-transform"
-                                  />
-                                  <div className="absolute inset-0 bg-slate-900/40 group-hover:bg-slate-900/10 flex items-center justify-center transition-opacity opacity-90">
-                                    <span className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-[11px] px-2.5 py-1 rounded-lg shadow-md flex items-center gap-1">
-                                      <Camera className="w-3.5 h-3.5" /> 🔍 Zoom Receipt
-                                    </span>
+                                <span className="font-extrabold text-emerald-900 text-xs bg-emerald-100 px-3 py-1 rounded-xl border border-emerald-300">
+                                  💰 Amount to Verify: <strong>₹{o.grandTotal}</strong>
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className={`text-xs font-black px-3 py-1 rounded-xl border ${
+                                  o.paymentStatus === 'SUCCESS' 
+                                    ? 'bg-emerald-700 text-white border-emerald-800' 
+                                    : o.paymentStatus === 'FAILED' 
+                                    ? 'bg-rose-600 text-white border-rose-700' 
+                                    : 'bg-amber-500 text-white border-amber-600'
+                                }`}>
+                                  {o.paymentStatus === 'SUCCESS' ? '✅ VERIFIED (PAID)' : o.paymentStatus === 'FAILED' ? '❌ REJECTED / UNVERIFIED' : '⏳ PENDING MANUAL VERIFICATION'}
+                                </span>
+
+                                {o.transactionId && (
+                                  <span className="font-mono text-[11px] text-indigo-950 font-black bg-white px-2.5 py-1 rounded-lg border border-indigo-200">
+                                    UTR / Ref: {o.transactionId}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Proof Image Box & Manual Verification Action Controls */}
+                            <div className="flex flex-col md:flex-row items-center gap-4">
+                              {/* Receipt Screenshot Image */}
+                              {o.paymentProofUrl ? (
+                                <div className="flex flex-col items-center gap-1.5 shrink-0 w-full md:w-48">
+                                  <div 
+                                    onClick={() => setSelectedProofOrder(o)}
+                                    className="relative group cursor-pointer w-full h-32 rounded-xl overflow-hidden border-2 border-indigo-400 bg-slate-900 flex items-center justify-center shadow-sm"
+                                    title="Click to zoom receipt photo"
+                                  >
+                                    <img
+                                      src={o.paymentProofUrl}
+                                      alt="Customer Payment Receipt Proof"
+                                      className="w-full h-full object-contain group-hover:scale-105 transition-transform"
+                                    />
+                                    <div className="absolute inset-0 bg-slate-900/40 group-hover:bg-slate-900/10 flex items-center justify-center transition-opacity opacity-90">
+                                      <span className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-[11px] px-2.5 py-1 rounded-lg shadow-md flex items-center gap-1">
+                                        <Camera className="w-3.5 h-3.5" /> 🔍 Zoom Receipt
+                                      </span>
+                                    </div>
                                   </div>
+                                  <span className="text-[10px] text-indigo-900 font-bold text-center">📸 Customer Receipt Attached</span>
                                 </div>
-                                <span className="text-[10px] text-indigo-900 font-bold text-center">📸 Customer Receipt Attached</span>
-                              </div>
-                            ) : (
-                              <div className="p-3 bg-amber-100/90 text-amber-900 rounded-xl text-center text-xs font-bold w-full md:w-44 shrink-0 border border-amber-300 space-y-0.5">
-                                <p className="text-xs">⚠️ No Screenshot Photo</p>
-                                <p className="text-[10px] text-amber-800 font-normal">Check nursery bank / UTR ref</p>
-                              </div>
-                            )}
+                              ) : (
+                                <div className="p-3 bg-amber-100/90 text-amber-900 rounded-xl text-center text-xs font-bold w-full md:w-44 shrink-0 border border-amber-300 space-y-0.5">
+                                  <p className="text-xs">⚠️ No Screenshot Photo</p>
+                                  <p className="text-[10px] text-amber-800 font-normal">Check nursery bank / UTR ref</p>
+                                </div>
+                              )}
 
-                            {/* Manual Admin Verification Controls */}
-                            <div className="flex-1 w-full space-y-2 bg-white p-3 rounded-xl border border-indigo-100">
-                              <p className="text-xs text-slate-900 font-black flex items-center justify-between">
-                                <span>⚙️ Manual Admin Payment Verification:</span>
-                                <span className="text-[11px] text-slate-500 font-normal">Verify amount ₹{o.grandTotal} in nursery UPI app</span>
-                              </p>
+                              {/* Manual Admin Verification Controls */}
+                              <div className="flex-1 w-full space-y-2 bg-white p-3 rounded-xl border border-indigo-100">
+                                <p className="text-xs text-slate-900 font-black flex items-center justify-between">
+                                  <span>⚙️ Manual Admin Payment Verification:</span>
+                                  <span className="text-[11px] text-slate-500 font-normal">Verify amount ₹{o.grandTotal} in nursery UPI app</span>
+                                </p>
 
                               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                 <button
@@ -3001,9 +3029,10 @@ const silentRefresh = async (): Promise<boolean> => {
                                   <span>❌ Reject & Cancel Order</span>
                                 </button>
                               </div>
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        )
                       )}
                     </div>
                   </details>
@@ -4527,6 +4556,123 @@ const silentRefresh = async (): Promise<boolean> => {
                     ))}
                   </div>
                 )}
+              </div>
+            );
+          })()}
+
+          {/* TAB: PAYMENT LOGS */}
+          {activeTab === 'payment_logs' && (() => {
+            const successLogs = paymentLogs.filter(l => l.status === 'SUCCESS');
+            const failedLogs = paymentLogs.filter(l => l.status === 'FAILED');
+            const pendingLogs = paymentLogs.filter(l => l.status === 'PENDING');
+            const totalVol = successLogs.reduce((sum, l) => sum + (Number(l.amount) || 0), 0);
+
+            return (
+              <div className="space-y-6">
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-2xs space-y-4">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-4">
+                    <div>
+                      <h3 className="font-extrabold text-lg text-slate-900 flex items-center gap-2">
+                        <span>⚡ Payment Gateway Transaction Logs</span>
+                        <span className="text-xs px-2.5 py-0.5 bg-indigo-100 text-indigo-900 rounded-full font-bold">
+                          {paymentLogs.length} Records
+                        </span>
+                      </h3>
+                      <p className="text-xs text-slate-500">Live payment verification logs for Razorpay, PhonePe & QR UPI</p>
+                    </div>
+
+                    <button
+                      onClick={() => fetchData()}
+                      className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 cursor-pointer shadow-xs"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>Refresh Logs</span>
+                    </button>
+                  </div>
+
+                  {/* Quick Summary Cards */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-xs font-bold">
+                    <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-2xl">
+                      <p className="text-[10px] uppercase text-emerald-700 font-extrabold">Successful Volume</p>
+                      <p className="text-xl font-black text-emerald-950">₹{totalVol.toLocaleString('en-IN')}</p>
+                      <p className="text-[10px] text-emerald-700">{successLogs.length} Completed</p>
+                    </div>
+                    <div className="bg-indigo-50 border border-indigo-200 p-3.5 rounded-2xl">
+                      <p className="text-[10px] uppercase text-indigo-700 font-extrabold">Total Attempts</p>
+                      <p className="text-xl font-black text-indigo-950">{paymentLogs.length}</p>
+                      <p className="text-[10px] text-indigo-700">All Gateways</p>
+                    </div>
+                    <div className="bg-amber-50 border border-amber-200 p-3.5 rounded-2xl">
+                      <p className="text-[10px] uppercase text-amber-700 font-extrabold">Pending Verification</p>
+                      <p className="text-xl font-black text-amber-950">{pendingLogs.length}</p>
+                      <p className="text-[10px] text-amber-700">QR / In-Transit</p>
+                    </div>
+                    <div className="bg-rose-50 border border-rose-200 p-3.5 rounded-2xl">
+                      <p className="text-[10px] uppercase text-rose-700 font-extrabold">Failed / Cancelled</p>
+                      <p className="text-xl font-black text-rose-950">{failedLogs.length}</p>
+                      <p className="text-[10px] text-rose-700">Aborted / Declined</p>
+                    </div>
+                  </div>
+
+                  {/* Logs Table */}
+                  {paymentLogs.length === 0 ? (
+                    <div className="text-center py-12 space-y-2">
+                      <CreditCard className="w-12 h-12 text-slate-300 mx-auto" />
+                      <p className="font-bold text-slate-700 text-sm">No Payment Logs Yet</p>
+                      <p className="text-xs text-slate-400">Payment attempts and gateway webhooks will be logged here in real-time.</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px]">
+                            <th className="py-3 px-3">Time & Date</th>
+                            <th className="py-3 px-3">Order ID / Txn ID</th>
+                            <th className="py-3 px-3">Amount</th>
+                            <th className="py-3 px-3">Gateway / Status</th>
+                            <th className="py-3 px-3">Log Details</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 font-medium">
+                          {paymentLogs.map((log) => {
+                            const isSucc = log.status === 'SUCCESS';
+                            const isFail = log.status === 'FAILED';
+                            return (
+                              <tr key={log.id} className="hover:bg-slate-50/80 transition-colors">
+                                <td className="py-3 px-3 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                                  {log.createdAt ? new Date(log.createdAt).toLocaleString('en-IN') : 'Just now'}
+                                </td>
+                                <td className="py-3 px-3">
+                                  <p className="font-mono font-bold text-slate-900">{log.orderId || 'N/A'}</p>
+                                  <p className="font-mono text-[10px] text-slate-400 truncate max-w-[180px]">Txn: {log.merchantTransactionId}</p>
+                                </td>
+                                <td className="py-3 px-3 font-mono font-black text-emerald-800 text-sm whitespace-nowrap">
+                                  ₹{log.amount}
+                                </td>
+                                <td className="py-3 px-3 whitespace-nowrap">
+                                  <span className={`font-bold px-2.5 py-1 rounded-xl text-[10px] border ${
+                                    isSucc
+                                      ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                                      : isFail
+                                      ? 'bg-rose-100 text-rose-900 border-rose-300'
+                                      : 'bg-amber-100 text-amber-900 border-amber-300'
+                                  }`}>
+                                    {isSucc ? '✓ SUCCESS' : isFail ? '✗ FAILED / CANCELLED' : '⏳ PENDING'}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-3">
+                                  <div className="font-mono text-[10px] bg-slate-100 p-2 rounded-xl text-slate-700 max-w-xs break-all">
+                                    {log.payload ? log.payload : (log.checksum || 'Gateway Transaction')}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })()}

@@ -727,6 +727,20 @@ export const App: React.FC = () => {
     }
   };
 
+  // Confirmed Order Handler — called when payment succeeds or for direct orders
+  const handleOrderConfirmed = (confirmedOrder: any) => {
+    try {
+      const prev = JSON.parse(localStorage.getItem('vrg_my_orders') || '[]');
+      localStorage.setItem('vrg_my_orders', JSON.stringify([confirmedOrder, ...prev.filter((o: any) => o.id !== confirmedOrder.id)]));
+    } catch {}
+
+    window.dispatchEvent(new Event('orderStatusUpdated'));
+    fetchUserOrders();
+
+    setCart([]);
+    setAppliedCoupon(null);
+  };
+
   // Place Order API Handler
   const handlePlaceOrder = async (orderData: {
     customerName: string;
@@ -845,21 +859,9 @@ export const App: React.FC = () => {
         createdAt: new Date().toISOString()
       };
 
-      try {
-        const prev = JSON.parse(localStorage.getItem('vrg_my_orders') || '[]');
-        localStorage.setItem('vrg_my_orders', JSON.stringify([orderObj, ...prev.filter((o: any) => o.id !== orderId)]));
-      } catch {}
-
-      window.dispatchEvent(new Event('orderStatusUpdated'));
-      fetchUserOrders();
-
-      setCart([]);
-      setAppliedCoupon(null);
-
-      const payUrl = data.phonepePayUrl || data.phonepe?.payUrl || '';
-      const merchantTxnId = data.phonepe?.merchantTransactionId || data.order?.merchantTransactionId || '';
-
       if (orderData.paymentMethod === 'RAZORPAY') {
+        // DO NOT clear cart or add to placed orders yet!
+        // Cart will only be cleared when Razorpay payment is verified successfully.
         return {
           success: true,
           orderId,
@@ -871,6 +873,12 @@ export const App: React.FC = () => {
           customerEmail: payload.customerEmail
         };
       }
+
+      // For direct orders (COD, QR / UPI), confirm order and clear cart now
+      handleOrderConfirmed(orderObj);
+
+      const payUrl = data.phonepePayUrl || data.phonepe?.payUrl || '';
+      const merchantTxnId = data.phonepe?.merchantTransactionId || data.order?.merchantTransactionId || '';
 
       if (orderData.paymentMethod === 'PHONEPE') {
         const isRealPayUrl = payUrl && payUrl.startsWith('http') && !payUrl.includes('/#/phonepe-gateway');
@@ -1101,6 +1109,7 @@ export const App: React.FC = () => {
             onApplyCoupon={handleApplyCoupon}
             onRemoveCoupon={() => setAppliedCoupon(null)}
             onPlaceOrder={handlePlaceOrder}
+            onOrderConfirmed={handleOrderConfirmed}
             onUpdateQuantity={handleUpdateCartQty}
             onRemoveItem={handleRemoveFromCart}
             onNavigateToAccount={() => navigateTo('account')}
@@ -1261,6 +1270,7 @@ export const App: React.FC = () => {
             onApplyCoupon={handleApplyCoupon}
             onRemoveCoupon={() => setAppliedCoupon(null)}
             onPlaceOrder={handlePlaceOrder}
+            onOrderConfirmed={handleOrderConfirmed}
             onUpdateQuantity={handleUpdateCartQty}
             onRemoveItem={handleRemoveFromCart}
             onNavigateToAccount={() => {

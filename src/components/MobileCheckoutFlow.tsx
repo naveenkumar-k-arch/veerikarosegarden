@@ -38,6 +38,7 @@ interface MobileCheckoutFlowProps {
     courierName?: string;
     courierDistrict?: string;
     courierBranch?: string;
+    shippingCharge?: number;
   }) => Promise<{
     success: boolean;
     orderId?: string;
@@ -49,6 +50,7 @@ interface MobileCheckoutFlowProps {
     customerEmail?: string;
     message?: string;
   }>;
+  onOrderConfirmed?: (confirmedOrder: any) => void;
   onUpdateQuantity: (productId: string, qty: number) => void;
   onRemoveItem: (productId: string) => void;
   onNavigateToAccount: () => void;
@@ -142,6 +144,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
   onApplyCoupon,
   onRemoveCoupon,
   onPlaceOrder,
+  onOrderConfirmed,
   onUpdateQuantity,
   onRemoveItem,
   onNavigateToAccount,
@@ -451,7 +454,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
       return;
     }
 
-    const options = {
+    const options: any = {
       key: orderRes.razorpayKeyId || (import.meta as any).env.VITE_RAZORPAY_KEY_ID || 'rzp_live_TQ5xDdZB7QWIn2',
       amount: Math.round((orderRes.amount || grandTotal) * 100), // in paise
       currency: 'INR',
@@ -459,6 +462,19 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
       description: `Plant Order #${orderRes.orderId}`,
       image: '/products/double-delight.jpeg',
       order_id: orderRes.razorpayOrderId,
+      modal: {
+        ondismiss: async () => {
+          setLoading(false);
+          setOrderError('Payment was cancelled. Your order has not been placed and your cart is preserved.');
+          try {
+            await fetch(`/api/orders/${orderRes.orderId}/cancel-pending`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ reason: 'Customer closed Razorpay mobile popup' })
+            });
+          } catch {}
+        }
+      },
       handler: async function (response: any) {
         setLoading(true);
         try {
@@ -475,6 +491,9 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
           const verifyData = await verifyRes.json();
           setLoading(false);
           if (verifyData.success) {
+            if (onOrderConfirmed) {
+              onOrderConfirmed(verifyData.order || { id: orderRes.orderId, grandTotal: orderRes.amount });
+            }
             setPlacedOrderId(orderRes.orderId);
             goTo(7);
           } else {
@@ -482,7 +501,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
           }
         } catch (err: any) {
           setLoading(false);
-          setOrderError('Error verifying Razorpay payment. Payment ID: ' + response.razorpay_payment_id);
+          setOrderError('Error verifying Razorpay payment with server.');
         }
       },
       prefill: {
@@ -492,20 +511,21 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
       },
       theme: {
         color: '#15803d'
-      },
-      modal: {
-        ondismiss: function () {
-          setLoading(false);
-          setOrderError('Razorpay payment popup was closed.');
-        }
       }
     };
 
     try {
       const rzp = new (window as any).Razorpay(options);
-      rzp.on('payment.failed', function (response: any) {
+      rzp.on('payment.failed', async function (response: any) {
         setLoading(false);
         setOrderError(`Razorpay Payment Failed: ${response.error?.description || 'Transaction declined'}`);
+        try {
+          await fetch(`/api/orders/${orderRes.orderId}/cancel-pending`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reason: response.error?.description || 'Mobile payment failed' })
+          });
+        } catch {}
       });
       rzp.open();
     } catch (err: any) {
@@ -561,12 +581,13 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
         paymentProofUrl: effectivePM === 'QR_PAYMENT' ? paymentProofUrl : undefined,
         transactionId: effectivePM === 'QR_PAYMENT' ? transactionId : undefined,
         potCharge: 0,
-        potOption: courierLabel,
+        potOption: 'NONE',
         packingCharge,
         packingOption: selectedPacking,
         courierName: courierLabel,
         courierDistrict: courierPartner === 'METTUR_PARCEL' ? metturDistrict : undefined,
         courierBranch: courierPartner === 'METTUR_PARCEL' ? metturBranch : undefined,
+        shippingCharge: shippingCharge
       });
       setLoading(false);
       if (res.success) {

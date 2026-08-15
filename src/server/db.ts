@@ -7699,9 +7699,19 @@ class Store {
   }
 
   // PAYMENT LOGS
+  private inMemoryPaymentLogs: PaymentLog[] = [];
+
   async addPaymentLog(log: Omit<PaymentLog, 'id' | 'createdAt'>): Promise<PaymentLog> {
     const prisma = getPrismaClient();
     const id = 'paylog-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+    const newLog: PaymentLog = {
+      ...log,
+      id,
+      createdAt: new Date().toISOString()
+    };
+
+    this.inMemoryPaymentLogs.unshift(newLog);
+    if (this.inMemoryPaymentLogs.length > 200) this.inMemoryPaymentLogs.pop();
 
     if (prisma) {
       try {
@@ -7710,7 +7720,7 @@ class Store {
             id,
             orderId: log.orderId || log.merchantTransactionId,
             merchantTransactionId: log.merchantTransactionId,
-            amount: log.amount,
+            amount: Number(log.amount) || 0,
             status: log.status,
             requestPayload: log.payload || null,
             responsePayload: null
@@ -7721,36 +7731,35 @@ class Store {
       }
     }
 
-    return {
-      ...log,
-      id,
-      createdAt: new Date().toISOString()
-    };
+    return newLog;
   }
 
   async getPaymentLogs(): Promise<PaymentLog[]> {
     const prisma = getPrismaClient();
-    if (!prisma) return [];
+    if (!prisma) return this.inMemoryPaymentLogs;
 
     try {
       const items = await prisma.paymentAttempt.findMany({
         orderBy: { createdAt: 'desc' },
-        take: 50
+        take: 100
       });
 
-      return items.map(p => ({
-        id: p.id,
-        merchantTransactionId: p.merchantTransactionId,
-        orderId: p.orderId,
-        amount: p.amount,
-        status: p.status as PaymentLog['status'],
-        checksum: 'VERIFIED_DB_LOG',
-        payload: p.requestPayload || '',
-        createdAt: p.createdAt.toISOString()
-      }));
+      if (items.length > 0) {
+        return items.map(p => ({
+          id: p.id,
+          merchantTransactionId: p.merchantTransactionId,
+          orderId: p.orderId,
+          amount: p.amount,
+          status: p.status as PaymentLog['status'],
+          checksum: 'VERIFIED_DB_LOG',
+          payload: p.requestPayload || '',
+          createdAt: p.createdAt.toISOString()
+        }));
+      }
+      return this.inMemoryPaymentLogs;
     } catch (err) {
       console.error('Prisma getPaymentLogs error:', err);
-      return [];
+      return this.inMemoryPaymentLogs;
     }
   }
 

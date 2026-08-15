@@ -33,6 +33,7 @@ export interface CheckoutPageProps {
     courierName?: string;
     courierDistrict?: string;
     courierBranch?: string;
+    shippingCharge?: number;
   }) => Promise<{
     success: boolean;
     orderId?: string;
@@ -46,6 +47,7 @@ export interface CheckoutPageProps {
     customerEmail?: string;
     message?: string;
   }>;
+  onOrderConfirmed?: (confirmedOrder: any) => void;
   onUpdateQuantity?: (productId: string, qty: number) => void;
   onRemoveItem?: (productId: string) => void;
   onNavigateToAccount?: () => void;
@@ -129,6 +131,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   onApplyCoupon,
   onRemoveCoupon,
   onPlaceOrder,
+  onOrderConfirmed,
   onUpdateQuantity,
   onRemoveItem,
   onNavigateToAccount,
@@ -460,7 +463,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       setLoading(false);
       return;
     }
-    const options = {
+    const options: any = {
       key: orderRes.razorpayKeyId || (import.meta as any).env?.VITE_RAZORPAY_KEY_ID || 'rzp_live_TQ5xDdZB7QWIn2',
       amount: Math.round(orderRes.amount * 100),
       currency: 'INR',
@@ -468,6 +471,19 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       description: `Plant Order #${orderRes.orderId}`,
       image: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=200&q=80',
       order_id: orderRes.razorpayOrderId,
+      modal: {
+        ondismiss: async () => {
+          setLoading(false);
+          setOrderError('Payment was cancelled. Your order has not been placed and your cart is preserved.');
+          try {
+            await fetch(`/api/orders/${orderRes.orderId}/cancel-pending`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ reason: 'Customer closed Razorpay checkout popup' })
+            });
+          } catch {}
+        }
+      },
       handler: async (response: any) => {
         setLoading(true);
         try {
@@ -484,6 +500,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           const verifyData = await verifyRes.json();
           setLoading(false);
           if (verifyData.success) {
+            if (onOrderConfirmed) {
+              onOrderConfirmed(verifyData.order || { id: orderRes.orderId, grandTotal: orderRes.amount });
+            }
             setPlacedOrderId(orderRes.orderId);
             goTo(7);
           } else {
@@ -491,7 +510,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           }
         } catch {
           setLoading(false);
-          setOrderError('Error verifying payment.');
+          setOrderError('Error verifying payment with server.');
         }
       },
       prefill: {
@@ -503,9 +522,16 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     };
     try {
       const rzp = new (window as any).Razorpay(options);
-      rzp.on('payment.failed', (resp: any) => {
+      rzp.on('payment.failed', async (resp: any) => {
         setOrderError(`Payment failed: ${resp.error?.description || 'Transaction declined.'}`);
         setLoading(false);
+        try {
+          await fetch(`/api/orders/${orderRes.orderId}/cancel-pending`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reason: resp.error?.description || 'Razorpay payment failed' })
+          });
+        } catch {}
       });
       setLoading(false);
       rzp.open();
@@ -552,12 +578,13 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         paymentProofUrl: effectivePM === 'QR_PAYMENT' ? paymentProofUrl : undefined,
         transactionId: effectivePM === 'QR_PAYMENT' ? transactionId : undefined,
         potCharge: 0,
-        potOption: courierLabel,
+        potOption: 'NONE',
         packingCharge,
         packingOption: selectedPacking,
         courierName: courierLabel,
         courierDistrict: courierPartner === 'METTUR_PARCEL' ? metturDistrict : undefined,
         courierBranch: courierPartner === 'METTUR_PARCEL' ? metturBranch : undefined,
+        shippingCharge: shippingCharge
       });
       setLoading(false);
       if (res.success) {

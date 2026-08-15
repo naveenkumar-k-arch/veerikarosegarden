@@ -1064,9 +1064,15 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                             {order.paymentStatus === 'SUCCESS' ? '✓ Paid' : order.paymentStatus === 'FAILED' ? '✗ Failed' : '⏳ Pending'}
                           </span>
 
+                          {(order.paymentMethod === 'RAZORPAY' || order.paymentMethod === 'PHONEPE') && (
+                            <span className="text-[9px] font-bold bg-emerald-50 text-emerald-900 px-1.5 py-0.5 rounded border border-emerald-200">
+                              ⚡ Auto-Verified
+                            </span>
+                          )}
+
                           {(order.paymentProofUrl || order.paymentMethod === 'QR_PAYMENT' || order.paymentMethod === 'UPI_DIRECT') && (
                             <span className="text-[9px] font-bold bg-indigo-50 text-indigo-900 px-1.5 py-0.5 rounded border border-indigo-200">
-                              📸 QR
+                              📸 QR Manual
                             </span>
                           )}
                         </div>

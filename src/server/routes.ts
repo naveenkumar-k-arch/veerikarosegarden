@@ -730,27 +730,34 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
       }
     }
 
-    // Server-side Pot Charge calculation (ignore client potCharge override)
-    const potOption = (req.body.potOption as string) || 'NONE';
+    // Server-side Pot Charge calculation (potOption is strictly for 6_INCH / 8_INCH potted plants)
+    const rawPot = req.body.potOption;
+    const potOption = (rawPot === '6_INCH' || rawPot === '8_INCH') ? rawPot : 'NONE';
     const totalPlantCount = verifiedItems.reduce((sum, i) => sum + i.quantity, 0);
     const potUnitFee = potOption === '6_INCH' ? 99 : potOption === '8_INCH' ? 199 : 0;
-    const potCharge = potUnitFee * totalPlantCount;
+    const potCharge = (req.body.potCharge !== undefined && !isNaN(Number(req.body.potCharge)))
+      ? Math.max(0, Number(req.body.potCharge))
+      : (potUnitFee * totalPlantCount);
 
-    // Protective Packing Calculation (Active for Mettur Parcel Service)
-    const isMetturCourier = (req.body.courierName || '').toLowerCase().includes('mettur');
-    const packingOption = isMetturCourier ? (req.body.packingOption || 'STANDARD') : 'STANDARD';
-    const packingCharge = isMetturCourier
-      ? (packingOption === 'EXTRA_SECURE' ? 10 : packingOption === 'MAX_PROTECTION' ? 15 : 0)
-      : 0;
+    // Protective Packing Calculation (Active for Mettur Parcel Service or Custom selection)
+    const packingOption = req.body.packingOption || 'STANDARD';
+    const packingCharge = (req.body.packingCharge !== undefined && !isNaN(Number(req.body.packingCharge)))
+      ? Math.max(0, Number(req.body.packingCharge))
+      : (packingOption === 'EXTRA_SECURE' ? 10 : packingOption === 'MAX_PROTECTION' ? 15 : 0);
 
     // Courier selection details
-    const courierName = req.body.courierName || undefined;
+    const courierName = req.body.courierName || (typeof rawPot === 'string' && rawPot !== 'NONE' && rawPot !== '6_INCH' && rawPot !== '8_INCH' ? rawPot : 'Professional Courier');
     const courierDistrict = req.body.courierDistrict || undefined;
     const courierBranch = req.body.courierBranch || undefined;
 
     // Server-side Shipping Charge calculation
     const targetState = shippingAddress?.state || 'Tamil Nadu';
-    const shippingCharge = potOption !== 'NONE' ? 0 : calculateDeliveryFee(verifiedItems, targetState);
+    let shippingCharge = 0;
+    if (req.body.shippingCharge !== undefined && !isNaN(Number(req.body.shippingCharge)) && Number(req.body.shippingCharge) > 0) {
+      shippingCharge = Number(req.body.shippingCharge);
+    } else {
+      shippingCharge = calculateDeliveryFee(verifiedItems, targetState);
+    }
 
     // Final Grand Total calculated strictly on server
     const calculatedGrandTotal = Math.max(1, Math.round(calculatedSubtotal + potCharge + packingCharge + shippingCharge - Math.min(discount, calculatedSubtotal)));
@@ -805,6 +812,19 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
           orderId: newOrder.id
         });
 
+        await db.addPaymentLog({
+          merchantTransactionId,
+          orderId: newOrder.id,
+          amount: calculatedGrandTotal,
+          status: 'PENDING',
+          checksum: 'PHONEPE_INITIATED',
+          payload: JSON.stringify({
+            gateway: 'PHONEPE',
+            customerName: finalName,
+            customerPhone: finalPhone
+          })
+        }).catch(() => {});
+
         return res.json({
           success: true,
           order: newOrder,
@@ -849,6 +869,20 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
         });
       }
 
+      await db.addPaymentLog({
+        merchantTransactionId: rzpRes.razorpayOrderId || merchantTransactionId,
+        orderId: newOrder.id,
+        amount: calculatedGrandTotal,
+        status: 'PENDING',
+        checksum: 'RAZORPAY_INITIATED',
+        payload: JSON.stringify({
+          gateway: 'RAZORPAY',
+          razorpayOrderId: rzpRes.razorpayOrderId,
+          customerName: finalName,
+          customerPhone: finalPhone
+        })
+      }).catch(() => {});
+
       return res.json({
         success: true,
         order: newOrder,
@@ -863,12 +897,29 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
       });
     }
 
+    if (paymentMethod === 'QR_PAYMENT' || paymentMethod === 'UPI_DIRECT') {
+      await db.addPaymentLog({
+        merchantTransactionId: merchantTransactionId,
+        orderId: newOrder.id,
+        amount: calculatedGrandTotal,
+        status: 'PENDING',
+        checksum: 'QR_PROOF_UPLOADED',
+        payload: JSON.stringify({
+          gateway: 'QR_PAYMENT',
+          transactionId: transactionId || 'UPI_DIRECT',
+          customerName: finalName,
+          customerPhone: finalPhone,
+          requiresManualVerification: true
+        })
+      }).catch(() => {});
+    }
+
     res.json({
       success: true,
       order: newOrder,
       orderId: newOrder.id,
-      message: paymentMethod === 'QR_PAYMENT' 
-        ? 'Order placed! Your payment screenshot proof was submitted and is pending admin verification.' 
+      message: (paymentMethod === 'QR_PAYMENT' || paymentMethod === 'UPI_DIRECT')
+        ? '📸 Payment screenshot received! Our nursery team will verify your receipt and dispatch your plants.'
         : 'Order placed successfully!'
     });
   } catch (error: any) {
@@ -1375,6 +1426,56 @@ const handleVerifyRazorpayPayment = async (req: AuthenticatedRequest, res: any) 
 
 apiRouter.post('/verify-payment', checkoutLimiter, handleVerifyRazorpayPayment);
 apiRouter.post('/razorpay/verify', checkoutLimiter, handleVerifyRazorpayPayment);
+
+// ================= CANCEL UNCOMPLETED / DISMISSED PAYMENTS =================
+apiRouter.post('/orders/:id/cancel-pending', async (req: AuthenticatedRequest, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body || {};
+    const order = await db.getOrderById(id);
+    if (!order) {
+      return res.json({ success: true, message: 'Order not found.' });
+    }
+
+    if (order.paymentStatus === 'PENDING' || order.orderStatus === 'PENDING') {
+      await db.updateOrderStatus(id, 'CANCELLED', undefined, undefined, 'FAILED');
+      await db.addPaymentLog({
+        merchantTransactionId: order.merchantTransactionId || id,
+        orderId: id,
+        amount: order.grandTotal,
+        status: 'FAILED',
+        checksum: 'PAYMENT_CANCELLED_BY_USER',
+        payload: JSON.stringify({ reason: reason || 'Customer cancelled payment modal before completion' })
+      }).catch(() => {});
+    }
+
+    res.json({ success: true, message: 'Pending order cancelled.' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+apiRouter.post('/razorpay/cancel-order', async (req: AuthenticatedRequest, res) => {
+  try {
+    const { orderId, reason } = req.body || {};
+    if (orderId) {
+      const order = await db.getOrderById(orderId);
+      if (order && (order.paymentStatus === 'PENDING' || order.orderStatus === 'PENDING')) {
+        await db.updateOrderStatus(orderId, 'CANCELLED', undefined, undefined, 'FAILED');
+        await db.addPaymentLog({
+          merchantTransactionId: order.merchantTransactionId || orderId,
+          orderId,
+          amount: order.grandTotal,
+          status: 'FAILED',
+          checksum: 'PAYMENT_CANCELLED_BY_USER',
+          payload: JSON.stringify({ reason: reason || 'Customer closed Razorpay checkout' })
+        }).catch(() => {});
+      }
+    }
+    res.json({ success: true, message: 'Cancelled.' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
 // ================= RAZORPAY WEBHOOK HANDLER =================
 apiRouter.post('/razorpay/webhook', async (req, res) => {
