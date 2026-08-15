@@ -182,7 +182,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
   // ── Delivery / Packing Selection ──────────────────────────────────────────
   const [deliveryOption, setDeliveryOption] = useState<DeliveryOptionType>('REDUCED_SOIL');
-  const [courierPartner, setCourierPartner] = useState<CourierPartnerType>('ST_COURIER');
+  const [courierPartner, setCourierPartner] = useState<CourierPartnerType>('PROFESSIONAL_COURIER');
   const [metturState, setMetturState] = useState<string>('Tamil Nadu');
   const [metturDistrict, setMetturDistrict] = useState<string>('Salem');
   const [metturBranch, setMetturBranch] = useState<string>('Salem Main Hub (Shevapet)');
@@ -334,7 +334,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
             <p><strong>Order ID:</strong> ${orderData.id}</p>
             <p><strong>Date:</strong> ${new Date(orderData.createdAt).toLocaleDateString('en-IN')}</p>
             <p><strong>Payment Mode:</strong> ${orderData.paymentMethod} (${orderData.paymentStatus})</p>
-            <p><strong>Courier:</strong> ${courierPartner === 'METTUR_PARCEL' ? 'Mettur Parcel Service' : courierPartner === 'ST_COURIER' ? 'ST Courier' : 'Professional Courier'}</p>
+            <p><strong>Courier:</strong> ${courierPartner === 'METTUR_PARCEL' ? 'Mettur Parcel Service' : 'Professional Courier'}</p>
           </div>
           <table>
             <thead>
@@ -541,8 +541,6 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       const cleanEmail = (user.email?.includes('@')) ? user.email : `cust${cleanPhone}@veerikanursery.com`;
       const courierLabel = courierPartner === 'METTUR_PARCEL'
         ? 'Mettur Parcel Service'
-        : courierPartner === 'ST_COURIER'
-        ? 'ST Courier'
         : 'Professional Courier';
 
       const res = await onPlaceOrder({
@@ -1031,9 +1029,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                         ? '100% Free Doorstep Delivery Included'
                         : courierPartner === 'METTUR_PARCEL'
                           ? `Mettur Parcel (${metturDistrict || 'Tamil Nadu'})`
-                          : courierPartner === 'ST_COURIER'
-                            ? 'ST Courier Doorstep'
-                            : 'Professional Courier'}
+                          : `Professional Courier (${deliveryOption === 'FULL_SOIL' ? 'Full Soil' : 'Reduced Soil'})`}
                     </span>
                   </div>
                   <span className="font-bold text-slate-900">

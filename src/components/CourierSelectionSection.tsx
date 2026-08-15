@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Truck, MapPin, CheckCircle2, AlertCircle, Building, Info } from 'lucide-react';
+import { Truck, MapPin, CheckCircle2, AlertCircle } from 'lucide-react';
 import {
   METTUR_PARCEL_COVERAGE,
   getMetturStateCoverage,
@@ -7,7 +7,7 @@ import {
   getBranchesForDistrict
 } from '../utils/courierLocations';
 
-export type CourierPartnerType = 'ST_COURIER' | 'PROFESSIONAL_COURIER' | 'METTUR_PARCEL';
+export type CourierPartnerType = 'PROFESSIONAL_COURIER' | 'METTUR_PARCEL';
 
 export interface CourierSelectionSectionProps {
   selectedCourier: CourierPartnerType;
@@ -65,6 +65,10 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
     }
   }, [branches, metturBranch, onChangeMetturBranch]);
 
+  const profCourierCharge = deliveryOption === 'FULL_SOIL'
+    ? totalPlantCount * 100
+    : totalPlantCount * 60;
+
   return (
     <div className={`rounded-3xl border border-slate-200 bg-white p-4 sm:p-5 space-y-4 shadow-xs ${className}`}>
       {/* Title */}
@@ -75,7 +79,7 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
           </div>
           <div>
             <h3 className="text-xs sm:text-sm font-black text-slate-900 tracking-tight flex items-center gap-1.5">
-              Choose Courier & Delivery Partner
+              Choose Courier &amp; Delivery Partner
             </h3>
             <p className="text-[10px] sm:text-xs text-slate-600 font-medium">
               Select your preferred parcel network for safe nursery dispatch.
@@ -92,58 +96,14 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
 
       {/* Courier Cards */}
       <div className="space-y-2.5">
-        {/* 1. ST Courier */}
-        <div
-          onClick={() => {
-            onChangeCourier('ST_COURIER');
-            if (onChangeDeliveryOption) onChangeDeliveryOption('REDUCED_SOIL');
-          }}
-          className={`p-3.5 sm:p-4 rounded-2xl border-2 transition-all cursor-pointer ${
-            selectedCourier === 'ST_COURIER'
-              ? 'border-emerald-600 bg-emerald-50/70 ring-2 ring-emerald-500/20 shadow-xs'
-              : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100'
-          }`}
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-start gap-2.5">
-              <input
-                type="radio"
-                name="courierPartner"
-                checked={selectedCourier === 'ST_COURIER'}
-                onChange={() => {
-                  onChangeCourier('ST_COURIER');
-                  if (onChangeDeliveryOption) onChangeDeliveryOption('REDUCED_SOIL');
-                }}
-                className="mt-1 accent-emerald-700 cursor-pointer"
-              />
-              <div className="space-y-0.5">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <h4 className="text-xs sm:text-sm font-black text-slate-900">
-                    🚚 ST Courier (Fast Tamil Nadu & Village Doorstep)
-                  </h4>
-                  <span className="text-[9px] font-black bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded-md">
-                    Fastest in South India
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-600">
-                  Doorstep delivery to all villages, towns, and cities in Tamil Nadu, Pondicherry & South India. 24–48 hours transit.
-                </p>
-              </div>
-            </div>
-            <div className="text-right shrink-0">
-              <span className="text-xs sm:text-sm font-black text-emerald-900 block">
-                {hasFreeDelivery ? '₹0' : `₹${totalPlantCount * 60}`}
-              </span>
-              <span className="text-[9px] text-slate-400 font-medium">₹60/plant</span>
-            </div>
-          </div>
-        </div>
 
-        {/* 2. Professional Courier */}
+        {/* 1. Professional Courier */}
         <div
           onClick={() => {
             onChangeCourier('PROFESSIONAL_COURIER');
-            if (onChangeDeliveryOption) onChangeDeliveryOption('REDUCED_SOIL');
+            if (onChangeDeliveryOption && deliveryOption === 'METTUR_PARCEL') {
+              onChangeDeliveryOption('REDUCED_SOIL');
+            }
           }}
           className={`p-3.5 sm:p-4 rounded-2xl border-2 transition-all cursor-pointer ${
             selectedCourier === 'PROFESSIONAL_COURIER'
@@ -152,18 +112,20 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
           }`}
         >
           <div className="flex items-start justify-between gap-3">
-            <div className="flex items-start gap-2.5">
+            <div className="flex items-start gap-2.5 flex-1">
               <input
                 type="radio"
                 name="courierPartner"
                 checked={selectedCourier === 'PROFESSIONAL_COURIER'}
                 onChange={() => {
                   onChangeCourier('PROFESSIONAL_COURIER');
-                  if (onChangeDeliveryOption) onChangeDeliveryOption('REDUCED_SOIL');
+                  if (onChangeDeliveryOption && deliveryOption === 'METTUR_PARCEL') {
+                    onChangeDeliveryOption('REDUCED_SOIL');
+                  }
                 }}
                 className="mt-1 accent-emerald-700 cursor-pointer"
               />
-              <div className="space-y-0.5">
+              <div className="space-y-0.5 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <h4 className="text-xs sm:text-sm font-black text-slate-900">
                     📦 Professional Courier (All India Delivery)
@@ -175,18 +137,104 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
                 <p className="text-[11px] text-slate-600">
                   Reliable nationwide doorstep delivery covering metro cities and regional hubs across all states.
                 </p>
+
+                {/* Sub-options: Reduced Soil vs Full Soil — shown when selected */}
+                {selectedCourier === 'PROFESSIONAL_COURIER' && (
+                  <div
+                    className="mt-3 space-y-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* Reduced Soil Option */}
+                    <div
+                      onClick={() => onChangeDeliveryOption && onChangeDeliveryOption('REDUCED_SOIL')}
+                      className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                        deliveryOption === 'REDUCED_SOIL'
+                          ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-400/30'
+                          : 'border-slate-200 bg-white hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <input
+                          type="radio"
+                          name="profCourierOption"
+                          checked={deliveryOption === 'REDUCED_SOIL'}
+                          onChange={() => onChangeDeliveryOption && onChangeDeliveryOption('REDUCED_SOIL')}
+                          className="accent-emerald-700 cursor-pointer"
+                        />
+                        <div>
+                          <p className="text-[11px] font-black text-slate-900">🌿 Professional Courier – Reduced Soil</p>
+                          <p className="text-[10px] text-emerald-700 font-bold">Available</p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-xs font-black text-emerald-900 block">
+                          {hasFreeDelivery ? '₹0' : `₹${totalPlantCount * 60}`}
+                        </span>
+                        <span className="text-[9px] text-slate-400 font-medium">Delivery Charge</span>
+                        <span className="text-[8px] text-slate-400 block">₹60/plant</span>
+                      </div>
+                    </div>
+
+                    {/* Full Soil Option */}
+                    <div
+                      onClick={() => {
+                        if (totalPlantCount > 5) return; // enforce max 5 plants
+                        onChangeDeliveryOption && onChangeDeliveryOption('FULL_SOIL');
+                      }}
+                      className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                        totalPlantCount > 5
+                          ? 'border-slate-200 bg-slate-100 opacity-50 cursor-not-allowed'
+                          : deliveryOption === 'FULL_SOIL'
+                            ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-400/30'
+                            : 'border-slate-200 bg-white hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <input
+                          type="radio"
+                          name="profCourierOption"
+                          checked={deliveryOption === 'FULL_SOIL'}
+                          disabled={totalPlantCount > 5}
+                          onChange={() => {
+                            if (totalPlantCount <= 5) onChangeDeliveryOption && onChangeDeliveryOption('FULL_SOIL');
+                          }}
+                          className="accent-emerald-700 cursor-pointer"
+                        />
+                        <div>
+                          <p className="text-[11px] font-black text-slate-900">🌱 Professional Courier – Full Soil</p>
+                          <p className="text-[10px] font-bold text-amber-600">
+                            {totalPlantCount > 5
+                              ? `⚠️ Maximum 5 plants (you have ${totalPlantCount})`
+                              : 'Maximum 5 plants'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-xs font-black text-emerald-900 block">
+                          {hasFreeDelivery ? '₹0' : `₹${totalPlantCount * 100}`}
+                        </span>
+                        <span className="text-[9px] text-slate-400 font-medium">Delivery Charge</span>
+                        <span className="text-[8px] text-slate-400 block">₹100/plant</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-            <div className="text-right shrink-0">
-              <span className="text-xs sm:text-sm font-black text-emerald-900 block">
-                {hasFreeDelivery ? '₹0' : `₹${totalPlantCount * 60}`}
-              </span>
-              <span className="text-[9px] text-slate-400 font-medium">₹60/plant</span>
-            </div>
+
+            {/* Price shown when NOT expanded (courier not selected) */}
+            {selectedCourier !== 'PROFESSIONAL_COURIER' && (
+              <div className="text-right shrink-0">
+                <span className="text-xs sm:text-sm font-black text-emerald-900 block">
+                  {hasFreeDelivery ? '₹0' : `from ₹${totalPlantCount * 60}`}
+                </span>
+                <span className="text-[9px] text-slate-400 font-medium">₹60/plant</span>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* 3. Mettur Parcel Service (With District & Branch Selection Dropdown) */}
+        {/* 2. Mettur Parcel Service */}
         <div
           onClick={() => {
             onChangeCourier('METTUR_PARCEL');
@@ -213,14 +261,14 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
               <div className="space-y-0.5">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <h4 className="text-xs sm:text-sm font-black text-slate-900">
-                    🏢 Mettur Parcel Service (Regional Hubs & Depots)
+                    🏢 Mettur Parcel Service (Regional Hubs &amp; Depots)
                   </h4>
                   <span className="text-[9px] font-black bg-amber-100 text-amber-900 px-2 py-0.5 rounded-md">
                     Full Soil / Open Box Available
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-600">
-                  Economical bulk parcel service with pickup depots across Tamil Nadu, Karnataka (Bangalore), Kerala (Palakkad) & Pondicherry.
+                  Economical bulk parcel service with pickup depots across Tamil Nadu, Karnataka (Bangalore), Kerala (Palakkad) &amp; Pondicherry.
                 </p>
               </div>
             </div>
@@ -339,7 +387,7 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
                   <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
                   <span>
                     ⚠️ Mettur Parcel Service is not available for this district. Please choose{' '}
-                    <strong>ST Courier</strong> or <strong>Professional Courier</strong> for doorstep delivery.
+                    <strong>Professional Courier</strong> for doorstep delivery.
                   </span>
                 </div>
               )}
