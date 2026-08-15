@@ -882,14 +882,17 @@ const silentRefresh = async (): Promise<boolean> => {
       const savedProd: Product = data.product || { ...payload, id: editingProduct?.id || ('prod-' + Date.now()) };
       const targetId = editingProduct?.id;
 
+      let updatedProductsList: Product[] = [];
       setProducts(prev => {
         const next = targetId
           ? prev.map(p => p.id === targetId ? { ...p, ...savedProd } as Product : p)
           : [{ ...savedProd } as Product, ...prev.filter(p => p.id !== savedProd.id)];
+        updatedProductsList = next;
         try {
           const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
           cached.products = next;
           localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+          localStorage.setItem('vrg_products', JSON.stringify(next));
         } catch {}
         return next;
       });
@@ -901,7 +904,7 @@ const silentRefresh = async (): Promise<boolean> => {
       toast.success(`Plant "${payload.name}" saved successfully!`, 'Product Saved');
 
       try {
-        window.dispatchEvent(new CustomEvent('vrg_products_updated'));
+        window.dispatchEvent(new CustomEvent('vrg_products_updated', { detail: updatedProductsList }));
       } catch {}
     } catch (err: any) {
       setProductSaveError(err.message || 'Failed to save product');
@@ -910,15 +913,23 @@ const silentRefresh = async (): Promise<boolean> => {
     }
   };
 
-
-
   // Handle Delete Single Product
   const handleDeleteProduct = async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to delete product "${name}"?`)) return;
-    setProducts(prev => prev.filter(p => p.id !== id));
+    let nextList: Product[] = [];
+    setProducts(prev => {
+      nextList = prev.filter(p => p.id !== id);
+      try {
+        localStorage.setItem('vrg_products', JSON.stringify(nextList));
+        const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
+        cached.products = nextList;
+        localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+      } catch {}
+      return nextList;
+    });
     toast.success(`Product "${name}" deleted.`, 'Product Deleted');
     try {
-      window.dispatchEvent(new CustomEvent('vrg_products_updated'));
+      window.dispatchEvent(new CustomEvent('vrg_products_updated', { detail: nextList }));
     } catch {}
     try {
       await authFetch(`/api/products/${id}`, { method: 'DELETE' }).catch(() => null);
@@ -1585,21 +1596,24 @@ const silentRefresh = async (): Promise<boolean> => {
                 body: JSON.stringify(payload)
               });
               const data = await res.json().catch(() => null);
+              let updatedList: Product[] = [];
               if (data && data.success && data.product) {
                 const savedProd = data.product;
                 setProducts(prev => {
                   const next = isEdit
                     ? prev.map(p => p.id === prod.id ? { ...p, ...savedProd } as Product : p)
                     : [{ ...savedProd } as Product, ...prev.filter(p => p.sku !== payload.sku && p.id !== savedProd.id)];
+                  updatedList = next;
                   try {
                     const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
                     cached.products = next;
                     localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+                    localStorage.setItem('vrg_products', JSON.stringify(next));
                   } catch {}
                   return next;
                 });
               }
-              window.dispatchEvent(new CustomEvent('vrg_products_updated'));
+              window.dispatchEvent(new CustomEvent('vrg_products_updated', { detail: updatedList }));
             } catch (e) {
               console.warn('Background product save notice:', e);
             }

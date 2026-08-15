@@ -47,7 +47,9 @@ apiRouter.get('/health', async (req, res) => {
 // ================= PRODUCT ROUTES =================
 apiRouter.get('/products', async (req, res) => {
   try {
-    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     const { search, categoryId, featured, bestSeller, minPrice, maxPrice, sort } = req.query;
     const hasFilter = Boolean(search || categoryId || featured === 'true' || bestSeller === 'true' || minPrice || maxPrice || sort);
     const products = await db.getProducts(hasFilter ? {
@@ -122,7 +124,9 @@ apiRouter.delete('/products/:id', requireAdmin, async (req: AuthenticatedRequest
 // ================= CATEGORY ROUTES =================
 apiRouter.get('/categories', async (req, res) => {
   try {
-    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     const { onlyFeatured, showAll } = req.query;
     const isFeaturedOnly = onlyFeatured === 'true';
     const isShowAll = showAll === 'true';

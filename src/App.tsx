@@ -331,11 +331,12 @@ export const App: React.FC = () => {
   // Fetch Core Data on Mount with LocalStorage SWR Persistence
   const fetchCoreData = async () => {
     try {
+      const ts = Date.now();
       const [pRes, cRes, bRes, rRes] = await Promise.all([
-        fetch('/api/products').then((r) => r.json()).catch(() => null),
-        fetch('/api/categories').then((r) => r.json()).catch(() => null),
-        fetch('/api/banners').then((r) => r.json()).catch(() => null),
-        fetch('/api/reviews').then((r) => r.json()).catch(() => null)
+        fetch(`/api/products?t=${ts}`).then((r) => r.json()).catch(() => null),
+        fetch(`/api/categories?t=${ts}`).then((r) => r.json()).catch(() => null),
+        fetch(`/api/banners?t=${ts}`).then((r) => r.json()).catch(() => null),
+        fetch(`/api/reviews?t=${ts}`).then((r) => r.json()).catch(() => null)
       ]);
 
       if (pRes?.success && Array.isArray(pRes.products) && pRes.products.length > 0) {
@@ -431,7 +432,13 @@ export const App: React.FC = () => {
     fetchUserOrders();
 
     const handleSync = () => fetchUserOrders();
-    const handleProductSync = () => fetchCoreData();
+    const handleProductSync = (e?: any) => {
+      if (e?.detail && Array.isArray(e.detail) && e.detail.length > 0) {
+        setProducts(e.detail);
+        try { localStorage.setItem('vrg_products', JSON.stringify(e.detail)); } catch {}
+      }
+      fetchCoreData();
+    };
     const handleSyncReviews = (e: any) => {
       if (e.detail && Array.isArray(e.detail)) {
         setReviews(e.detail);
@@ -443,7 +450,8 @@ export const App: React.FC = () => {
     window.addEventListener('vrg_categories_updated', handleProductSync);
     window.addEventListener('vrg_combos_updated', handleProductSync);
     window.addEventListener('vrg_reviews_updated', handleSyncReviews);
-    window.addEventListener('storage', handleSync);
+    window.addEventListener('storage', handleProductSync);
+    window.addEventListener('focus', handleProductSync);
 
     // Verify backend auth session — skip if user is already an admin (local-auth login)
     fetch('/api/auth/me', {
@@ -503,7 +511,12 @@ export const App: React.FC = () => {
 
     return () => {
       window.removeEventListener('orderStatusUpdated', handleSync);
-      window.removeEventListener('storage', handleSync);
+      window.removeEventListener('vrg_products_updated', handleProductSync);
+      window.removeEventListener('vrg_categories_updated', handleProductSync);
+      window.removeEventListener('vrg_combos_updated', handleProductSync);
+      window.removeEventListener('vrg_reviews_updated', handleSyncReviews);
+      window.removeEventListener('storage', handleProductSync);
+      window.removeEventListener('focus', handleProductSync);
       unsubscribe();
     };
   }, []);
