@@ -6471,20 +6471,8 @@ class Store {
       }
     }
 
-    // Merge database combos with memory store and filter deleted
-    const combined = [...dbCombos, ...memoryCombosStore];
-    const seenIds = new Set<string>();
-    const rawCombos: any[] = [];
-
-    for (const c of combined) {
-      const cid = c.id;
-      if (!cid || seenIds.has(cid) || seenIds.has(cid.toLowerCase()) || deletedComboIds.has(cid) || deletedComboIds.has(cid.toLowerCase())) {
-        continue;
-      }
-      seenIds.add(cid);
-      seenIds.add(cid.toLowerCase());
-      rawCombos.push(c);
-    }
+    // Return strictly active database combos without stale memory seeds
+    const rawCombos = dbCombos.filter(c => !deletedComboIds.has(c.id) && !deletedComboIds.has(c.id.toLowerCase()));
 
     // Fast robust product lookup
     const allProducts = (this.productsCache?.data && this.productsCache.data.length > 0)
