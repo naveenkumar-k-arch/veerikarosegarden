@@ -256,6 +256,12 @@ export const App: React.FC = () => {
     }
   });
 
+  useEffect(() => {
+    try {
+      localStorage.setItem('vrg_cart', JSON.stringify(cart));
+    } catch {}
+  }, [cart]);
+
   const [wishlist, setWishlist] = useState<Product[]>(() => {
     try {
       const saved = localStorage.getItem('vrg_wishlist');
@@ -947,8 +953,6 @@ export const App: React.FC = () => {
           cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
           wishlistCount={wishlist.length}
           onOpenCart={() => {
-            if (cart.length === 0) { toast.info('Your cart is empty. Add some plants first! 🌿'); return; }
-            if (!user) { alert('🔑 Login or Sign Up Required:\nPlease login to your account before placing an order.'); navigateTo('account'); return; }
             navigateTo('checkout');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
@@ -984,8 +988,6 @@ export const App: React.FC = () => {
             }
             // Cart icon → go directly to 9-step checkout (Step 1 = Cart Items)
             if (page === 'cart') {
-              if (cart.length === 0) { toast.info('Your cart is empty. Add some plants first! 🌿'); return; }
-              if (!user) { alert('🔑 Login or Sign Up Required:\nPlease login to your account before placing an order.'); navigateTo('account'); return; }
               navigateTo('checkout');
               window.scrollTo({ top: 0, behavior: 'smooth' });
               return;
@@ -1272,8 +1274,6 @@ export const App: React.FC = () => {
       {/* Floating Sticky Cart Button */}
       <button
         onClick={() => {
-          if (cart.length === 0) { toast.info('Your cart is empty. Add some plants first! 🌿'); return; }
-          if (!user) { alert('🔑 Login or Sign Up Required:\nPlease login to your account before placing an order.'); navigateTo('account'); return; }
           navigateTo('checkout');
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
@@ -1330,8 +1330,6 @@ export const App: React.FC = () => {
             <span>Shop</span>
           </button>
           <button className={`nav-item ${currentPage === 'cart' || currentPage === 'checkout' || isMobileCheckoutOpen ? 'active' : ''} cart-btn`} onClick={() => {
-            if (cart.length === 0) { toast.info('Your cart is empty. Add some plants first! 🌿'); return; }
-            if (!user) { alert('🔑 Login or Sign Up Required:\nPlease login to your account before placing an order.'); navigateTo('account'); return; }
             navigateTo('checkout');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }} aria-label="Open checkout">

@@ -545,15 +545,15 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
     setLoading(true);
     setOrderError(null);
     try {
-      const rawPhone = (address.phone || user.phone || '').replace(/\D/g, '');
+      const rawPhone = (address.phone || user?.phone || '').replace(/\D/g, '');
       const cleanPhone = rawPhone.length >= 10 ? rawPhone.slice(-10) : rawPhone;
-      const cleanEmail = (user.email?.includes('@')) ? user.email : `cust${cleanPhone}@veerikanursery.com`;
+      const cleanEmail = (user?.email?.includes('@')) ? user.email : `cust${cleanPhone}@veerikanursery.com`;
       const courierLabel = courierPartner === 'METTUR_PARCEL'
         ? 'Mettur Parcel Service'
         : 'Professional Courier';
 
       const res = await onPlaceOrder({
-        customerName: address.fullName || user.name || 'Customer',
+        customerName: address.fullName || user?.name || 'Customer',
         customerPhone: cleanPhone,
         customerEmail: cleanEmail,
         shippingAddress: { ...address, phone: cleanPhone },
