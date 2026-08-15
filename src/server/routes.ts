@@ -1064,21 +1064,20 @@ apiRouter.get('/orders', requireAuth, async (req: AuthenticatedRequest, res) => 
   }
 });
 
-// Lightweight serializers for admin bootstrap listing: trims massive base64 strings (>20KB)
-// Full raw base64 images are loaded on-demand via GET /api/products/:id or GET /api/orders/:id
+// Lightweight serializers for admin bootstrap listing: preserves all unique image URLs and static paths
 function sanitizeBootstrapProducts(prods: any[]): any[] {
   return prods.map(p => {
-    const images = Array.isArray(p.images) ? p.images : (p.image ? [p.image] : []);
+    const images = Array.isArray(p.images) && p.images.length > 0 ? p.images : (p.image ? [p.image] : []);
     const sanitizedImages = images.map((img: string) => {
-      if (typeof img === 'string' && img.startsWith('data:image/') && img.length > 20000) {
-        return '/products/double-delight.jpeg';
+      if (typeof img === 'string' && img.startsWith('data:image/') && img.length > 100000) {
+        return img.slice(0, 100);
       }
       return img;
     });
     return {
       ...p,
       images: sanitizedImages,
-      image: sanitizedImages[0] || '/products/double-delight.jpeg'
+      image: sanitizedImages[0] || p.image || '/products/double-delight.jpeg'
     };
   });
 }
