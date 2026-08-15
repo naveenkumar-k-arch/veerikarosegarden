@@ -499,6 +499,37 @@ apiRouter.delete('/coupons/:id', requireAdmin, handleDeleteCoupon);
 apiRouter.post('/coupons/:id/delete', requireAdmin, handleDeleteCoupon);
 apiRouter.delete('/admin/coupons/:id', requireAdmin, handleDeleteCoupon);
 
+// Coupon Update — PUT /api/admin/coupons/:id or /api/coupons/:id
+const handleUpdateCoupon = async (req: AuthenticatedRequest, res: express.Response) => {
+  try {
+    const id = req.params?.id || req.body?.id;
+    if (!id) return res.status(400).json({ success: false, message: 'Coupon ID is required' });
+
+    const rawType = req.body.type || (req.body.discountType === 'FLAT' || req.body.discountType === 'FIXED' ? 'FIXED' : undefined);
+    const updates: any = {};
+    if (req.body.code) updates.code = req.body.code.toUpperCase();
+    if (rawType) updates.type = (rawType === 'FLAT' || rawType === 'FIXED') ? 'FIXED' : 'PERCENT';
+    if (req.body.value !== undefined) updates.value = Number(req.body.value);
+    if (req.body.discountValue !== undefined) updates.value = Number(req.body.discountValue);
+    if (req.body.minOrder !== undefined) updates.minOrder = Number(req.body.minOrder);
+    if (req.body.minOrderAmount !== undefined) updates.minOrder = Number(req.body.minOrderAmount);
+    if (req.body.maxDiscount !== undefined) updates.maxDiscount = Number(req.body.maxDiscount);
+    if (req.body.active !== undefined) updates.active = Boolean(req.body.active);
+    if (req.body.isActive !== undefined) updates.active = Boolean(req.body.isActive);
+
+    const coupon = await db.updateCoupon(id, updates);
+    if (!coupon) return res.status(404).json({ success: false, message: 'Coupon not found' });
+    res.json({ success: true, coupon, message: 'Coupon updated successfully' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message || 'Failed to update coupon' });
+  }
+};
+
+apiRouter.put('/admin/coupons/:id', requireAdmin, handleUpdateCoupon);
+apiRouter.put('/coupons/:id', requireAdmin, handleUpdateCoupon);
+apiRouter.post('/admin/coupons/:id/update', requireAdmin, handleUpdateCoupon);
+
+
 // ================= COMBOS & OFFERS =================
 apiRouter.get('/combos', async (req, res) => {
   try {

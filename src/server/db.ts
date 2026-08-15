@@ -6446,6 +6446,49 @@ class Store {
     return true;
   }
 
+  async updateCoupon(idOrCode: string, updates: Partial<Coupon>): Promise<Coupon | null> {
+    const prisma = getPrismaClient();
+    const clean = (idOrCode || '').trim();
+    const upper = clean.toUpperCase();
+
+    if (prisma) {
+      try {
+        const existing = await prisma.coupon.findFirst({
+          where: { OR: [{ id: clean }, { code: clean }, { code: upper }] }
+        });
+        if (!existing) return null;
+
+        const updated = await prisma.coupon.update({
+          where: { id: existing.id },
+          data: {
+            code: updates.code ? updates.code.toUpperCase() : existing.code,
+            discountType: updates.type === 'FIXED' ? 'FIXED' : updates.type === 'PERCENT' ? 'PERCENTAGE' : existing.discountType,
+            discountValue: updates.value !== undefined ? Number(updates.value) : existing.discountValue,
+            minOrderValue: updates.minOrder !== undefined ? Number(updates.minOrder) : existing.minOrderValue,
+            maxDiscount: updates.maxDiscount !== undefined ? Number(updates.maxDiscount) : existing.maxDiscount,
+            isActive: updates.active !== undefined ? updates.active : existing.isActive
+          }
+        });
+
+        return {
+          id: updated.id,
+          code: updated.code,
+          type: updated.discountType === 'FIXED' ? 'FIXED' : 'PERCENT',
+          value: updated.discountValue,
+          minOrder: updated.minOrderValue,
+          maxDiscount: updated.maxDiscount || undefined,
+          expiryDate: updated.expiresAt ? updated.expiresAt.toISOString() : '2027-12-31T23:59:59.000Z',
+          active: updated.isActive,
+          usageCount: updated.timesUsed
+        };
+      } catch (err) {
+        console.error('Prisma updateCoupon error:', err);
+        return null;
+      }
+    }
+    return null;
+  }
+
   // COMBOS & OFFERS
   async getCombos(): Promise<Combo[]> {
     let dbCombos: any[] = [];
