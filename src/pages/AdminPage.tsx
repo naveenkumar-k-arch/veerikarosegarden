@@ -830,24 +830,24 @@ const silentRefresh = async (): Promise<boolean> => {
         `VRG-${(prodForm.name || 'PLANT').replace(/\s+/g, '-').toUpperCase().slice(0, 12)}-${Date.now().toString(36).toUpperCase()}`;
 
       // Compute discount % if not set
-      const mrp = prodForm.mrp || 0;
-      const sellingPrice = prodForm.sellingPrice || 0;
-      const autoDiscount = mrp > 0 ? Math.round(((mrp - sellingPrice) / mrp) * 100) : 0;
+      const mrp = Number(prodForm.mrp) || Number(prodForm.sellingPrice) || 0;
+      const sellingPrice = Number(prodForm.sellingPrice) || 0;
+      const autoDiscount = mrp > 0 ? Math.max(0, Math.round(((mrp - sellingPrice) / mrp) * 100)) : 0;
 
       // Build complete payload with defaults for every optional field
       const payload = {
         sku: autoSku,
-        name: prodForm.name || '',
-        englishName: prodForm.englishName || prodForm.name || '',
-        tamilName: prodForm.tamilName || '',
-        scientificName: prodForm.scientificName || '',
+        name: (prodForm.name || '').trim(),
+        englishName: (prodForm.englishName || prodForm.name || '').trim(),
+        tamilName: (prodForm.tamilName || '').trim(),
+        scientificName: (prodForm.scientificName || '').trim(),
         categoryId: prodForm.categoryId || 'cat-roses',
         categoryName: prodForm.categoryName || 'Roses',
         description: prodForm.description || prodForm.name || '',
         mrp,
         sellingPrice,
-        discount: prodForm.discount ?? autoDiscount,
-        stock: prodForm.stock ?? 25,
+        discount: Number(prodForm.discount) ?? autoDiscount,
+        stock: Number(prodForm.stock) >= 0 ? Number(prodForm.stock) : 25,
         plantHeight: prodForm.plantHeight || '1–2 Feet',
         potSize: prodForm.potSize || '8 Inch Bag',
         sunlight: prodForm.sunlight || 'Full Sun',
@@ -860,54 +860,45 @@ const silentRefresh = async (): Promise<boolean> => {
           soil: 'Red soil mixed with coco peat.'
         },
         images: prodForm.images?.filter(Boolean).length
-          ? prodForm.images
+          ? prodForm.images.filter(Boolean)
           : ['https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80'],
-        featured: prodForm.featured ?? false,
-        bestSeller: prodForm.bestSeller ?? false,
-        trending: prodForm.trending ?? false,
+        featured: Boolean(prodForm.featured),
+        bestSeller: Boolean(prodForm.bestSeller),
+        trending: Boolean(prodForm.trending),
         tags: prodForm.tags?.length ? prodForm.tags : [prodForm.categoryName || 'Plant'],
-        status: 'ACTIVE' as const
+        status: (prodForm.status || 'ACTIVE') as 'ACTIVE' | 'INACTIVE' | 'ARCHIVED'
       };
 
-      // Optimistic UI update instantly
-      const targetId = editingProduct?.id;
-      if (editingProduct) {
-        setProducts(prev => prev.map(p => p.id === targetId ? { ...p, ...payload, id: targetId } as Product : p));
-      } else {
-        const tempId = 'prod-' + Date.now();
-        setProducts(prev => [{ ...payload, id: tempId, rating: 5, reviewCount: 0 } as Product, ...prev]);
+      const res = await authFetch(url, {
+        method,
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.message || `Server error (${res.status})`);
       }
+
+      const savedProd: Product = data.product || { ...payload, id: editingProduct?.id || ('prod-' + Date.now()) };
+      const targetId = editingProduct?.id;
+
+      setProducts(prev => {
+        const next = targetId
+          ? prev.map(p => p.id === targetId ? { ...p, ...savedProd } as Product : p)
+          : [{ ...savedProd } as Product, ...prev.filter(p => p.id !== savedProd.id)];
+        try {
+          const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
+          cached.products = next;
+          localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+        } catch {}
+        return next;
+      });
 
       setShowProductModal(false);
       setEditingProduct(null);
       setProductSaveError(null);
       setProductSaving(false);
       toast.success(`Plant "${payload.name}" saved successfully!`, 'Product Saved');
-
-      // Await server sync to ensure DB & memory store are committed
-      try {
-        const res = await authFetch(url, {
-          method,
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json().catch(() => null);
-        if (data && data.success && data.product) {
-          const savedProd = data.product;
-          setProducts(prev => {
-            const next = targetId
-              ? prev.map(p => p.id === targetId ? { ...p, ...savedProd } as Product : p)
-              : [{ ...savedProd } as Product, ...prev.filter(p => p.sku !== payload.sku && p.id !== savedProd.id)];
-            try {
-              const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
-              cached.products = next;
-              localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
-            } catch {}
-            return next;
-          });
-        }
-      } catch (err) {
-        console.warn('Background save product notice:', err);
-      }
 
       try {
         window.dispatchEvent(new CustomEvent('vrg_products_updated'));

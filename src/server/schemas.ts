@@ -50,8 +50,8 @@ export const createOrderSchema = z.object({
 
 export const productSchema = z.object({
   // SKU is optional — auto-generated server-side if not provided
-  sku: z.string().min(1).optional(),
-  name: z.string().min(1).max(200),
+  sku: z.string().optional(),
+  name: z.string().min(1, 'Product name is required').max(200),
   englishName: z.string().max(200).optional().default(''),
   tamilName: z.string().max(200).optional().default(''),
   scientificName: z.string().max(200).optional().default(''),
@@ -59,21 +59,24 @@ export const productSchema = z.object({
   categoryName: z.string().optional().default('Roses'),
   // Description is optional — admin can leave blank, defaults to plant name
   description: z.string().optional().default(''),
-  mrp: z.number().min(0).optional().default(0),
-  sellingPrice: z.number().min(0),
-  discount: z.number().min(0).max(100).optional().default(0),
-  stock: z.number().int().min(0).optional().default(0),
+  mrp: z.coerce.number().min(0).optional().default(0),
+  sellingPrice: z.coerce.number().min(0, 'Selling price must be >= 0'),
+  discount: z.coerce.number().min(0).max(100).optional().default(0),
+  stock: z.coerce.number().int().min(0).optional().default(25),
   plantHeight: z.string().optional().default('1–2 Feet'),
   potSize: z.string().optional().default('8 Inch Bag'),
   sunlight: z.string().optional().default('Full Sun'),
   waterRequirement: z.string().optional().default('Daily'),
   floweringSeason: z.string().optional().default('All Year'),
-  careInstructions: z.object({
-    watering: z.string().optional().default('Water daily in the morning.'),
-    sunlight: z.string().optional().default('Requires 5 hours direct sunlight.'),
-    fertilizer: z.string().optional().default('Apply vermicompost every 15 days.'),
-    soil: z.string().optional().default('Red soil mixed with coco peat.')
-  }).optional().default({
+  careInstructions: z.union([
+    z.object({
+      watering: z.string().optional().default('Water daily in the morning.'),
+      sunlight: z.string().optional().default('Requires 5 hours direct sunlight.'),
+      fertilizer: z.string().optional().default('Apply vermicompost every 15 days.'),
+      soil: z.string().optional().default('Red soil mixed with coco peat.')
+    }),
+    z.record(z.string(), z.any())
+  ]).optional().default({
     watering: 'Water daily in the morning.',
     sunlight: 'Requires 5 hours direct sunlight.',
     fertilizer: 'Apply vermicompost every 15 days.',
