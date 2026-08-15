@@ -41,7 +41,8 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
       const res = await fetch('/api/combos');
       const data = await res.json();
       if (data.success && Array.isArray(data.combos)) {
-        setCombos(data.combos.filter((c: Combo) => c.active !== false));
+        const deletedSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_combos') || '[]'));
+        setCombos(data.combos.filter((c: Combo) => c.active !== false && !deletedSet.has(c.id)));
       }
     } catch (err) {
       console.error('Failed to load combos:', err);

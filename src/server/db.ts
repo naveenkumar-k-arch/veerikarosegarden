@@ -120,6 +120,31 @@ const DEFAULT_COMBOS_SEED: Combo[] = [
   }
 ];
 
+const DELETED_COMBOS_STORE_FILE = path.resolve(process.cwd(), 'src/data/deleted_combos.json');
+
+function loadDiskDeletedCombos(): Set<string> {
+  try {
+    if (fs.existsSync(DELETED_COMBOS_STORE_FILE)) {
+      const data = fs.readFileSync(DELETED_COMBOS_STORE_FILE, 'utf-8');
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed)) return new Set(parsed);
+    }
+  } catch (err) {
+    console.error('Error reading deleted_combos.json:', err);
+  }
+  return new Set();
+}
+
+function saveDiskDeletedCombos(ids: Set<string>) {
+  try {
+    const dir = path.dirname(DELETED_COMBOS_STORE_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(DELETED_COMBOS_STORE_FILE, JSON.stringify(Array.from(ids), null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error writing deleted_combos.json:', err);
+  }
+}
+
 function loadDiskCombos(): Combo[] {
   try {
     if (fs.existsSync(COMBOS_STORE_FILE)) {
@@ -5135,7 +5160,7 @@ const deletedCategoryIds = (globalThis as any)._deletedCategoryIds || ((globalTh
 const deletedCouponIds = (globalThis as any)._deletedCouponIds || ((globalThis as any)._deletedCouponIds = new Set<string>());
 const deletedFinanceIds = (globalThis as any)._deletedFinanceIds || ((globalThis as any)._deletedFinanceIds = new Set<string>());
 const deletedOrderIds = (globalThis as any)._deletedOrderIds || ((globalThis as any)._deletedOrderIds = new Set<string>());
-const deletedComboIds = (globalThis as any)._deletedComboIds || ((globalThis as any)._deletedComboIds = new Set<string>());
+const deletedComboIds = (globalThis as any)._deletedComboIds || ((globalThis as any)._deletedComboIds = loadDiskDeletedCombos());
 
 export const DEFAULT_COMBOS: Combo[] = loadDiskCombos();
 
@@ -6449,6 +6474,7 @@ class Store {
     saveDiskCombos(memoryCombosStore);
     deletedComboIds.delete(id);
     deletedComboIds.delete(id.toLowerCase());
+    saveDiskDeletedCombos(deletedComboIds);
 
     // 2. Safe async sync with Prisma
     const prisma = getPrismaClient();
@@ -6590,6 +6616,7 @@ class Store {
 
     deletedComboIds.add(cleanId);
     deletedComboIds.add(cleanId.toLowerCase());
+    saveDiskDeletedCombos(deletedComboIds);
 
     // 1. Instant 0ms remove from in-memory store
     for (let i = memoryCombosStore.length - 1; i >= 0; i--) {
@@ -6634,6 +6661,7 @@ class Store {
       deletedComboIds.add(c.id);
       deletedComboIds.add(c.id.toLowerCase());
     });
+    saveDiskDeletedCombos(deletedComboIds);
     memoryCombosStore.length = 0;
     DEFAULT_COMBOS.length = 0;
     saveDiskCombos(memoryCombosStore);

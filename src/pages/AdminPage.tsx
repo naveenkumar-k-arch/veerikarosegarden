@@ -633,7 +633,10 @@ const silentRefresh = async (): Promise<boolean> => {
 
       if (bRes?.success) {
         if (bRes.stats) setStats(bRes.stats);
-        if (Array.isArray(bRes.combos)) setCombos(bRes.combos);
+        if (Array.isArray(bRes.combos)) {
+          const deletedComboSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_combos') || '[]'));
+          setCombos(bRes.combos.filter((c: Combo) => !deletedComboSet.has(c.id)));
+        }
         if (Array.isArray(bRes.finances)) {
           const deletedFinSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_finances') || '[]'));
           setFinances(bRes.finances.filter((f: FinancialEntry) => !deletedFinSet.has(f.id)));
@@ -674,7 +677,10 @@ const silentRefresh = async (): Promise<boolean> => {
           fetch('/api/combos').then((r) => r.json()).catch(() => null)
         ]);
 
-        if (cbRes?.success && Array.isArray(cbRes.combos)) setCombos(cbRes.combos);
+        if (cbRes?.success && Array.isArray(cbRes.combos)) {
+          const deletedComboSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_combos') || '[]'));
+          setCombos(cbRes.combos.filter((c: Combo) => !deletedComboSet.has(c.id)));
+        }
         if (pRes?.success && Array.isArray(pRes.products)) setProducts(pRes.products);
         if (cRes?.success && Array.isArray(cRes.categories)) setCategories(cRes.categories);
         if (cpRes?.success && Array.isArray(cpRes.coupons)) setCoupons(cpRes.coupons);
@@ -706,7 +712,10 @@ const silentRefresh = async (): Promise<boolean> => {
       if (cachedStr) {
         const cached = JSON.parse(cachedStr);
         if (cached?.stats) setStats(cached.stats);
-        if (Array.isArray(cached?.combos)) setCombos(cached.combos);
+        if (Array.isArray(cached?.combos)) {
+          const deletedComboSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_combos') || '[]'));
+          setCombos(cached.combos.filter((c: Combo) => !deletedComboSet.has(c.id)));
+        }
         if (Array.isArray(cached?.products)) setProducts(cached.products);
         if (Array.isArray(cached?.categories)) setCategories(cached.categories);
         if (Array.isArray(cached?.coupons)) setCoupons(cached.coupons);
@@ -1627,6 +1636,13 @@ const silentRefresh = async (): Promise<boolean> => {
             const url = isEdit ? `/api/admin/combos/${comboData.id}` : '/api/admin/combos';
             const method = isEdit ? 'PUT' : 'POST';
 
+            // Remove from deleted set if creating/updating
+            try {
+              const deleted = JSON.parse(localStorage.getItem('vrg_deleted_combos') || '[]');
+              const filtered = deleted.filter((delId: string) => delId !== comboData.id);
+              localStorage.setItem('vrg_deleted_combos', JSON.stringify(filtered));
+            } catch {}
+
             // Map products list for instant display
             const prodMap = new Map(products.map(p => [p.id, p]));
             const matchedProds = (comboData.productIds || []).map((pid: string) => prodMap.get(pid)).filter(Boolean) as Product[];
@@ -1658,8 +1674,6 @@ const silentRefresh = async (): Promise<boolean> => {
               });
             }
 
-            window.dispatchEvent(new CustomEvent('vrg_combos_updated'));
-
             try {
               const res = await authFetch(url, { method, body: JSON.stringify(comboData) });
               const data = await res.json().catch(() => null);
@@ -1674,6 +1688,17 @@ const silentRefresh = async (): Promise<boolean> => {
           }}
           onDeleteCombo={async (id) => {
             if (!confirm('Are you sure you want to delete this combo offer?')) return;
+
+            // 1. Record in local deleted set immediately
+            try {
+              const deleted = JSON.parse(localStorage.getItem('vrg_deleted_combos') || '[]');
+              if (!deleted.includes(id)) {
+                deleted.push(id);
+                localStorage.setItem('vrg_deleted_combos', JSON.stringify(deleted));
+              }
+            } catch {}
+
+            // 2. Instant 0ms optimistic UI removal
             setCombos(prev => {
               const next = prev.filter(c => c.id !== id);
               try {
@@ -1683,13 +1708,16 @@ const silentRefresh = async (): Promise<boolean> => {
               } catch {}
               return next;
             });
-            window.dispatchEvent(new CustomEvent('vrg_combos_updated'));
 
+            // 3. Await backend deletion
             try {
               await authFetch(`/api/admin/combos/${id}`, { method: 'DELETE' });
             } catch (e) {
-              console.error(e);
+              console.error('Error deleting combo:', e);
             }
+
+            // 4. Dispatch event after deletion is done
+            window.dispatchEvent(new CustomEvent('vrg_combos_updated'));
           }}
           onSaveFinance={async (fnData) => {
             const isEdit = Boolean(fnData.id);
@@ -3302,6 +3330,17 @@ const silentRefresh = async (): Promise<boolean> => {
                                 onClick={async () => {
                                   if (!confirm(`Delete combo package "${combo.title}"?`)) return;
                                   const id = combo.id;
+
+                                  // 1. Record in local deleted set immediately
+                                  try {
+                                    const deleted = JSON.parse(localStorage.getItem('vrg_deleted_combos') || '[]');
+                                    if (!deleted.includes(id)) {
+                                      deleted.push(id);
+                                      localStorage.setItem('vrg_deleted_combos', JSON.stringify(deleted));
+                                    }
+                                  } catch {}
+
+                                  // 2. Instant 0ms optimistic UI removal
                                   setCombos(prev => {
                                     const next = prev.filter(c => c.id !== id);
                                     try {
@@ -3311,12 +3350,16 @@ const silentRefresh = async (): Promise<boolean> => {
                                     } catch {}
                                     return next;
                                   });
-                                  window.dispatchEvent(new CustomEvent('vrg_combos_updated'));
+
+                                  // 3. Await backend deletion
                                   try {
                                     await authFetch(`/api/admin/combos/${id}`, { method: 'DELETE' });
                                   } catch (e) {
                                     console.error('Error deleting combo:', e);
                                   }
+
+                                  // 4. Dispatch event after deletion is done
+                                  window.dispatchEvent(new CustomEvent('vrg_combos_updated'));
                                 }}
                                 className="p-1.5 bg-rose-50 text-rose-600 rounded-lg border border-rose-200 hover:bg-rose-100 cursor-pointer"
                                 title="Delete Combo"
