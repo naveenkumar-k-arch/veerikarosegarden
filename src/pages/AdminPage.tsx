@@ -1735,26 +1735,25 @@ const silentRefresh = async (): Promise<boolean> => {
               }
             } catch {}
 
-            // 2. Instant 0ms optimistic UI removal
+            // 2. Instant 0ms optimistic UI & cache removal
             setCombos(prev => {
               const next = prev.filter(c => c.id !== id);
               try {
                 const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
                 cached.combos = next;
                 localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+                localStorage.setItem('vrg_combos_cache', JSON.stringify(next));
               } catch {}
               return next;
             });
 
-            // 3. Await backend deletion
-            try {
-              await authFetch(`/api/admin/combos/${id}`, { method: 'DELETE' });
-            } catch (e) {
-              console.error('Error deleting combo:', e);
-            }
-
-            // 4. Dispatch event after deletion is done
+            // 3. Instant 0ms event dispatch across tabs & components
             window.dispatchEvent(new CustomEvent('vrg_combos_updated'));
+
+            // 4. Non-blocking async backend deletion
+            authFetch(`/api/admin/combos/${id}`, { method: 'DELETE' }).catch(e => {
+              console.error('Background combo delete error:', e);
+            });
           }}
           onSaveFinance={async (fnData) => {
             const isEdit = Boolean(fnData.id);
@@ -3377,26 +3376,25 @@ const silentRefresh = async (): Promise<boolean> => {
                                     }
                                   } catch {}
 
-                                  // 2. Instant 0ms optimistic UI removal
+                                  // 2. Instant 0ms optimistic UI & cache removal
                                   setCombos(prev => {
                                     const next = prev.filter(c => c.id !== id);
                                     try {
                                       const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
                                       cached.combos = next;
                                       localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+                                      localStorage.setItem('vrg_combos_cache', JSON.stringify(next));
                                     } catch {}
                                     return next;
                                   });
 
-                                  // 3. Await backend deletion
-                                  try {
-                                    await authFetch(`/api/admin/combos/${id}`, { method: 'DELETE' });
-                                  } catch (e) {
-                                    console.error('Error deleting combo:', e);
-                                  }
-
-                                  // 4. Dispatch event after deletion is done
+                                  // 3. Instant 0ms event dispatch
                                   window.dispatchEvent(new CustomEvent('vrg_combos_updated'));
+
+                                  // 4. Non-blocking async backend deletion
+                                  authFetch(`/api/admin/combos/${id}`, { method: 'DELETE' }).catch(e => {
+                                    console.error('Background combo delete error:', e);
+                                  });
                                 }}
                                 className="p-1.5 bg-rose-50 text-rose-600 rounded-lg border border-rose-200 hover:bg-rose-100 cursor-pointer"
                                 title="Delete Combo"
