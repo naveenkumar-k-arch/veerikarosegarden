@@ -241,9 +241,27 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
   // ── Delivery / Packing Selection ──────────────────────────────────────────
   const [deliveryOption, setDeliveryOption] = useState<DeliveryOptionType>('REDUCED_SOIL');
 
-  // Total plant count
+  // Total plant count (including plants bundled inside combos)
   const subtotal = items.reduce((sum, i) => sum + i.product.sellingPrice * i.quantity, 0);
-  const totalPlantCount = items.reduce((sum, i) => sum + i.quantity, 0);
+  const totalPlantCount = items.reduce((sum, i) => {
+    const isCombo = i.isCombo || i.product.id.startsWith('combo-') || (i.product as any).isCombo;
+    const bundleCount = (i.comboProducts && i.comboProducts.length > 0)
+      ? i.comboProducts.length
+      : ((i.product as any).comboProducts?.length || 1);
+    return sum + (isCombo ? bundleCount * i.quantity : i.quantity);
+  }, 0);
+
+  // Check if cart has free delivery (e.g. combo bundle offers)
+  const hasAllFreeDelivery = items.length > 0 && items.every(i => i.freeDelivery === true || (i.product as any).freeDelivery === true);
+  const chargeablePlantCount = items.reduce((sum, i) => {
+    const isFree = i.freeDelivery === true || (i.product as any).freeDelivery === true;
+    if (isFree) return sum;
+    const isCombo = i.isCombo || i.product.id.startsWith('combo-') || (i.product as any).isCombo;
+    const bundleCount = (i.comboProducts && i.comboProducts.length > 0)
+      ? i.comboProducts.length
+      : ((i.product as any).comboProducts?.length || 1);
+    return sum + (isCombo ? bundleCount * i.quantity : i.quantity);
+  }, 0);
 
   // Auto fallback if option becomes unavailable due to plant count changes
   useEffect(() => {
@@ -255,7 +273,8 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
     }
   }, [totalPlantCount, deliveryOption]);
 
-  const shippingCharge = getDeliveryChargeForOption(deliveryOption, totalPlantCount);
+  const baseShipping = getDeliveryChargeForOption(deliveryOption, chargeablePlantCount);
+  const shippingCharge = hasAllFreeDelivery ? 0 : (chargeablePlantCount === 0 ? 0 : baseShipping);
   const potCharge = 0;
   const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const grandTotal = Math.max(0, subtotal + shippingCharge - discountAmount);
@@ -1076,13 +1095,27 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
               {/* Delivery / Packing options */}
               <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 space-y-3">
                 <div>
-                  <h3 className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5">
-                    🚚 Delivery / Packing Options
-                  </h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5">
+                      🚚 Delivery / Packing Options
+                    </h3>
+                    {hasAllFreeDelivery && (
+                      <span className="bg-emerald-600 text-white font-black text-[10px] px-2.5 py-0.5 rounded-full shadow-2xs">
+                        100% FREE SHIPPING
+                      </span>
+                    )}
+                  </div>
                   <p className="text-[10px] text-slate-500 font-medium mt-0.5">
-                    Options change automatically based on plant quantity ({totalPlantCount} plant{totalPlantCount !== 1 ? 's' : ''}).
+                    Options tailored for {totalPlantCount} plant{totalPlantCount !== 1 ? 's' : ''} in your order.
                   </p>
                 </div>
+
+                {hasAllFreeDelivery && (
+                  <div className="bg-emerald-100/80 border border-emerald-300 rounded-xl p-2.5 flex items-center gap-2 text-emerald-900 text-[11px] font-bold">
+                    <span className="text-base">🎉</span>
+                    <span>Special Offer: Free Doorstep Delivery is included with your plant combo!</span>
+                  </div>
+                )}
 
                 <div className="space-y-2.5">
                   {/* Option 1: Professional Courier - Reduced Soil */}
@@ -1096,12 +1129,23 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                         <div>
                           <h4 className="text-xs font-extrabold text-slate-900">🌿 Professional Courier – Reduced Soil</h4>
                           <span className="inline-block px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[9px] font-extrabold rounded-md mt-1">Available</span>
-                          <p className="text-[10px] text-slate-600 font-semibold mt-1">Delivery Charge: ₹60 for each plant</p>
+                          <p className="text-[10px] text-slate-600 font-semibold mt-1">
+                            {hasAllFreeDelivery ? 'Free doorstep delivery included' : 'Delivery Charge: ₹60 for each plant'}
+                          </p>
                         </div>
                       </div>
                       <div className="text-right shrink-0">
-                        <span className="text-xs font-extrabold text-slate-900 block">₹{totalPlantCount * 60}</span>
-                        <span className="text-[9px] text-slate-400 font-medium">({totalPlantCount} × ₹60)</span>
+                        {hasAllFreeDelivery ? (
+                          <>
+                            <span className="text-xs font-black text-emerald-700 block">₹0</span>
+                            <span className="text-[9px] text-slate-400 font-medium line-through">₹{totalPlantCount * 60}</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-xs font-extrabold text-slate-900 block">₹{chargeablePlantCount * 60}</span>
+                            <span className="text-[9px] text-slate-400 font-medium">({chargeablePlantCount} × ₹60)</span>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1122,12 +1166,23 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                               <span className={`inline-block px-2 py-0.5 text-[9px] font-extrabold rounded-md mt-1 ${isAvail ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
                                 {isAvail ? 'Maximum 5 plants' : 'Unavailable (Max 5 plants)'}
                               </span>
-                              <p className="text-[10px] text-slate-600 font-semibold mt-1">Delivery Charge: ₹100 for each plant</p>
+                              <p className="text-[10px] text-slate-600 font-semibold mt-1">
+                                {hasAllFreeDelivery ? 'Free doorstep delivery included' : 'Delivery Charge: ₹100 for each plant'}
+                              </p>
                             </div>
                           </div>
                           <div className="text-right shrink-0">
-                            <span className="text-xs font-extrabold text-slate-900 block">₹{totalPlantCount * 100}</span>
-                            <span className="text-[9px] text-slate-400 font-medium">({totalPlantCount} × ₹100)</span>
+                            {hasAllFreeDelivery ? (
+                              <>
+                                <span className="text-xs font-black text-emerald-700 block">₹0</span>
+                                <span className="text-[9px] text-slate-400 font-medium line-through">₹{totalPlantCount * 100}</span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="text-xs font-extrabold text-slate-900 block">₹{chargeablePlantCount * 100}</span>
+                                <span className="text-[9px] text-slate-400 font-medium">({chargeablePlantCount} × ₹100)</span>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1137,7 +1192,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                   {/* Option 3: Mettur Parcel Service */}
                   {(() => {
                     const isAvail = totalPlantCount >= 3;
-                    const metturCharge = getDeliveryChargeForOption('METTUR_PARCEL', totalPlantCount);
+                    const metturCharge = getDeliveryChargeForOption('METTUR_PARCEL', chargeablePlantCount);
                     return (
                       <div
                         onClick={() => { if (isAvail) setDeliveryOption('METTUR_PARCEL'); }}
@@ -1152,11 +1207,15 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                               <span className={`inline-block px-2 py-0.5 text-[9px] font-extrabold rounded-md mt-1 ${isAvail ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
                                 {isAvail ? 'Available' : 'Available from 3 plants'}
                               </span>
-                              <p className="text-[10px] text-slate-600 font-semibold mt-1">Packing / Delivery Charge: ₹60 (upto 6 plants ₹60, 7–12 plants ₹120)</p>
+                              <p className="text-[10px] text-slate-600 font-semibold mt-1">
+                                {hasAllFreeDelivery ? 'Free parcel packaging included' : 'Packing / Delivery Charge: ₹60 (upto 6 plants ₹60, 7–12 plants ₹120)'}
+                              </p>
                             </div>
                           </div>
                           <div className="text-right shrink-0">
-                            {isAvail ? (
+                            {hasAllFreeDelivery ? (
+                              <span className="text-xs font-black text-emerald-700 block">₹0</span>
+                            ) : isAvail ? (
                               <>
                                 <span className="text-xs font-extrabold text-slate-900 block">₹{metturCharge}</span>
                                 <span className="text-[9px] text-emerald-700 font-bold">{totalPlantCount <= 6 ? 'Upto 6 plants' : '7–12 plants'}</span>
@@ -1182,10 +1241,22 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                   <div>
                     <span className="flex items-center gap-1">🚚 Delivery Charge:</span>
                     <span className="text-[10px] text-slate-400 block">
-                      {deliveryOption === 'METTUR_PARCEL' ? 'Mettur Parcel Service' : deliveryOption === 'FULL_SOIL' ? 'Courier (Full Soil)' : 'Courier (Reduced Soil)'}
+                      {hasAllFreeDelivery
+                        ? '100% Free Doorstep Delivery Included'
+                        : deliveryOption === 'METTUR_PARCEL'
+                          ? 'Mettur Parcel Service'
+                          : deliveryOption === 'FULL_SOIL'
+                            ? 'Courier (Full Soil)'
+                            : 'Courier (Reduced Soil)'}
                     </span>
                   </div>
-                  <span className="font-bold text-slate-900">₹{shippingCharge}</span>
+                  <span className="font-bold text-slate-900">
+                    {shippingCharge === 0 ? (
+                      <span className="text-emerald-700 font-bold bg-emerald-100 px-2 py-0.5 rounded-full">FREE</span>
+                    ) : (
+                      `₹${shippingCharge}`
+                    )}
+                  </span>
                 </div>
                 {appliedCoupon && (
                   <div className="flex justify-between text-emerald-700 font-semibold">
