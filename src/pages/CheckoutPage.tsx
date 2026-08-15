@@ -3,6 +3,8 @@ import { CartItem, ShippingAddress, PaymentMethod, User, SiteSettings, Product }
 import { ShieldCheck, Truck, ArrowLeft, Check, Lock, Smartphone, Home, MapPin, Building2, CreditCard, QrCode, Upload, Copy, CheckCircle2, AlertCircle, Image as ImageIcon } from 'lucide-react';
 import { calculateDeliveryFee, INDIAN_STATES, isSouthState, isTamilNadu, isGrapeItem } from '../utils/delivery';
 import { computeOrderTotals } from '../utils/orderTotals';
+import { CourierSelectionSection, CourierPartnerType } from '../components/CourierSelectionSection';
+import { PlantProtectivePackingSection, PackingOptionType } from '../components/PlantProtectivePackingSection';
 
 interface CheckoutPageProps {
   items: CartItem[];
@@ -19,6 +21,11 @@ interface CheckoutPageProps {
     transactionId?: string;
     potCharge?: number;
     potOption?: string;
+    packingCharge?: number;
+    packingOption?: string;
+    courierName?: string;
+    courierDistrict?: string;
+    courierBranch?: string;
   }) => Promise<{ success: boolean; orderId?: string; phonepePayUrl?: string; merchantTransactionId?: string; razorpayOrderId?: string; razorpayKeyId?: string; amount?: number; message?: string }>;
 }
 
@@ -88,6 +95,12 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     return 'NONE';
   });
 
+  const [courierPartner, setCourierPartner] = useState<CourierPartnerType>('ST_COURIER');
+  const [metturState, setMetturState] = useState<string>('Tamil Nadu');
+  const [metturDistrict, setMetturDistrict] = useState<string>('Salem');
+  const [metturBranch, setMetturBranch] = useState<string>('Salem Main Hub (Shevapet)');
+  const [selectedPacking, setSelectedPacking] = useState<PackingOptionType>('STANDARD');
+
   // Fetch settings to check enabled payment methods
   useEffect(() => {
     fetch('/api/settings')
@@ -139,6 +152,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     totalPlantCount,
     potUnitFee,
     potCharge,
+    packingCharge,
     shippingFee: shippingCharge,
     discountAmount,
     grandTotal
@@ -146,6 +160,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     items,
     state: address.state,
     selectedPot,
+    selectedPacking,
     appliedCoupon
   });
 
@@ -328,6 +343,12 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
         ? user.email 
         : `cust${cleanPhone || Date.now()}@veerikanursery.com`;
 
+      const courierLabel = courierPartner === 'METTUR_PARCEL'
+        ? 'Mettur Parcel Service'
+        : courierPartner === 'ST_COURIER'
+        ? 'ST Courier'
+        : 'Professional Courier';
+
       const res = await onPlaceOrder({
         customerName: address.fullName || user?.name || 'Valued Customer',
         customerPhone: cleanPhone || address.phone,
@@ -340,7 +361,12 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
         paymentProofUrl: effectivePaymentMethod === 'QR_PAYMENT' ? paymentProofUrl : undefined,
         transactionId: effectivePaymentMethod === 'QR_PAYMENT' ? transactionId : undefined,
         potCharge,
-        potOption: selectedPot
+        potOption: selectedPot,
+        packingCharge,
+        packingOption: selectedPacking,
+        courierName: courierLabel,
+        courierDistrict: courierPartner === 'METTUR_PARCEL' ? metturDistrict : undefined,
+        courierBranch: courierPartner === 'METTUR_PARCEL' ? metturBranch : undefined,
       });
 
       setLoading(false);
@@ -680,6 +706,29 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-semibold"
                 />
               </div>
+
+              {/* Courier Partner Selection & Mettur Parcel Branch Availability */}
+              <CourierSelectionSection
+                selectedCourier={courierPartner}
+                onChangeCourier={setCourierPartner}
+                shippingState={address.state}
+                shippingDistrict={address.district}
+                metturState={metturState}
+                onChangeMetturState={setMetturState}
+                metturDistrict={metturDistrict}
+                onChangeMetturDistrict={setMetturDistrict}
+                metturBranch={metturBranch}
+                onChangeMetturBranch={setMetturBranch}
+                totalPlantCount={totalPlantCount}
+                hasFreeDelivery={shippingCharge === 0 && selectedPot === 'NONE'}
+              />
+
+              {/* Plant Protective Packing Selection ("Pick Protective Packing for Your Plants' Journey") */}
+              <PlantProtectivePackingSection
+                items={items}
+                selectedPacking={selectedPacking}
+                onChangePacking={setSelectedPacking}
+              />
 
               <button
                 type="submit"
@@ -1113,9 +1162,11 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
                 <div>
                   <span className="flex items-center gap-1 font-medium">🚚 Delivery Charge:</span>
                   <span className="text-[10px] text-slate-500 block">
-                    {selectedPot !== 'NONE'
-                      ? 'Free delivery included with pot selection'
-                      : `${address.state} (${isTamilNadu(address.state) ? 'Tamil Nadu Rate' : 'Other South States Rate'})`}
+                    {courierPartner === 'METTUR_PARCEL'
+                      ? `Mettur Parcel Service (${metturDistrict || 'Tamil Nadu'})`
+                      : courierPartner === 'ST_COURIER'
+                        ? 'ST Courier Doorstep'
+                        : 'Professional Courier'}
                   </span>
                 </div>
                 <span className="font-bold text-slate-900">
@@ -1123,6 +1174,18 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
                     <span className="text-emerald-700 font-extrabold">FREE (With Pot)</span>
                   ) : (
                     shippingCharge === 0 ? 'FREE' : `₹${shippingCharge}`
+                  )}
+                </span>
+              </div>
+
+              {/* Protective Packing Charge */}
+              <div className="flex justify-between items-center text-xs text-slate-700">
+                <span className="flex items-center gap-1 font-medium">🛡️ Plant Protective Packing:</span>
+                <span className="font-bold text-slate-900">
+                  {packingCharge === 0 ? (
+                    <span className="text-slate-500 font-semibold">Standard (₹0)</span>
+                  ) : (
+                    <span className="text-emerald-800 font-bold">+₹{packingCharge} ({selectedPacking === 'EXTRA_SECURE' ? 'Extra Secure' : 'Max Protection'})</span>
                   )}
                 </span>
               </div>

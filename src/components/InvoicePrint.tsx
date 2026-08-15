@@ -127,9 +127,15 @@ export const InvoicePrint: React.FC<InvoicePrintProps> = ({ order, onClose }) =>
             <span className="font-semibold text-slate-900">₹{order.subtotal}</span>
           </div>
           <div className="flex justify-between">
-            <span>Shipping Charge:</span>
+            <span>Courier ({order.courierName || 'Standard'}{order.courierBranch ? ` - ${order.courierBranch}` : ''}):</span>
             <span>{order.shippingCharge === 0 ? 'FREE' : `₹${order.shippingCharge}`}</span>
           </div>
+          {Boolean(order.packingCharge) && (
+            <div className="flex justify-between text-emerald-800 font-semibold">
+              <span>Protective Packing ({order.packingOption === 'EXTRA_SECURE' ? 'Extra Secure' : 'Max Protection'}):</span>
+              <span>+₹{order.packingCharge}</span>
+            </div>
+          )}
           {order.discount > 0 && (
             <div className="flex justify-between text-emerald-700 font-semibold">
               <span>Coupon Discount:</span>

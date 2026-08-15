@@ -322,9 +322,30 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
           ))}
         </div>
 
-        <div className="pt-3 border-t border-slate-200 flex justify-between items-center text-sm font-bold text-slate-900">
-          <span>{isCod ? 'Total Payable via Cash on Delivery:' : order.paymentMethod === 'RAZORPAY' ? 'Total Paid via Razorpay:' : 'Total Paid Online:'}</span>
-          <span className="text-emerald-800 text-base">₹{order.grandTotal}</span>
+        {/* Pricing & Courier Details Breakdown */}
+        <div className="pt-3 border-t border-slate-200 space-y-1.5 text-xs text-slate-700">
+          <div className="flex justify-between items-center">
+            <span className="font-medium">🚚 Courier Delivery:</span>
+            <span className="font-bold text-slate-900">
+              {order.courierName || 'ST Courier'}
+              {order.courierBranch ? ` (${order.courierBranch})` : ''}
+              {order.shippingCharge === 0 ? ' — FREE' : ` — ₹${order.shippingCharge}`}
+            </span>
+          </div>
+
+          {Boolean(order.packingCharge) && (
+            <div className="flex justify-between items-center text-emerald-800 font-semibold">
+              <span className="flex items-center gap-1">🛡️ Protective Packaging:</span>
+              <span className="font-bold">
+                +₹{order.packingCharge} ({order.packingOption === 'EXTRA_SECURE' ? 'Extra Secure' : 'Maximum Protection'})
+              </span>
+            </div>
+          )}
+
+          <div className="flex justify-between items-center text-sm font-bold text-slate-900 pt-2 border-t border-slate-200">
+            <span>{isCod ? 'Total Payable via Cash on Delivery:' : order.paymentMethod === 'RAZORPAY' ? 'Total Paid via Razorpay:' : 'Total Paid Online:'}</span>
+            <span className="text-emerald-800 text-base">₹{order.grandTotal}</span>
+          </div>
         </div>
       </div>
 

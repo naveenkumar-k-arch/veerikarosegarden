@@ -7085,10 +7085,18 @@ class Store {
             });
           }
 
-          // Pack paymentProofUrl (base64 image) into notes column for persistence
-          const notesPayload = order.paymentProofUrl
-            ? `|||PROOF|||${order.paymentProofUrl}|||TXNID|||${order.transactionId || ''}`
-            : (order.transactionId ? `|||TXNID|||${order.transactionId}` : null);
+          // Pack paymentProofUrl and options into notes column for persistence
+          const notesPayload = JSON.stringify({
+            proof: order.paymentProofUrl || null,
+            txnId: order.transactionId || null,
+            packingOption: order.packingOption || 'STANDARD',
+            packingCharge: order.packingCharge || 0,
+            potOption: order.potOption || null,
+            potCharge: order.potCharge || 0,
+            courierName: order.courierName || null,
+            courierDistrict: order.courierDistrict || null,
+            courierBranch: order.courierBranch || null
+          });
 
           await tx.order.create({
             data: {
@@ -7190,11 +7198,32 @@ class Store {
             image: '/products/double-delight.jpeg'
           }));
 
-          // Unpack paymentProofUrl and transactionId from notes column
+          // Unpack paymentProofUrl, transactionId, packing and courier options from notes
           const notesStr = (o as any).notes || '';
           let unpackedProofUrl: string | undefined = undefined;
           let unpackedTxnId: string | undefined = undefined;
-          if (notesStr.includes('|||PROOF|||')) {
+          let unpackedPackingOption: string | undefined = undefined;
+          let unpackedPackingCharge: number | undefined = undefined;
+          let unpackedPotOption: string | undefined = undefined;
+          let unpackedPotCharge: number | undefined = undefined;
+          let unpackedCourierDistrict: string | undefined = undefined;
+          let unpackedCourierBranch: string | undefined = undefined;
+          let parsedCourierFromNotes: string | undefined = undefined;
+
+          if (notesStr.startsWith('{') && notesStr.endsWith('}')) {
+            try {
+              const pNotes = JSON.parse(notesStr);
+              if (pNotes.proof) unpackedProofUrl = pNotes.proof;
+              if (pNotes.txnId) unpackedTxnId = pNotes.txnId;
+              if (pNotes.packingOption) unpackedPackingOption = pNotes.packingOption;
+              if (pNotes.packingCharge !== undefined) unpackedPackingCharge = pNotes.packingCharge;
+              if (pNotes.potOption) unpackedPotOption = pNotes.potOption;
+              if (pNotes.potCharge !== undefined) unpackedPotCharge = pNotes.potCharge;
+              if (pNotes.courierName) parsedCourierFromNotes = pNotes.courierName;
+              if (pNotes.courierDistrict) unpackedCourierDistrict = pNotes.courierDistrict;
+              if (pNotes.courierBranch) unpackedCourierBranch = pNotes.courierBranch;
+            } catch {}
+          } else if (notesStr.includes('|||PROOF|||')) {
             const proofMatch = notesStr.split('|||PROOF|||')[1]?.split('|||TXNID|||')[0];
             const txnMatch = notesStr.split('|||TXNID|||')[1];
             if (proofMatch) unpackedProofUrl = proofMatch.trim();
@@ -7205,7 +7234,7 @@ class Store {
           }
 
           const rawTracking = (o as any).trackingNumber || '';
-          let parsedCourier: string | undefined = undefined;
+          let parsedCourier: string | undefined = parsedCourierFromNotes;
           let parsedTracking: string | undefined = rawTracking || undefined;
           if (rawTracking.includes(' | ')) {
             const parts = rawTracking.split(' | ');
@@ -7250,6 +7279,12 @@ class Store {
             merchantTransactionId: o.merchantTransactionId || '',
             trackingNumber: parsedTracking,
             courierName: parsedCourier,
+            potOption: unpackedPotOption,
+            potCharge: unpackedPotCharge,
+            packingOption: unpackedPackingOption,
+            packingCharge: unpackedPackingCharge,
+            courierDistrict: unpackedCourierDistrict,
+            courierBranch: unpackedCourierBranch,
             createdAt: o.createdAt.toISOString(),
             updatedAt: o.updatedAt.toISOString()
           };
@@ -7421,7 +7456,28 @@ class Store {
       const notesStr = (o as any).notes || '';
       let unpackedProofUrl: string | undefined = undefined;
       let unpackedTxnId: string | undefined = undefined;
-      if (notesStr.includes('|||PROOF|||')) {
+      let unpackedPackingOption: string | undefined = undefined;
+      let unpackedPackingCharge: number | undefined = undefined;
+      let unpackedPotOption: string | undefined = undefined;
+      let unpackedPotCharge: number | undefined = undefined;
+      let unpackedCourierDistrict: string | undefined = undefined;
+      let unpackedCourierBranch: string | undefined = undefined;
+      let parsedCourierFromNotes: string | undefined = undefined;
+
+      if (notesStr.startsWith('{') && notesStr.endsWith('}')) {
+        try {
+          const pNotes = JSON.parse(notesStr);
+          if (pNotes.proof) unpackedProofUrl = pNotes.proof;
+          if (pNotes.txnId) unpackedTxnId = pNotes.txnId;
+          if (pNotes.packingOption) unpackedPackingOption = pNotes.packingOption;
+          if (pNotes.packingCharge !== undefined) unpackedPackingCharge = pNotes.packingCharge;
+          if (pNotes.potOption) unpackedPotOption = pNotes.potOption;
+          if (pNotes.potCharge !== undefined) unpackedPotCharge = pNotes.potCharge;
+          if (pNotes.courierName) parsedCourierFromNotes = pNotes.courierName;
+          if (pNotes.courierDistrict) unpackedCourierDistrict = pNotes.courierDistrict;
+          if (pNotes.courierBranch) unpackedCourierBranch = pNotes.courierBranch;
+        } catch {}
+      } else if (notesStr.includes('|||PROOF|||')) {
         const proofMatch = notesStr.split('|||PROOF|||')[1]?.split('|||TXNID|||')[0];
         const txnMatch = notesStr.split('|||TXNID|||')[1];
         if (proofMatch) unpackedProofUrl = proofMatch.trim();
@@ -7432,7 +7488,7 @@ class Store {
       }
 
       const rawTracking = (o as any).trackingNumber || '';
-      let parsedCourier: string | undefined = undefined;
+      let parsedCourier: string | undefined = parsedCourierFromNotes;
       let parsedTracking: string | undefined = rawTracking || undefined;
       if (rawTracking.includes(' | ')) {
         const parts = rawTracking.split(' | ');
@@ -7477,6 +7533,12 @@ class Store {
         merchantTransactionId: o.merchantTransactionId || '',
         trackingNumber: parsedTracking || (memMatch as any)?.trackingNumber,
         courierName: parsedCourier || (memMatch as any)?.courierName,
+        potOption: unpackedPotOption || memMatch?.potOption,
+        potCharge: unpackedPotCharge !== undefined ? unpackedPotCharge : memMatch?.potCharge,
+        packingOption: unpackedPackingOption || memMatch?.packingOption,
+        packingCharge: unpackedPackingCharge !== undefined ? unpackedPackingCharge : memMatch?.packingCharge,
+        courierDistrict: unpackedCourierDistrict || memMatch?.courierDistrict,
+        courierBranch: unpackedCourierBranch || memMatch?.courierBranch,
         createdAt: o.createdAt.toISOString(),
         updatedAt: o.updatedAt.toISOString()
       };

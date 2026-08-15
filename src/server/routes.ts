@@ -736,12 +736,21 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
     const potUnitFee = potOption === '6_INCH' ? 99 : potOption === '8_INCH' ? 199 : 0;
     const potCharge = potUnitFee * totalPlantCount;
 
+    // Protective Packing Calculation
+    const packingOption = req.body.packingOption || 'STANDARD';
+    const packingCharge = packingOption === 'EXTRA_SECURE' ? 10 : packingOption === 'MAX_PROTECTION' ? 15 : 0;
+
+    // Courier selection details
+    const courierName = req.body.courierName || undefined;
+    const courierDistrict = req.body.courierDistrict || undefined;
+    const courierBranch = req.body.courierBranch || undefined;
+
     // Server-side Shipping Charge calculation
     const targetState = shippingAddress?.state || 'Tamil Nadu';
     const shippingCharge = potOption !== 'NONE' ? 0 : calculateDeliveryFee(verifiedItems, targetState);
 
     // Final Grand Total calculated strictly on server
-    const calculatedGrandTotal = Math.max(1, Math.round(calculatedSubtotal + potCharge + shippingCharge - Math.min(discount, calculatedSubtotal)));
+    const calculatedGrandTotal = Math.max(1, Math.round(calculatedSubtotal + potCharge + packingCharge + shippingCharge - Math.min(discount, calculatedSubtotal)));
 
     const merchantTransactionId = 'MT' + Date.now() + Math.floor(10 + Math.random() * 89);
 
@@ -762,6 +771,11 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
       shippingCharge,
       potCharge,
       potOption,
+      packingCharge,
+      packingOption,
+      courierName,
+      courierDistrict,
+      courierBranch,
       discount: Math.round(discount),
       couponCode: couponCode || undefined,
       grandTotal: calculatedGrandTotal,

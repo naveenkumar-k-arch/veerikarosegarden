@@ -5,6 +5,7 @@ export interface OrderTotalsInput {
   items: CartItem[];
   state?: string;
   selectedPot?: 'NONE' | '6_INCH' | '8_INCH';
+  selectedPacking?: 'STANDARD' | 'EXTRA_SECURE' | 'MAX_PROTECTION';
   appliedCoupon?: { code: string; discountAmount: number } | null;
 }
 
@@ -13,6 +14,7 @@ export interface OrderTotalsOutput {
   totalPlantCount: number;
   potUnitFee: number;
   potCharge: number;
+  packingCharge: number;
   shippingFee: number;
   discountAmount: number;
   grandTotal: number;
@@ -22,6 +24,7 @@ export function computeOrderTotals({
   items,
   state = 'Tamil Nadu',
   selectedPot = 'NONE',
+  selectedPacking = 'STANDARD',
   appliedCoupon = null
 }: OrderTotalsInput): OrderTotalsOutput {
   const subtotal = items.reduce((sum, i) => sum + i.product.sellingPrice * i.quantity, 0);
@@ -36,17 +39,21 @@ export function computeOrderTotals({
   const potUnitFee = selectedPot === '6_INCH' ? 99 : selectedPot === '8_INCH' ? 199 : 0;
   const potCharge = potUnitFee * totalPlantCount;
 
+  // Packing Fee
+  const packingCharge = selectedPacking === 'EXTRA_SECURE' ? 10 : selectedPacking === 'MAX_PROTECTION' ? 15 : 0;
+
   // Free shipping when pot option is selected (or calculated per state)
   const shippingFee = selectedPot !== 'NONE' ? 0 : calculateDeliveryFee(items, state);
   const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
 
-  const grandTotal = Math.max(0, subtotal + potCharge + shippingFee - discountAmount);
+  const grandTotal = Math.max(0, subtotal + potCharge + packingCharge + shippingFee - discountAmount);
 
   return {
     subtotal,
     totalPlantCount,
     potUnitFee,
     potCharge,
+    packingCharge,
     shippingFee,
     discountAmount,
     grandTotal

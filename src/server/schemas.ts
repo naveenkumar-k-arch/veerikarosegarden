@@ -40,7 +40,12 @@ export const createOrderSchema = z.object({
     ),
   transactionId: z.string().max(100).optional().nullable().transform(val => val || undefined),
   potOption: z.string().optional(),
-  potCharge: z.number().min(0).optional()
+  potCharge: z.number().min(0).optional(),
+  packingOption: z.string().optional(),
+  packingCharge: z.number().min(0).optional(),
+  courierName: z.string().optional(),
+  courierDistrict: z.string().optional(),
+  courierBranch: z.string().optional()
 });
 
 export const productSchema = z.object({

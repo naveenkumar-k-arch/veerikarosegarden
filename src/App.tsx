@@ -738,15 +738,25 @@ export const App: React.FC = () => {
     transactionId?: string;
     potCharge?: number;
     potOption?: string;
+    packingCharge?: number;
+    packingOption?: string;
+    courierName?: string;
+    courierDistrict?: string;
+    courierBranch?: string;
   }) => {
     const subtotal = cart.reduce((sum, i) => sum + i.product.sellingPrice * i.quantity, 0);
     const totalPlantCount = cart.reduce((sum, i) => sum + i.quantity, 0);
     const potOption = orderData.potOption || 'NONE';
     const potUnitFee = potOption === '6_INCH' ? 99 : potOption === '8_INCH' ? 199 : 0;
     const potCharge = orderData.potCharge ?? (potUnitFee * totalPlantCount);
+    
+    // Packing calculation
+    const packingOption = orderData.packingOption || 'STANDARD';
+    const packingCharge = orderData.packingCharge ?? (packingOption === 'EXTRA_SECURE' ? 10 : packingOption === 'MAX_PROTECTION' ? 15 : 0);
+
     const shippingCharge = potOption !== 'NONE' ? 0 : calculateDeliveryFee(cart, orderData.shippingAddress?.state);
     const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
-    const grandTotal = Math.max(0, subtotal + potCharge + shippingCharge - discountAmount);
+    const grandTotal = Math.max(0, subtotal + potCharge + packingCharge + shippingCharge - discountAmount);
 
     const rawPhone = (orderData.customerPhone || user?.phone || '').replace(/\D/g, '');
     const cleanPhone = rawPhone.length >= 10 ? rawPhone.slice(-10) : (rawPhone || '9123456789');
@@ -771,6 +781,11 @@ export const App: React.FC = () => {
       transactionId: orderData.transactionId,
       potCharge,
       potOption,
+      packingCharge,
+      packingOption,
+      courierName: orderData.courierName,
+      courierDistrict: orderData.courierDistrict,
+      courierBranch: orderData.courierBranch,
       items: cart.map((i) => ({
         productId: i.product.id,
         sku: i.product.sku || 'VRG-ROSE',

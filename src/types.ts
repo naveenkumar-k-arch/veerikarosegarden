@@ -121,6 +121,10 @@ export interface Order {
   deliveryNotes?: string;
   potCharge?: number;
   potOption?: string;
+  packingCharge?: number;
+  packingOption?: string;
+  courierDistrict?: string;
+  courierBranch?: string;
   createdAt: string;
   updatedAt: string;
 }

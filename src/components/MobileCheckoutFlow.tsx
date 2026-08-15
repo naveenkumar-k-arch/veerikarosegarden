@@ -8,6 +8,8 @@ import {
 import { CartItem, ShippingAddress, PaymentMethod, User, SiteSettings, Product } from '../types';
 import { INDIAN_STATES, isTamilNadu } from '../utils/delivery';
 import { computeOrderTotals } from '../utils/orderTotals';
+import { CourierSelectionSection, CourierPartnerType } from './CourierSelectionSection';
+import { PlantProtectivePackingSection, PackingOptionType } from './PlantProtectivePackingSection';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types & Constants
@@ -31,6 +33,11 @@ interface MobileCheckoutFlowProps {
     transactionId?: string;
     potCharge?: number;
     potOption?: string;
+    packingCharge?: number;
+    packingOption?: string;
+    courierName?: string;
+    courierDistrict?: string;
+    courierBranch?: string;
   }) => Promise<{
     success: boolean;
     orderId?: string;
@@ -240,6 +247,11 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
 
   // ── Delivery / Packing Selection ──────────────────────────────────────────
   const [deliveryOption, setDeliveryOption] = useState<DeliveryOptionType>('REDUCED_SOIL');
+  const [courierPartner, setCourierPartner] = useState<CourierPartnerType>('ST_COURIER');
+  const [metturState, setMetturState] = useState<string>('Tamil Nadu');
+  const [metturDistrict, setMetturDistrict] = useState<string>('Salem');
+  const [metturBranch, setMetturBranch] = useState<string>('Salem Main Hub (Shevapet)');
+  const [selectedPacking, setSelectedPacking] = useState<PackingOptionType>('STANDARD');
 
   // Total plant count (including plants bundled inside combos)
   const subtotal = items.reduce((sum, i) => sum + i.product.sellingPrice * i.quantity, 0);
@@ -273,11 +285,12 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
     }
   }, [totalPlantCount, deliveryOption]);
 
-  const baseShipping = getDeliveryChargeForOption(deliveryOption, chargeablePlantCount);
+  const baseShipping = getDeliveryChargeForOption(courierPartner === 'METTUR_PARCEL' ? 'METTUR_PARCEL' : deliveryOption, chargeablePlantCount);
   const shippingCharge = hasAllFreeDelivery ? 0 : (chargeablePlantCount === 0 ? 0 : baseShipping);
+  const packingCharge = selectedPacking === 'EXTRA_SECURE' ? 10 : selectedPacking === 'MAX_PROTECTION' ? 15 : 0;
   const potCharge = 0;
   const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
-  const grandTotal = Math.max(0, subtotal + shippingCharge - discountAmount);
+  const grandTotal = Math.max(0, subtotal + shippingCharge + packingCharge - discountAmount);
 
   // ── Terms ──────────────────────────────────────────────────────────────────
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -533,6 +546,12 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
       const rawPhone = (address.phone || user.phone || '').replace(/\D/g, '');
       const cleanPhone = rawPhone.length >= 10 ? rawPhone.slice(-10) : rawPhone;
       const cleanEmail = (user.email?.includes('@')) ? user.email : `cust${cleanPhone}@veerikanursery.com`;
+      const courierLabel = courierPartner === 'METTUR_PARCEL'
+        ? 'Mettur Parcel Service'
+        : courierPartner === 'ST_COURIER'
+        ? 'ST Courier'
+        : 'Professional Courier';
+
       const res = await onPlaceOrder({
         customerName: address.fullName || user.name || 'Customer',
         customerPhone: cleanPhone,
@@ -542,7 +561,12 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
         paymentProofUrl: effectivePM === 'QR_PAYMENT' ? paymentProofUrl : undefined,
         transactionId: effectivePM === 'QR_PAYMENT' ? transactionId : undefined,
         potCharge: 0,
-        potOption: deliveryOption === 'METTUR_PARCEL' ? 'Mettur Parcel Service' : deliveryOption === 'FULL_SOIL' ? 'Professional Courier - Full Soil' : 'Professional Courier - Reduced Soil',
+        potOption: courierLabel,
+        packingCharge,
+        packingOption: selectedPacking,
+        courierName: courierLabel,
+        courierDistrict: courierPartner === 'METTUR_PARCEL' ? metturDistrict : undefined,
+        courierBranch: courierPartner === 'METTUR_PARCEL' ? metturBranch : undefined,
       });
       setLoading(false);
       if (res.success) {
@@ -1100,17 +1124,17 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
             </div>
 
             <div className="px-4 pb-6 pt-3 border-t border-slate-100 bg-white">
-              <ProceedBtn label="PROCEED TO PAYMENT METHOD" type="submit" />
+              <ProceedBtn label="PROCEED TO COURIER & PACKING" type="submit" />
             </div>
           </form>
         )}
 
         {/* ═══════════════════════════════════════════════════════════════════
-            STEP 4 — Delivery / Packing
+            STEP 4 — Courier & Protective Packing
         ═══════════════════════════════════════════════════════════════════ */}
         {step === 4 && (
           <div className="flex flex-col min-h-full">
-            <Header title="🚚 Delivery / Packing" subtitle="Options change automatically based on plant quantity." onBack={() => handleGoBack(3)} />
+            <Header title="🚚 Courier & Packing Selection" subtitle="Choose your courier partner and plant protective packaging." onBack={() => handleGoBack(3)} />
 
             <div className="flex-1 px-4 py-3 space-y-4">
               {/* Items Summary */}
@@ -1155,149 +1179,37 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                 })}
               </div>
 
-              {/* Delivery / Packing options */}
-              <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 space-y-3">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5">
-                      🚚 Delivery / Packing Options
-                    </h3>
-                    {hasAllFreeDelivery && (
-                      <span className="bg-emerald-600 text-white font-black text-[10px] px-2.5 py-0.5 rounded-full shadow-2xs">
-                        100% FREE SHIPPING
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[10px] text-slate-500 font-medium mt-0.5">
-                    Options tailored for {totalPlantCount} plant{totalPlantCount !== 1 ? 's' : ''} in your order.
-                  </p>
-                </div>
+              {/* Courier Partner Selection & Mettur Parcel Branch Availability */}
+              <CourierSelectionSection
+                selectedCourier={courierPartner}
+                onChangeCourier={(c) => {
+                  setCourierPartner(c);
+                  if (c === 'METTUR_PARCEL') {
+                    setDeliveryOption('METTUR_PARCEL');
+                  } else {
+                    setDeliveryOption('REDUCED_SOIL');
+                  }
+                }}
+                shippingState={address.state}
+                shippingDistrict={address.district}
+                metturState={metturState}
+                onChangeMetturState={setMetturState}
+                metturDistrict={metturDistrict}
+                onChangeMetturDistrict={setMetturDistrict}
+                metturBranch={metturBranch}
+                onChangeMetturBranch={setMetturBranch}
+                totalPlantCount={totalPlantCount}
+                deliveryOption={deliveryOption}
+                onChangeDeliveryOption={setDeliveryOption}
+                hasFreeDelivery={hasAllFreeDelivery}
+              />
 
-                {hasAllFreeDelivery && (
-                  <div className="bg-emerald-100/80 border border-emerald-300 rounded-xl p-2.5 flex items-center gap-2 text-emerald-900 text-[11px] font-bold">
-                    <span className="text-base">🎉</span>
-                    <span>Special Offer: Free Doorstep Delivery is included with your plant combo!</span>
-                  </div>
-                )}
-
-                <div className="space-y-2.5">
-                  {/* Free Delivery Combo: ONLY show Professional Courier – Reduced Soil */}
-                  {hasAllFreeDelivery ? (
-                    <div
-                      className="p-3.5 rounded-xl border-2 border-emerald-600 bg-emerald-50/90 shadow-2xs"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-start gap-2.5">
-                          <input
-                            type="radio"
-                            checked={true}
-                            readOnly
-                            className="mt-0.5 accent-emerald-600 cursor-default"
-                          />
-                          <div>
-                            <h4 className="text-xs font-extrabold text-slate-900">🌿 Professional Courier – Reduced Soil</h4>
-                            <span className="inline-block px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[9px] font-extrabold rounded-md mt-1">Available</span>
-                            <p className="text-[10px] text-emerald-800 font-semibold mt-1">
-                              Free doorstep delivery included
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <span className="text-xs font-black text-emerald-700 block">₹0 FREE</span>
-                          <span className="text-[9px] text-slate-400 font-medium line-through">₹{totalPlantCount * 60}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      {/* Option 1: Professional Courier - Reduced Soil */}
-                      <div
-                        onClick={() => setDeliveryOption('REDUCED_SOIL')}
-                        className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all ${deliveryOption === 'REDUCED_SOIL' ? 'border-emerald-600 bg-emerald-50' : 'border-slate-200 bg-white'}`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-start gap-2.5">
-                            <input type="radio" checked={deliveryOption === 'REDUCED_SOIL'} onChange={() => setDeliveryOption('REDUCED_SOIL')} className="mt-0.5 accent-emerald-600 cursor-pointer" />
-                            <div>
-                              <h4 className="text-xs font-extrabold text-slate-900">🌿 Professional Courier – Reduced Soil</h4>
-                              <span className="inline-block px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[9px] font-extrabold rounded-md mt-1">Available</span>
-                              <p className="text-[10px] text-slate-600 font-semibold mt-1">Delivery Charge: ₹60 for each plant</p>
-                            </div>
-                          </div>
-                          <div className="text-right shrink-0">
-                            <span className="text-xs font-extrabold text-slate-900 block">₹{totalPlantCount * 60}</span>
-                            <span className="text-[9px] text-slate-400 font-medium">({totalPlantCount} × ₹60)</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Option 2: Professional Courier - Full Soil */}
-                      {(() => {
-                        const isAvail = totalPlantCount <= 5;
-                        return (
-                          <div
-                            onClick={() => { if (isAvail) setDeliveryOption('FULL_SOIL'); }}
-                            className={`p-3.5 rounded-xl border-2 transition-all ${!isAvail ? 'opacity-50 border-slate-200 bg-slate-100 cursor-not-allowed' : deliveryOption === 'FULL_SOIL' ? 'border-emerald-600 bg-emerald-50 cursor-pointer' : 'border-slate-200 bg-white cursor-pointer'}`}
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex items-start gap-2.5">
-                                <input type="radio" disabled={!isAvail} checked={deliveryOption === 'FULL_SOIL'} onChange={() => { if (isAvail) setDeliveryOption('FULL_SOIL'); }} className="mt-0.5 accent-emerald-600 cursor-pointer" />
-                                <div>
-                                  <h4 className="text-xs font-extrabold text-slate-900">🌱 Professional Courier – Full Soil</h4>
-                                  <span className={`inline-block px-2 py-0.5 text-[9px] font-extrabold rounded-md mt-1 ${isAvail ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
-                                    {isAvail ? 'Maximum 5 plants' : 'Unavailable (Max 5 plants)'}
-                                  </span>
-                                  <p className="text-[10px] text-slate-600 font-semibold mt-1">Delivery Charge: ₹100 for each plant</p>
-                                </div>
-                              </div>
-                              <div className="text-right shrink-0">
-                                <span className="text-xs font-extrabold text-slate-900 block">₹{totalPlantCount * 100}</span>
-                                <span className="text-[9px] text-slate-400 font-medium">({totalPlantCount} × ₹100)</span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })()}
-
-                      {/* Option 3: Mettur Parcel Service */}
-                      {(() => {
-                        const isAvail = totalPlantCount >= 3;
-                        const metturCharge = getDeliveryChargeForOption('METTUR_PARCEL', totalPlantCount);
-                        return (
-                          <div
-                            onClick={() => { if (isAvail) setDeliveryOption('METTUR_PARCEL'); }}
-                            className={`p-3.5 rounded-xl border-2 transition-all ${!isAvail ? 'opacity-60 border-slate-200 bg-amber-50/50 cursor-not-allowed' : deliveryOption === 'METTUR_PARCEL' ? 'border-emerald-600 bg-emerald-50 cursor-pointer' : 'border-slate-200 bg-white cursor-pointer'}`}
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex items-start gap-2.5">
-                                <input type="radio" disabled={!isAvail} checked={deliveryOption === 'METTUR_PARCEL'} onChange={() => { if (isAvail) setDeliveryOption('METTUR_PARCEL'); }} className="mt-0.5 accent-emerald-600 cursor-pointer" />
-                                <div>
-                                  <h4 className="text-xs font-extrabold text-slate-900">📦 Mettur Parcel Service</h4>
-                                  <p className="text-[10px] text-slate-500 font-medium">All India • Available from 3 plants • Full Soil / Open Box</p>
-                                  <span className={`inline-block px-2 py-0.5 text-[9px] font-extrabold rounded-md mt-1 ${isAvail ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                                    {isAvail ? 'Available' : 'Available from 3 plants'}
-                                  </span>
-                                  <p className="text-[10px] text-slate-600 font-semibold mt-1">Packing / Delivery Charge: ₹60 (upto 6 plants ₹60, 7–12 plants ₹120)</p>
-                                </div>
-                              </div>
-                              <div className="text-right shrink-0">
-                                {isAvail ? (
-                                  <>
-                                    <span className="text-xs font-extrabold text-slate-900 block">₹{metturCharge}</span>
-                                    <span className="text-[9px] text-emerald-700 font-bold">{totalPlantCount <= 6 ? 'Upto 6 plants' : '7–12 plants'}</span>
-                                  </>
-                                ) : (
-                                  <span className="text-[10px] font-bold text-amber-700 block">Min 3 plants</span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </>
-                  )}
-                </div>
-              </div>
+              {/* Plant Protective Packing Selection ("Pick Protective Packing for Your Plants' Journey") */}
+              <PlantProtectivePackingSection
+                items={items}
+                selectedPacking={selectedPacking}
+                onChangePacking={setSelectedPacking}
+              />
 
               {/* Price summary */}
               <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-2 text-xs text-slate-600">
@@ -1311,11 +1223,11 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                     <span className="text-[10px] text-slate-400 block">
                       {hasAllFreeDelivery
                         ? '100% Free Doorstep Delivery Included'
-                        : deliveryOption === 'METTUR_PARCEL'
-                          ? 'Mettur Parcel Service'
-                          : deliveryOption === 'FULL_SOIL'
-                            ? 'Courier (Full Soil)'
-                            : 'Courier (Reduced Soil)'}
+                        : courierPartner === 'METTUR_PARCEL'
+                          ? `Mettur Parcel (${metturDistrict || 'Tamil Nadu'})`
+                          : courierPartner === 'ST_COURIER'
+                            ? 'ST Courier Doorstep'
+                            : 'Professional Courier'}
                     </span>
                   </div>
                   <span className="font-bold text-slate-900">
@@ -1326,6 +1238,19 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                     )}
                   </span>
                 </div>
+
+                {/* Protective Packing Fee */}
+                <div className="flex justify-between items-center">
+                  <span className="flex items-center gap-1">🛡️ Plant Protective Packing:</span>
+                  <span className="font-bold text-slate-900">
+                    {packingCharge === 0 ? (
+                      <span className="text-slate-500 font-semibold">Standard (₹0)</span>
+                    ) : (
+                      <span className="text-emerald-800 font-black">+₹{packingCharge} ({selectedPacking === 'EXTRA_SECURE' ? 'Extra Secure' : 'Max Protection'})</span>
+                    )}
+                  </span>
+                </div>
+
                 {appliedCoupon && (
                   <div className="flex justify-between text-emerald-700 font-semibold">
                     <span>🏷️ Coupon:</span>
@@ -1340,7 +1265,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
             </div>
 
             <div className="px-4 pb-6 pt-3 border-t border-slate-100 bg-white">
-              <ProceedBtn label="PROCEED TO CHECKOUT" onClick={() => goTo(5)} />
+              <ProceedBtn label="PROCEED TO DELIVERY TERMS" onClick={() => goTo(5)} />
             </div>
           </div>
         )}
