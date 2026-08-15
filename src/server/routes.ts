@@ -1030,44 +1030,7 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
   }
 });
 
-// Discard cancelled or abandoned pending checkout attempts
-apiRouter.post('/orders/:id/cancel-pending', async (req, res) => {
-  try {
-    const orderId = req.params.id;
-    if (orderId) {
-      await db.deleteOrder(orderId);
-    }
-    res.json({ success: true, message: 'Unpaid pending checkout attempt discarded.' });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message || 'Error discarding pending order.' });
-  }
-});
-
-apiRouter.delete('/orders/:id', async (req, res) => {
-  try {
-    const orderId = req.params.id;
-    if (orderId) {
-      await db.deleteOrder(orderId);
-    }
-    res.json({ success: true, message: 'Order deleted successfully.' });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message || 'Error deleting order.' });
-  }
-});
-
-apiRouter.get('/orders/:id', async (req, res) => {
-  try {
-    const orderId = req.params.id;
-    const order = await db.getOrderById(orderId);
-    if (!order) {
-      return res.status(404).json({ success: false, message: 'Order not found.' });
-    }
-    res.json({ success: true, order });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message || 'Failed to fetch order.' });
-  }
-});
-
+// Authenticated user orders list (scoped to own account or all if admin)
 apiRouter.get('/orders', requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
     const user = req.user;
@@ -1096,62 +1059,6 @@ apiRouter.get('/orders', requireAuth, async (req: AuthenticatedRequest, res) => 
     }
 
     res.json({ success: true, count: orders.length, orders });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
-  }
-});
-
-// Direct user orders lookup by ID, Phone, or Email (and optional query params)
-apiRouter.get('/orders/user/:identifier', async (req, res) => {
-  try {
-    const rawIdentifier = decodeURIComponent(req.params.identifier || '').trim();
-    const queryEmail = (req.query.email as string || '').toLowerCase().trim();
-    const queryPhone = (req.query.phone as string || '').replace(/\D/g, '').slice(-10);
-    const queryUserId = (req.query.userId as string || '').trim();
-
-    if (!rawIdentifier && !queryEmail && !queryPhone && !queryUserId) {
-      return res.json({ success: true, count: 0, orders: [] });
-    }
-
-    const allOrders = await db.getOrders();
-    const cleanPhone = rawIdentifier.replace(/\D/g, '').slice(-10);
-    const cleanEmail = rawIdentifier.toLowerCase();
-    const cleanId = rawIdentifier;
-
-    const userOrders = allOrders.filter(o => {
-      if (!o) return false;
-      // Match by User ID
-      if (o.userId && (o.userId === cleanId || (queryUserId && o.userId === queryUserId))) return true;
-      // Match by Email
-      if (cleanEmail.includes('@') && o.customerEmail && o.customerEmail.toLowerCase().trim() === cleanEmail) return true;
-      if (queryEmail.includes('@') && o.customerEmail && o.customerEmail.toLowerCase().trim() === queryEmail) return true;
-      // Match by 10-digit Phone
-      const ordPhone = o.customerPhone ? o.customerPhone.replace(/\D/g, '').slice(-10) : '';
-      if (cleanPhone.length >= 10 && ordPhone && ordPhone === cleanPhone) return true;
-      if (queryPhone.length >= 10 && ordPhone && ordPhone === queryPhone) return true;
-
-      return false;
-    });
-
-    res.json({ success: true, count: userOrders.length, orders: userOrders });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message || 'Failed to fetch user orders.' });
-  }
-});
-
-apiRouter.get('/admin/orders', requireAdmin, async (req: AuthenticatedRequest, res) => {
-  try {
-    const orders = await db.getOrders();
-    res.json({ success: true, count: orders.length, orders });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
-  }
-});
-
-apiRouter.get('/admin/dashboard', requireAdmin, async (req: AuthenticatedRequest, res) => {
-  try {
-    const stats = await db.getDashboardStats();
-    res.json({ success: true, stats });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
