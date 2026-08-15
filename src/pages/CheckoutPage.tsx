@@ -473,15 +473,24 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       order_id: orderRes.razorpayOrderId,
       modal: {
         ondismiss: async () => {
-          setLoading(false);
-          setOrderError('Payment was cancelled. Your order has not been placed and your cart is preserved.');
+          setLoading(true);
           try {
-            await fetch(`/api/orders/${orderRes.orderId}/cancel-pending`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ reason: 'Customer closed Razorpay checkout popup' })
-            });
+            await new Promise(r => setTimeout(r, 1200));
+            const checkRes = await fetch(`/api/orders/${orderRes.orderId}`);
+            const checkData = await checkRes.json();
+            if (checkData?.success && (checkData?.order?.paymentStatus === 'SUCCESS' || checkData?.order?.orderStatus === 'PROCESSING' || checkData?.order?.orderStatus === 'CONFIRMED')) {
+              if (onOrderConfirmed) {
+                onOrderConfirmed(checkData.order);
+              }
+              setPlacedOrderId(orderRes.orderId);
+              setLoading(false);
+              goTo(7);
+              return;
+            }
           } catch {}
+
+          setLoading(false);
+          setOrderError('Payment was not completed. Your cart is preserved — click Pay Now to try again.');
         }
       },
       handler: async (response: any) => {
@@ -525,13 +534,6 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       rzp.on('payment.failed', async (resp: any) => {
         setOrderError(`Payment failed: ${resp.error?.description || 'Transaction declined.'}`);
         setLoading(false);
-        try {
-          await fetch(`/api/orders/${orderRes.orderId}/cancel-pending`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ reason: resp.error?.description || 'Razorpay payment failed' })
-          });
-        } catch {}
       });
       setLoading(false);
       rzp.open();
