@@ -1,0 +1,21 @@
+{
+  "name": "Veerika Rose Garden",
+  "short_name": "Veerika Nursery",
+  "description": "Premier live plant nursery for hybrid roses, rare cultivars, fruit trees and organic plant care.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#16a34a",
+  "icons": [
+    {
+      "src": "/favicon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
