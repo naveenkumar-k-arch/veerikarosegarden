@@ -5529,11 +5529,25 @@ class Store {
 
     // Always maintain in DEFAULT_PRODUCTS memory array
     DEFAULT_PRODUCTS.unshift(newProd);
+    if (this.productsCache && Array.isArray(this.productsCache.data)) {
+      this.productsCache.data.unshift(newProd);
+    }
+    this.invalidateProductsCache();
     return newProd;
   }
 
   async updateProduct(id: string, updates: Partial<Product>): Promise<Product | null> {
-    this.productsCache = null;
+    const cleanImages = Array.isArray(updates.images) && updates.images.filter(Boolean).length > 0
+      ? updates.images.filter(Boolean)
+      : (updates as any).imageUrl ? [String((updates as any).imageUrl).trim()]
+      : (updates as any).image ? [String((updates as any).image).trim()]
+      : undefined;
+
+    const normalizedUpdates: Partial<Product> = {
+      ...updates,
+      ...(cleanImages ? { images: cleanImages } : {})
+    };
+
     const prisma = getPrismaClient();
     let prismaUpdated: Product | null = null;
 
@@ -5562,7 +5576,7 @@ class Store {
             ...(updates.sellingPrice !== undefined ? { price: updates.sellingPrice } : {}),
             ...(updates.mrp !== undefined ? { originalPrice: updates.mrp } : {}),
             ...(updates.description !== undefined ? { description: updates.description } : {}),
-            ...(updates.images ? { images: updates.images, image: updates.images[0] } : {}),
+            ...(cleanImages ? { images: cleanImages, image: cleanImages[0] } : {}),
             ...(updates.featured !== undefined ? { isFeatured: updates.featured } : {}),
             ...(updates.bestSeller !== undefined ? { isBestSeller: updates.bestSeller } : {}),
             ...(validCategoryId !== undefined ? { categoryId: validCategoryId } : {}),
@@ -5579,8 +5593,8 @@ class Store {
             description: updates.description || '',
             price: updates.sellingPrice || 199,
             originalPrice: updates.mrp || 249,
-            image: updates.images?.[0] || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80',
-            images: updates.images || [],
+            image: cleanImages?.[0] || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80',
+            images: cleanImages || [],
             isFeatured: updates.featured || false,
             isBestSeller: updates.bestSeller || false,
             potSize: updates.potSize || '8 Inch Bag',
@@ -5606,14 +5620,15 @@ class Store {
     }
 
     // Always update or add in DEFAULT_PRODUCTS
+    let finalUpdatedProduct: Product;
     const defIndex = DEFAULT_PRODUCTS.findIndex(p => p.id === id);
     if (defIndex !== -1) {
       DEFAULT_PRODUCTS[defIndex] = {
         ...DEFAULT_PRODUCTS[defIndex],
-        ...updates,
+        ...normalizedUpdates,
         updatedAt: new Date().toISOString()
       };
-      return DEFAULT_PRODUCTS[defIndex];
+      finalUpdatedProduct = DEFAULT_PRODUCTS[defIndex];
     } else {
       const updatedItem: Product = {
         id,
@@ -5631,7 +5646,7 @@ class Store {
         stock: updates.stock ?? 25,
         rating: 5,
         reviewCount: 0,
-        images: updates.images || [],
+        images: cleanImages || updates.images || [],
         featured: updates.featured || false,
         bestSeller: updates.bestSeller || false,
         trending: updates.trending || false,
@@ -5650,16 +5665,35 @@ class Store {
         floweringSeason: updates.floweringSeason || 'All Year',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        ...updates
+        ...normalizedUpdates
       };
       DEFAULT_PRODUCTS.unshift(updatedItem);
-      return updatedItem;
+      finalUpdatedProduct = updatedItem;
     }
+
+    // Sync in-memory productsCache so immediate reads return updated image without stale read
+    if (this.productsCache && Array.isArray(this.productsCache.data)) {
+      const cIdx = this.productsCache.data.findIndex(p => p.id === id);
+      if (cIdx !== -1) {
+        this.productsCache.data[cIdx] = {
+          ...this.productsCache.data[cIdx],
+          ...finalUpdatedProduct
+        };
+      } else {
+        this.productsCache.data.unshift(finalUpdatedProduct);
+      }
+    }
+    this.invalidateProductsCache();
+
+    return prismaUpdated || finalUpdatedProduct;
   }
 
   async deleteProduct(id: string): Promise<boolean> {
-    this.productsCache = null;
     deletedProductIds.add(id);
+    if (this.productsCache && Array.isArray(this.productsCache.data)) {
+      this.productsCache.data = this.productsCache.data.filter(p => p.id !== id);
+    }
+    this.invalidateProductsCache();
     const prisma = getPrismaClient();
     if (prisma) {
       try {
@@ -5968,7 +6002,9 @@ class Store {
       }
 
       if (updates.description !== undefined) dataToUpdate.description = updates.description;
-      if (updates.image !== undefined) dataToUpdate.image = updates.image;
+      if (updates.image !== undefined || (updates as any).imageUrl !== undefined) {
+        dataToUpdate.image = updates.image || (updates as any).imageUrl;
+      }
       if (updates.iconName !== undefined) dataToUpdate.icon = updates.iconName;
       if (updates.order !== undefined) dataToUpdate.order = updates.order;
       if (updates.isActive !== undefined) dataToUpdate.isActive = updates.isActive;
@@ -5988,8 +6024,7 @@ class Store {
         }
       });
 
-      this.invalidateCategoriesCache();
-      return {
+      const updatedCategoryResult: Category = {
         id: c.id,
         name: c.name,
         tamilName: c.nameTamil,
@@ -6008,6 +6043,27 @@ class Store {
         createdAt: c.createdAt.toISOString(),
         updatedAt: c.updatedAt.toISOString()
       };
+
+      const defIdx = DEFAULT_CATEGORIES.findIndex(cat => cat.id === id || cat.slug === id);
+      if (defIdx !== -1) {
+        DEFAULT_CATEGORIES[defIdx] = {
+          ...DEFAULT_CATEGORIES[defIdx],
+          ...updates,
+          image: dataToUpdate.image || DEFAULT_CATEGORIES[defIdx].image,
+          updatedAt: new Date().toISOString()
+        };
+      }
+      if (this.categoriesCache && Array.isArray(this.categoriesCache.data)) {
+        const catIdx = this.categoriesCache.data.findIndex(cat => cat.id === id || cat.slug === id);
+        if (catIdx !== -1) {
+          this.categoriesCache.data[catIdx] = {
+            ...this.categoriesCache.data[catIdx],
+            ...updatedCategoryResult
+          };
+        }
+      }
+      this.invalidateCategoriesCache();
+      return updatedCategoryResult;
     } catch (err: any) {
       console.error('Prisma updateCategory error:', err);
       throw err;
@@ -6146,6 +6202,9 @@ class Store {
   }
 
   async updateBanner(id: string, updates: Partial<Banner>): Promise<Banner | null> {
+    const cleanImg = updates.imageUrl || (updates as any).image;
+    if (cleanImg) updates.imageUrl = cleanImg;
+
     const idx = this.memoryBanners.findIndex(b => b.id === id);
     if (idx !== -1) {
       this.memoryBanners[idx] = { ...this.memoryBanners[idx], ...updates };
@@ -6154,6 +6213,7 @@ class Store {
       data: this.memoryBanners.filter(b => !this.deletedBannerIds.has(b.id) && b.active !== false),
       expiresAt: Date.now() + 300000
     };
+    this.invalidateBannersCache();
 
     const prisma = getPrismaClient();
     if (prisma) {
@@ -6515,6 +6575,9 @@ class Store {
   async updateCombo(id: string, updates: Partial<Combo>): Promise<Combo | null> {
     const cleanId = (id || '').trim();
     if (!cleanId) return null;
+
+    const cleanImg = updates.imageUrl !== undefined ? updates.imageUrl : (updates as any).image;
+    if (cleanImg !== undefined) updates.imageUrl = cleanImg;
 
     const allProducts = (this.productsCache?.data && this.productsCache.data.length > 0)
       ? this.productsCache.data

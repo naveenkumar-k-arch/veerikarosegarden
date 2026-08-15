@@ -75,6 +75,8 @@ export const productSchema = z.object({
     soil: 'Red soil mixed with coco peat.'
   }),
   // Accept both full URLs (https://...) and local paths (/products/image.jpg)
+  image: z.string().optional(),
+  imageUrl: z.string().optional(),
   images: z.array(z.string()).optional().default([]),
   featured: z.boolean().optional().default(false),
   bestSeller: z.boolean().optional().default(false),

@@ -853,34 +853,48 @@ const silentRefresh = async (): Promise<boolean> => {
       };
 
       // Optimistic UI update instantly
+      const targetId = editingProduct?.id;
       if (editingProduct) {
-        setProducts(prev => prev.map(p => p.id === editingProduct.id ? { ...p, ...payload, id: editingProduct.id } as Product : p));
-        toast.success(`Plant "${payload.name}" updated successfully!`, 'Product Saved');
+        setProducts(prev => prev.map(p => p.id === targetId ? { ...p, ...payload, id: targetId } as Product : p));
       } else {
         const tempId = 'prod-' + Date.now();
         setProducts(prev => [{ ...payload, id: tempId, rating: 5, reviewCount: 0 } as Product, ...prev]);
-        toast.success(`Plant "${payload.name}" added successfully!`, 'Product Saved');
       }
 
       setShowProductModal(false);
       setEditingProduct(null);
       setProductSaveError(null);
       setProductSaving(false);
+      toast.success(`Plant "${payload.name}" saved successfully!`, 'Product Saved');
+
+      // Await server sync to ensure DB & memory store are committed
+      try {
+        const res = await authFetch(url, {
+          method,
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(() => null);
+        if (data && data.success && data.product) {
+          const savedProd = data.product;
+          setProducts(prev => {
+            const next = targetId
+              ? prev.map(p => p.id === targetId ? { ...p, ...savedProd } as Product : p)
+              : [{ ...savedProd } as Product, ...prev.filter(p => p.sku !== payload.sku && p.id !== savedProd.id)];
+            try {
+              const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
+              cached.products = next;
+              localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+            } catch {}
+            return next;
+          });
+        }
+      } catch (err) {
+        console.warn('Background save product notice:', err);
+      }
 
       try {
         window.dispatchEvent(new CustomEvent('vrg_products_updated'));
       } catch {}
-
-      // Async background server sync
-      authFetch(url, {
-        method,
-        body: JSON.stringify(payload)
-      }).then(async res => {
-        const data = await res.json().catch(() => null);
-        if (data?.product?.id && !editingProduct) {
-          setProducts(prev => prev.map(p => p.sku === payload.sku ? { ...p, id: data.product.id } : p));
-        }
-      }).catch(err => console.warn('Background save product notice:', err));
     } catch (err: any) {
       setProductSaveError(err.message || 'Failed to save product');
       setProductSaving(false);
@@ -985,9 +999,7 @@ const silentRefresh = async (): Promise<boolean> => {
       canonicalUrl: ''
     });
 
-    window.dispatchEvent(new CustomEvent('vrg_categories_updated'));
-
-    // 2. Background async sync
+    // Await server sync
     try {
       const url = isEdit ? `/api/admin/categories/${catId}` : '/api/admin/categories';
       const method = isEdit ? 'PUT' : 'POST';
@@ -997,11 +1009,23 @@ const silentRefresh = async (): Promise<boolean> => {
       });
       const data = await res.json().catch(() => null);
       if (data && data.category) {
-        setCategories(prev => prev.map(c => (c.id === data.category.id || c.id === catId) ? { ...c, ...data.category } : c));
+        setCategories(prev => {
+          const next = prev.map(c => (c.id === data.category.id || c.id === catId) ? { ...c, ...data.category } : c);
+          try {
+            const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
+            cached.categories = next;
+            localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+          } catch {}
+          return next;
+        });
       }
     } catch (err: any) {
       console.warn('Background category save notice:', err);
     }
+
+    try {
+      window.dispatchEvent(new CustomEvent('vrg_categories_updated'));
+    } catch {}
   };
 
   // Handle Delete Single Category with Product Reassignment Check
@@ -1502,23 +1526,29 @@ const silentRefresh = async (): Promise<boolean> => {
             }
 
             try {
-              window.dispatchEvent(new CustomEvent('vrg_products_updated'));
-            } catch {}
-
-            // Fire async background sync without blocking UI
-            authFetch(url, {
-              method,
-              body: JSON.stringify(payload)
-            }).then(async res => {
+              const res = await authFetch(url, {
+                method,
+                body: JSON.stringify(payload)
+              });
               const data = await res.json().catch(() => null);
               if (data && data.success && data.product) {
-                if (!isEdit && data.product.id) {
-                  setProducts(prev => prev.map(p => p.sku === payload.sku ? { ...p, id: data.product.id } : p));
-                }
+                const savedProd = data.product;
+                setProducts(prev => {
+                  const next = isEdit
+                    ? prev.map(p => p.id === prod.id ? { ...p, ...savedProd } as Product : p)
+                    : [{ ...savedProd } as Product, ...prev.filter(p => p.sku !== payload.sku && p.id !== savedProd.id)];
+                  try {
+                    const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
+                    cached.products = next;
+                    localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+                  } catch {}
+                  return next;
+                });
               }
-            }).catch(e => {
+              window.dispatchEvent(new CustomEvent('vrg_products_updated'));
+            } catch (e) {
               console.warn('Background product save notice:', e);
-            });
+            }
           }}
           onDeleteProduct={handleDeleteProduct}
           onSaveCategory={async (cat) => {
@@ -1559,18 +1589,26 @@ const silentRefresh = async (): Promise<boolean> => {
               });
             }
 
-            window.dispatchEvent(new CustomEvent('vrg_categories_updated'));
-
-            const url = isEdit ? `/api/admin/categories/${catId}` : '/api/admin/categories';
-            const method = isEdit ? 'PUT' : 'POST';
-            authFetch(url, { method, body: JSON.stringify(catItem) })
-              .then(async res => {
-                const data = await res.json().catch(() => null);
-                if (data && data.category) {
-                  setCategories(prev => prev.map(c => (c.id === data.category.id || c.id === catId) ? { ...c, ...data.category } : c));
-                }
-              })
-              .catch(e => console.warn('Background category save notice:', e));
+            try {
+              const url = isEdit ? `/api/admin/categories/${catId}` : '/api/admin/categories';
+              const method = isEdit ? 'PUT' : 'POST';
+              const res = await authFetch(url, { method, body: JSON.stringify(catItem) });
+              const data = await res.json().catch(() => null);
+              if (data && data.category) {
+                setCategories(prev => {
+                  const next = prev.map(c => (c.id === data.category.id || c.id === catId) ? { ...c, ...data.category } : c);
+                  try {
+                    const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
+                    cached.categories = next;
+                    localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+                  } catch {}
+                  return next;
+                });
+              }
+              window.dispatchEvent(new CustomEvent('vrg_categories_updated'));
+            } catch (e) {
+              console.warn('Background category save notice:', e);
+            }
           }}
           onDeleteCategory={handleDeleteCategory}
           onSaveReview={saveReviewsState ? (rev) => {
@@ -1834,16 +1872,25 @@ const silentRefresh = async (): Promise<boolean> => {
               });
             }
 
-            const url = isEdit ? `/api/admin/banners/${bId}` : '/api/admin/banners';
-            const method = isEdit ? 'PUT' : 'POST';
-            authFetch(url, { method, body: JSON.stringify(fullItem) })
-              .then(async res => {
-                const data = await res.json().catch(() => null);
-                if (data && data.banner) {
-                  setBanners(prev => prev.map(b => b.id === data.banner.id ? data.banner : b));
-                }
-              })
-              .catch(e => console.warn('Background banner save notice:', e));
+            try {
+              const url = isEdit ? `/api/admin/banners/${bId}` : '/api/admin/banners';
+              const method = isEdit ? 'PUT' : 'POST';
+              const res = await authFetch(url, { method, body: JSON.stringify(fullItem) });
+              const data = await res.json().catch(() => null);
+              if (data && data.banner) {
+                setBanners(prev => {
+                  const next = prev.map(b => b.id === data.banner.id ? data.banner : b);
+                  try {
+                    const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
+                    cached.banners = next;
+                    localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+                  } catch {}
+                  return next;
+                });
+              }
+            } catch (e) {
+              console.warn('Background banner save notice:', e);
+            }
           }}
           onDeleteBanner={async (id) => {
             if (!confirm('Are you sure you want to delete this banner?')) return;
