@@ -128,6 +128,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState<'forward' | 'back'>('forward');
   const [animating, setAnimating] = useState(false);
+  const paymentCompletedRef = useRef(false);
 
   const goTo = useCallback((next: number) => {
     if (animating) return;
@@ -456,7 +457,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     });
 
   const handleRazorpayPayment = async (orderRes: any) => {
+    paymentCompletedRef.current = false;
     setLoading(true);
+    setOrderError(null);
     const loaded = await loadRazorpayScript();
     if (!loaded) {
       setOrderError('Failed to load Razorpay SDK. Please check internet connection.');
@@ -473,19 +476,16 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       order_id: orderRes.razorpayOrderId,
       modal: {
         ondismiss: async () => {
+          // If payment was completed or is being verified, do NOT abort or show error!
+          if (paymentCompletedRef.current) return;
           setLoading(false);
-          setOrderError('Payment was cancelled or not completed. Your items are safe in cart — click Pay Now to try again.');
-          try {
-            await fetch(`/api/orders/${orderRes.orderId}/cancel-pending`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ reason: 'Customer dismissed payment modal' })
-            });
-          } catch {}
+          setOrderError('Payment was not completed. Your items are safe in cart — click Pay Now to try again.');
         }
       },
       handler: async (response: any) => {
+        paymentCompletedRef.current = true;
         setLoading(true);
+        setOrderError(null);
         try {
           const verifyRes = await fetch('/api/razorpay/verify', {
             method: 'POST',
@@ -500,16 +500,19 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           const verifyData = await verifyRes.json();
           setLoading(false);
           if (verifyData.success) {
+            paymentCompletedRef.current = true;
             if (onOrderConfirmed) {
               onOrderConfirmed(verifyData.order || { id: orderRes.orderId, grandTotal: orderRes.amount });
             }
             setPlacedOrderId(orderRes.orderId);
             goTo(7);
           } else {
+            paymentCompletedRef.current = false;
             setOrderError(verifyData.message || 'Payment verification failed.');
           }
         } catch {
           setLoading(false);
+          paymentCompletedRef.current = false;
           setOrderError('Error verifying payment with server.');
         }
       },
@@ -523,6 +526,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     try {
       const rzp = new (window as any).Razorpay(options);
       rzp.on('payment.failed', async (resp: any) => {
+        if (paymentCompletedRef.current) return;
         setOrderError(`Payment failed: ${resp.error?.description || 'Transaction declined.'}`);
         setLoading(false);
       });

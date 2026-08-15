@@ -142,6 +142,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
   const [direction, setDirection] = useState<'forward' | 'back'>('forward');
   const [animating, setAnimating] = useState(false);
   const isPaymentInProgressRef = useRef(false);
+  const paymentCompletedRef = useRef(false);
 
   // Eagerly pre-load Razorpay SDK in background as soon as checkout modal is opened
   useEffect(() => {
@@ -176,7 +177,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
 
   // Handle close cart with clean history
   const handleClose = useCallback(() => {
-    if (isPaymentInProgressRef.current) return;
+    if (isPaymentInProgressRef.current || paymentCompletedRef.current) return;
     if (window.history.state && window.history.state.vrgCart) {
       window.history.back();
     } else {
@@ -186,7 +187,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
 
   // Handle in-app back buttons with history sync
   const handleGoBack = useCallback((fallbackStep?: number) => {
-    if (isPaymentInProgressRef.current) return;
+    if (isPaymentInProgressRef.current || paymentCompletedRef.current) return;
     if (window.history.state && window.history.state.vrgCart && typeof window.history.state.cartStep === 'number' && window.history.state.cartStep > 1) {
       window.history.back();
     } else if (step > 1) {
@@ -209,8 +210,8 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
     }
 
     const handleCartPopState = (e: PopStateEvent) => {
-      if (isPaymentInProgressRef.current) {
-        // App was switched during Razorpay payment — do NOT close the checkout flow!
+      if (isPaymentInProgressRef.current || paymentCompletedRef.current) {
+        // App was switched during Razorpay payment or order is confirmed — do NOT pop back to Step 1!
         return;
       }
       const state = e.state;
@@ -458,7 +459,9 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
 
   const handleRazorpayPayment = async (orderRes: any) => {
     isPaymentInProgressRef.current = true;
+    paymentCompletedRef.current = false;
     setLoading(true);
+    setOrderError(null);
     const loaded = await loadRazorpayScript();
     if (!loaded) {
       isPaymentInProgressRef.current = false;
@@ -468,7 +471,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
     }
 
     const options: any = {
-      key: orderRes.razorpayKeyId || (import.meta as any).env.VITE_RAZORPAY_KEY_ID || 'rzp_live_TQ5xDdZB7QWIn2',
+      key: orderRes.razorpayKeyId || (import.meta as any).env?.VITE_RAZORPAY_KEY_ID || 'rzp_live_TQ5xDdZB7QWIn2',
       amount: Math.round((orderRes.amount || grandTotal) * 100), // in paise
       currency: 'INR',
       name: siteSettings?.businessName || 'Veerika Rose Garden',
@@ -477,21 +480,18 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
       order_id: orderRes.razorpayOrderId,
       modal: {
         ondismiss: async () => {
+          // If payment already succeeded or is verifying in handler, do NOT abort or show error!
+          if (paymentCompletedRef.current) return;
           isPaymentInProgressRef.current = false;
           setLoading(false);
-          setOrderError('Payment was cancelled or not completed. Your items are safe in cart — tap Pay Now to try again.');
-          // Immediately purge the uncompleted draft order from the server
-          try {
-            await fetch(`/api/orders/${orderRes.orderId}/cancel-pending`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ reason: 'Customer dismissed or cancelled payment modal' })
-            });
-          } catch {}
+          setOrderError('Payment was not completed. Your items are safe in cart — tap Pay Now to try again.');
         }
       },
       handler: async function (response: any) {
+        paymentCompletedRef.current = true;
+        isPaymentInProgressRef.current = true;
         setLoading(true);
+        setOrderError(null);
         try {
           const verifyRes = await fetch('/api/razorpay/verify', {
             method: 'POST',
@@ -507,17 +507,20 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
           setLoading(false);
           isPaymentInProgressRef.current = false;
           if (verifyData.success) {
+            paymentCompletedRef.current = true;
             if (onOrderConfirmed) {
               onOrderConfirmed(verifyData.order || { id: orderRes.orderId, grandTotal: orderRes.amount });
             }
             setPlacedOrderId(orderRes.orderId);
-            goTo(7);
+            goTo(7, true);
           } else {
+            paymentCompletedRef.current = false;
             setOrderError(verifyData.message || 'Razorpay payment verification failed.');
           }
         } catch (err: any) {
           setLoading(false);
           isPaymentInProgressRef.current = false;
+          paymentCompletedRef.current = false;
           setOrderError('Error verifying Razorpay payment with server.');
         }
       },
@@ -534,6 +537,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
     try {
       const rzp = new (window as any).Razorpay(options);
       rzp.on('payment.failed', async function (response: any) {
+        if (paymentCompletedRef.current) return;
         isPaymentInProgressRef.current = false;
         setLoading(false);
         setOrderError(`Razorpay Payment Failed: ${response.error?.description || 'Transaction declined'}`);

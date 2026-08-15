@@ -1538,25 +1538,33 @@ const handleVerifyRazorpayPayment = async (req: AuthenticatedRequest, res: any) 
     }
 
     let updatedOrder = null;
-    if (orderId) {
-      const order = await db.getOrderById(orderId);
-      if (order) {
-        updatedOrder = await db.updateOrderStatus(orderId, 'CONFIRMED', undefined, undefined, 'SUCCESS');
-        await db.addPaymentLog({
-          merchantTransactionId: order.merchantTransactionId || razorpayPaymentId,
-          orderId,
-          amount: order.grandTotal,
-          status: 'SUCCESS',
-          checksum: razorpaySignature,
-          payload: JSON.stringify({ razorpayOrderId, razorpayPaymentId })
-        }).catch(() => {});
-      }
+    let targetOrderId = orderId;
+    
+    // Find order by ID or by razorpayOrderId
+    let order = targetOrderId ? await db.getOrderById(targetOrderId) : null;
+    if (!order && razorpayOrderId) {
+      const allOrders = await db.getOrders();
+      order = allOrders.find(o => (o as any).razorpayOrderId === razorpayOrderId || o.merchantTransactionId === razorpayOrderId) || null;
+      if (order) targetOrderId = order.id;
+    }
+
+    if (order && targetOrderId) {
+      updatedOrder = await db.updateOrderStatus(targetOrderId, 'CONFIRMED', undefined, undefined, 'SUCCESS');
+      await db.addPaymentLog({
+        merchantTransactionId: order.merchantTransactionId || razorpayPaymentId,
+        orderId: targetOrderId,
+        amount: order.grandTotal,
+        status: 'SUCCESS',
+        checksum: razorpaySignature,
+        payload: JSON.stringify({ razorpayOrderId, razorpayPaymentId })
+      }).catch(() => {});
+      invalidateBootstrapCache();
     }
 
     return res.json({
       success: true,
       message: 'Razorpay payment verified successfully!',
-      orderId,
+      orderId: targetOrderId || orderId,
       order: updatedOrder
     });
   } catch (err: any) {
