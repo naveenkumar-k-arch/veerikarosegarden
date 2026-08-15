@@ -123,15 +123,19 @@ export const HomePage: React.FC<HomePageProps> = ({
               if (discounts.length > 0) maxDis = Math.max(...discounts);
               else if (cSlug.includes('jasmine') || cName.includes('jasmine')) maxDis = 40;
               else if (cSlug.includes('rose') || cName.includes('rose')) maxDis = 20;
+              const catPhoto = (cat.image && !cat.image.includes('photo-1518709268805-4e9042af9f23')) 
+                ? cat.image 
+                : (catProducts.find(p => p.images?.[0] && !p.images[0].includes('photo-1518709268805-4e9042af9f23'))?.images?.[0] || cat.image || '/products/double-delight.jpeg');
+
               return (
                 <div key={cat.id} className="card-white group" style={{ overflow: 'hidden', cursor: 'pointer' }}
                   onClick={() => { onSelectCategory(cat.id); onNavigate('shop'); }}>
                   <div style={{ height: 110, overflow: 'hidden', position: 'relative' }}>
-                    <img src={cat.image || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=400&q=80'}
+                    <img src={catPhoto}
                       alt={cat.name} loading="lazy"
                       style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s ease' }}
                       className="group-hover-scale"
-                      onError={e => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=400&q=80'; }} />
+                      onError={e => { (e.target as HTMLImageElement).src = '/products/double-delight.jpeg'; }} />
                     <span style={{ position: 'absolute', top: 6, right: 6, zIndex: 10, fontSize: 9, fontWeight: 800, background: 'linear-gradient(135deg,#e11d48,#be123c)', color: 'white', padding: '2px 7px', borderRadius: 999 }}>
                       {maxDis}% OFF
                     </span>
@@ -703,13 +707,17 @@ export const HomePage: React.FC<HomePageProps> = ({
                   maxDis = 20;
                 }
 
+                const catPhoto = (cat.image && !cat.image.includes('photo-1518709268805-4e9042af9f23')) 
+                  ? cat.image 
+                  : (catProducts.find(p => p.images?.[0] && !p.images[0].includes('photo-1518709268805-4e9042af9f23'))?.images?.[0] || cat.image || '/products/double-delight.jpeg');
+
                 return (
                   <div key={cat.id} className="card-white group" style={{ overflow: 'hidden', cursor: 'pointer' }}
                     onClick={() => { onSelectCategory(cat.id); onNavigate('shop'); }}>
                     <div style={{ height: 130, overflow: 'hidden', position: 'relative' }}>
-                      <img src={cat.image || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=400&q=80'} alt={cat.name} loading="lazy"
+                      <img src={catPhoto} alt={cat.name} loading="lazy"
                         style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s ease' }} className="group-hover-scale"
-                        onError={e => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=400&q=80'; }} />
+                        onError={e => { (e.target as HTMLImageElement).src = '/products/double-delight.jpeg'; }} />
                       
                       {cat.isFeatured && <span className="badge-amber" style={{ position: 'absolute', top: 8, left: 8, fontSize: 9, zIndex: 10 }}>★ Featured</span>}
                       

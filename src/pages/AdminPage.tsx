@@ -469,7 +469,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
     tamilName: '',
     slug: '',
     description: '',
-    image: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80',
+    image: '/products/double-delight.jpeg',
     iconName: 'Flower2',
     order: 1,
     isActive: true,
@@ -962,7 +962,7 @@ const silentRefresh = async (): Promise<boolean> => {
       tamilName: catForm.tamilName.trim() || savedName,
       slug: catForm.slug.trim() || savedName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
       description: catForm.description.trim(),
-      image: catForm.image || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80',
+      image: catForm.image || '/products/double-delight.jpeg',
       iconName: catForm.iconName || 'Flower2',
       order: Number(catForm.order || categories.length + 1),
       isActive: catForm.isActive !== false,
@@ -982,6 +982,7 @@ const silentRefresh = async (): Promise<boolean> => {
           const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
           cached.categories = next;
           localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+          localStorage.setItem('vrg_categories', JSON.stringify(next));
         } catch {}
         return next;
       });
@@ -992,6 +993,7 @@ const silentRefresh = async (): Promise<boolean> => {
           const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
           cached.categories = next;
           localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+          localStorage.setItem('vrg_categories', JSON.stringify(next));
         } catch {}
         return next;
       });
@@ -1005,7 +1007,7 @@ const silentRefresh = async (): Promise<boolean> => {
       tamilName: '',
       slug: '',
       description: '',
-      image: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80',
+      image: '/products/double-delight.jpeg',
       iconName: 'Flower2',
       order: categories.length + 1,
       isActive: true,
@@ -2570,7 +2572,7 @@ const silentRefresh = async (): Promise<boolean> => {
                         tamilName: '',
                         slug: '',
                         description: '',
-                        image: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80',
+                        image: '/products/double-delight.jpeg',
                         iconName: 'Flower2',
                         order: categories.length + 1,
                         isActive: true,
@@ -2627,11 +2629,11 @@ const silentRefresh = async (): Promise<boolean> => {
                             <td className="py-3 px-3 font-bold text-slate-600">#{c.order ?? 1}</td>
                             <td className="py-3 px-3 flex items-center gap-3">
                               <img
-                                src={c.image || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80'}
+                                src={c.image || '/products/double-delight.jpeg'}
                                 alt={c.name}
                                 className="w-10 h-10 object-cover rounded-lg border shrink-0 bg-slate-100"
                                 onError={(e) => {
-                                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80';
+                                  (e.target as HTMLImageElement).src = '/products/double-delight.jpeg';
                                 }}
                               />
                               <div>
@@ -2675,7 +2677,7 @@ const silentRefresh = async (): Promise<boolean> => {
                                     tamilName: c.tamilName,
                                     slug: c.slug,
                                     description: c.description || '',
-                                    image: c.image || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80',
+                                    image: c.image || '/products/double-delight.jpeg',
                                     iconName: c.iconName || 'Flower2',
                                     order: c.order ?? 1,
                                     isActive: c.isActive !== false,
@@ -5106,24 +5108,68 @@ const silentRefresh = async (): Promise<boolean> => {
               </div>
 
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Category Image URL *</label>
+                <label className="font-bold text-slate-700 block mb-1">Category Plant Photo *</label>
                 <div className="flex gap-3 items-center">
                   <input
                     type="text"
                     required
-                    placeholder="https://..."
+                    placeholder="/products/double-delight.jpeg or https://..."
                     value={catForm.image}
                     onChange={(e) => setCatForm({ ...catForm, image: e.target.value })}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono text-[11px]"
                   />
                   <img
-                    src={catForm.image || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80'}
+                    src={catForm.image || '/products/double-delight.jpeg'}
                     alt="Preview"
                     className="w-10 h-10 rounded-xl object-cover border shrink-0 bg-slate-100"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80';
+                      (e.target as HTMLImageElement).src = '/products/double-delight.jpeg';
                     }}
                   />
+                </div>
+
+                {/* Upload Local File or Pick from Nursery Photos */}
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <label className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg font-bold text-[10px] cursor-pointer inline-flex items-center gap-1 transition-colors">
+                    <span>📁 Upload Local Photo</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = (re) => {
+                          const result = re.target?.result as string;
+                          if (result) setCatForm(prev => ({ ...prev, image: result }));
+                        };
+                        reader.readAsDataURL(file);
+                      }}
+                    />
+                  </label>
+
+                  <span className="text-[10px] text-slate-400">or quick select:</span>
+                  {[
+                    { label: '🌹 Rose', url: '/products/double-delight.jpeg' },
+                    { label: '🌿 Herbal', url: '/products/ww.jpeg' },
+                    { label: '🌸 Jasmine', url: '/products/sgssg.jpeg' },
+                    { label: '🧗 Creeper', url: '/products/white-creeper.jpeg' },
+                    { label: '🌱 Miniature', url: '/products/button-rose.jpeg' },
+                    { label: '✨ Rare', url: '/products/rejtrjtj.jpeg' },
+                    { label: '🍎 Fruit', url: '/products/red-water-apple.jpeg' },
+                    { label: '🌺 Hibiscus', url: '/products/new_plant_13.jpg' },
+                    { label: '🌼 Flower', url: '/products/new_plant_05.jpg' },
+                  ].map((p, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setCatForm(prev => ({ ...prev, image: p.url }))}
+                      className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[10px] font-medium border border-slate-200 cursor-pointer"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
