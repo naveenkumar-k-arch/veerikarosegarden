@@ -6014,15 +6014,44 @@ class Store {
       if (updates.ogImage !== undefined) dataToUpdate.ogImage = updates.ogImage;
       if (updates.canonicalUrl !== undefined) dataToUpdate.canonicalUrl = updates.canonicalUrl;
 
-      const c = await prisma.category.update({
-        where: { id },
-        data: dataToUpdate,
-        include: {
-          _count: {
-            select: { products: true }
+      const existingInDb = await prisma.category.findUnique({ where: { id } }).catch(() => null);
+      let c: any;
+      if (existingInDb) {
+        c = await prisma.category.update({
+          where: { id },
+          data: dataToUpdate,
+          include: {
+            _count: {
+              select: { products: true }
+            }
           }
-        }
-      });
+        });
+      } else {
+        const defMatch = DEFAULT_CATEGORIES.find(d => d.id === id || d.slug === id);
+        c = await prisma.category.create({
+          data: {
+            id,
+            name: dataToUpdate.name || defMatch?.name || 'Category',
+            nameTamil: dataToUpdate.nameTamil || defMatch?.tamilName || '',
+            slug: dataToUpdate.slug || defMatch?.slug || id.toLowerCase().replace(/[^a-z0-9-]+/g, '-'),
+            description: dataToUpdate.description || defMatch?.description || '',
+            image: dataToUpdate.image || defMatch?.image || '/products/double-delight.jpeg',
+            icon: dataToUpdate.icon || 'Flower2',
+            order: dataToUpdate.order ?? defMatch?.order ?? 1,
+            isActive: dataToUpdate.isActive ?? defMatch?.isActive ?? true,
+            isFeatured: dataToUpdate.isFeatured ?? defMatch?.isFeatured ?? false,
+            metaTitle: dataToUpdate.metaTitle,
+            metaDescription: dataToUpdate.metaDescription,
+            ogImage: dataToUpdate.ogImage,
+            canonicalUrl: dataToUpdate.canonicalUrl
+          },
+          include: {
+            _count: {
+              select: { products: true }
+            }
+          }
+        });
+      }
 
       const updatedCategoryResult: Category = {
         id: c.id,
