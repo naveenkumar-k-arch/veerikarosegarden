@@ -249,6 +249,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   const [showComboModal, setShowComboModal] = useState(false);
   const [editingCombo, setEditingCombo] = useState<Combo | null>(null);
   const [savingCombo, setSavingCombo] = useState(false);
+  const [comboPlantSearch, setComboPlantSearch] = useState('');
   const [comboForm, setComboForm] = useState({
     title: '',
     subtitle: '',
@@ -256,7 +257,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
     productIds: [] as string[],
     originalPrice: 599,
     comboPrice: 399,
-    imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80',
+    imageUrl: '',
     active: true,
     freeDelivery: true
   });
@@ -413,7 +414,34 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
       if (extra?.category !== undefined) setEditingCategory(extra.category);
     } else if (modalName === 'combo') {
       setShowComboModal(true);
-      if (extra?.combo !== undefined) setEditingCombo(extra.combo);
+      setComboPlantSearch('');
+      if (extra?.combo) {
+        setEditingCombo(extra.combo);
+        setComboForm({
+          title: extra.combo.title || '',
+          subtitle: extra.combo.subtitle || '',
+          badge: extra.combo.badge || '3-IN-1 COMBO',
+          productIds: extra.combo.productIds || [],
+          originalPrice: extra.combo.originalPrice || 0,
+          comboPrice: extra.combo.comboPrice || 0,
+          imageUrl: extra.combo.imageUrl || '',
+          active: extra.combo.active !== false,
+          freeDelivery: extra.combo.freeDelivery === true
+        });
+      } else {
+        setEditingCombo(null);
+        setComboForm({
+          title: '',
+          subtitle: '',
+          badge: '3-IN-1 SPECIAL',
+          productIds: [],
+          originalPrice: 0,
+          comboPrice: 0,
+          imageUrl: '',
+          active: true,
+          freeDelivery: true
+        });
+      }
     } else if (modalName === 'coupon') {
       setShowCouponModal(true);
     } else if (modalName === 'finance') {
@@ -3880,19 +3908,39 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               onSubmit={(e) => {
                 e.preventDefault();
                 const trimmedTitle = comboForm.title.trim();
-                if (!trimmedTitle) return;
+                if (!trimmedTitle) {
+                  toast.error('Please enter a combo package title', 'Missing Title');
+                  return;
+                }
+                if (comboForm.productIds.length === 0) {
+                  toast.error('Please select at least 1 plant for this combo bundle', 'No Plants Selected');
+                  return;
+                }
+
+                const prodMap = new Map(products.map(p => [p.id, p]));
+                const selectedPlants = comboForm.productIds.map(pid => prodMap.get(pid)).filter(Boolean) as Product[];
+                const autoImg = comboForm.imageUrl.trim() || selectedPlants[0]?.images?.[0] || '/products/double-delight.jpeg';
+                const autoSubtitle = comboForm.subtitle.trim() || selectedPlants.map(p => p.name).slice(0, 3).join(' + ');
+
+                const origPrice = Number(comboForm.originalPrice) > 0
+                  ? Number(comboForm.originalPrice)
+                  : selectedPlants.reduce((sum, p) => sum + Number(p.mrp || p.sellingPrice || 0), 0);
+
+                const cmbPrice = Number(comboForm.comboPrice) > 0
+                  ? Number(comboForm.comboPrice)
+                  : Math.max(99, Math.round(origPrice * 0.75));
 
                 const comboPayload = {
                   id: editingCombo?.id,
                   title: trimmedTitle,
-                  subtitle: comboForm.subtitle.trim(),
-                  badge: comboForm.badge.trim() || 'COMBO OFFER',
+                  subtitle: autoSubtitle,
+                  badge: comboForm.badge.trim() || `${comboForm.productIds.length}-IN-1 SPECIAL`,
                   productIds: comboForm.productIds,
-                  originalPrice: Number(comboForm.originalPrice),
-                  comboPrice: Number(comboForm.comboPrice),
-                  imageUrl: comboForm.imageUrl,
-                  active: comboForm.active,
-                  freeDelivery: comboForm.freeDelivery
+                  originalPrice: origPrice,
+                  comboPrice: cmbPrice,
+                  imageUrl: autoImg,
+                  active: comboForm.active !== false,
+                  freeDelivery: comboForm.freeDelivery === true
                 };
 
                 // 1. Instant 0ms modal close & toast feedback
@@ -3921,10 +3969,10 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               </div>
 
               <div className="space-y-1">
-                <label className="font-bold text-slate-700 block">Subtitle / Description</label>
+                <label className="font-bold text-slate-700 block">Subtitle / Included Summary</label>
                 <input
                   type="text"
-                  placeholder="e.g. Damask + Kashmiri + Button Rose"
+                  placeholder="e.g. Double Delight + Tiger Rose + Any Pink"
                   value={comboForm.subtitle}
                   onChange={e => setComboForm({ ...comboForm, subtitle: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
@@ -3935,22 +3983,123 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 <label className="font-bold text-slate-700 block">Badge Text</label>
                 <input
                   type="text"
-                  placeholder="e.g. 3-IN-1 COMBO, 40% OFF"
+                  placeholder="e.g. 3-IN-1 SPECIAL, 30% OFF"
                   value={comboForm.badge}
                   onChange={e => setComboForm({ ...comboForm, badge: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
                 />
               </div>
 
+              {/* Plant Selection with Live Search */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-700 block">
+                    🌿 Select Plants ({comboForm.productIds.length} Selected) *
+                  </label>
+                  {comboForm.productIds.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setComboForm(prev => ({
+                          ...prev,
+                          productIds: [],
+                          originalPrice: 0,
+                          comboPrice: 0
+                        }));
+                      }}
+                      className="text-[10px] text-rose-600 font-bold hover:underline cursor-pointer"
+                    >
+                      Clear All
+                    </button>
+                  )}
+                </div>
+
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search plants by name, category..."
+                    value={comboPlantSearch}
+                    onChange={e => setComboPlantSearch(e.target.value)}
+                    className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs"
+                  />
+                </div>
+
+                <div className="max-h-40 overflow-y-auto space-y-1 p-2 bg-slate-50 rounded-xl border border-slate-200 divide-y divide-slate-100">
+                  {products
+                    .filter(p => {
+                      if (!comboPlantSearch.trim()) return true;
+                      const q = comboPlantSearch.toLowerCase();
+                      return (
+                        (p.name && p.name.toLowerCase().includes(q)) ||
+                        (p.englishName && p.englishName.toLowerCase().includes(q)) ||
+                        (p.tamilName && p.tamilName.toLowerCase().includes(q)) ||
+                        (p.categoryName && p.categoryName.toLowerCase().includes(q))
+                      );
+                    })
+                    .map(p => {
+                      const isSelected = comboForm.productIds.includes(p.id);
+                      return (
+                        <label key={p.id} className={`flex items-center gap-2 p-1.5 rounded-lg cursor-pointer select-none text-xs transition-colors ${isSelected ? 'bg-emerald-50 text-emerald-900 font-bold' : 'hover:bg-white text-slate-700'}`}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {
+                              let nextIds: string[];
+                              if (isSelected) {
+                                nextIds = comboForm.productIds.filter(id => id !== p.id);
+                              } else {
+                                nextIds = [...comboForm.productIds, p.id];
+                              }
+
+                              const prodMap = new Map(products.map(prod => [prod.id, prod]));
+                              const selected = nextIds.map(id => prodMap.get(id)).filter(Boolean) as Product[];
+                              const totalMrp = selected.reduce((sum, item) => sum + Number(item.mrp || item.sellingPrice || 0), 0);
+                              const defaultComboPrice = Math.max(49, Math.round(totalMrp * 0.75));
+                              const autoImg = selected[0]?.images?.[0] || comboForm.imageUrl;
+
+                              setComboForm(prev => ({
+                                ...prev,
+                                productIds: nextIds,
+                                originalPrice: totalMrp,
+                                comboPrice: prev.comboPrice === 0 || prev.comboPrice === 399 ? defaultComboPrice : prev.comboPrice,
+                                imageUrl: autoImg || prev.imageUrl,
+                                badge: `${nextIds.length}-IN-1 SPECIAL`,
+                                subtitle: prev.subtitle ? prev.subtitle : selected.map(s => s.name).slice(0, 3).join(' + ')
+                              }));
+                            }}
+                            className="w-4 h-4 text-emerald-700 rounded cursor-pointer"
+                          />
+                          <img
+                            src={p.images?.[0] || '/products/double-delight.jpeg'}
+                            alt={p.name}
+                            className="w-7 h-7 rounded-md object-cover border border-slate-200 shrink-0"
+                          />
+                          <span className="truncate flex-1 font-semibold">{p.name}</span>
+                          <span className="font-mono text-[11px] font-bold text-slate-900 shrink-0">₹{p.sellingPrice}</span>
+                        </label>
+                      );
+                    })}
+                </div>
+              </div>
+
+              {/* Pricing Grid */}
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <label className="font-bold text-slate-700 block">Original Total (₹) *</label>
                   <input
                     type="number"
                     required
-                    value={comboForm.originalPrice}
-                    onChange={e => setComboForm({ ...comboForm, originalPrice: Number(e.target.value) })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                    value={comboForm.originalPrice || ''}
+                    onChange={e => {
+                      const orig = Number(e.target.value);
+                      setComboForm(prev => ({
+                        ...prev,
+                        originalPrice: orig,
+                        comboPrice: prev.comboPrice || Math.round(orig * 0.75)
+                      }));
+                    }}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold font-mono"
                   />
                 </div>
                 <div className="space-y-1">
@@ -3958,45 +4107,38 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                   <input
                     type="number"
                     required
-                    value={comboForm.comboPrice}
+                    value={comboForm.comboPrice || ''}
                     onChange={e => setComboForm({ ...comboForm, comboPrice: Number(e.target.value) })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold font-mono text-emerald-800"
                   />
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700 block">Select Plants in this Combo ({comboForm.productIds.length} Selected)</label>
-                <div className="max-h-36 overflow-y-auto space-y-1 p-2 bg-slate-50 rounded-xl border border-slate-200">
-                  {products.map(p => {
-                    const isSelected = comboForm.productIds.includes(p.id);
+              {/* Quick Discount Presets */}
+              {comboForm.originalPrice > 0 && (
+                <div className="flex items-center gap-1.5 pt-0.5">
+                  <span className="text-[10px] text-slate-500 font-bold">Quick Presets:</span>
+                  {[20, 30, 40, 50].map(pct => {
+                    const price = Math.round(comboForm.originalPrice * (1 - pct / 100));
                     return (
-                      <label key={p.id} className="flex items-center gap-2 p-1 hover:bg-white rounded cursor-pointer select-none text-xs">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => {
-                            if (isSelected) {
-                              const nextIds = comboForm.productIds.filter(id => id !== p.id);
-                              setComboForm(prev => ({ ...prev, productIds: nextIds }));
-                            } else {
-                              const nextIds = [...comboForm.productIds, p.id];
-                              setComboForm(prev => ({ ...prev, productIds: nextIds }));
-                            }
-                          }}
-                          className="w-3.5 h-3.5 text-emerald-700 rounded"
-                        />
-                        <span className="truncate flex-1 font-semibold">{p.name} (₹{p.sellingPrice})</span>
-                      </label>
+                      <button
+                        key={pct}
+                        type="button"
+                        onClick={() => setComboForm(prev => ({ ...prev, comboPrice: price }))}
+                        className="px-2 py-0.5 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-900 border border-slate-300 rounded-lg text-[10px] font-bold cursor-pointer transition-colors"
+                      >
+                        {pct}% OFF (₹{price})
+                      </button>
                     );
                   })}
                 </div>
-              </div>
+              )}
 
               <div className="space-y-1">
-                <label className="font-bold text-slate-700 block">Banner Image URL</label>
+                <label className="font-bold text-slate-700 block">Banner Image URL (Optional)</label>
                 <input
                   type="text"
+                  placeholder="Leave blank to auto-use first plant photo"
                   value={comboForm.imageUrl}
                   onChange={e => setComboForm({ ...comboForm, imageUrl: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-[11px]"
