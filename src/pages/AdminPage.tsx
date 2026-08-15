@@ -917,6 +917,9 @@ const silentRefresh = async (): Promise<boolean> => {
           : [{ ...savedProd } as Product, ...prev.filter(p => p.id !== savedProd.id)];
         updatedProductsList = next;
         persistAdminCache(c => ({ ...c, products: next }));
+        try {
+          localStorage.setItem('vrg_products', JSON.stringify(next));
+        } catch {}
         return next;
       });
 
