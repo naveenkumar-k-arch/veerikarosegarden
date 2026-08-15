@@ -23,8 +23,20 @@ const getAggregatedProducts = (productsList?: Product[]) => {
 };
 
 export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSelectProduct }) => {
-  const [combos, setCombos] = useState<Combo[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [combos, setCombos] = useState<Combo[]>(() => {
+    try {
+      const cached = localStorage.getItem('vrg_combos_cache');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const deletedSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_combos') || '[]'));
+          return parsed.filter((c: Combo) => c.active !== false && !deletedSet.has(c.id));
+        }
+      }
+    } catch {}
+    return [];
+  });
+  const [loading, setLoading] = useState(() => combos.length === 0);
   const [addedComboId, setAddedComboId] = useState<string | null>(null);
   const [modalCombo, setModalCombo] = useState<Combo | null>(null);
 
@@ -32,15 +44,28 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
     fetchCombos();
 
     const handleCombosUpdated = () => fetchCombos();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') fetchCombos();
+    };
+
     window.addEventListener('vrg_combos_updated', handleCombosUpdated);
-    return () => window.removeEventListener('vrg_combos_updated', handleCombosUpdated);
+    window.addEventListener('storage', handleCombosUpdated);
+    window.addEventListener('focus', handleCombosUpdated);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('vrg_combos_updated', handleCombosUpdated);
+      window.removeEventListener('storage', handleCombosUpdated);
+      window.removeEventListener('focus', handleCombosUpdated);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const fetchCombos = async () => {
     try {
       const [cRes, pRes] = await Promise.all([
-        fetch('/api/combos').then(r => r.json()).catch(() => null),
-        fetch('/api/products').then(r => r.json()).catch(() => null)
+        fetch('/api/combos?_t=' + Date.now(), { cache: 'no-cache' }).then(r => r.json()).catch(() => null),
+        fetch('/api/products?_t=' + Date.now(), { cache: 'no-cache' }).then(r => r.json()).catch(() => null)
       ]);
 
       if (cRes && cRes.success && Array.isArray(cRes.combos)) {
@@ -76,7 +101,11 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
           };
         });
 
-        setCombos(resolvedCombos.filter((c: Combo) => c.active !== false && !deletedSet.has(c.id)));
+        const activeCombos = resolvedCombos.filter((c: Combo) => c.active !== false && !deletedSet.has(c.id));
+        setCombos(activeCombos);
+        try {
+          localStorage.setItem('vrg_combos_cache', JSON.stringify(activeCombos));
+        } catch {}
       }
     } catch (err) {
       console.error('Failed to load combos:', err);

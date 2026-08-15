@@ -1678,6 +1678,7 @@ const silentRefresh = async (): Promise<boolean> => {
                   const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
                   cached.combos = next;
                   localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+                  localStorage.setItem('vrg_combos_cache', JSON.stringify(next));
                 } catch {}
                 return next;
               });
@@ -1688,6 +1689,7 @@ const silentRefresh = async (): Promise<boolean> => {
                   const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
                   cached.combos = next;
                   localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+                  localStorage.setItem('vrg_combos_cache', JSON.stringify(next));
                 } catch {}
                 return next;
               });
@@ -1710,6 +1712,7 @@ const silentRefresh = async (): Promise<boolean> => {
                     const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
                     cached.combos = next;
                     localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+                    localStorage.setItem('vrg_combos_cache', JSON.stringify(next));
                   } catch {}
                   return next;
                 });
@@ -5342,6 +5345,7 @@ const silentRefresh = async (): Promise<boolean> => {
                       const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
                       cached.combos = next;
                       localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+                      localStorage.setItem('vrg_combos_cache', JSON.stringify(next));
                     } catch {}
                     return next;
                   });
@@ -5363,6 +5367,7 @@ const silentRefresh = async (): Promise<boolean> => {
                           const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
                           cached.combos = next;
                           localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+                          localStorage.setItem('vrg_combos_cache', JSON.stringify(next));
                         } catch {}
                         return next;
                       });
@@ -5380,6 +5385,7 @@ const silentRefresh = async (): Promise<boolean> => {
                           const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
                           cached.combos = next;
                           localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+                          localStorage.setItem('vrg_combos_cache', JSON.stringify(next));
                         } catch {}
                         return next;
                       });

@@ -498,7 +498,7 @@ apiRouter.delete('/admin/coupons/:id', requireAdmin, handleDeleteCoupon);
 // ================= COMBOS & OFFERS =================
 apiRouter.get('/combos', async (req, res) => {
   try {
-    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     const combos = await db.getCombos();
     res.json({ success: true, count: combos.length, combos });
   } catch (error: any) {
