@@ -1020,11 +1020,15 @@ apiRouter.get('/orders', requireAuth, async (req: AuthenticatedRequest, res) => 
   }
 });
 
-// Direct user orders lookup by ID, Phone, or Email
+// Direct user orders lookup by ID, Phone, or Email (and optional query params)
 apiRouter.get('/orders/user/:identifier', async (req, res) => {
   try {
     const rawIdentifier = decodeURIComponent(req.params.identifier || '').trim();
-    if (!rawIdentifier) {
+    const queryEmail = (req.query.email as string || '').toLowerCase().trim();
+    const queryPhone = (req.query.phone as string || '').replace(/\D/g, '').slice(-10);
+    const queryUserId = (req.query.userId as string || '').trim();
+
+    if (!rawIdentifier && !queryEmail && !queryPhone && !queryUserId) {
       return res.json({ success: true, count: 0, orders: [] });
     }
 
@@ -1035,12 +1039,16 @@ apiRouter.get('/orders/user/:identifier', async (req, res) => {
 
     const userOrders = allOrders.filter(o => {
       if (!o) return false;
-      if (o.userId && o.userId === cleanId) return true;
+      // Match by User ID
+      if (o.userId && (o.userId === cleanId || (queryUserId && o.userId === queryUserId))) return true;
+      // Match by Email
       if (cleanEmail.includes('@') && o.customerEmail && o.customerEmail.toLowerCase().trim() === cleanEmail) return true;
-      if (cleanPhone.length >= 10 && o.customerPhone) {
-        const ordPhone = o.customerPhone.replace(/\D/g, '').slice(-10);
-        if (ordPhone === cleanPhone) return true;
-      }
+      if (queryEmail.includes('@') && o.customerEmail && o.customerEmail.toLowerCase().trim() === queryEmail) return true;
+      // Match by 10-digit Phone
+      const ordPhone = o.customerPhone ? o.customerPhone.replace(/\D/g, '').slice(-10) : '';
+      if (cleanPhone.length >= 10 && ordPhone && ordPhone === cleanPhone) return true;
+      if (queryPhone.length >= 10 && ordPhone && ordPhone === queryPhone) return true;
+
       return false;
     });
 

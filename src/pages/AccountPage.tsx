@@ -681,7 +681,9 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                             ? (o.paymentStatus === 'SUCCESS' ? '💵 COD PAID (Cash Collected)' : '⏳ COD PENDING (Pay on Delivery)') 
                             : (o.paymentMethod === 'QR_PAYMENT' || o.paymentMethod === 'UPI_DIRECT')
                             ? (o.paymentStatus === 'SUCCESS' ? '✅ QR PAID (Verified)' : o.paymentStatus === 'FAILED' ? '❌ QR REJECTED (Unverified)' : '⏳ QR PENDING VERIFICATION')
-                            : `PhonePe (${o.paymentStatus})`}
+                            : o.paymentMethod === 'RAZORPAY'
+                            ? (o.paymentStatus === 'SUCCESS' ? '⚡ RAZORPAY (Paid)' : '⏳ PAYMENT PENDING')
+                            : (o.paymentStatus === 'SUCCESS' ? '✅ ONLINE PAID' : `⏳ ${o.paymentMethod || 'PAYMENT'} PENDING`)}
                         </span>
                       </div>
                       <p className="text-slate-500 font-mono">

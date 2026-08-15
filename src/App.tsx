@@ -409,8 +409,13 @@ export const App: React.FC = () => {
       return;
     }
 
+    const queryParams = new URLSearchParams();
+    if (user.id) queryParams.set('userId', user.id);
+    if (user.email) queryParams.set('email', user.email);
+    if (user.phone) queryParams.set('phone', user.phone);
+
     try {
-      const res = await fetch(`/api/orders/user/${encodeURIComponent(identifier)}`, {
+      const res = await fetch(`/api/orders/user/${encodeURIComponent(identifier)}?${queryParams.toString()}`, {
         credentials: 'include'
       }).catch(() => null);
       const data = res ? await res.json().catch(() => null) : null;
