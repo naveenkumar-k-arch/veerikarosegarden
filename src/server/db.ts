@@ -5323,16 +5323,14 @@ class Store {
         updatedAt: p.updatedAt.toISOString()
       }));
 
-      // Merge results with DEFAULT_PRODUCTS so missing default products are included
-      const existingDbIds = new Set(results.map(p => p.id));
-      for (const defProd of DEFAULT_PRODUCTS) {
-        if (!existingDbIds.has(defProd.id)) {
-          results.push(defProd);
-          existingDbIds.add(defProd.id);
-        }
+      // Only fallback to DEFAULT_PRODUCTS if database returned 0 products on cold start
+      let finalProducts = results;
+      if (finalProducts.length === 0 && deletedProductIds.size === 0) {
+        finalProducts = DEFAULT_PRODUCTS.filter(p => !deletedProductIds.has(p.id));
+      } else {
+        finalProducts = finalProducts.filter(p => !deletedProductIds.has(p.id));
       }
 
-      const finalProducts = results.filter(p => !deletedProductIds.has(p.id));
       this.productsCache = { data: finalProducts, expiresAt: Date.now() + 300000 };
       return finalProducts;
     } catch (err) {
@@ -5710,6 +5708,11 @@ class Store {
     if (prisma) {
       try {
         await prisma.inventory.deleteMany({ where: { productId: id } }).catch(() => {});
+        await prisma.cartItem.deleteMany({ where: { productId: id } }).catch(() => {});
+        await prisma.wishlistItem.deleteMany({ where: { productId: id } }).catch(() => {});
+        await prisma.review.deleteMany({ where: { productId: id } }).catch(() => {});
+        await prisma.image.deleteMany({ where: { productId: id } }).catch(() => {});
+        await prisma.orderItem.deleteMany({ where: { productId: id } }).catch(() => {});
         await prisma.product.delete({ where: { id } }).catch(() => {});
       } catch (err) {
         console.error('Prisma deleteProduct error:', err);
@@ -5789,33 +5792,14 @@ class Store {
         updatedAt: c.updatedAt.toISOString()
       }));
 
-      const existingCatIds = new Set(results.map(c => c.id));
-      for (const defCat of DEFAULT_CATEGORIES) {
-        if (!existingCatIds.has(defCat.id)) {
-          results.push({
-            id: defCat.id,
-            name: defCat.name,
-            tamilName: defCat.tamilName,
-            slug: defCat.slug,
-            description: defCat.description || '',
-            image: defCat.image || '/products/double-delight.jpeg',
-            iconName: 'Flower2',
-            order: defCat.order,
-            isActive: defCat.isActive,
-            isFeatured: defCat.isFeatured,
-            productCount: defCat.productCount || 0,
-            metaTitle: undefined,
-            metaDescription: undefined,
-            ogImage: undefined,
-            canonicalUrl: undefined,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          });
-          existingCatIds.add(defCat.id);
-        }
+      // Only fallback to DEFAULT_CATEGORIES if DB returned 0 categories on cold start
+      let finalCategories: Category[] = results;
+      if (finalCategories.length === 0 && deletedCategoryIds.size === 0) {
+        finalCategories = DEFAULT_CATEGORIES.filter(c => !deletedCategoryIds.has(c.id));
+      } else {
+        finalCategories = finalCategories.filter(c => !deletedCategoryIds.has(c.id));
       }
 
-      const finalCategories = results.filter(c => !deletedCategoryIds.has(c.id));
       this.categoriesCache = { data: finalCategories, expiresAt: Date.now() + 300000 };
       return finalCategories;
     } catch (err) {
