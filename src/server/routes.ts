@@ -772,10 +772,10 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
     const targetState = shippingAddress?.state || 'Tamil Nadu';
     const allItemsHaveFreeDelivery = verifiedItems.length > 0 && verifiedItems.every(i => i.freeDelivery === true);
     let shippingCharge = 0;
-    if (allItemsHaveFreeDelivery) {
+    if (req.body.shippingCharge !== undefined && !isNaN(Number(req.body.shippingCharge))) {
+      shippingCharge = Math.max(0, Number(req.body.shippingCharge));
+    } else if (allItemsHaveFreeDelivery) {
       shippingCharge = 0;
-    } else if (req.body.shippingCharge !== undefined && !isNaN(Number(req.body.shippingCharge))) {
-      shippingCharge = Number(req.body.shippingCharge);
     } else {
       shippingCharge = calculateDeliveryFee(verifiedItems, targetState);
     }
