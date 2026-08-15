@@ -1,16 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import {
+  X, ArrowLeft, ArrowRight, ShoppingBag, Check, Truck, MapPin, Tag,
+  ShieldCheck, Package, CheckCircle2, CreditCard, QrCode, Copy,
+  CheckCircle, Upload, AlertCircle, Image as ImageIcon, Trash2, Plus, Minus,
+  Download, ExternalLink, RefreshCw, FileText
+} from 'lucide-react';
 import { CartItem, ShippingAddress, PaymentMethod, User, SiteSettings, Product } from '../types';
-import { ShieldCheck, Truck, ArrowLeft, Check, Lock, Smartphone, Home, MapPin, Building2, CreditCard, QrCode, Upload, Copy, CheckCircle2, AlertCircle, Image as ImageIcon } from 'lucide-react';
-import { calculateDeliveryFee, INDIAN_STATES, isSouthState, isTamilNadu, isGrapeItem } from '../utils/delivery';
+import { INDIAN_STATES, isTamilNadu } from '../utils/delivery';
 import { computeOrderTotals } from '../utils/orderTotals';
 import { CourierSelectionSection, CourierPartnerType } from '../components/CourierSelectionSection';
 import { PlantProtectivePackingSection, PackingOptionType } from '../components/PlantProtectivePackingSection';
 
-interface CheckoutPageProps {
+export interface CheckoutPageProps {
   items: CartItem[];
   user?: User | null;
   onBackToCart: () => void;
   appliedCoupon: { code: string; discountAmount: number } | null;
+  onApplyCoupon?: (code: string) => Promise<{ success: boolean; message: string }>;
+  onRemoveCoupon?: () => void;
   onPlaceOrder: (orderData: {
     customerName: string;
     customerPhone: string;
@@ -26,407 +33,442 @@ interface CheckoutPageProps {
     courierName?: string;
     courierDistrict?: string;
     courierBranch?: string;
-  }) => Promise<{ success: boolean; orderId?: string; phonepePayUrl?: string; merchantTransactionId?: string; razorpayOrderId?: string; razorpayKeyId?: string; amount?: number; message?: string }>;
+  }) => Promise<{
+    success: boolean;
+    orderId?: string;
+    phonepePayUrl?: string;
+    merchantTransactionId?: string;
+    razorpayOrderId?: string;
+    razorpayKeyId?: string;
+    amount?: number;
+    customerName?: string;
+    customerPhone?: string;
+    customerEmail?: string;
+    message?: string;
+  }>;
+  onUpdateQuantity?: (productId: string, qty: number) => void;
+  onRemoveItem?: (productId: string) => void;
+  onNavigateToAccount?: () => void;
+  onNavigateToHome?: () => void;
 }
+
+type DeliveryOptionType = 'REDUCED_SOIL' | 'FULL_SOIL' | 'METTUR_PARCEL';
+
+const getDeliveryChargeForOption = (opt: DeliveryOptionType, count: number): number => {
+  if (opt === 'REDUCED_SOIL') return count * 60;
+  if (opt === 'FULL_SOIL') return count * 100;
+  if (opt === 'METTUR_PARCEL') {
+    if (count < 3) return 60;
+    return Math.ceil(count / 6) * 60;
+  }
+  return count * 60;
+};
+
+const DELIVERY_TERMS = [
+  '🌿 Plants are live/semi-dormant saplings. Minor leaf stress during transit is normal and temporary.',
+  '📦 Orders are normally dispatched within 5–6 working days after confirmation.',
+  '🚚 After dispatch, delivery takes 1–2 working days within Tamil Nadu.',
+  '📸 For QR/UPI payment orders, screenshot upload is mandatory. No screenshot = order rejected.',
+  '💧 We pack plants with moisture-retaining material to survive courier transit safely.',
+  '🪴 Pot orders include free delivery. No-pot orders attract state-based delivery charges.',
+  '🔄 No refund/return once the plant is dispatched. Live plants are non-returnable.',
+  '📞 For any issue, contact us via WhatsApp within 24 hours of delivery with unboxing video.',
+  '🏡 We deliver to villages, towns, and metro cities across all listed states.',
+  '✅ By placing an order, you agree to these terms and our full nursery policies.',
+];
+
+const STEP_LABELS = [
+  'Cart Items', 'Summary & Coupon', 'Delivery Address', 'Courier & Packing', 'Delivery Terms', 'Payment Method', 'Order Confirmed', 'Official Receipt', 'Track Shipment'
+];
+
+const StepBar: React.FC<{ step: number }> = ({ step }) => {
+  const pct = Math.round(((step - 1) / 8) * 100);
+  return (
+    <div className="px-4 sm:px-6 pt-3 pb-2 border-b border-slate-100 bg-slate-50/70">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-xs font-black text-emerald-800 tracking-tight">
+          Step {step} of 9 · <span className="text-slate-700">{STEP_LABELS[step - 1]}</span>
+        </span>
+        <span className="text-xs font-black text-slate-500">{pct}% Complete</span>
+      </div>
+      <div className="w-full h-2 bg-slate-200/80 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-gradient-to-r from-emerald-600 to-teal-500 rounded-full transition-all duration-500"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+};
+
+const compressImageBase64 = (dataUrl: string, maxW = 1000, maxH = 1000, q = 0.75): Promise<string> =>
+  new Promise((resolve) => {
+    if (!dataUrl?.startsWith('data:image')) return resolve(dataUrl);
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > maxW || height > maxH) {
+        if (width > height) { height = Math.round((height * maxW) / width); width = maxW; }
+        else { width = Math.round((width * maxH) / height); height = maxH; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (ctx) { ctx.drawImage(img, 0, 0, width, height); resolve(canvas.toDataURL('image/jpeg', q)); }
+      else resolve(dataUrl);
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
 
 export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   items,
   user,
   onBackToCart,
   appliedCoupon,
-  onPlaceOrder
+  onApplyCoupon,
+  onRemoveCoupon,
+  onPlaceOrder,
+  onUpdateQuantity,
+  onRemoveItem,
+  onNavigateToAccount,
+  onNavigateToHome
 }) => {
-  // Helper to safely read sessionStorage JSON
-  const getSessionItem = <T,>(key: string, fallback: T): T => {
-    try {
-      const saved = sessionStorage.getItem(key);
-      if (saved) return JSON.parse(saved) as T;
-    } catch {}
-    return fallback;
-  };
+  const [step, setStep] = useState(1);
+  const [direction, setDirection] = useState<'forward' | 'back'>('forward');
+  const [animating, setAnimating] = useState(false);
 
-  const [step, setStep] = useState<1 | 2>(() => {
-    const saved = getSessionItem<number>('vrg_checkout_step', 1);
-    return (saved === 2 ? 2 : 1);
+  const goTo = useCallback((next: number) => {
+    if (animating) return;
+    const isForward = next > step;
+    setDirection(isForward ? 'forward' : 'back');
+    setAnimating(true);
+    setStep(next);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setTimeout(() => {
+      setAnimating(false);
+    }, 220);
+  }, [animating, step]);
+
+  const handleGoBack = useCallback((fallbackStep?: number) => {
+    if (step > 1) {
+      goTo(fallbackStep !== undefined ? fallbackStep : step - 1);
+    } else {
+      onBackToCart();
+    }
+  }, [step, goTo, onBackToCart]);
+
+  // ── Summary step state ─────────────────────────────────────────────────────
+  const [previewState, setPreviewState] = useState('Tamil Nadu');
+  const [couponCode, setCouponCode] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponMsg, setCouponMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // ── Address state ──────────────────────────────────────────────────────────
+  const [address, setAddress] = useState<ShippingAddress>({
+    fullName: user?.name || '',
+    phone: user?.phone || '',
+    alternatePhone: '',
+    houseNo: '',
+    street: '',
+    villageTown: '',
+    district: '',
+    state: 'Tamil Nadu',
+    pincode: '',
+    landmark: '',
+    addressType: 'Home',
   });
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
+  const [addrError, setAddrError] = useState<string | null>(null);
 
-  // QR Payment & Proof Upload States
-  const [paymentProofUrl, setPaymentProofUrl] = useState<string>('');
-  const [transactionId, setTransactionId] = useState<string>(() => getSessionItem<string>('vrg_checkout_txnId', ''));
-  const [copiedUpi, setCopiedUpi] = useState(false);
-  const [proofPreview, setProofPreview] = useState<string | null>(null);
-
-  // Helper to sanitize phone input (strip Google OAuth dummy IDs)
-  const getInitialPhone = (p?: string) => {
-    if (!p) return '';
-    const clean = p.trim();
-    if (clean.startsWith('g_') || clean.includes('@') || /[a-zA-Z]/.test(clean)) return '';
-    return clean;
-  };
-
-  // Clean Address State — default to empty fields
-  const [address, setAddress] = useState<ShippingAddress>(() => {
-    return {
-      fullName: '',
-      phone: '',
-      alternatePhone: '',
-      houseNo: '',
-      street: '',
-      villageTown: '',
-      district: '',
-      state: 'Tamil Nadu',
-      pincode: '',
-      landmark: '',
-      addressType: 'Home'
-    };
-  });
-
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(() => {
-    const saved = getSessionItem<string>('vrg_checkout_payment', '');
-    if (['PHONEPE', 'RAZORPAY', 'QR_PAYMENT', 'COD'].includes(saved)) return saved as PaymentMethod;
-    return 'PHONEPE';
-  });
-  const [selectedPot, setSelectedPot] = useState<'NONE' | '6_INCH' | '8_INCH'>(() => {
-    const saved = getSessionItem<string>('vrg_checkout_pot', '');
-    if (['NONE', '6_INCH', '8_INCH'].includes(saved)) return saved as 'NONE' | '6_INCH' | '8_INCH';
-    return 'NONE';
-  });
-
+  // ── Delivery / Packing Selection ──────────────────────────────────────────
+  const [deliveryOption, setDeliveryOption] = useState<DeliveryOptionType>('REDUCED_SOIL');
   const [courierPartner, setCourierPartner] = useState<CourierPartnerType>('ST_COURIER');
   const [metturState, setMetturState] = useState<string>('Tamil Nadu');
   const [metturDistrict, setMetturDistrict] = useState<string>('Salem');
   const [metturBranch, setMetturBranch] = useState<string>('Salem Main Hub (Shevapet)');
   const [selectedPacking, setSelectedPacking] = useState<PackingOptionType>('STANDARD');
 
-  // Fetch settings to check enabled payment methods
+  // Total plant count (including plants bundled inside combos)
+  const subtotal = items.reduce((sum, i) => sum + i.product.sellingPrice * i.quantity, 0);
+  const totalPlantCount = items.reduce((sum, i) => {
+    const isCombo = i.isCombo || i.product.id.startsWith('combo-') || (i.product as any).isCombo;
+    const bundleCount = (i.comboProducts && i.comboProducts.length > 0)
+      ? i.comboProducts.length
+      : ((i.product as any).comboProducts?.length || 1);
+    return sum + (isCombo ? bundleCount * i.quantity : i.quantity);
+  }, 0);
+
+  // Check if cart has free delivery (e.g. combo bundle offers)
+  const hasAllFreeDelivery = items.length > 0 && items.every(i => i.freeDelivery === true || (i.product as any).freeDelivery === true);
+  const chargeablePlantCount = items.reduce((sum, i) => {
+    const isFree = i.freeDelivery === true || (i.product as any).freeDelivery === true;
+    if (isFree) return sum;
+    const isCombo = i.isCombo || i.product.id.startsWith('combo-') || (i.product as any).isCombo;
+    const bundleCount = (i.comboProducts && i.comboProducts.length > 0)
+      ? i.comboProducts.length
+      : ((i.product as any).comboProducts?.length || 1);
+    return sum + (isCombo ? bundleCount * i.quantity : i.quantity);
+  }, 0);
+
+  // Auto fallback if option becomes unavailable due to plant count changes
+  useEffect(() => {
+    if (deliveryOption === 'FULL_SOIL' && totalPlantCount > 5) {
+      setDeliveryOption('REDUCED_SOIL');
+    }
+    if (deliveryOption === 'METTUR_PARCEL' && totalPlantCount < 3) {
+      setDeliveryOption('REDUCED_SOIL');
+    }
+  }, [totalPlantCount, deliveryOption]);
+
+  const baseShipping = getDeliveryChargeForOption(courierPartner === 'METTUR_PARCEL' ? 'METTUR_PARCEL' : deliveryOption, chargeablePlantCount);
+  const shippingCharge = hasAllFreeDelivery ? 0 : (chargeablePlantCount === 0 ? 0 : baseShipping);
+  const packingCharge = courierPartner === 'METTUR_PARCEL'
+    ? (selectedPacking === 'EXTRA_SECURE' ? 10 : selectedPacking === 'MAX_PROTECTION' ? 15 : 0)
+    : 0;
+  const potCharge = 0;
+  const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
+  const grandTotal = Math.max(0, subtotal + shippingCharge + packingCharge - discountAmount);
+
+  // ── Terms ──────────────────────────────────────────────────────────────────
+  const [termsAccepted, setTermsAccepted] = useState(false);
+
+  // ── Payment ────────────────────────────────────────────────────────────────
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
+  const [paymentProofUrl, setPaymentProofUrl] = useState('');
+  const [proofPreview, setProofPreview] = useState<string | null>(null);
+  const [transactionId, setTransactionId] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [copiedUpi, setCopiedUpi] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
+
+  // ── Order result ───────────────────────────────────────────────────────────
+  const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
+  const [fetchedOrder, setFetchedOrder] = useState<any>(null);
+  const [trackLoading, setTrackLoading] = useState(false);
+
+  // Fetch site settings
   useEffect(() => {
     fetch('/api/settings')
-      .then(res => res.json())
-      .then(data => {
-        if (data.success && data.settings) {
-          setSiteSettings(data.settings);
-          const s = data.settings;
-          const isMethodEnabled = (m: string) => {
-            if (m === 'RAZORPAY') return s.enableRazorpay === true;
-            if (m === 'PHONEPE') return s.enablePhonePe !== false;
-            if (m === 'QR_PAYMENT' || m === 'UPI_DIRECT') return s.enableQrPayment !== false;
-            if (m === 'COD') return s.enableCod !== false;
-            return false;
-          };
-
-          const savedPayment = getSessionItem<string>('vrg_checkout_payment', '');
-          if (savedPayment && isMethodEnabled(savedPayment)) {
-            setPaymentMethod(savedPayment as PaymentMethod);
-          } else {
-            if (s.enableRazorpay) {
-              setPaymentMethod('RAZORPAY');
-            } else if (s.enablePhonePe !== false) {
-              setPaymentMethod('PHONEPE');
-            } else if (s.enableQrPayment !== false) {
-              setPaymentMethod('QR_PAYMENT');
-            } else if (s.enableCod !== false) {
-              setPaymentMethod('COD');
-            }
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.settings) {
+          setSiteSettings(d.settings);
+          const s = d.settings;
+          if (s.enableRazorpay) {
+            setPaymentMethod('RAZORPAY');
+          } else if (s.enablePhonePe !== false) {
+            setPaymentMethod('PHONEPE');
+          } else if (s.enableQrPayment !== false) {
+            setPaymentMethod('QR_PAYMENT');
+          } else if (s.enableCod !== false) {
+            setPaymentMethod('COD');
           }
         }
       })
       .catch(() => {});
   }, []);
 
-  // Persist checkout state to sessionStorage so refresh preserves progress
+  // Fetch order on step 7
   useEffect(() => {
-    try {
-      sessionStorage.setItem('vrg_checkout_step', JSON.stringify(step));
-      sessionStorage.setItem('vrg_checkout_address', JSON.stringify(address));
-      sessionStorage.setItem('vrg_checkout_payment', JSON.stringify(paymentMethod));
-      sessionStorage.setItem('vrg_checkout_pot', JSON.stringify(selectedPot));
-      sessionStorage.setItem('vrg_checkout_txnId', JSON.stringify(transactionId));
-    } catch {}
-  }, [step, address, paymentMethod, selectedPot, transactionId]);
+    if (step === 7 && placedOrderId && !fetchedOrder) {
+      fetch(`/api/orders/${placedOrderId}`)
+        .then(r => r.json())
+        .then(d => { if (d.success) setFetchedOrder(d.order); })
+        .catch(() => {});
+    }
+  }, [step, placedOrderId, fetchedOrder]);
 
-  const {
-    subtotal,
-    totalPlantCount,
-    potUnitFee,
-    potCharge,
-    packingCharge,
-    shippingFee: shippingCharge,
-    discountAmount,
-    grandTotal
-  } = computeOrderTotals({
-    items,
-    state: address.state,
-    selectedPot,
-    selectedPacking,
-    appliedCoupon
-  });
+  const handleFetchOrderForTracking = () => {
+    const id = placedOrderId || (fetchedOrder && fetchedOrder.id);
+    if (!id) return;
+    setTrackLoading(true);
+    fetch(`/api/orders/${id}`)
+      .then(r => r.json())
+      .then(d => {
+        setTrackLoading(false);
+        if (d.success && d.order) setFetchedOrder(d.order);
+      })
+      .catch(() => setTrackLoading(false));
+  };
 
-const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000, quality = 0.75): Promise<string> => {
-  return new Promise((resolve) => {
-    if (!dataUrl || !dataUrl.startsWith('data:image')) return resolve(dataUrl);
-    const img = new Image();
-    img.onload = () => {
-      try {
-        let width = img.width;
-        let height = img.height;
-
-        if (width > maxWidth || height > maxHeight) {
-          if (width > height) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
-          } else {
-            width = Math.round((width * maxHeight) / height);
-            height = maxHeight;
-          }
-        }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/jpeg', quality));
-        } else {
-          resolve(dataUrl);
-        }
-      } catch {
-        resolve(dataUrl);
-      }
+  const handleDownloadReceipt = () => {
+    const orderData = fetchedOrder || {
+      id: placedOrderId || 'ORD-NEW',
+      items,
+      subtotal,
+      shippingCharge,
+      packingCharge,
+      packingOption: selectedPacking,
+      grandTotal,
+      paymentMethod: paymentMethod || 'ONLINE',
+      paymentStatus: paymentMethod === 'COD' ? 'CONFIRMED' : 'SUCCESS',
+      createdAt: new Date().toISOString()
     };
-    img.onerror = () => resolve(dataUrl);
-    img.src = dataUrl;
-  });
-};
+    const htmlContent = `
+      <html>
+        <head>
+          <title>Order Receipt - ${orderData.id}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; line-height: 1.4; color: #1e293b; }
+            .header { text-align: center; border-bottom: 2px solid #059669; padding-bottom: 12px; margin-bottom: 16px; }
+            .header h1 { margin: 0; color: #065f46; font-size: 22px; }
+            .details { margin-bottom: 16px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+            th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: left; font-size: 12px; }
+            th { background-color: #f1f5f9; }
+            .totals { margin-left: auto; width: 250px; font-size: 13px; }
+            .totals div { display: flex; justify-content: space-between; margin-bottom: 4px; }
+            .grand-total { font-weight: bold; font-size: 15px; border-top: 2px solid #0f172a; padding-top: 6px; color: #065f46; }
+            .footer { margin-top: 24px; text-align: center; font-size: 11px; color: #64748b; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Veerika Rose Garden</h1>
+            <p>Pennagaram, Dharmapuri District, Tamil Nadu - 636810 | Phone: +91 72008 26129</p>
+            <h3>ORDER TAX INVOICE & RECEIPT</h3>
+          </div>
+          <div class="details">
+            <p><strong>Order ID:</strong> ${orderData.id}</p>
+            <p><strong>Date:</strong> ${new Date(orderData.createdAt).toLocaleDateString('en-IN')}</p>
+            <p><strong>Payment Mode:</strong> ${orderData.paymentMethod} (${orderData.paymentStatus})</p>
+            <p><strong>Courier:</strong> ${courierPartner === 'METTUR_PARCEL' ? 'Mettur Parcel Service' : courierPartner === 'ST_COURIER' ? 'ST Courier' : 'Professional Courier'}</p>
+          </div>
+          <table>
+            <thead>
+              <tr><th>Plant Item</th><th>Qty</th><th>Price</th><th>Total</th></tr>
+            </thead>
+            <tbody>
+              ${(orderData.items || []).map((i: any) => `
+                <tr>
+                  <td>${i.name || i.product?.name}</td>
+                  <td>${i.quantity}</td>
+                  <td>₹${i.price || i.product?.sellingPrice}</td>
+                  <td>₹${(i.price || i.product?.sellingPrice) * i.quantity}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <div class="totals">
+            <div><span>Subtotal:</span><span>₹${orderData.subtotal}</span></div>
+            <div><span>Delivery Fee:</span><span>₹${orderData.shippingCharge}</span></div>
+            ${orderData.packingCharge ? `<div><span>Protective Packing:</span><span>₹${orderData.packingCharge}</span></div>` : ''}
+            <div class="grand-total"><span>Grand Total:</span><span>₹${orderData.grandTotal}</span></div>
+          </div>
+          <div class="footer">
+            <p>Thank you for growing with Veerika Rose Garden! 🌱</p>
+          </div>
+        </body>
+      </html>
+    `;
+    const printWin = window.open('', '_blank');
+    if (printWin) {
+      printWin.document.write(htmlContent);
+      printWin.document.close();
+      printWin.focus();
+      setTimeout(() => { printWin.print(); }, 250);
+    }
+  };
 
-  // Handle Image File Upload for QR Screenshot Proof
-  const [uploadingImage, setUploadingImage] = useState(false);
+  const handleCouponSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!couponCode.trim() || !onApplyCoupon) return;
+    setCouponLoading(true);
+    setCouponMsg(null);
+    try {
+      const res = await onApplyCoupon(couponCode.trim());
+      setCouponLoading(false);
+      if (res.success) {
+        setCouponMsg({ type: 'success', text: res.message });
+      } else {
+        setCouponMsg({ type: 'error', text: res.message });
+      }
+    } catch {
+      setCouponLoading(false);
+      setCouponMsg({ type: 'error', text: 'Failed to apply coupon.' });
+    }
+  };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAddressNext = (e: React.FormEvent) => {
+    e.preventDefault();
+    setAddrError(null);
+    if (!address.fullName.trim()) { setAddrError('Please enter your full name'); return; }
+    const phoneClean = address.phone.replace(/\D/g, '');
+    if (phoneClean.length < 10) { setAddrError('Please enter a valid 10-digit mobile number'); return; }
+    if (!address.houseNo.trim()) { setAddrError('Please enter House/Door No.'); return; }
+    if (!address.street.trim()) { setAddrError('Please enter Street/Gramam name'); return; }
+    if (!address.villageTown.trim()) { setAddrError('Please enter Village or Town name'); return; }
+    if (!address.district.trim()) { setAddrError('Please enter District name'); return; }
+    if (!address.pincode.trim() || address.pincode.length < 6) { setAddrError('Please enter a valid 6-digit pincode'); return; }
+    goTo(4);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // Validate file type
     if (!file.type.startsWith('image/')) {
-      setErrorMsg('📸 INVALID FILE FORMAT\n\nPlease select a valid image file (JPG, JPEG, PNG, WebP) for the payment proof screenshot. PDF or documents are not supported.');
-      e.target.value = '';
+      setOrderError('Please select a valid image file (JPG, PNG, WebP).');
       return;
     }
-
-    // Limit maximum raw file size to 10 MB
-    const MAX_UPLOAD_MB = 10;
-    if (file.size > MAX_UPLOAD_MB * 1024 * 1024) {
-      const fileMb = (file.size / (1024 * 1024)).toFixed(1);
-      setErrorMsg(`📸 SCREENSHOT SIZE LIMIT EXCEEDED (${fileMb} MB)\n\nYour selected payment screenshot is ${fileMb} MB, which exceeds the ${MAX_UPLOAD_MB} MB maximum upload limit.\n\nPlease select a smaller image or capture a quick phone screenshot from your UPI app (GPay / PhonePe) and re-upload.`);
-      e.target.value = '';
-      return;
-    }
-
     setUploadingImage(true);
-    setErrorMsg(null);
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const rawBase64 = (reader.result as string) || '';
-
-      try {
-        const compressedBase64 = await compressImageBase64(rawBase64);
-        const finalBase64 = (compressedBase64 && compressedBase64.length > 50) ? compressedBase64 : rawBase64;
-        
-        // Enforce 3.5MB max base64 size limit
-        const MAX_BASE64_BYTES = 3.5 * 1024 * 1024;
-        if (finalBase64.length > MAX_BASE64_BYTES) {
-          const compMb = (finalBase64.length / (1024 * 1024)).toFixed(1);
-          setErrorMsg(`📸 IMAGE COMPRESSION OVERSIZE (${compMb} MB)\n\nThe payment proof image is too large (${compMb} MB) to upload reliably.\n\nPlease choose a normal phone screenshot under 5 MB.`);
-          setPaymentProofUrl('');
-          setProofPreview(null);
-          e.target.value = '';
-          return;
+    setOrderError(null);
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const raw = reader.result as string;
+        setProofPreview(raw);
+        try {
+          const compressed = await compressImageBase64(raw, 1000, 1000, 0.75);
+          setPaymentProofUrl(compressed);
+        } catch {
+          setPaymentProofUrl(raw);
         }
-
-        setPaymentProofUrl(finalBase64);
-        setProofPreview(finalBase64);
-        setPaymentMethod('QR_PAYMENT');
-      } catch (err) {
-        console.warn('Image compression error:', err);
-        setErrorMsg('📸 COMPRESSION ERROR\n\nFailed to process screenshot image. Please choose another screenshot from your gallery.');
-        e.target.value = '';
-      } finally {
         setUploadingImage(false);
-      }
-    };
-    reader.onerror = () => {
+      };
+      reader.readAsDataURL(file);
+    } catch {
       setUploadingImage(false);
-      setErrorMsg('📸 UPLOAD ERROR\n\nFailed to read image file. Please try selecting the screenshot again.');
-      e.target.value = '';
-    };
-    reader.readAsDataURL(file);
+      setOrderError('Failed to process image. Please retry.');
+    }
   };
 
   const handleCopyUpi = () => {
-    const upi = siteSettings?.upiId || '7200826129@ybl';
-    navigator.clipboard.writeText(upi);
-    setCopiedUpi(true);
-    setTimeout(() => setCopiedUpi(false), 3000);
+    const id = siteSettings?.upiId || '7200826129@ybl';
+    navigator.clipboard.writeText(id).then(() => {
+      setCopiedUpi(true);
+      setTimeout(() => setCopiedUpi(false), 2000);
+    });
   };
 
-  const handleAddressSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanPincode = address.pincode.trim();
-    if (!address.fullName.trim() || !address.phone.trim() || !address.houseNo.trim() || !address.street.trim() || !address.villageTown.trim() || !address.district.trim() || !cleanPincode) {
-      setErrorMsg('Please fill in all required address fields (Name, Phone, House No, Street, Village/Town, District, Pincode).');
-      return;
-    }
-    if (!/^\d{6}$/.test(cleanPincode)) {
-      setErrorMsg('Pincode must be exactly 6 digits (numbers only).');
-      return;
-    }
-    setAddress(prev => ({ ...prev, pincode: cleanPincode }));
-    setErrorMsg(null);
-    setStep(2);
-  };
-
-  const handleFinalPlaceOrder = async () => {
-    if (!user) {
-      setErrorMsg('🔒 Login or Sign Up is required to complete your purchase.');
-      return;
-    }
-
-    if (!paymentMethod) {
-      setErrorMsg('⚠️ Please select a payment method before placing your order.');
-      return;
-    }
-
-    if (siteSettings) {
-      if (paymentMethod === 'PHONEPE' && siteSettings.enablePhonePe === false) {
-        setErrorMsg('⚠️ PhonePe payment is currently disabled. Please select QR Code or another payment option.');
-        return;
-      }
-      if (paymentMethod === 'RAZORPAY' && !siteSettings.enableRazorpay) {
-        setErrorMsg('⚠️ Razorpay payment is currently disabled. Please select another payment option.');
-        return;
-      }
-      if (paymentMethod === 'COD' && siteSettings.enableCod === false) {
-        setErrorMsg('⚠️ Cash on Delivery is currently disabled. Please select another payment option.');
-        return;
-      }
-      if ((paymentMethod === 'QR_PAYMENT' || paymentMethod === 'UPI_DIRECT') && siteSettings.enableQrPayment === false) {
-        setErrorMsg('⚠️ Scan QR payment is currently disabled. Please select another payment option.');
-        return;
-      }
-    }
-
-    if (uploadingImage) {
-      setErrorMsg('⌛ Processing payment screenshot photo... Please wait a second.');
-      return;
-    }
-
-    const effectivePaymentMethod = (paymentMethod === 'QR_PAYMENT' || Boolean(paymentProofUrl)) ? 'QR_PAYMENT' : paymentMethod;
-
-    // MANDATORY SCREENSHOT: Only for manual QR/UPI transfers. PhonePe & Razorpay are gateway-verified.
-    if (effectivePaymentMethod === 'QR_PAYMENT' || effectivePaymentMethod === 'UPI_DIRECT') {
-      if (!paymentProofUrl || !paymentProofUrl.trim()) {
-        setErrorMsg('📸 MANDATORY PAYMENT SCREENSHOT: You must upload your GPay / PhonePe / UPI payment screenshot before placing a QR payment order.');
-        return;
-      }
-    }
-
-    setLoading(true);
-    setErrorMsg(null);
-
-    try {
-      const rawPhone = (address.phone || user?.phone || '').replace(/\D/g, '');
-      const cleanPhone = rawPhone.length >= 10 ? rawPhone.slice(-10) : rawPhone;
-      const cleanEmail = (user?.email && user.email.includes('@')) 
-        ? user.email 
-        : `cust${cleanPhone || Date.now()}@veerikanursery.com`;
-
-      const courierLabel = courierPartner === 'METTUR_PARCEL'
-        ? 'Mettur Parcel Service'
-        : courierPartner === 'ST_COURIER'
-        ? 'ST Courier'
-        : 'Professional Courier';
-
-      const res = await onPlaceOrder({
-        customerName: address.fullName || user?.name || 'Valued Customer',
-        customerPhone: cleanPhone || address.phone,
-        customerEmail: cleanEmail,
-        shippingAddress: {
-          ...address,
-          phone: cleanPhone || address.phone
-        },
-        paymentMethod: effectivePaymentMethod,
-        paymentProofUrl: effectivePaymentMethod === 'QR_PAYMENT' ? paymentProofUrl : undefined,
-        transactionId: effectivePaymentMethod === 'QR_PAYMENT' ? transactionId : undefined,
-        potCharge,
-        potOption: selectedPot,
-        packingCharge,
-        packingOption: selectedPacking,
-        courierName: courierLabel,
-        courierDistrict: courierPartner === 'METTUR_PARCEL' ? metturDistrict : undefined,
-        courierBranch: courierPartner === 'METTUR_PARCEL' ? metturBranch : undefined,
-      });
-
-      setLoading(false);
-      if (res.success) {
-        // Clear checkout session data after successful order
-        try {
-          sessionStorage.removeItem('vrg_checkout_step');
-          sessionStorage.removeItem('vrg_checkout_address');
-          sessionStorage.removeItem('vrg_checkout_payment');
-          sessionStorage.removeItem('vrg_checkout_pot');
-          sessionStorage.removeItem('vrg_checkout_txnId');
-        } catch {}
-
-        // Handle Razorpay Checkout Popup if Razorpay order created
-        if (effectivePaymentMethod === 'RAZORPAY' && res.razorpayOrderId) {
-          handleRazorpayPayment(res);
-          return;
-        }
-      } else {
-        setErrorMsg(res.message || 'Failed to place order.');
-      }
-    } catch (err: any) {
-      setLoading(false);
-      setErrorMsg(err.message || 'Checkout error occurred.');
-    }
-  };
-
-  // Dynamically load Razorpay SDK script if not loaded
-  const loadRazorpayScript = (): Promise<boolean> => {
-    return new Promise((resolve) => {
-      if ((window as any).Razorpay) {
-        resolve(true);
-        return;
-      }
+  const loadRazorpayScript = (): Promise<boolean> =>
+    new Promise((resolve) => {
+      if ((window as any).Razorpay) return resolve(true);
       const script = document.createElement('script');
       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
       script.onload = () => resolve(true);
       script.onerror = () => resolve(false);
       document.body.appendChild(script);
     });
-  };
 
   const handleRazorpayPayment = async (orderRes: any) => {
     setLoading(true);
     const loaded = await loadRazorpayScript();
     if (!loaded) {
-      setErrorMsg('Failed to load Razorpay SDK. Please check your internet connection and try again.');
+      setOrderError('Failed to load Razorpay SDK. Please check internet connection.');
       setLoading(false);
       return;
     }
-
     const options = {
-      key: orderRes.razorpayKeyId || (import.meta as any).env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TPhhoBxVXsxTpD',
-      amount: Math.round(orderRes.amount * 100), // in paise
+      key: orderRes.razorpayKeyId || (import.meta as any).env?.VITE_RAZORPAY_KEY_ID || 'rzp_test_TPhhoBxVXsxTpD',
+      amount: Math.round(orderRes.amount * 100),
       currency: 'INR',
       name: siteSettings?.businessName || 'Veerika Rose Garden',
       description: `Plant Order #${orderRes.orderId}`,
       image: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=200&q=80',
       order_id: orderRes.razorpayOrderId,
-      handler: async function (response: any) {
+      handler: async (response: any) => {
         setLoading(true);
         try {
           const verifyRes = await fetch('/api/razorpay/verify', {
@@ -442,275 +484,516 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
           const verifyData = await verifyRes.json();
           setLoading(false);
           if (verifyData.success) {
-            window.location.hash = `#/order-status/${orderRes.orderId}`;
+            setPlacedOrderId(orderRes.orderId);
+            goTo(7);
           } else {
-            setErrorMsg(verifyData.message || 'Razorpay payment verification failed.');
+            setOrderError(verifyData.message || 'Payment verification failed.');
           }
-        } catch (err: any) {
+        } catch {
           setLoading(false);
-          setErrorMsg('Error verifying Razorpay payment.');
+          setOrderError('Error verifying payment.');
         }
       },
       prefill: {
-        name: orderRes.customerName || address.fullName,
-        email: orderRes.customerEmail,
-        contact: orderRes.customerPhone || address.phone
+        name: address.fullName || user?.name || '',
+        contact: address.phone || user?.phone || '',
+        email: user?.email || `cust${address.phone}@veerikanursery.com`
       },
-      theme: {
-        color: '#16a34a'
-      },
-      modal: {
-        ondismiss: function () {
-          setLoading(false);
-          setErrorMsg('Razorpay payment popup was closed before completing payment.');
-        }
-      }
+      theme: { color: '#047857' }
     };
-
     try {
       const rzp = new (window as any).Razorpay(options);
-      rzp.on('payment.failed', function (response: any) {
+      rzp.on('payment.failed', (resp: any) => {
+        setOrderError(`Payment failed: ${resp.error?.description || 'Transaction declined.'}`);
         setLoading(false);
-        setErrorMsg(`Razorpay Payment Failed: ${response.error?.description || 'Transaction declined'}`);
       });
-      rzp.open();
-    } catch (err: any) {
       setLoading(false);
-      setErrorMsg('Failed to open Razorpay payment modal.');
+      rzp.open();
+    } catch {
+      setLoading(false);
+      setOrderError('Failed to open Razorpay payment window.');
     }
   };
 
-  const isRazorpayEnabled = siteSettings ? siteSettings.enableRazorpay === true : false;
-  const isPhonePeEnabled = siteSettings ? siteSettings.enablePhonePe !== false : true;
-  const isCodEnabled = siteSettings ? siteSettings.enableCod !== false : true;
-  const isQrEnabled = siteSettings ? siteSettings.enableQrPayment !== false : true;
+  const handlePlaceOrder = async () => {
+    if (!user) {
+      if (onNavigateToAccount) onNavigateToAccount();
+      return;
+    }
+    if (!paymentMethod) {
+      setOrderError('Please select a payment method.');
+      return;
+    }
+    if (uploadingImage) {
+      setOrderError('Please wait — processing payment screenshot.');
+      return;
+    }
+    const effectivePM: PaymentMethod = (paymentMethod === 'QR_PAYMENT' || Boolean(paymentProofUrl)) ? 'QR_PAYMENT' : paymentMethod;
+    if (effectivePM === 'QR_PAYMENT' && !paymentProofUrl) {
+      setOrderError('📸 Please upload payment screenshot before placing order.');
+      return;
+    }
+    setLoading(true);
+    setOrderError(null);
+    try {
+      const rawPhone = (address.phone || user.phone || '').replace(/\D/g, '');
+      const cleanPhone = rawPhone.length >= 10 ? rawPhone.slice(-10) : rawPhone;
+      const cleanEmail = (user.email?.includes('@')) ? user.email : `cust${cleanPhone}@veerikanursery.com`;
+      const courierLabel = courierPartner === 'METTUR_PARCEL'
+        ? 'Mettur Parcel Service'
+        : courierPartner === 'ST_COURIER'
+        ? 'ST Courier'
+        : 'Professional Courier';
+
+      const res = await onPlaceOrder({
+        customerName: address.fullName || user.name || 'Customer',
+        customerPhone: cleanPhone,
+        customerEmail: cleanEmail,
+        shippingAddress: { ...address, phone: cleanPhone },
+        paymentMethod: effectivePM,
+        paymentProofUrl: effectivePM === 'QR_PAYMENT' ? paymentProofUrl : undefined,
+        transactionId: effectivePM === 'QR_PAYMENT' ? transactionId : undefined,
+        potCharge: 0,
+        potOption: courierLabel,
+        packingCharge,
+        packingOption: selectedPacking,
+        courierName: courierLabel,
+        courierDistrict: courierPartner === 'METTUR_PARCEL' ? metturDistrict : undefined,
+        courierBranch: courierPartner === 'METTUR_PARCEL' ? metturBranch : undefined,
+      });
+      setLoading(false);
+      if (res.success) {
+        if (effectivePM === 'RAZORPAY' && res.razorpayOrderId) {
+          handleRazorpayPayment(res);
+          return;
+        }
+        setPlacedOrderId(res.orderId || null);
+        goTo(7);
+      } else {
+        setOrderError(res.message || 'Failed to place order. Please try again.');
+      }
+    } catch (err: any) {
+      setLoading(false);
+      setOrderError(err.message || 'An error occurred. Please retry.');
+    }
+  };
+
+  const summaryTotals = computeOrderTotals({
+    items,
+    state: previewState,
+    selectedPot: 'NONE',
+    selectedPacking,
+    appliedCoupon
+  });
 
   const upiId = siteSettings?.upiId || '7200826129@ybl';
-  const upiName = siteSettings?.upiName || 'Veerika Rose Garden Nursery';
-  const upiDeepLink = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(upiName)}&am=${grandTotal}&cu=INR`;
-  const primaryQrUrl = `https://quickchart.io/qr?size=400&text=${encodeURIComponent(`upi://pay?pa=${upiId}&pn=${upiName}&cu=INR`)}`;
-  const qrCodeImg = primaryQrUrl;
+  const upiName = encodeURIComponent(siteSettings?.businessName || 'Veerika Rose Garden Nursery');
+  const upiDeepLink = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${upiName}&am=${grandTotal}&cu=INR&tn=${encodeURIComponent(`Plant Order ${user?.name || ''}`)}`;
+
+  const Header: React.FC<{ title: string; subtitle?: string; onBack?: () => void }> = ({ title, subtitle, onBack }) => (
+    <div className="px-4 sm:px-6 pt-4 pb-3 flex items-center justify-between border-b border-slate-100 bg-white">
+      <div className="flex items-center gap-3">
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
+            aria-label="Back"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+        )}
+        <div>
+          <h2 className="font-extrabold text-slate-900 text-base sm:text-lg tracking-tight">{title}</h2>
+          {subtitle && <p className="text-[11px] text-slate-500 font-medium">{subtitle}</p>}
+        </div>
+      </div>
+      <button
+        onClick={onBackToCart}
+        className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer"
+        aria-label="Back to cart"
+      >
+        <ShoppingBag className="w-4 h-4" />
+      </button>
+    </div>
+  );
+
+  const ProceedBtn: React.FC<{ label: string; onClick?: () => void; type?: 'button' | 'submit'; disabled?: boolean }> = ({
+    label, onClick, type = 'button', disabled = false
+  }) => (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
+    >
+      <span>{label}</span>
+      <ArrowRight className="w-4 h-4" />
+    </button>
+  );
 
   return (
-    <div className="max-w-4xl mx-auto px-4 pt-6 pb-32 sm:pb-8 space-y-6">
-      {/* Top Header */}
-      <div className="flex items-center justify-between border-b border-slate-200 pb-4">
-        <button
-          onClick={onBackToCart}
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-emerald-700 transition-colors cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Return to Cart</span>
-        </button>
+    <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-emerald-50/30 py-4 sm:py-8 px-3 sm:px-6">
+      <div className="max-w-3xl w-full mx-auto bg-white rounded-3xl border border-slate-200/90 shadow-xl overflow-hidden flex flex-col">
+        {/* Step Progress Bar Header */}
+        <StepBar step={step} />
 
-        <div className="flex items-center gap-2 text-xs font-bold text-emerald-800">
-          <ShieldCheck className="w-4 h-4 text-emerald-600" />
-          <span>Veerika Nursery Verified Checkout</span>
-        </div>
-      </div>
+        {/* ═══════════════════════════════════════════════════════════════════
+            STEP 1 — Cart Items
+        ═══════════════════════════════════════════════════════════════════ */}
+        {step === 1 && (
+          <div className="flex flex-col flex-1">
+            <Header title="Your Cart Plants" subtitle={`${items.length} unique plant selection`} />
 
-      {/* Progress Steps */}
-      <div className="flex items-center justify-center gap-4 text-xs font-bold">
-        <div className={`flex items-center gap-2 ${step >= 1 ? 'text-emerald-800' : 'text-slate-400'}`}>
-          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${step >= 1 ? 'bg-emerald-700 text-white' : 'bg-slate-200'}`}>
-            1
-          </span>
-          <span>Delivery Address</span>
-        </div>
+            <div className="flex-1 px-4 sm:px-6 py-4 space-y-3">
+              {items.length === 0 ? (
+                <div className="text-center py-12 space-y-3">
+                  <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-2xl">🌱</div>
+                  <p className="font-extrabold text-slate-800 text-sm">Your cart is empty</p>
+                  <button onClick={onBackToCart} className="px-5 py-2.5 bg-emerald-700 text-white rounded-xl text-xs font-bold cursor-pointer">
+                    Browse Plants
+                  </button>
+                </div>
+              ) : (
+                items.map(item => {
+                  const isCombo = item.isCombo || item.product.id.startsWith('combo-') || item.product.categoryId === 'combos';
+                  const comboPlants = item.comboProducts || (item.product as any).comboProducts || [];
+                  const bundleCount = comboPlants.length || (isCombo ? 4 : 1);
 
-        <span className="text-slate-300">———</span>
+                  return (
+                    <div key={item.product.id} className="bg-slate-50/80 p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 flex items-start gap-3 sm:gap-4">
+                      <img
+                        src={item.product.images?.[0] || '/products/double-delight.jpeg'}
+                        alt={item.product.name}
+                        className="w-14 h-14 sm:w-16 sm:h-16 object-cover rounded-xl border border-slate-200 shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 truncate">{item.product.name}</h3>
+                          {isCombo && (
+                            <span className="text-[9px] font-black bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded-md">
+                              Combo ({bundleCount} Plants)
+                            </span>
+                          )}
+                        </div>
 
-        <div className={`flex items-center gap-2 ${step >= 2 ? 'text-emerald-800' : 'text-slate-400'}`}>
-          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${step >= 2 ? 'bg-emerald-700 text-white' : 'bg-slate-200'}`}>
-            2
-          </span>
-          <span>Payment Method</span>
-        </div>
-      </div>
+                        {isCombo && comboPlants.length > 0 && (
+                          <div className="bg-white/80 rounded-xl p-2 mt-1.5 border border-slate-200/80 space-y-1">
+                            <p className="text-[10px] font-extrabold text-emerald-800 flex items-center gap-1">
+                              <span>🌿 Bundled Plants ({comboPlants.length}):</span>
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                              {comboPlants.map((p: Product, idx: number) => (
+                                <div key={p.id || idx} className="flex items-center gap-1.5 text-[10px] text-slate-700 bg-slate-50 px-2 py-1 rounded-md border border-slate-200/60">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                                  <span className="truncate flex-1 font-medium">{p.name}</span>
+                                  <span className="font-mono text-emerald-800 font-bold shrink-0">₹{p.sellingPrice}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
 
-      {!user && (
-        <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-amber-900 shadow-sm">
-          <div>
-            <h4 className="font-extrabold text-sm flex items-center gap-1.5 text-amber-950">
-              🔒 Account Login Required
-            </h4>
-            <p className="text-xs font-medium text-amber-800">
-              Please sign in or create an account to place your plant order and track your delivery.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onBackToCart}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs whitespace-nowrap transition-colors cursor-pointer"
-          >
-            🔑 Go to Login / Sign Up
-          </button>
-        </div>
-      )}
+                        <div className="flex items-baseline gap-2 mt-1.5">
+                          <span className="text-xs sm:text-sm font-black text-slate-900">₹{item.product.sellingPrice}</span>
+                          {item.product.mrp > item.product.sellingPrice && (
+                            <span className="text-[11px] text-slate-400 line-through font-medium">₹{item.product.mrp}</span>
+                          )}
+                        </div>
+                      </div>
 
-      {/* Interactive High-Priority Error Popup Modal Overlay */}
-      {errorMsg && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="bg-white max-w-md w-full rounded-3xl p-6 shadow-2xl border-2 border-rose-500 space-y-4 text-center">
-            <div className="w-16 h-16 bg-rose-100 rounded-2xl flex items-center justify-center mx-auto text-rose-600 shadow-inner">
-              <AlertCircle className="w-9 h-9 animate-bounce" />
+                      <div className="flex flex-col items-end gap-2.5 shrink-0">
+                        {onRemoveItem && (
+                          <button onClick={() => onRemoveItem(item.product.id)} className="text-slate-400 hover:text-rose-600 transition-colors p-1 cursor-pointer">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                        {onUpdateQuantity && (
+                          <div className="flex items-center border border-slate-300 rounded-xl bg-white shadow-2xs">
+                            <button onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)} className="p-1.5 text-slate-600 hover:text-emerald-700 cursor-pointer">
+                              <Minus className="w-3.5 h-3.5" />
+                            </button>
+                            <span className="px-2.5 text-xs font-black text-slate-900 font-mono">{item.quantity}</span>
+                            <button onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)} disabled={item.quantity >= 20} className="p-1.5 text-slate-600 hover:text-emerald-700 disabled:opacity-30 cursor-pointer">
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
-            
-            <h3 className="text-base font-black text-slate-900 uppercase tracking-wide">
-              ⚠️ Attention Required
-            </h3>
 
-            <div className="bg-rose-50 border border-rose-200 p-4 rounded-2xl text-xs font-extrabold text-rose-900 leading-relaxed text-left whitespace-pre-line shadow-xs">
-              {errorMsg}
+            {items.length > 0 && (
+              <div className="px-4 sm:px-6 pb-6 pt-3 border-t border-slate-100 bg-white space-y-3">
+                <div className="flex justify-between items-center text-xs text-slate-600">
+                  <span className="font-bold text-slate-700">🌱 {totalPlantCount} Live Plant{totalPlantCount !== 1 ? 's' : ''} ({items.length} cart item{items.length !== 1 ? 's' : ''})</span>
+                  <span className="font-extrabold text-slate-900 text-sm">₹{items.reduce((s, i) => s + i.product.sellingPrice * i.quantity, 0)}</span>
+                </div>
+                <ProceedBtn label="PROCEED TO ORDER SUMMARY" onClick={() => goTo(2)} />
+                <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-400">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>100% Safe Nursery Transit & Fast Courier Dispatch</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════
+            STEP 2 — Order Summary
+        ═══════════════════════════════════════════════════════════════════ */}
+        {step === 2 && (
+          <div className="flex flex-col flex-1">
+            <Header title="Order Summary" subtitle={`(${items.length} items · State Rate & Coupon)`} onBack={() => handleGoBack(1)} />
+
+            <div className="flex-1 px-4 sm:px-6 py-4 space-y-4">
+              {/* Delivery State Rate Preview */}
+              <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 space-y-2">
+                <label className="text-[11px] font-extrabold text-slate-700 flex items-center gap-1.5">
+                  <Truck className="w-4 h-4 text-emerald-600" />
+                  Delivery State Rate Preview:
+                </label>
+                <select
+                  value={previewState}
+                  onChange={(e) => setPreviewState(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 cursor-pointer"
+                >
+                  {INDIAN_STATES.map(st => (
+                    <option key={st} value={st}>{st} {isTamilNadu(st) ? '(₹60 base shipping)' : '(₹100 base shipping)'}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Coupon */}
+              <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 space-y-2">
+                <label className="text-[11px] font-extrabold text-slate-700 flex items-center gap-1.5">
+                  <Tag className="w-4 h-4 text-emerald-600" />
+                  Apply Coupon / Discount Code
+                </label>
+                {appliedCoupon ? (
+                  <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs">
+                    <span className="font-bold text-emerald-800">✅ {appliedCoupon.code} (−₹{appliedCoupon.discountAmount})</span>
+                    {onRemoveCoupon && (
+                      <button onClick={onRemoveCoupon} className="text-rose-600 font-bold hover:underline text-xs cursor-pointer">Remove</button>
+                    )}
+                  </div>
+                ) : (
+                  <form onSubmit={handleCouponSubmit} className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Enter Coupon Code"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                      className="flex-1 px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-mono font-semibold uppercase focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                    />
+                    <button type="submit" disabled={couponLoading || !couponCode.trim()} className="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 disabled:bg-slate-300 text-white font-bold text-xs rounded-xl cursor-pointer">
+                      {couponLoading ? '...' : 'Apply'}
+                    </button>
+                  </form>
+                )}
+                {couponMsg && (
+                  <p className={`text-[11px] font-bold ${couponMsg.type === 'success' ? 'text-emerald-700' : 'text-rose-600'}`}>
+                    {couponMsg.text}
+                  </p>
+                )}
+              </div>
+
+              {/* Price breakdown */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-2.5 text-xs text-slate-600">
+                <div className="flex justify-between">
+                  <span className="font-medium">Subtotal:</span>
+                  <span className="font-bold text-slate-900">₹{summaryTotals.subtotal}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Delivery Fee:</span>
+                  <span className="font-bold text-slate-900">₹{summaryTotals.shippingFee}</span>
+                </div>
+                {appliedCoupon && (
+                  <div className="flex justify-between text-emerald-700 font-semibold">
+                    <span>Coupon Discount:</span>
+                    <span>−₹{summaryTotals.discountAmount}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm font-extrabold text-slate-900 pt-2 border-t border-slate-200">
+                  <span>Estimated Total:</span>
+                  <span className="text-emerald-800 text-base">₹{summaryTotals.grandTotal}</span>
+                </div>
+              </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                setErrorMsg(null);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              className="w-full py-3.5 bg-rose-600 hover:bg-rose-700 active:scale-98 text-white font-black text-xs rounded-xl shadow-md transition-all cursor-pointer uppercase tracking-wider"
-            >
-              OK, I UNDERSTAND & WILL FIX THIS
-            </button>
+            <div className="px-4 sm:px-6 pb-6 pt-3 border-t border-slate-100 bg-white">
+              {!user && (
+                <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 font-semibold">
+                  🔒 Login required to checkout.{' '}
+                  {onNavigateToAccount && (
+                    <button onClick={onNavigateToAccount} className="underline font-bold cursor-pointer">Login / Sign Up →</button>
+                  )}
+                </div>
+              )}
+              <ProceedBtn label="PROCEED TO DELIVERY ADDRESS" onClick={() => goTo(3)} />
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {errorMsg && (
-        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-2xl flex items-center gap-2">
-          <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
-          <span>{errorMsg}</span>
-        </div>
-      )}
+        {/* ═══════════════════════════════════════════════════════════════════
+            STEP 3 — Delivery Address
+        ═══════════════════════════════════════════════════════════════════ */}
+        {step === 3 && (
+          <form onSubmit={handleAddressNext} className="flex flex-col flex-1">
+            <Header title="Delivery Address" subtitle="Village / Town Doorstep Delivery Address" onBack={() => handleGoBack(2)} />
 
-      {/* Main Form Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Step Form Column */}
-        <div className="lg:col-span-2 space-y-6">
-          {step === 1 && (
-            <form onSubmit={handleAddressSubmit} className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4 text-xs">
-              <h3 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-emerald-700" /> Village / City Shipping Address
-              </h3>
+            <div className="flex-1 px-4 sm:px-6 py-4 space-y-3">
+              {addrError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-semibold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  {addrError}
+                </div>
+              )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Full Name *</label>
+                  <label className="text-[11px] font-extrabold text-slate-700 block mb-1">Full Name *</label>
                   <input
                     type="text"
                     required
+                    placeholder="Your full name"
                     value={address.fullName}
-                    onChange={(e) => setAddress({ ...address, fullName: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                    onChange={(e) => setAddress(prev => ({ ...prev, fullName: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600"
                   />
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Mobile Number (WhatsApp) *</label>
+                  <label className="text-[11px] font-extrabold text-slate-700 block mb-1">Mobile Number (WhatsApp) *</label>
                   <input
                     type="tel"
                     required
+                    placeholder="10-digit mobile number"
                     value={address.phone}
-                    onChange={(e) => setAddress({ ...address, phone: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-mono font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                    onChange={(e) => setAddress(prev => ({ ...prev, phone: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">House / Door No *</label>
+                  <label className="text-[11px] font-extrabold text-slate-700 block mb-1">House / Door No *</label>
                   <input
                     type="text"
                     required
+                    placeholder="e.g. 12A / Flat 301"
                     value={address.houseNo}
-                    onChange={(e) => setAddress({ ...address, houseNo: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-semibold"
+                    onChange={(e) => setAddress(prev => ({ ...prev, houseNo: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600"
                   />
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Street / Gramam Name *</label>
+                  <label className="text-[11px] font-extrabold text-slate-700 block mb-1">Street / Gramam Name *</label>
                   <input
                     type="text"
                     required
+                    placeholder="Street or village name"
                     value={address.street}
-                    onChange={(e) => setAddress({ ...address, street: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-semibold"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">State *</label>
-                  <select
-                    required
-                    value={address.state}
-                    onChange={(e) => setAddress({ ...address, state: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 cursor-pointer"
-                  >
-                    {INDIAN_STATES.map((st) => (
-                      <option key={st} value={st}>
-                        {st} {isTamilNadu(st) ? '(₹60 base shipping)' : '(₹100 base shipping)'}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Pincode *</label>
-                  <input
-                    type="text"
-                    required
-                    value={address.pincode}
-                    onChange={(e) => setAddress({ ...address, pincode: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-mono font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Village / Town *</label>
-                  <input
-                    type="text"
-                    required
-                    value={address.villageTown}
-                    onChange={(e) => setAddress({ ...address, villageTown: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-semibold"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">District *</label>
-                  <input
-                    type="text"
-                    required
-                    value={address.district}
-                    onChange={(e) => setAddress({ ...address, district: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-semibold"
+                    onChange={(e) => setAddress(prev => ({ ...prev, street: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Nearby Landmark (For Courier Driver)</label>
+                <label className="text-[11px] font-extrabold text-slate-700 block mb-1">State *</label>
+                <select
+                  required
+                  value={address.state}
+                  onChange={(e) => setAddress(prev => ({ ...prev, state: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 cursor-pointer"
+                >
+                  {INDIAN_STATES.map(st => (
+                    <option key={st} value={st}>{st} {isTamilNadu(st) ? '(₹60 base shipping)' : '(₹100 base shipping)'}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-[11px] font-extrabold text-slate-700 block mb-1">Pincode *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="6-digit pincode"
+                    value={address.pincode}
+                    onChange={(e) => setAddress(prev => ({ ...prev, pincode: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-extrabold text-slate-700 block mb-1">Village / Town *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Town / village"
+                    value={address.villageTown}
+                    onChange={(e) => setAddress(prev => ({ ...prev, villageTown: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-extrabold text-slate-700 block mb-1">District *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="District name"
+                    value={address.district}
+                    onChange={(e) => setAddress(prev => ({ ...prev, district: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-extrabold text-slate-700 block mb-1">Nearby Landmark (For Courier Driver)</label>
                 <input
                   type="text"
                   placeholder="e.g. Near Pillaiyar Kovil / Bus Stand / Post Office"
-                  value={address.landmark}
-                  onChange={(e) => setAddress({ ...address, landmark: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-semibold"
+                  value={address.landmark || ''}
+                  onChange={(e) => setAddress(prev => ({ ...prev, landmark: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600"
                 />
               </div>
+            </div>
 
+            <div className="px-4 sm:px-6 pb-6 pt-3 border-t border-slate-100 bg-white">
+              <ProceedBtn label="PROCEED TO COURIER & PACKING" type="submit" />
+            </div>
+          </form>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════
+            STEP 4 — Courier & Protective Packing
+        ═══════════════════════════════════════════════════════════════════ */}
+        {step === 4 && (
+          <div className="flex flex-col flex-1">
+            <Header title="Courier & Packing Selection" subtitle="Choose your courier partner and plant protective packaging." onBack={() => handleGoBack(3)} />
+
+            <div className="flex-1 px-4 sm:px-6 py-4 space-y-4">
               {/* Courier Partner Selection & Mettur Parcel Branch Availability */}
               <CourierSelectionSection
                 selectedCourier={courierPartner}
-                onChangeCourier={setCourierPartner}
+                onChangeCourier={(c) => {
+                  setCourierPartner(c);
+                  if (c === 'METTUR_PARCEL') {
+                    setDeliveryOption('METTUR_PARCEL');
+                  } else {
+                    setDeliveryOption('REDUCED_SOIL');
+                    setSelectedPacking('STANDARD');
+                  }
+                }}
                 shippingState={address.state}
                 shippingDistrict={address.district}
                 metturState={metturState}
@@ -720,490 +1003,639 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
                 metturBranch={metturBranch}
                 onChangeMetturBranch={setMetturBranch}
                 totalPlantCount={totalPlantCount}
-                hasFreeDelivery={shippingCharge === 0 && selectedPot === 'NONE'}
+                deliveryOption={deliveryOption}
+                onChangeDeliveryOption={setDeliveryOption}
+                hasFreeDelivery={hasAllFreeDelivery}
               />
 
-              {/* Plant Protective Packing Selection ("Pick Protective Packing for Your Plants' Journey") */}
-              <PlantProtectivePackingSection
-                items={items}
-                selectedPacking={selectedPacking}
-                onChangePacking={setSelectedPacking}
+              {/* Plant Protective Packing Selection ("Pick Protective Packing for Your Plants' Journey") — INSIDE METTUR SERVICE ONLY */}
+              {courierPartner === 'METTUR_PARCEL' && (
+                <PlantProtectivePackingSection
+                  items={items}
+                  selectedPacking={selectedPacking}
+                  onChangePacking={setSelectedPacking}
+                />
+              )}
+
+              {/* Price summary */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-2 text-xs text-slate-600">
+                <div className="flex justify-between">
+                  <span className="flex items-center gap-1">🧾 Subtotal:</span>
+                  <span className="font-semibold text-slate-900">₹{subtotal}</span>
+                </div>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="flex items-center gap-1">🚚 Delivery Charge:</span>
+                    <span className="text-[10px] text-slate-400 block">
+                      {hasAllFreeDelivery
+                        ? '100% Free Doorstep Delivery Included'
+                        : courierPartner === 'METTUR_PARCEL'
+                          ? `Mettur Parcel (${metturDistrict || 'Tamil Nadu'})`
+                          : courierPartner === 'ST_COURIER'
+                            ? 'ST Courier Doorstep'
+                            : 'Professional Courier'}
+                    </span>
+                  </div>
+                  <span className="font-bold text-slate-900">
+                    {shippingCharge === 0 ? (
+                      <span className="text-emerald-700 font-bold bg-emerald-100 px-2 py-0.5 rounded-full">FREE</span>
+                    ) : (
+                      `₹${shippingCharge}`
+                    )}
+                  </span>
+                </div>
+
+                {/* Protective Packing Fee - Only show for Mettur Parcel Service */}
+                {courierPartner === 'METTUR_PARCEL' && (
+                  <div className="flex justify-between items-center">
+                    <span className="flex items-center gap-1">🛡️ Plant Protective Packing:</span>
+                    <span className="font-bold text-slate-900">
+                      {packingCharge === 0 ? (
+                        <span className="text-slate-500 font-semibold">Standard Safe (₹0)</span>
+                      ) : (
+                        <span className="text-emerald-800 font-black">+₹{packingCharge} ({selectedPacking === 'EXTRA_SECURE' ? 'Extra Secure' : 'Max Protection'})</span>
+                      )}
+                    </span>
+                  </div>
+                )}
+
+                {appliedCoupon && (
+                  <div className="flex justify-between text-emerald-700 font-semibold">
+                    <span>🏷️ Coupon:</span>
+                    <span>−₹{discountAmount}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm font-extrabold text-slate-900 pt-2 border-t border-slate-200">
+                  <span className="flex items-center gap-1">💰 Grand Total:</span>
+                  <span className="text-emerald-800 text-base">₹{grandTotal}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-4 sm:px-6 pb-6 pt-3 border-t border-slate-100 bg-white">
+              <ProceedBtn label="PROCEED TO DELIVERY TERMS" onClick={() => goTo(5)} />
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════
+            STEP 5 — Delivery & Courier Terms
+        ═══════════════════════════════════════════════════════════════════ */}
+        {step === 5 && (
+          <div className="flex flex-col flex-1">
+            <Header title="Delivery & Courier Terms" onBack={() => handleGoBack(4)} />
+
+            <div className="flex-1 px-4 sm:px-6 py-4 space-y-3">
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 sm:p-5 space-y-2.5">
+                {DELIVERY_TERMS.map((term, i) => (
+                  <p key={i} className="text-xs text-amber-950 font-medium leading-relaxed">{term}</p>
+                ))}
+              </div>
+
+              <label className="flex items-start gap-3 p-4 bg-emerald-50 border-2 border-emerald-200 rounded-2xl cursor-pointer hover:bg-emerald-100/60 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={termsAccepted}
+                  onChange={(e) => setTermsAccepted(e.target.checked)}
+                  className="mt-0.5 accent-emerald-700 w-4 h-4 cursor-pointer"
+                />
+                <span className="text-xs font-extrabold text-emerald-900">
+                  I have read, understood, and accept all the delivery conditions and live plant policies.
+                </span>
+              </label>
+            </div>
+
+            <div className="px-4 sm:px-6 pb-6 pt-3 border-t border-slate-100 bg-white">
+              <ProceedBtn
+                label="PROCEED TO PAYMENT METHOD"
+                onClick={() => goTo(6)}
+                disabled={!termsAccepted}
               />
+            </div>
+          </div>
+        )}
 
-              <button
-                type="submit"
-                className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm rounded-2xl shadow-md transition-all pt-3 cursor-pointer"
-              >
-                PROCEED TO PAYMENT METHOD
-              </button>
-            </form>
-          )}
+        {/* ═══════════════════════════════════════════════════════════════════
+            STEP 6 — Payment Method & Upload Proof
+        ═══════════════════════════════════════════════════════════════════ */}
+        {step === 6 && (
+          <div className="flex flex-col flex-1">
+            <Header title="Payment Options" subtitle={`Total: ₹${grandTotal}`} onBack={() => handleGoBack(5)} />
 
-          {step === 2 && (
-            <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-6 text-xs">
-              <h3 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3 flex items-center justify-between">
-                <span>Select Payment Method</span>
-                <button onClick={() => setStep(1)} className="text-emerald-700 hover:underline font-semibold text-xs cursor-pointer">
-                  Edit Address
-                </button>
-              </h3>
+            <div className="flex-1 px-4 sm:px-6 py-4 space-y-4">
+              {orderError && (
+                <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-bold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  {orderError}
+                </div>
+              )}
 
               {/* Payment Methods */}
               <div className="space-y-3">
-                {/* Razorpay Option */}
-                {isRazorpayEnabled && (
+                {/* 1. Razorpay */}
+                {siteSettings?.enableRazorpay && (
                   <div
                     onClick={() => setPaymentMethod('RAZORPAY')}
-                    className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 ${
+                    className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
                       paymentMethod === 'RAZORPAY'
-                        ? 'border-blue-600 bg-blue-50/70 ring-2 ring-blue-500/20'
-                        : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100'
+                        ? 'border-emerald-600 bg-emerald-50/80 ring-2 ring-emerald-500/20 shadow-xs'
+                        : 'border-slate-200 bg-white hover:border-slate-300'
                     }`}
                   >
-                    <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
-                      <CreditCard className="w-4 h-4" />
-                    </div>
-
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-bold text-slate-900 text-sm">Razorpay Online Gateway</h4>
-                        <span className="bg-blue-100 text-blue-900 font-bold text-[10px] px-2.5 py-0.5 rounded-full">
-                          ⚡ GPay, PhonePe, Paytm, Cards & NetBanking
-                        </span>
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        checked={paymentMethod === 'RAZORPAY'}
+                        onChange={() => setPaymentMethod('RAZORPAY')}
+                        className="mt-1 accent-emerald-700 cursor-pointer"
+                      />
+                      <div className="space-y-0.5">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <h4 className="text-xs sm:text-sm font-black text-slate-900">
+                            ⚡ Razorpay Online Gateway
+                          </h4>
+                          <span className="text-[9px] font-black bg-blue-100 text-blue-900 px-2 py-0.5 rounded-md">
+                            Instant Auto-Confirm
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-600">
+                          Google Pay, PhonePe, Paytm, BHIM, UPI, RuPay / Visa Cards & NetBanking.
+                        </p>
                       </div>
-                      <p className="text-slate-600 text-[11px] mt-1 font-medium">
-                        Pay instantly via <strong className="text-blue-900">Google Pay, PhonePe, Paytm, BHIM, Navi, Cred UPI</strong>, Cards (Visa, RuPay, Mastercard) & NetBanking.
-                      </p>
                     </div>
                   </div>
                 )}
 
-                {/* PhonePe Option */}
-                {isPhonePeEnabled && (
+                {/* 2. PhonePe */}
+                {siteSettings?.enablePhonePe !== false && (
                   <div
                     onClick={() => setPaymentMethod('PHONEPE')}
-                    className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 ${
+                    className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
                       paymentMethod === 'PHONEPE'
-                        ? 'border-[#5f259f] bg-purple-50/60 ring-2 ring-purple-500/20'
-                        : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100'
+                        ? 'border-purple-600 bg-purple-50/80 ring-2 ring-purple-500/20 shadow-xs'
+                        : 'border-slate-200 bg-white hover:border-slate-300'
                     }`}
                   >
-                    <div className="w-8 h-8 bg-[#5f259f] text-white rounded-full flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
-                      पे
-                    </div>
-
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-bold text-slate-900 text-sm">PhonePe Payment Gateway</h4>
-                        <span className="bg-purple-200 text-purple-900 font-bold text-[10px] px-2 py-0.5 rounded-full">
-                          100% Instant & Secure
-                        </span>
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        checked={paymentMethod === 'PHONEPE'}
+                        onChange={() => setPaymentMethod('PHONEPE')}
+                        className="mt-1 accent-purple-700 cursor-pointer"
+                      />
+                      <div className="space-y-0.5">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <h4 className="text-xs sm:text-sm font-black text-purple-950">
+                            पे PhonePe Payment Gateway
+                          </h4>
+                          <span className="text-[9px] font-black bg-purple-100 text-purple-900 px-2 py-0.5 rounded-md">
+                            100% Instant
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-600">
+                          Pay directly via PhonePe UPI, Cards, and NetBanking.
+                        </p>
                       </div>
-                      <p className="text-slate-600 text-[11px] mt-1">
-                        Pay via PhonePe UPI, GPay, Paytm, RuPay Cards & All Indian NetBanking.
-                      </p>
                     </div>
                   </div>
                 )}
 
-                {/* Scan QR Code Payment Option */}
-                {isQrEnabled && (
+                {/* 3. Scan QR Code Payment */}
+                {siteSettings?.enableQrPayment !== false && (
                   <div
                     onClick={() => setPaymentMethod('QR_PAYMENT')}
-                    className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 ${
+                    className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
                       paymentMethod === 'QR_PAYMENT'
-                        ? 'border-indigo-600 bg-indigo-50/70 ring-2 ring-indigo-500/20'
-                        : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100'
+                        ? 'border-indigo-600 bg-indigo-50/80 ring-2 ring-indigo-500/20 shadow-xs'
+                        : 'border-slate-200 bg-white hover:border-slate-300'
                     }`}
                   >
-                    <div className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
-                      <QrCode className="w-4 h-4" />
-                    </div>
-
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-bold text-slate-900 text-sm">Scan QR Code & Upload Receipt (Manual UPI)</h4>
-                        <span className="bg-indigo-100 text-indigo-900 font-bold text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1">
-                          📸 Mandatory Screenshot
-                        </span>
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        checked={paymentMethod === 'QR_PAYMENT'}
+                        onChange={() => setPaymentMethod('QR_PAYMENT')}
+                        className="mt-1 accent-indigo-700 cursor-pointer"
+                      />
+                      <div className="space-y-0.5">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <h4 className="text-xs sm:text-sm font-black text-indigo-950">
+                            📱 Scan QR Code Payment (GPay / PhonePe / Paytm)
+                          </h4>
+                          <span className="text-[9px] font-black bg-indigo-100 text-indigo-900 px-2 py-0.5 rounded-md">
+                            Direct Bank Transfer
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-600">
+                          Scan the nursery UPI QR code, pay the exact amount, and upload the payment screenshot.
+                        </p>
                       </div>
-                      <p className="text-slate-600 text-[11px] mt-1">
-                        Scan nursery QR using GPay/PhonePe/Paytm, pay ₹{grandTotal}, and upload successful payment screenshot.
-                      </p>
                     </div>
                   </div>
                 )}
 
-                {/* Cash on Delivery Option */}
-                {isCodEnabled && (
+                {/* 4. COD */}
+                {siteSettings?.enableCod && (
                   <div
                     onClick={() => setPaymentMethod('COD')}
-                    className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 ${
+                    className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
                       paymentMethod === 'COD'
-                        ? 'border-emerald-700 bg-emerald-50/60 ring-2 ring-emerald-600/20'
-                        : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100'
+                        ? 'border-emerald-600 bg-emerald-50/80 ring-2 ring-emerald-500/20 shadow-xs'
+                        : 'border-slate-200 bg-white hover:border-slate-300'
                     }`}
                   >
-                    <div className="w-8 h-8 bg-emerald-800 text-white rounded-full flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
-                      💵
-                    </div>
-
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-bold text-slate-900 text-sm">Cash on Delivery (COD)</h4>
-                        <span className="bg-emerald-100 text-emerald-900 font-bold text-[10px] px-2 py-0.5 rounded-full">
-                          Pay on Delivery
-                        </span>
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        checked={paymentMethod === 'COD'}
+                        onChange={() => setPaymentMethod('COD')}
+                        className="mt-1 accent-emerald-700 cursor-pointer"
+                      />
+                      <div className="space-y-0.5">
+                        <h4 className="text-xs sm:text-sm font-black text-slate-900">
+                          💵 Cash on Delivery (COD)
+                        </h4>
+                        <p className="text-[11px] text-slate-600">
+                          Pay in cash when your plant parcel arrives at your doorstep.
+                        </p>
                       </div>
-                      <p className="text-slate-600 text-[11px] mt-1">
-                        Pay cash to courier driver upon plant arrival at your village/city address.
-                      </p>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* QR PAYMENT SCANNER & PROOF UPLOADER PANEL */}
-              {paymentMethod === 'QR_PAYMENT' && isQrEnabled && (
-                <div className="p-5 bg-gradient-to-br from-indigo-50/80 to-purple-50/80 rounded-3xl border-2 border-indigo-200 space-y-4">
-                  <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-4 rounded-2xl border border-indigo-100 shadow-xs">
-                    {/* QR Code Image */}
-                    <div className="text-center shrink-0 space-y-2.5">
-                      <div className="bg-white p-2 rounded-2xl border-2 border-indigo-200 shadow-md inline-block">
-                        <img
-                          src={qrCodeImg}
-                          alt="Nursery UPI QR Code"
-                          onError={(e) => {
-                            const target = e.currentTarget;
-                            if (!target.dataset.retried) {
-                              target.dataset.retried = 'true';
-                              target.src = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=10&data=${encodeURIComponent(`upi://pay?pa=${upiId}&pn=${upiName}&cu=INR`)}`;
-                            }
-                          }}
-                          className="w-48 h-48 object-contain rounded-xl"
-                        />
-                      </div>
-                      <p className="text-[11px] font-extrabold text-indigo-950 block">📱 Scan to pay ₹{grandTotal}</p>
-                      
-                      {/* Mobile Direct Pay Button */}
+              {/* Scan QR Code Details Box */}
+              {paymentMethod === 'QR_PAYMENT' && (
+                <div className="bg-indigo-50/90 rounded-2xl border border-indigo-200 p-4 sm:p-5 space-y-4">
+                  <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+                    <div className="bg-white p-2 rounded-2xl border border-indigo-200 shadow-sm shrink-0">
+                      <img
+                        src={siteSettings?.qrCodeImageUrl || '/nursery-qr.svg'}
+                        alt="Nursery QR Code"
+                        className="w-36 h-36 object-contain rounded-xl"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-xs font-black text-indigo-950">
+                        📱 Scan QR code with any UPI app to pay ₹{grandTotal}
+                      </p>
+                      <p className="text-[11px] text-slate-600">
+                        Supports Google Pay, PhonePe, Paytm, BHIM, Cred & all UPI banking apps.
+                      </p>
                       <a
                         href={upiDeepLink}
-                        className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-xs transition-all cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
                       >
-                        <span>⚡ Pay ₹{grandTotal} via GPay/PhonePe App</span>
+                        <span>⚡ Pay ₹{grandTotal} via UPI App</span>
                       </a>
-                    </div>
-
-                    {/* UPI Details & Copy Button */}
-                    <div className="flex-1 space-y-2.5">
-                      <div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase block">Merchant UPI ID:</span>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <code className="bg-indigo-50 text-indigo-900 font-mono font-bold text-sm px-3 py-1.5 rounded-xl border border-indigo-200">
-                            {siteSettings?.upiId || '7200826129@ybl'}
-                          </code>
-                          <button
-                            type="button"
-                            onClick={handleCopyUpi}
-                            className="p-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center gap-1 transition-all cursor-pointer shrink-0"
-                          >
-                            {copiedUpi ? <CheckCircle2 className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
-                            <span>{copiedUpi ? 'Copied!' : 'Copy'}</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      <div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase block">Account Holder Name:</span>
-                        <p className="font-bold text-slate-900 text-xs">{siteSettings?.upiName || 'Veerika Rose Garden Nursery'}</p>
-                      </div>
-
-                      <div className="bg-amber-50 border border-amber-200 p-2.5 rounded-xl text-[11px] text-amber-900 font-medium whitespace-pre-line">
-                        {siteSettings?.qrInstructions || '1. Scan QR code using GPay, PhonePe, Paytm or any UPI app.\n2. Pay exact order total amount.\n3. Take a screenshot of successful payment receipt.\n4. Upload the screenshot below to confirm your order.'}
-                      </div>
                     </div>
                   </div>
 
-                  {/* Mandatory Payment Screenshot Upload Box */}
-                  <div className="bg-white p-4 rounded-2xl border-2 border-dashed border-indigo-300 space-y-3">
+                  {/* UPI ID Copy Bar */}
+                  <div className="bg-white rounded-xl border border-indigo-100 p-3 space-y-1">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">Official Nursery UPI ID:</span>
+                    <div className="flex items-center gap-2">
+                      <code className="bg-indigo-50 text-indigo-900 font-mono font-bold text-xs px-2.5 py-1.5 rounded-lg border border-indigo-200 flex-1">{upiId}</code>
+                      <button
+                        type="button"
+                        onClick={handleCopyUpi}
+                        className="p-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg cursor-pointer transition-colors"
+                        title="Copy UPI ID"
+                      >
+                        {copiedUpi ? <CheckCircle2 className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-slate-500 font-medium">{siteSettings?.businessName || 'Veerika Rose Garden Nursery'}</p>
+                  </div>
+
+                  {/* Upload Payment Screenshot Input */}
+                  <div className="bg-white rounded-xl border-2 border-dashed border-indigo-300 p-4 space-y-2.5">
                     <div className="flex items-center justify-between">
-                      <label className="font-extrabold text-slate-900 text-xs flex items-center gap-1.5">
-                        <ImageIcon className="w-4 h-4 text-indigo-600" />
-                        <span>Upload Paid Screenshot / Receipt *</span>
+                      <label className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                        <ImageIcon className="w-4 h-4 text-indigo-600" /> Upload Payment Screenshot *
                       </label>
-                      <span className="bg-rose-100 text-rose-800 font-extrabold text-[10px] px-2 py-0.5 rounded-full">
+                      <span className="bg-rose-100 text-rose-800 font-black text-[9px] px-2 py-0.5 rounded-full">
                         MANDATORY
                       </span>
                     </div>
-
-                    <p className="text-[11px] text-slate-500 font-medium">
-                      Upload your GPay/PhonePe payment confirmation screenshot photo. Orders without receipt screenshot will be rejected.
-                    </p>
-
-                    <div className="flex flex-col sm:flex-row items-center gap-3">
-                      <label className="w-full sm:w-auto px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-2 cursor-pointer transition-all">
-                        <Upload className="w-4 h-4" />
-                        <span>{paymentProofUrl ? 'Change Receipt Photo' : 'Select Screenshot Image'}</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageUpload}
-                          className="hidden"
-                        />
-                      </label>
-
-                      {proofPreview && (
-                        <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-300 text-emerald-900 px-3 py-1.5 rounded-xl font-bold text-xs">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                          <img src={proofPreview} alt="Screenshot proof" className="w-7 h-7 object-cover rounded border" />
-                          <span>Screenshot Uploaded!</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* UTR / Transaction ID (Optional) */}
-                    <div className="pt-2">
-                      <label className="font-bold text-slate-700 text-[11px] block mb-1">
-                        UPI UTR / Transaction Ref No. (Optional):
-                      </label>
+                    <label className="flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl cursor-pointer transition-colors">
+                      <Upload className="w-4 h-4" />
+                      <span>{paymentProofUrl ? 'Change Receipt Screenshot' : 'Select Screenshot Image'}</span>
+                      <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                    </label>
+                    {proofPreview && (
+                      <div className="flex items-center gap-2.5 bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-xl text-xs">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <img src={proofPreview} alt="Screenshot proof" className="w-8 h-8 object-cover rounded-lg border border-emerald-200" />
+                        <span className="font-bold text-emerald-800">Screenshot Attached!</span>
+                      </div>
+                    )}
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-600 block mb-1">UPI Reference / UTR Number (Optional):</label>
                       <input
                         type="text"
-                        placeholder="e.g. 421598231049 (12-digit UTR)"
+                        placeholder="e.g. 423891234567"
                         value={transactionId}
                         onChange={(e) => setTransactionId(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono text-xs font-semibold"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-600"
                       />
                     </div>
                   </div>
                 </div>
               )}
+            </div>
 
-              {/* Action Button */}
+            <div className="px-4 sm:px-6 pb-6 pt-3 border-t border-slate-100 bg-white">
               <button
-                onClick={handleFinalPlaceOrder}
-                disabled={loading}
-                className="w-full py-4 bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-400 text-white font-bold text-sm rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                onClick={handlePlaceOrder}
+                disabled={loading || !paymentMethod}
+                className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 text-white font-black text-sm rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <>
-                    <span>CONFIRM & PLACE ORDER (₹{grandTotal})</span>
-                    <Check className="w-5 h-5" />
+                    <span>CONFIRM & PLACE NURSERY ORDER (₹{grandTotal})</span>
+                    <Check className="w-4 h-4" />
                   </>
                 )}
               </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Order Summary Sidebar */}
-        <div className="space-y-4">
-          <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 text-xs space-y-4 shadow-sm">
-            <h3 className="font-bold text-slate-900 text-sm border-b border-slate-200 pb-2 flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <span>📦</span> Order Items ({items.length})
-              </span>
-            </h3>
-
-            <div className="space-y-3 max-h-52 sm:max-h-64 overflow-y-auto pr-1.5 overscroll-contain scrollbar-thin">
-              {items.map((item) => {
-                const isCombo = item.isCombo || item.product.id.startsWith('combo-') || item.product.categoryId === 'combos';
-                const hasFreeDelivery = item.freeDelivery === true || (item.product as any).freeDelivery === true;
-
-                return (
-                  <div key={item.product.id} className="flex gap-2.5 items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200/80">
-                    <div className="relative shrink-0">
-                      <img
-                        src={item.product.images[0] || '/products/double-delight.jpeg'}
-                        alt={item.product.name}
-                        className="w-10 h-10 object-cover rounded-lg border"
-                      />
-                      {isCombo && (
-                        <span className="absolute -top-1.5 -left-1.5 bg-amber-600 text-white font-black text-[7px] px-1 py-0.2 rounded-full uppercase">
-                          {item.comboBadge || 'COMBO'}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <p className="font-bold text-slate-800 truncate text-[11px]">{item.product.name}</p>
-                        {hasFreeDelivery && (
-                          <span className="text-[9px] font-bold text-emerald-700 bg-emerald-100 px-1 py-0.2 rounded shrink-0">
-                            Free Shipping
-                          </span>
-                        )}
-                      </div>
-                      {isCombo && (
-                        <div className="bg-amber-50/90 border border-amber-300/80 rounded-lg p-1.5 mt-1 text-[9px] space-y-1">
-                          <span className="font-bold text-amber-900 block border-b border-amber-200/60 pb-0.5">
-                            🌿 Included in Bundle ({(item.comboProducts || (item.product as any).comboProducts || []).length} Plants):
-                          </span>
-                          <div className="space-y-0.5">
-                            {(item.comboProducts || (item.product as any).comboProducts || []).map((p: Product, idx: number) => (
-                              <div key={p.id || idx} className="flex items-center justify-between bg-white px-1.5 py-0.5 rounded border border-amber-200/70 text-[9px]">
-                                <span className="font-medium text-slate-800 truncate">{p.name}</span>
-                                <span className="font-mono text-emerald-800 font-bold ml-1 shrink-0">₹{p.sellingPrice}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      <p className="text-[10px] text-slate-500 font-mono">
-                        {isCombo
-                          ? `Qty: ${item.quantity} Bundle (${(item.comboProducts || (item.product as any).comboProducts || []).length * item.quantity} Plants) × ₹${item.product.sellingPrice}`
-                          : `Qty: ${item.quantity} × ₹${item.product.sellingPrice}`}
-                      </p>
-                    </div>
-                    <span className="font-bold text-slate-900 text-xs">₹{item.product.sellingPrice * item.quantity}</span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Plant Pot Requirement Options */}
-            <div className="pt-3 border-t border-slate-200 space-y-2">
-              <label className="font-extrabold text-slate-900 text-xs flex items-center gap-1.5">
-                <span>🪴</span> Plant Pot Requirement:
-              </label>
-
-              <div className="grid grid-cols-1 gap-2">
-                {/* 1. No Pot Required */}
-                <div
-                  onClick={() => setSelectedPot('NONE')}
-                  className={`p-2.5 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between ${
-                    selectedPot === 'NONE'
-                      ? 'border-emerald-600 bg-emerald-50 text-emerald-950 font-bold shadow-xs'
-                      : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="potRequirement"
-                      checked={selectedPot === 'NONE'}
-                      onChange={() => setSelectedPot('NONE')}
-                      className="accent-emerald-700 cursor-pointer"
-                    />
-                    <span className="text-[11px] font-semibold">🌱 No pot required(reduced soil)</span>
-                  </div>
-                  <span className="text-[11px] font-extrabold text-emerald-700">₹0</span>
-                </div>
-
-                {/* 2. Below 6 inch */}
-                <div
-                  onClick={() => setSelectedPot('6_INCH')}
-                  className={`p-2.5 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between ${
-                    selectedPot === '6_INCH'
-                      ? 'border-emerald-600 bg-emerald-50 text-emerald-950 font-bold shadow-xs'
-                      : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="potRequirement"
-                      checked={selectedPot === '6_INCH'}
-                      onChange={() => setSelectedPot('6_INCH')}
-                      className="accent-emerald-700 cursor-pointer"
-                    />
-                    <span className="text-[11px] font-semibold">🪴 below 6 inch (no delivery charges )</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-[11px] font-extrabold text-slate-900 block">+₹{99 * totalPlantCount}</span>
-                    <span className="text-[9px] text-emerald-700 font-bold block">({totalPlantCount} {totalPlantCount === 1 ? 'pot' : 'pots'})</span>
-                  </div>
-                </div>
-
-                {/* 3. Above 6 inch */}
-                <div
-                  onClick={() => setSelectedPot('8_INCH')}
-                  className={`p-2.5 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between ${
-                    selectedPot === '8_INCH'
-                      ? 'border-emerald-600 bg-emerald-50 text-emerald-950 font-bold shadow-xs'
-                      : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="potRequirement"
-                      checked={selectedPot === '8_INCH'}
-                      onChange={() => setSelectedPot('8_INCH')}
-                      className="accent-emerald-700 cursor-pointer"
-                    />
-                    <span className="text-[11px] font-semibold">🪴 Above 6 inch (no delivery charges)</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-[11px] font-extrabold text-slate-900 block">+₹{199 * totalPlantCount}</span>
-                    <span className="text-[9px] text-emerald-700 font-bold block">({totalPlantCount} {totalPlantCount === 1 ? 'pot' : 'pots'})</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Price Calculations & Emojis */}
-            <div className="pt-3 border-t border-slate-200 space-y-2 text-slate-600">
-              <div className="flex justify-between items-center">
-                <span className="flex items-center gap-1 font-medium">🧾 Subtotal:</span>
-                <span className="font-semibold text-slate-900">₹{subtotal}</span>
-              </div>
-
-              {potCharge > 0 && (
-                <div className="flex justify-between items-center text-emerald-800 font-semibold text-xs">
-                  <span className="flex items-center gap-1">
-                    🪴 Pot Charge ({selectedPot === '6_INCH' ? 'below 6 inch' : 'Above 6 inch'} × {totalPlantCount} {totalPlantCount === 1 ? 'pot' : 'pots'}):
-                  </span>
-                  <span className="font-bold text-emerald-700">+₹{potCharge}</span>
-                </div>
+        {/* ═══════════════════════════════════════════════════════════════════
+            STEP 7 — Order Confirmed
+        ═══════════════════════════════════════════════════════════════════ */}
+        {step === 7 && (
+          <div className="flex flex-col flex-1">
+            <div className="px-4 sm:px-6 pt-4 pb-3 flex items-center justify-between border-b border-slate-100 bg-white">
+              <h2 className="font-black text-slate-900 text-base sm:text-lg">🎉 Order Confirmed!</h2>
+              {onNavigateToHome && (
+                <button onClick={onNavigateToHome} className="p-2 rounded-xl bg-slate-100 text-slate-600 cursor-pointer">
+                  <X className="w-4 h-4" />
+                </button>
               )}
+            </div>
 
-              <div className="flex justify-between items-start">
+            <div className="flex-1 px-4 sm:px-6 py-4 space-y-4">
+              {/* Success Banner */}
+              <div className="bg-emerald-900 rounded-3xl p-6 text-white text-center space-y-2.5 shadow-lg">
+                <div className="w-16 h-16 bg-emerald-700 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                  <CheckCircle2 className="w-9 h-9 text-emerald-200" />
+                </div>
                 <div>
-                  <span className="flex items-center gap-1 font-medium">🚚 Delivery Charge:</span>
-                  <span className="text-[10px] text-slate-500 block">
-                    {courierPartner === 'METTUR_PARCEL'
-                      ? `Mettur Parcel Service (${metturDistrict || 'Tamil Nadu'})`
-                      : courierPartner === 'ST_COURIER'
-                        ? 'ST Courier Doorstep'
-                        : 'Professional Courier'}
-                  </span>
+                  <p className="text-xs font-bold text-emerald-300 uppercase tracking-widest">Order Placed Successfully</p>
+                  <h3 className="text-2xl font-black text-white mt-1">Order #{placedOrderId || 'ORD-...'}</h3>
                 </div>
-                <span className="font-bold text-slate-900">
-                  {selectedPot !== 'NONE' ? (
-                    <span className="text-emerald-700 font-extrabold">FREE (With Pot)</span>
-                  ) : (
-                    shippingCharge === 0 ? 'FREE' : `₹${shippingCharge}`
-                  )}
-                </span>
               </div>
 
-              {/* Protective Packing Charge */}
-              <div className="flex justify-between items-center text-xs text-slate-700">
-                <span className="flex items-center gap-1 font-medium">🛡️ Plant Protective Packing:</span>
-                <span className="font-bold text-slate-900">
-                  {packingCharge === 0 ? (
-                    <span className="text-slate-500 font-semibold">Standard (₹0)</span>
-                  ) : (
-                    <span className="text-emerald-800 font-bold">+₹{packingCharge} ({selectedPacking === 'EXTRA_SECURE' ? 'Extra Secure' : 'Max Protection'})</span>
-                  )}
-                </span>
+              {/* Order Items & Breakdown */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-2.5 text-xs">
+                {fetchedOrder ? (
+                  <>
+                    {fetchedOrder.items.map((item: any, idx: number) => (
+                      <div key={idx} className="flex justify-between items-center py-1.5 border-b border-slate-100 last:border-none">
+                        <span className="font-bold text-slate-800">{item.name} × {item.quantity}</span>
+                        <span className="font-extrabold text-slate-900">₹{item.price * item.quantity}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between pt-2">
+                      <span className="text-slate-600">Subtotal</span>
+                      <span className="font-bold text-slate-900">₹{fetchedOrder.subtotal}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Courier Delivery</span>
+                      <span className="font-bold text-slate-900">
+                        {fetchedOrder.courierName || 'ST Courier'} ({fetchedOrder.shippingCharge === 0 ? 'FREE' : `₹${fetchedOrder.shippingCharge}`})
+                      </span>
+                    </div>
+                    {Boolean(fetchedOrder.packingCharge) && (
+                      <div className="flex justify-between text-emerald-800 font-bold">
+                        <span>Protective Packaging</span>
+                        <span>+₹{fetchedOrder.packingCharge} ({fetchedOrder.packingOption === 'EXTRA_SECURE' ? 'Extra Secure' : 'Max Protection'})</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-base font-black text-slate-900 pt-2 border-t border-slate-200">
+                      <span>Grand Total</span>
+                      <span className="text-emerald-800">₹{fetchedOrder.grandTotal}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="py-4 text-center">
+                    <div className="w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto" />
+                    <p className="text-xs text-slate-500 mt-2">Loading order summary...</p>
+                  </div>
+                )}
               </div>
 
-              {appliedCoupon && (
-                <div className="flex justify-between text-emerald-700 font-semibold items-center">
-                  <span className="flex items-center gap-1">🏷️ Coupon ({appliedCoupon.code}):</span>
-                  <span>-₹{discountAmount}</span>
-                </div>
-              )}
-
-              <div className="flex justify-between text-base font-bold text-slate-900 pt-2 border-t border-slate-300 items-center">
-                <span className="flex items-center gap-1 font-extrabold">💰 Grand Total:</span>
-                <span className="text-emerald-800 text-lg font-extrabold">₹{grandTotal}</span>
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-xs text-emerald-900 font-medium leading-relaxed">
+                🌱 Your live plants will normally be dispatched within 5–6 working days. You will receive SMS & WhatsApp tracking details once dispatched.
               </div>
+            </div>
+
+            <div className="px-4 sm:px-6 pb-6 pt-3 border-t border-slate-100 bg-white grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                onClick={() => goTo(8)}
+                className="py-3.5 bg-slate-800 hover:bg-slate-900 text-white font-black text-xs sm:text-sm rounded-2xl flex items-center justify-center gap-2 cursor-pointer shadow-md"
+              >
+                <FileText className="w-4 h-4" />
+                <span>VIEW INVOICE / RECEIPT →</span>
+              </button>
+              <button
+                onClick={() => { goTo(9); handleFetchOrderForTracking(); }}
+                className="py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs sm:text-sm rounded-2xl flex items-center justify-center gap-2 cursor-pointer shadow-md"
+              >
+                <Truck className="w-4 h-4" />
+                <span>TRACK SHIPMENT →</span>
+              </button>
             </div>
           </div>
-        </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════
+            STEP 8 — Customer Receipt / Invoice
+        ═══════════════════════════════════════════════════════════════════ */}
+        {step === 8 && (
+          <div className="flex flex-col flex-1">
+            <div className="px-4 sm:px-6 pt-4 pb-3 flex items-center justify-between border-b border-slate-100 bg-white">
+              <h2 className="font-black text-slate-900 text-base sm:text-lg">🧾 Customer Tax Invoice</h2>
+              <button onClick={() => goTo(7)} className="p-2 rounded-xl bg-slate-100 text-slate-600 cursor-pointer">
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 px-4 sm:px-6 py-4">
+              <div className="bg-white rounded-3xl border-2 border-slate-200 overflow-hidden shadow-sm">
+                <div className="bg-emerald-900 text-white p-5 text-center space-y-1">
+                  <p className="text-[10px] font-bold text-emerald-300 uppercase tracking-widest">VRG NURSERY</p>
+                  <h3 className="text-lg sm:text-xl font-black">Veerika Rose Garden</h3>
+                  <p className="text-[11px] text-emerald-200">Official Order Invoice & Receipt</p>
+                </div>
+
+                <div className="p-4 sm:p-6 space-y-3.5 text-xs">
+                  <div className="flex justify-between border-b border-slate-100 pb-2">
+                    <span className="font-bold text-slate-600">Invoice ID</span>
+                    <span className="font-mono font-extrabold text-slate-900">{fetchedOrder?.id || placedOrderId}</span>
+                  </div>
+
+                  {fetchedOrder?.items?.map((item: any, idx: number) => (
+                    <div key={idx} className="flex justify-between items-center">
+                      <span className="font-semibold text-slate-700">{item.name} × {item.quantity}</span>
+                      <span className="font-bold text-slate-900">₹{item.price * item.quantity}</span>
+                    </div>
+                  ))}
+
+                  <div className="border-t border-slate-200 pt-3 space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Subtotal</span>
+                      <span className="font-semibold text-slate-900">₹{fetchedOrder?.subtotal ?? subtotal}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Delivery Charge</span>
+                      <span className="font-semibold text-slate-900">₹{fetchedOrder?.shippingCharge ?? shippingCharge}</span>
+                    </div>
+                    {(fetchedOrder?.packingCharge > 0 || packingCharge > 0) && (
+                      <div className="flex justify-between text-emerald-800 font-bold">
+                        <span>Protective Packing ({fetchedOrder?.packingOption === 'EXTRA_SECURE' || selectedPacking === 'EXTRA_SECURE' ? 'Extra Secure' : 'Max Protection'})</span>
+                        <span>+₹{fetchedOrder?.packingCharge ?? packingCharge}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between font-extrabold text-sm border-t border-slate-300 pt-2">
+                      <span className="text-slate-900">Grand Total</span>
+                      <span className="text-emerald-800">₹{fetchedOrder?.grandTotal ?? grandTotal}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-4 sm:px-6 pb-6 pt-3 border-t border-slate-100 bg-white grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                onClick={handleDownloadReceipt}
+                className="py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs sm:text-sm rounded-2xl flex items-center justify-center gap-2 cursor-pointer shadow-md"
+              >
+                <Download className="w-4 h-4" />
+                <span>PRINT / DOWNLOAD PDF</span>
+              </button>
+              <button
+                onClick={() => { goTo(9); handleFetchOrderForTracking(); }}
+                className="py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs sm:text-sm rounded-2xl flex items-center justify-center gap-2 cursor-pointer shadow-md"
+              >
+                <Truck className="w-4 h-4" />
+                <span>TRACK MY ORDER →</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════
+            STEP 9 — Live Tracking
+        ═══════════════════════════════════════════════════════════════════ */}
+        {step === 9 && (
+          <div className="flex flex-col flex-1">
+            <div className="px-4 sm:px-6 pt-4 pb-3 flex items-center justify-between border-b border-slate-100 bg-white">
+              <h2 className="font-black text-slate-900 text-base sm:text-lg">📦 Live Shipment Tracking</h2>
+              <div className="flex items-center gap-2">
+                <button onClick={() => goTo(8)} className="p-2 rounded-xl bg-slate-100 text-slate-600 cursor-pointer">
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                {onNavigateToHome && (
+                  <button onClick={onNavigateToHome} className="p-2 rounded-xl bg-slate-100 text-slate-600 cursor-pointer">
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="flex-1 px-4 sm:px-6 py-4 space-y-4">
+              {/* Order Status Box */}
+              <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 space-y-2 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-slate-600">Order Reference:</span>
+                  <span className="font-mono font-extrabold text-slate-900">{fetchedOrder?.id || placedOrderId}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-slate-600">Current Status:</span>
+                  <span className="bg-emerald-100 text-emerald-800 font-extrabold text-[10px] px-2.5 py-0.5 rounded-full">
+                    {fetchedOrder?.orderStatus || 'Order Confirmed'}
+                  </span>
+                </div>
+              </div>
+
+              {/* 5-Step Pipeline Timeline */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-0">
+                {[
+                  { label: 'Order Confirmed', icon: <CheckCircle2 className="w-4 h-4" />, active: true },
+                  { label: 'Nursery Packing & Coco Peat Wrap', icon: <Package className="w-4 h-4" />, active: fetchedOrder?.orderStatus !== 'PENDING' },
+                  { label: 'Dispatched from Nursery', icon: <Truck className="w-4 h-4" />, active: fetchedOrder?.orderStatus === 'DISPATCHED' || fetchedOrder?.orderStatus === 'DELIVERED' || fetchedOrder?.orderStatus === 'OUT_FOR_DELIVERY' },
+                  { label: 'Out for Delivery', icon: <Truck className="w-4 h-4" />, active: fetchedOrder?.orderStatus === 'OUT_FOR_DELIVERY' || fetchedOrder?.orderStatus === 'DELIVERED' },
+                  { label: 'Delivered Safely', icon: <CheckCircle2 className="w-4 h-4" />, active: fetchedOrder?.orderStatus === 'DELIVERED' },
+                ].map((s, i, arr) => (
+                  <div key={s.label} className="flex items-start gap-3.5">
+                    <div className="flex flex-col items-center shrink-0">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${s.active ? 'bg-emerald-700 border-emerald-700 text-white' : 'bg-white border-slate-200 text-slate-300'}`}>
+                        {s.icon}
+                      </div>
+                      {i < arr.length - 1 && (
+                        <div className={`w-0.5 h-6 ${s.active ? 'bg-emerald-400' : 'bg-slate-200'}`} />
+                      )}
+                    </div>
+                    <div className="pt-1.5 pb-4">
+                      <p className={`text-xs font-bold ${s.active ? 'text-emerald-950 font-black' : 'text-slate-400'}`}>
+                        {s.label}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Courier Tracking Link */}
+              {fetchedOrder?.trackingNumber && (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-xs space-y-2">
+                  <p className="font-bold text-emerald-900">Courier Partner: {fetchedOrder.courierName}</p>
+                  <p className="font-mono font-bold text-emerald-800">AWB Tracking Number: {fetchedOrder.trackingNumber}</p>
+                  <a
+                    href={`https://www.google.com/search?q=${encodeURIComponent(fetchedOrder.courierName || 'Courier')}+tracking+${encodeURIComponent(fetchedOrder.trackingNumber)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-emerald-700 font-bold hover:underline"
+                  >
+                    <span>Track Courier Live</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              )}
+            </div>
+
+            <div className="px-4 sm:px-6 pb-6 pt-3 border-t border-slate-100 bg-white grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                onClick={handleFetchOrderForTracking}
+                disabled={trackLoading}
+                className="py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs sm:text-sm rounded-2xl flex items-center justify-center gap-2 cursor-pointer transition-colors"
+              >
+                {trackLoading ? (
+                  <div className="w-4 h-4 border-2 border-slate-600 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+                <span>REFRESH STATUS</span>
+              </button>
+              {onNavigateToHome && (
+                <button
+                  onClick={onNavigateToHome}
+                  className="py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs sm:text-sm rounded-2xl flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span>RETURN TO SHOPPING</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

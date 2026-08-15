@@ -646,12 +646,6 @@ export const App: React.FC = () => {
     if (params?.category !== undefined) setSelectedCategory(params.category);
     if (params?.query !== undefined) setSearchQuery(params.query);
 
-    if (page === 'cart' && window.innerWidth < 768) {
-      setIsCartOpen(false);
-      setIsMobileCheckoutOpen(true);
-      return;
-    }
-
     setCurrentPage(page);
 
     const activeProd = params?.product !== undefined ? params.product : selectedProduct;
@@ -1068,23 +1062,12 @@ export const App: React.FC = () => {
             onUpdateQuantity={handleUpdateCartQty}
             onRemoveItem={handleRemoveFromCart}
             onProceedToCheckout={() => {
-              // On mobile screens open the in-app mobile checkout wizard
-              if (window.innerWidth < 768) {
-                if (!user) {
-                  alert('🔑 Login or Sign Up Required:\nPlease login to your account before placing an order.');
-                  navigateTo('account');
-                  return;
-                }
-                setIsMobileCheckoutOpen(true);
-                return;
-              }
-              // Desktop: original flow
               if (!user) {
                 alert('🔑 Login or Sign Up Required:\nPlease login to your account before placing an order.');
                 navigateTo('account');
-              } else {
-                navigateTo('checkout');
+                return;
               }
+              navigateTo('checkout');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             onContinueShopping={() => navigateTo('shop')}
@@ -1100,7 +1083,16 @@ export const App: React.FC = () => {
             user={user}
             onBackToCart={() => navigateTo('cart')}
             appliedCoupon={appliedCoupon}
+            onApplyCoupon={handleApplyCoupon}
+            onRemoveCoupon={() => setAppliedCoupon(null)}
             onPlaceOrder={handlePlaceOrder}
+            onUpdateQuantity={handleUpdateCartQty}
+            onRemoveItem={handleRemoveFromCart}
+            onNavigateToAccount={() => navigateTo('account')}
+            onNavigateToHome={() => {
+              navigateTo('home');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
           />
         )}
 
@@ -1192,23 +1184,12 @@ export const App: React.FC = () => {
         onRemoveItem={handleRemoveFromCart}
         onProceedToCheckout={() => {
           setIsCartOpen(false);
-          // On mobile open the in-app multi-step checkout wizard
-          if (window.innerWidth < 768) {
-            if (!user) {
-              alert('🔑 Login or Sign Up Required:\nPlease login to your account before placing an order.');
-              navigateTo('account');
-              return;
-            }
-            setIsMobileCheckoutOpen(true);
-            return;
-          }
-          // Desktop: original flow
           if (!user) {
             alert('🔑 Login or Sign Up Required:\nPlease login to your account before placing an order.');
             navigateTo('account');
-          } else {
-            navigateTo('checkout');
+            return;
           }
+          navigateTo('checkout');
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
         onApplyCoupon={handleApplyCoupon}

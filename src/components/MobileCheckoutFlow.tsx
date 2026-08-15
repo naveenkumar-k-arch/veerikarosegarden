@@ -287,7 +287,9 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
 
   const baseShipping = getDeliveryChargeForOption(courierPartner === 'METTUR_PARCEL' ? 'METTUR_PARCEL' : deliveryOption, chargeablePlantCount);
   const shippingCharge = hasAllFreeDelivery ? 0 : (chargeablePlantCount === 0 ? 0 : baseShipping);
-  const packingCharge = selectedPacking === 'EXTRA_SECURE' ? 10 : selectedPacking === 'MAX_PROTECTION' ? 15 : 0;
+  const packingCharge = courierPartner === 'METTUR_PARCEL'
+    ? (selectedPacking === 'EXTRA_SECURE' ? 10 : selectedPacking === 'MAX_PROTECTION' ? 15 : 0)
+    : 0;
   const potCharge = 0;
   const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const grandTotal = Math.max(0, subtotal + shippingCharge + packingCharge - discountAmount);
@@ -1188,6 +1190,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                     setDeliveryOption('METTUR_PARCEL');
                   } else {
                     setDeliveryOption('REDUCED_SOIL');
+                    setSelectedPacking('STANDARD');
                   }
                 }}
                 shippingState={address.state}
@@ -1204,12 +1207,14 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                 hasFreeDelivery={hasAllFreeDelivery}
               />
 
-              {/* Plant Protective Packing Selection ("Pick Protective Packing for Your Plants' Journey") */}
-              <PlantProtectivePackingSection
-                items={items}
-                selectedPacking={selectedPacking}
-                onChangePacking={setSelectedPacking}
-              />
+              {/* Plant Protective Packing Selection ("Pick Protective Packing for Your Plants' Journey") — INSIDE METTUR SERVICE ONLY */}
+              {courierPartner === 'METTUR_PARCEL' && (
+                <PlantProtectivePackingSection
+                  items={items}
+                  selectedPacking={selectedPacking}
+                  onChangePacking={setSelectedPacking}
+                />
+              )}
 
               {/* Price summary */}
               <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-2 text-xs text-slate-600">
@@ -1239,17 +1244,19 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                   </span>
                 </div>
 
-                {/* Protective Packing Fee */}
-                <div className="flex justify-between items-center">
-                  <span className="flex items-center gap-1">🛡️ Plant Protective Packing:</span>
-                  <span className="font-bold text-slate-900">
-                    {packingCharge === 0 ? (
-                      <span className="text-slate-500 font-semibold">Standard (₹0)</span>
-                    ) : (
-                      <span className="text-emerald-800 font-black">+₹{packingCharge} ({selectedPacking === 'EXTRA_SECURE' ? 'Extra Secure' : 'Max Protection'})</span>
-                    )}
-                  </span>
-                </div>
+                {/* Protective Packing Fee - Only show for Mettur Parcel Service */}
+                {courierPartner === 'METTUR_PARCEL' && (
+                  <div className="flex justify-between items-center">
+                    <span className="flex items-center gap-1">🛡️ Plant Protective Packing:</span>
+                    <span className="font-bold text-slate-900">
+                      {packingCharge === 0 ? (
+                        <span className="text-slate-500 font-semibold">Standard Safe (₹0)</span>
+                      ) : (
+                        <span className="text-emerald-800 font-black">+₹{packingCharge} ({selectedPacking === 'EXTRA_SECURE' ? 'Extra Secure' : 'Max Protection'})</span>
+                      )}
+                    </span>
+                  </div>
+                )}
 
                 {appliedCoupon && (
                   <div className="flex justify-between text-emerald-700 font-semibold">

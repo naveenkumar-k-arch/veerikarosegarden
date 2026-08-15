@@ -254,7 +254,7 @@ export const PlantProtectivePackingSection: React.FC<PlantProtectivePackingSecti
             </div>
             <div className="text-right shrink-0">
               <span className="text-xs sm:text-sm font-black text-emerald-900 block">₹15</span>
-              <span className="text-[9px] text-emerald-800 font-bold">Best Value</span>
+              <span className="text-[9px] text-slate-500 font-medium">Per Order</span>
             </div>
           </div>
         </div>

@@ -736,9 +736,12 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
     const potUnitFee = potOption === '6_INCH' ? 99 : potOption === '8_INCH' ? 199 : 0;
     const potCharge = potUnitFee * totalPlantCount;
 
-    // Protective Packing Calculation
-    const packingOption = req.body.packingOption || 'STANDARD';
-    const packingCharge = packingOption === 'EXTRA_SECURE' ? 10 : packingOption === 'MAX_PROTECTION' ? 15 : 0;
+    // Protective Packing Calculation (Active for Mettur Parcel Service)
+    const isMetturCourier = (req.body.courierName || '').toLowerCase().includes('mettur');
+    const packingOption = isMetturCourier ? (req.body.packingOption || 'STANDARD') : 'STANDARD';
+    const packingCharge = isMetturCourier
+      ? (packingOption === 'EXTRA_SECURE' ? 10 : packingOption === 'MAX_PROTECTION' ? 15 : 0)
+      : 0;
 
     // Courier selection details
     const courierName = req.body.courierName || undefined;
