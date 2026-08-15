@@ -99,6 +99,50 @@ function saveDiskFinances(finances: FinancialEntry[]) {
   }
 }
 
+const COMBOS_STORE_FILE = path.resolve(process.cwd(), 'src/data/combos_store.json');
+
+const DEFAULT_COMBOS_SEED: Combo[] = [
+  {
+    id: 'combo-rose-trio',
+    title: 'Top 3 Fragrant Rose Saplings Combo',
+    subtitle: 'Damask Paneer Rose + Button Rose + Kashmiri Red Rose',
+    badge: '3-IN-1 SPECIAL',
+    productIds: ['prod-damask-rose', 'prod-button-rose', 'prod-kashmiri-rose'],
+    originalPrice: 450,
+    comboPrice: 299,
+    discountPercent: 34,
+    imageUrl: '/products/double-delight.jpeg',
+    active: true,
+    freeDelivery: true,
+    order: 1,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+];
+
+function loadDiskCombos(): Combo[] {
+  try {
+    if (fs.existsSync(COMBOS_STORE_FILE)) {
+      const data = fs.readFileSync(COMBOS_STORE_FILE, 'utf-8');
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (err) {
+    console.error('Error reading combos_store.json:', err);
+  }
+  return DEFAULT_COMBOS_SEED;
+}
+
+function saveDiskCombos(combos: Combo[]) {
+  try {
+    const dir = path.dirname(COMBOS_STORE_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(COMBOS_STORE_FILE, JSON.stringify(combos, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error writing combos_store.json:', err);
+  }
+}
+
 // Default Fallback Data matching WhatsApp Catalogue
 const DEFAULT_CATEGORIES: Category[] = [
   {
@@ -5093,9 +5137,9 @@ const deletedFinanceIds = (globalThis as any)._deletedFinanceIds || ((globalThis
 const deletedOrderIds = (globalThis as any)._deletedOrderIds || ((globalThis as any)._deletedOrderIds = new Set<string>());
 const deletedComboIds = (globalThis as any)._deletedComboIds || ((globalThis as any)._deletedComboIds = new Set<string>());
 
-export const DEFAULT_COMBOS: Combo[] = [];
+export const DEFAULT_COMBOS: Combo[] = loadDiskCombos();
 
-const memoryCombosStore: Combo[] = (globalThis as any)._memoryCombosStore || ((globalThis as any)._memoryCombosStore = []);
+const memoryCombosStore: Combo[] = (globalThis as any)._memoryCombosStore || ((globalThis as any)._memoryCombosStore = loadDiskCombos());
 const globalMemorySettings: SiteSettings = (globalThis as any)._globalMemorySettings || ((globalThis as any)._globalMemorySettings = { ...DEFAULT_SETTINGS });
 
 const META_DELIMITER = '|||JSON_META|||';
@@ -5206,75 +5250,33 @@ class Store {
 
 
   // PRODUCTS
-  private productsCache: { data: Product[]; expiresAt: number } | null = null;
+  private productsCache: { data: Product[]; expiresAt: number } = {
+    data: DEFAULT_PRODUCTS.filter(p => !deletedProductIds.has(p.id)),
+    expiresAt: 0
+  };
+  private isRefreshingProducts = false;
 
   invalidateProductsCache() {
-    this.productsCache = null;
+    this.productsCache.expiresAt = 0;
   }
 
-  async getProducts(query?: {
-    search?: string;
-    categoryId?: string;
-    featured?: boolean;
-    bestSeller?: boolean;
-    minPrice?: number;
-    maxPrice?: number;
-    sort?: string;
-  }): Promise<Product[]> {
-    const isFullQuery = !query || Object.keys(query).length === 0;
-    if (isFullQuery && this.productsCache && Date.now() < this.productsCache.expiresAt) {
-      return this.productsCache.data;
-    }
-
-    const prisma = getPrismaClient();
-    if (!prisma) {
-      let results = [...DEFAULT_PRODUCTS];
-      if (query?.categoryId) {
-        const catQ = query.categoryId.toLowerCase();
-        results = results.filter(p => 
-          p.categoryId.toLowerCase() === catQ || 
-          p.categoryName.toLowerCase().includes(catQ) || 
-          catQ.includes(p.categoryId.toLowerCase())
-        );
-      }
-      if (query?.featured) results = results.filter(p => p.featured);
-      if (query?.bestSeller) results = results.filter(p => p.bestSeller);
-      if (query?.search) {
-        const q = query.search.toLowerCase();
-        results = results.filter(p => p.name.toLowerCase().includes(q) || p.tamilName.includes(q) || p.description.toLowerCase().includes(q));
-      }
-      if (query?.minPrice !== undefined) results = results.filter(p => p.sellingPrice >= query.minPrice!);
-      if (query?.maxPrice !== undefined) results = results.filter(p => p.sellingPrice <= query.maxPrice!);
-      if (query?.sort === 'price-low') results.sort((a, b) => a.sellingPrice - b.sellingPrice);
-      else if (query?.sort === 'price-high') results.sort((a, b) => b.sellingPrice - a.sellingPrice);
-      else if (query?.sort === 'rating') results.sort((a, b) => b.rating - a.rating);
-      return results;
-    }
-
-
+  private async refreshProductsCache(): Promise<Product[]> {
+    if (this.isRefreshingProducts) return this.productsCache.data;
+    this.isRefreshingProducts = true;
     try {
-      const whereClause: any = { inStock: true };
-      if (query?.categoryId) whereClause.categoryId = query.categoryId;
-      if (query?.featured) whereClause.isFeatured = true;
-      if (query?.bestSeller) whereClause.isBestSeller = true;
-
-      if (query?.search) {
-        whereClause.OR = [
-          { name: { contains: query.search, mode: 'insensitive' } },
-          { nameTamil: { contains: query.search, mode: 'insensitive' } },
-          { description: { contains: query.search, mode: 'insensitive' } }
-        ];
+      const prisma = getPrismaClient();
+      if (!prisma) {
+        this.productsCache = {
+          data: DEFAULT_PRODUCTS.filter(p => !deletedProductIds.has(p.id)),
+          expiresAt: Date.now() + 300000
+        };
+        return this.productsCache.data;
       }
-
-      let orderBy: any = { createdAt: 'desc' };
-      if (query?.sort === 'price-low') orderBy = { price: 'asc' };
-      else if (query?.sort === 'price-high') orderBy = { price: 'desc' };
-      else if (query?.sort === 'rating') orderBy = { rating: 'desc' };
 
       const items = await prisma.product.findMany({
-        where: whereClause,
+        where: { inStock: true },
         include: { categoryRel: true, inventory: true },
-        orderBy
+        orderBy: { createdAt: 'desc' }
       });
 
       let results: Product[] = items.map(p => ({
@@ -5314,110 +5316,68 @@ class Store {
         updatedAt: p.updatedAt.toISOString()
       }));
 
-      // Auto-seed DEFAULT_PRODUCTS to DB if database has fewer products than default
-      if (items.length < DEFAULT_PRODUCTS.length) {
-        (async () => {
-          try {
-            for (const cat of DEFAULT_CATEGORIES) {
-              await prisma.category.upsert({
-                where: { id: cat.id },
-                update: {},
-                create: {
-                  id: cat.id,
-                  name: cat.name,
-                  nameTamil: cat.tamilName,
-                  slug: cat.slug,
-                  image: cat.image,
-                  description: cat.description,
-                  order: cat.order,
-                  isActive: cat.isActive,
-                  isFeatured: cat.isFeatured
-                }
-              }).catch(() => {});
-            }
-            for (const prod of DEFAULT_PRODUCTS) {
-              await prisma.product.upsert({
-                where: { id: prod.id },
-                update: {},
-                create: {
-                  id: prod.id,
-                  sku: prod.sku,
-                  name: prod.name,
-                  nameTamil: prod.tamilName || prod.name,
-                  scientificName: prod.scientificName || null,
-                  category: prod.categoryName,
-                  categoryId: prod.categoryId,
-                  price: prod.sellingPrice,
-                  originalPrice: prod.mrp,
-                  rating: prod.rating || 4.8,
-                  reviewsCount: prod.reviewCount || 10,
-                  image: prod.images[0] || '',
-                  images: prod.images,
-                  inStock: prod.status === 'ACTIVE',
-                  potSize: prod.potSize || null,
-                  description: prod.description,
-                  isBestSeller: prod.bestSeller || false,
-                  isFeatured: prod.featured || false,
-                  careSunlight: prod.careInstructions?.sunlight || null,
-                  careWatering: prod.careInstructions?.watering || null,
-                  careSoil: prod.careInstructions?.soil || null,
-                  careFertilizer: prod.careInstructions?.fertilizer || null,
-                  inventory: {
-                    create: {
-                      quantity: prod.stock || 50
-                    }
-                  }
-                }
-              }).catch(() => {});
-            }
-          } catch (seedErr) {
-            console.warn('Auto-seed products error:', seedErr);
-          }
-        })();
-      }
-
       // Merge results with DEFAULT_PRODUCTS so missing default products are included
       const existingIds = new Set(results.map(p => p.id));
       for (const defProd of DEFAULT_PRODUCTS) {
         if (!existingIds.has(defProd.id)) {
-          let matches = true;
-          if (query?.categoryId) {
-            const catQ = query.categoryId.toLowerCase();
-            if (defProd.categoryId.toLowerCase() !== catQ && !defProd.categoryName.toLowerCase().includes(catQ)) {
-              matches = false;
-            }
-          }
-          if (query?.featured && !defProd.featured) matches = false;
-          if (query?.bestSeller && !defProd.bestSeller) matches = false;
-          if (query?.search) {
-            const q = query.search.toLowerCase();
-            if (!defProd.name.toLowerCase().includes(q) && !defProd.tamilName.includes(q) && !defProd.description.toLowerCase().includes(q)) {
-              matches = false;
-            }
-          }
-          if (matches) {
-            results.push(defProd);
-            existingIds.add(defProd.id);
-          }
+          results.push(defProd);
+          existingIds.add(defProd.id);
         }
       }
 
-      if (query?.minPrice !== undefined) {
-        results = results.filter(p => p.sellingPrice >= query.minPrice!);
-      }
-      if (query?.maxPrice !== undefined) {
-        results = results.filter(p => p.sellingPrice <= query.maxPrice!);
-      }
-
       const finalProducts = results.filter(p => !deletedProductIds.has(p.id));
-      if (isFullQuery) {
-        this.productsCache = { data: finalProducts, expiresAt: Date.now() + 60000 };
-      }
+      this.productsCache = { data: finalProducts, expiresAt: Date.now() + 300000 };
       return finalProducts;
     } catch (err) {
-      console.error('Prisma getProducts error:', err);
-      return DEFAULT_PRODUCTS.filter(p => !deletedProductIds.has(p.id));
+      console.warn('Background refreshProductsCache notice:', err);
+      return this.productsCache.data;
+    } finally {
+      this.isRefreshingProducts = false;
     }
+  }
+
+  async getProducts(query?: {
+    search?: string;
+    categoryId?: string;
+    featured?: boolean;
+    bestSeller?: boolean;
+    minPrice?: number;
+    maxPrice?: number;
+    sort?: string;
+  }): Promise<Product[]> {
+    const isFullQuery = !query || Object.keys(query).length === 0;
+
+    const applyFilters = (list: Product[]) => {
+      let results = [...list];
+      if (query?.categoryId) {
+        const catQ = query.categoryId.toLowerCase();
+        results = results.filter(p => 
+          p.categoryId.toLowerCase() === catQ || 
+          p.categoryName.toLowerCase().includes(catQ) || 
+          catQ.includes(p.categoryId.toLowerCase())
+        );
+      }
+      if (query?.featured) results = results.filter(p => p.featured);
+      if (query?.bestSeller) results = results.filter(p => p.bestSeller);
+      if (query?.search) {
+        const q = query.search.toLowerCase();
+        results = results.filter(p => p.name.toLowerCase().includes(q) || p.tamilName.includes(q) || p.description.toLowerCase().includes(q));
+      }
+      if (query?.minPrice !== undefined) results = results.filter(p => p.sellingPrice >= query.minPrice!);
+      if (query?.maxPrice !== undefined) results = results.filter(p => p.sellingPrice <= query.maxPrice!);
+      if (query?.sort === 'price-low') results.sort((a, b) => a.sellingPrice - b.sellingPrice);
+      else if (query?.sort === 'price-high') results.sort((a, b) => b.sellingPrice - a.sellingPrice);
+      else if (query?.sort === 'rating') results.sort((a, b) => b.rating - a.rating);
+      return results.filter(p => !deletedProductIds.has(p.id));
+    };
+
+    // Trigger background cache refresh if expired or uninitialized
+    if (Date.now() >= this.productsCache.expiresAt) {
+      this.refreshProductsCache().catch(() => {});
+    }
+
+    const currentList = this.productsCache.data;
+    return isFullQuery ? currentList : applyFilters(currentList);
   }
 
 
@@ -5702,33 +5662,31 @@ class Store {
   }
 
 
-  private categoriesCache: { data: Category[]; expiresAt: number } | null = null;
+  private categoriesCache: { data: Category[]; expiresAt: number } = {
+    data: DEFAULT_CATEGORIES.filter(c => !deletedCategoryIds.has(c.id)),
+    expiresAt: 0
+  };
+  private isRefreshingCategories = false;
 
   invalidateCategoriesCache() {
-    this.categoriesCache = null;
+    this.categoriesCache.expiresAt = 0;
   }
 
-  async getCategories(options?: { onlyActive?: boolean; onlyFeatured?: boolean }): Promise<Category[]> {
-    const isFullOptions = !options || Object.keys(options).length === 0;
-    if (isFullOptions && this.categoriesCache && Date.now() < this.categoriesCache.expiresAt) {
-      return this.categoriesCache.data;
-    }
-
-    const prisma = getPrismaClient();
-    if (!prisma) {
-      let results = [...DEFAULT_CATEGORIES];
-      if (options?.onlyActive) results = results.filter(c => c.isActive);
-      if (options?.onlyFeatured) results = results.filter(c => c.isFeatured);
-      return results;
-    }
-
+  private async refreshCategoriesCache(): Promise<Category[]> {
+    if (this.isRefreshingCategories) return this.categoriesCache.data;
+    this.isRefreshingCategories = true;
     try {
-      const whereClause: any = {};
-      if (options?.onlyActive) whereClause.isActive = true;
-      if (options?.onlyFeatured) whereClause.isFeatured = true;
+      const prisma = getPrismaClient();
+      if (!prisma) {
+        this.categoriesCache = {
+          data: DEFAULT_CATEGORIES.filter(c => !deletedCategoryIds.has(c.id)),
+          expiresAt: Date.now() + 300000
+        };
+        return this.categoriesCache.data;
+      }
 
       const items = await prisma.category.findMany({
-        where: whereClause,
+        where: { isActive: true },
         include: {
           _count: {
             select: { products: true }
@@ -5759,46 +5717,53 @@ class Store {
         createdAt: c.createdAt.toISOString(),
         updatedAt: c.updatedAt.toISOString()
       }));
+
       const existingCatIds = new Set(results.map(c => c.id));
       for (const defCat of DEFAULT_CATEGORIES) {
         if (!existingCatIds.has(defCat.id)) {
-          let matches = true;
-          if (options?.onlyActive && !defCat.isActive) matches = false;
-          if (options?.onlyFeatured && !defCat.isFeatured) matches = false;
-          if (matches) {
-            results.push({
-              id: defCat.id,
-              name: defCat.name,
-              tamilName: defCat.tamilName,
-              slug: defCat.slug,
-              description: defCat.description || '',
-              image: defCat.image || '/products/double-delight.jpeg',
-              iconName: 'Flower2',
-              order: defCat.order,
-              isActive: defCat.isActive,
-              isFeatured: defCat.isFeatured,
-              productCount: defCat.productCount || 0,
-              metaTitle: undefined,
-              metaDescription: undefined,
-              ogImage: undefined,
-              canonicalUrl: undefined,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString()
-            });
-            existingCatIds.add(defCat.id);
-          }
+          results.push({
+            id: defCat.id,
+            name: defCat.name,
+            tamilName: defCat.tamilName,
+            slug: defCat.slug,
+            description: defCat.description || '',
+            image: defCat.image || '/products/double-delight.jpeg',
+            iconName: 'Flower2',
+            order: defCat.order,
+            isActive: defCat.isActive,
+            isFeatured: defCat.isFeatured,
+            productCount: defCat.productCount || 0,
+            metaTitle: undefined,
+            metaDescription: undefined,
+            ogImage: undefined,
+            canonicalUrl: undefined,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          });
+          existingCatIds.add(defCat.id);
         }
       }
 
       const finalCategories = results.filter(c => !deletedCategoryIds.has(c.id));
-      if (isFullOptions) {
-        this.categoriesCache = { data: finalCategories, expiresAt: Date.now() + 60000 };
-      }
+      this.categoriesCache = { data: finalCategories, expiresAt: Date.now() + 300000 };
       return finalCategories;
     } catch (err) {
-      console.error('Prisma getCategories error:', err);
-      return DEFAULT_CATEGORIES.filter(c => !deletedCategoryIds.has(c.id));
+      console.warn('Background refreshCategoriesCache notice:', err);
+      return this.categoriesCache.data;
+    } finally {
+      this.isRefreshingCategories = false;
     }
+  }
+
+  async getCategories(options?: { onlyActive?: boolean; onlyFeatured?: boolean }): Promise<Category[]> {
+    if (Date.now() >= this.categoriesCache.expiresAt) {
+      this.refreshCategoriesCache().catch(() => {});
+    }
+
+    let results = this.categoriesCache.data;
+    if (options?.onlyActive) results = results.filter(c => c.isActive !== false);
+    if (options?.onlyFeatured) results = results.filter(c => c.isFeatured);
+    return results.filter(c => !deletedCategoryIds.has(c.id));
   }
 
 
@@ -6096,35 +6061,72 @@ class Store {
     return { id, ...data, subtitle: data.subtitle || '', targetCategory: data.targetCategory || '', active: data.active !== false, order: data.order || 1 };
   }
 
-  private bannersCache: { data: Banner[]; expiresAt: number } | null = null;
+  private static readonly DEFAULT_BANNERS: Banner[] = [
+    {
+      id: 'banner-1',
+      title: '🌸 Premium Rose Plants – Direct from Our Farm',
+      subtitle: 'Hybrid & Rare Varieties. Free Shipping above ₹499.',
+      imageUrl: 'https://images.unsplash.com/photo-1502977249166-824b3a8a4d6d?auto=format&fit=crop&w=1200&q=80',
+      targetCategory: 'Rose Varieties',
+      active: true,
+      order: 1
+    },
+    {
+      id: 'banner-2',
+      title: '🌿 Fresh Jasmine & Herbal Plants',
+      subtitle: 'Jadhi Malli, Ramar Malli & More – Grown with Love',
+      imageUrl: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=1200&q=80',
+      targetCategory: 'Jasmine Varieties',
+      active: true,
+      order: 2
+    },
+    {
+      id: 'banner-3',
+      title: '🌹 Rare & Exotic Roses Collection',
+      subtitle: 'Black Magic, Moncou & Tiger Rose – Limited Stock!',
+      imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1200&q=80',
+      targetCategory: 'Rare & Exotic Roses',
+      active: true,
+      order: 3
+    }
+  ];
+
+  private bannersCache: { data: Banner[]; expiresAt: number } = {
+    data: Store.DEFAULT_BANNERS,
+    expiresAt: 0
+  };
 
   async getBanners(): Promise<Banner[]> {
-    if (this.bannersCache && Date.now() < this.bannersCache.expiresAt) {
-      return this.bannersCache.data;
+    if (Date.now() >= this.bannersCache.expiresAt) {
+      (async () => {
+        try {
+          const prisma = getPrismaClient();
+          if (prisma) {
+            const items = await prisma.banner.findMany({
+              where: { active: true },
+              orderBy: { order: 'asc' }
+            });
+            if (items && items.length > 0) {
+              this.bannersCache = {
+                data: items.map(b => ({
+                  id: b.id,
+                  title: b.title,
+                  subtitle: b.subtitle || '',
+                  imageUrl: b.imageUrl,
+                  targetCategory: b.targetCategory || '',
+                  active: b.active,
+                  order: b.order
+                })),
+                expiresAt: Date.now() + 300000
+              };
+            }
+          }
+        } catch (err) {
+          console.warn('Background getBanners notice:', err);
+        }
+      })();
     }
-    const prisma = getPrismaClient();
-    if (!prisma) return [];
-
-    try {
-      const items = await prisma.banner.findMany({
-        where: { active: true },
-        orderBy: { order: 'asc' }
-      });
-      const result = items.map(b => ({
-        id: b.id,
-        title: b.title,
-        subtitle: b.subtitle || '',
-        imageUrl: b.imageUrl,
-        targetCategory: b.targetCategory || '',
-        active: b.active,
-        order: b.order
-      }));
-      this.bannersCache = { data: result, expiresAt: Date.now() + 10000 };
-      return result;
-    } catch (err) {
-      console.error('Prisma getBanners error:', err);
-      return [];
-    }
+    return this.bannersCache.data;
   }
 
   // COUPONS
@@ -6259,69 +6261,58 @@ class Store {
 
   // COMBOS & OFFERS
   async getCombos(): Promise<Combo[]> {
-    const prisma = getPrismaClient();
+    const rawCombos = memoryCombosStore.filter(c => !deletedComboIds.has(c.id));
 
-    if (prisma) {
-      try {
-        const items = await prisma.combo.findMany({
-          orderBy: { order: 'asc' }
-        });
-
-        const allProducts = await this.getProducts();
-        const prodMap = new Map(allProducts.map(p => [p.id, p]));
-
-        return items
-          .filter(c => !deletedComboIds.has(c.id))
-          .map(c => {
-            const matchedProds = (c.productIds || [])
-              .map(pid => prodMap.get(pid))
-              .filter(Boolean) as Product[];
-            return {
-              id: c.id,
-              title: c.title,
-              subtitle: c.subtitle || undefined,
-              badge: c.badge || 'COMBO OFFER',
-              productIds: c.productIds,
-              products: matchedProds,
-              originalPrice: c.originalPrice,
-              comboPrice: c.comboPrice,
-              discountPercent: c.discountPercent,
-              imageUrl: c.imageUrl || undefined,
-              active: c.active,
-              order: c.order,
-              freeDelivery: c.freeDelivery || false,
-              createdAt: c.createdAt ? c.createdAt.toISOString() : new Date().toISOString(),
-              updatedAt: c.updatedAt ? c.updatedAt.toISOString() : new Date().toISOString()
-            };
-          });
-      } catch (err) {
-        console.error('Prisma getCombos error:', err);
-      }
-    }
-
-    const allProducts = await this.getProducts();
+    // Fast in-memory product lookup
+    const allProducts = this.productsCache.data;
     const prodMap = new Map(allProducts.map(p => [p.id, p]));
 
-    return memoryCombosStore
-      .filter(c => !deletedComboIds.has(c.id))
-      .map(c => ({
-        ...c,
-        products: (c.productIds || []).map(pid => prodMap.get(pid)).filter(Boolean) as Product[]
-      }));
+    return rawCombos.map(c => {
+      const pIds: string[] = Array.isArray(c.productIds) ? c.productIds : [];
+      const matchedProds = pIds.map(pid => prodMap.get(pid)).filter(Boolean) as Product[];
+      return {
+        id: c.id,
+        title: c.title,
+        subtitle: c.subtitle || undefined,
+        badge: c.badge || 'COMBO OFFER',
+        productIds: pIds,
+        products: matchedProds,
+        originalPrice: Number(c.originalPrice || 0),
+        comboPrice: Number(c.comboPrice || 0),
+        discountPercent: c.discountPercent || (c.originalPrice > c.comboPrice ? Math.round(((c.originalPrice - c.comboPrice) / c.originalPrice) * 100) : 0),
+        imageUrl: c.imageUrl || (matchedProds[0]?.images?.[0] || undefined),
+        active: c.active !== false,
+        order: c.order || 1,
+        freeDelivery: c.freeDelivery === true,
+        createdAt: c.createdAt ? (typeof c.createdAt === 'string' ? c.createdAt : c.createdAt.toISOString()) : new Date().toISOString(),
+        updatedAt: c.updatedAt ? (typeof c.updatedAt === 'string' ? c.updatedAt : c.updatedAt.toISOString()) : new Date().toISOString()
+      };
+    });
+  }
+
+  async getComboById(id: string): Promise<Combo | null> {
+    const cleanId = (id || '').trim();
+    if (!cleanId || deletedComboIds.has(cleanId)) return null;
+    const combos = await this.getCombos();
+    return combos.find(c => c.id === cleanId) || null;
   }
 
   async addCombo(data: Partial<Combo>): Promise<Combo> {
-    const id = 'combo-' + Date.now();
+    const id = data.id || 'combo-' + Date.now();
     const title = data.title || 'Special Plant Combo';
     const subtitle = data.subtitle || '';
     const badge = data.badge || 'COMBO OFFER';
-    const productIds = data.productIds || [];
+    const productIds = Array.isArray(data.productIds) ? data.productIds : [];
     const originalPrice = Number(data.originalPrice || 0);
     const comboPrice = Number(data.comboPrice || 0);
     const discountPercent = originalPrice > 0 ? Math.round(((originalPrice - comboPrice) / originalPrice) * 100) : 0;
-    const imageUrl = data.imageUrl || '/products/pink-guava-plant.jpeg';
+    const imageUrl = data.imageUrl || undefined;
     const active = data.active !== false;
     const freeDelivery = data.freeDelivery === true;
+
+    const allProducts = await this.getProducts();
+    const prodMap = new Map(allProducts.map(p => [p.id, p]));
+    const matchedProds = productIds.map(pid => prodMap.get(pid)).filter(Boolean) as Product[];
 
     const newCombo: Combo = {
       id,
@@ -6329,10 +6320,11 @@ class Store {
       subtitle,
       badge,
       productIds,
+      products: matchedProds,
       originalPrice,
       comboPrice,
       discountPercent,
-      imageUrl,
+      imageUrl: imageUrl || matchedProds[0]?.images?.[0] || '/products/pink-guava-plant.jpeg',
       active,
       freeDelivery,
       order: 1,
@@ -6340,88 +6332,116 @@ class Store {
       updatedAt: new Date().toISOString()
     };
 
+    // 1. Instant in-memory and disk save
+    memoryCombosStore.unshift(newCombo);
+    saveDiskCombos(memoryCombosStore);
+    deletedComboIds.delete(id);
+
+    // 2. Safe async sync with Prisma
     const prisma = getPrismaClient();
     if (prisma) {
-      try {
-        await prisma.combo.create({
-          data: {
-            id,
-            title,
-            subtitle,
-            badge,
-            productIds,
-            originalPrice,
-            comboPrice,
-            discountPercent,
-            imageUrl,
-            active,
-            freeDelivery
-          }
-        });
-      } catch (err) {
-        console.error('Prisma addCombo error:', err);
-      }
+      prisma.combo.create({
+        data: {
+          id,
+          title,
+          subtitle,
+          badge,
+          productIds,
+          originalPrice,
+          comboPrice,
+          discountPercent,
+          imageUrl: newCombo.imageUrl,
+          active,
+          freeDelivery
+        }
+      }).catch(err => console.error('Prisma addCombo background error:', err));
     }
 
-    memoryCombosStore.unshift(newCombo);
     return newCombo;
   }
 
   async updateCombo(id: string, updates: Partial<Combo>): Promise<Combo | null> {
     const cleanId = (id || '').trim();
+    if (!cleanId) return null;
+
+    const allProducts = await this.getProducts();
+    const prodMap = new Map(allProducts.map(p => [p.id, p]));
+
+    let existingIdx = memoryCombosStore.findIndex(c => c.id === cleanId);
+    let current = existingIdx !== -1 ? memoryCombosStore[existingIdx] : null;
+
+    const origPrice = updates.originalPrice !== undefined ? Number(updates.originalPrice) : (current?.originalPrice || 0);
+    const cmbPrice = updates.comboPrice !== undefined ? Number(updates.comboPrice) : (current?.comboPrice || 0);
+    const disPercent = origPrice > 0 ? Math.round(((origPrice - cmbPrice) / origPrice) * 100) : 0;
+    const pIds = updates.productIds !== undefined ? updates.productIds : (current?.productIds || []);
+    const matchedProds = pIds.map(pid => prodMap.get(pid)).filter(Boolean) as Product[];
+
+    const updatedCombo: Combo = {
+      ...(current || {
+        id: cleanId,
+        title: 'Plant Combo',
+        badge: 'COMBO OFFER',
+        productIds: [],
+        originalPrice: origPrice,
+        comboPrice: cmbPrice,
+        discountPercent: disPercent,
+        active: true,
+        freeDelivery: false,
+        order: 1,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }),
+      ...updates,
+      id: cleanId,
+      originalPrice: origPrice,
+      comboPrice: cmbPrice,
+      discountPercent: disPercent,
+      productIds: pIds,
+      products: matchedProds,
+      updatedAt: new Date().toISOString()
+    };
+
+    if (existingIdx !== -1) {
+      memoryCombosStore[existingIdx] = updatedCombo;
+    } else {
+      memoryCombosStore.unshift(updatedCombo);
+    }
+    saveDiskCombos(memoryCombosStore);
+    deletedComboIds.delete(cleanId);
+
+    // Safe async sync with Prisma
     const prisma = getPrismaClient();
-
     if (prisma) {
-      try {
-        const existing = await prisma.combo.findUnique({ where: { id: cleanId } });
-        if (existing) {
-          const origPrice = updates.originalPrice !== undefined ? Number(updates.originalPrice) : existing.originalPrice;
-          const cmbPrice = updates.comboPrice !== undefined ? Number(updates.comboPrice) : existing.comboPrice;
-          const disPercent = origPrice > 0 ? Math.round(((origPrice - cmbPrice) / origPrice) * 100) : 0;
-
-          const updated = await prisma.combo.update({
-            where: { id: cleanId },
-            data: {
-              ...(updates.title ? { title: updates.title } : {}),
-              ...(updates.subtitle !== undefined ? { subtitle: updates.subtitle } : {}),
-              ...(updates.badge ? { badge: updates.badge } : {}),
-              ...(updates.productIds ? { productIds: updates.productIds } : {}),
-              ...(updates.originalPrice !== undefined ? { originalPrice: origPrice } : {}),
-              ...(updates.comboPrice !== undefined ? { comboPrice: cmbPrice, discountPercent: disPercent } : {}),
-              ...(updates.imageUrl !== undefined ? { imageUrl: updates.imageUrl } : {}),
-              ...(updates.active !== undefined ? { active: updates.active } : {}),
-              ...(updates.freeDelivery !== undefined ? { freeDelivery: updates.freeDelivery } : {})
-            }
-          });
-
-          return {
-            id: updated.id,
-            title: updated.title,
-            subtitle: updated.subtitle || undefined,
-            badge: updated.badge || 'COMBO OFFER',
-            productIds: updated.productIds,
-            originalPrice: updated.originalPrice,
-            comboPrice: updated.comboPrice,
-            discountPercent: updated.discountPercent,
-            imageUrl: updated.imageUrl || undefined,
-            active: updated.active,
-            freeDelivery: updated.freeDelivery,
-            order: updated.order,
-            createdAt: updated.createdAt ? updated.createdAt.toISOString() : new Date().toISOString(),
-            updatedAt: updated.updatedAt ? updated.updatedAt.toISOString() : new Date().toISOString()
-          };
+      prisma.combo.upsert({
+        where: { id: cleanId },
+        create: {
+          id: cleanId,
+          title: updatedCombo.title,
+          subtitle: updatedCombo.subtitle,
+          badge: updatedCombo.badge || 'COMBO OFFER',
+          productIds: updatedCombo.productIds,
+          originalPrice: updatedCombo.originalPrice,
+          comboPrice: updatedCombo.comboPrice,
+          discountPercent: updatedCombo.discountPercent,
+          imageUrl: updatedCombo.imageUrl,
+          active: updatedCombo.active,
+          freeDelivery: updatedCombo.freeDelivery
+        },
+        update: {
+          ...(updates.title ? { title: updates.title } : {}),
+          ...(updates.subtitle !== undefined ? { subtitle: updates.subtitle } : {}),
+          ...(updates.badge ? { badge: updates.badge } : {}),
+          ...(updates.productIds ? { productIds: updates.productIds } : {}),
+          ...(updates.originalPrice !== undefined ? { originalPrice: origPrice } : {}),
+          ...(updates.comboPrice !== undefined ? { comboPrice: cmbPrice, discountPercent: disPercent } : {}),
+          ...(updates.imageUrl !== undefined ? { imageUrl: updates.imageUrl } : {}),
+          ...(updates.active !== undefined ? { active: updates.active } : {}),
+          ...(updates.freeDelivery !== undefined ? { freeDelivery: updates.freeDelivery } : {})
         }
-      } catch (err) {
-        console.error('Prisma updateCombo error:', err);
-      }
+      }).catch(err => console.error('Prisma updateCombo background error:', err));
     }
 
-    const idx = memoryCombosStore.findIndex(c => c.id === cleanId);
-    if (idx !== -1) {
-      memoryCombosStore[idx] = { ...memoryCombosStore[idx], ...updates };
-      return memoryCombosStore[idx];
-    }
-    return null;
+    return updatedCombo;
   }
 
   async deleteCombo(id: string): Promise<boolean> {
@@ -6430,22 +6450,23 @@ class Store {
 
     deletedComboIds.add(cleanId);
 
-    // 1. Remove from in-memory store
+    // 1. Instant remove from in-memory store
     const idx = memoryCombosStore.findIndex(c => c.id === cleanId);
     if (idx !== -1) memoryCombosStore.splice(idx, 1);
 
-    // 2. Remove from default hardcoded combos array so it never reappears on restart
+    // 2. Instant save to disk
+    saveDiskCombos(memoryCombosStore);
+
+    // 3. Remove from default seed combos
     const defIdx = DEFAULT_COMBOS.findIndex(c => c.id === cleanId);
     if (defIdx !== -1) DEFAULT_COMBOS.splice(defIdx, 1);
 
-    // 3. Permanently delete from Prisma PostgreSQL database
+    // 4. Safe async delete from Prisma
     const prisma = getPrismaClient();
     if (prisma) {
-      try {
-        await prisma.combo.deleteMany({ where: { id: cleanId } });
-      } catch (err) {
-        console.error('Prisma deleteCombo error:', err);
-      }
+      prisma.combo.deleteMany({ where: { id: cleanId } }).catch(err => {
+        console.error('Prisma deleteCombo background error:', err);
+      });
     }
     return true;
   }
@@ -6454,13 +6475,10 @@ class Store {
     DEFAULT_COMBOS.forEach(c => deletedComboIds.add(c.id));
     memoryCombosStore.length = 0;
     DEFAULT_COMBOS.length = 0;
+    saveDiskCombos(memoryCombosStore);
     const prisma = getPrismaClient();
     if (prisma) {
-      try {
-        await prisma.combo.deleteMany().catch(() => {});
-      } catch (err) {
-        console.error('Prisma deleteAllCombos error:', err);
-      }
+      prisma.combo.deleteMany().catch(() => {});
     }
     return true;
   }

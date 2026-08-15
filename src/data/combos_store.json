@@ -1,0 +1,22 @@
+[
+  {
+    "id": "combo-rose-trio",
+    "title": "Top 3 Fragrant Rose Saplings Combo",
+    "subtitle": "Damask Paneer Rose + Button Rose + Kashmiri Red Rose",
+    "badge": "3-IN-1 SPECIAL",
+    "productIds": [
+      "prod-damask-rose",
+      "prod-button-rose",
+      "prod-kashmiri-rose"
+    ],
+    "originalPrice": 450,
+    "comboPrice": 299,
+    "discountPercent": 34,
+    "imageUrl": "/products/double-delight.jpeg",
+    "active": true,
+    "freeDelivery": true,
+    "order": 1,
+    "createdAt": "2026-08-15T05:43:39.327Z",
+    "updatedAt": "2026-08-15T05:43:39.332Z"
+  }
+]

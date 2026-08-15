@@ -10,3 +10,10 @@ coverage/
 
 firebase-applet-config.json
 *.json.bak
+*.pdf
+cookies.txt
+scratch/
+extract_phones_for_all_orders.cjs
+list_all_supabase_orders.cjs
+matched_user_orders.json
+orders_with_phones.json

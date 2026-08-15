@@ -924,22 +924,41 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
             </h3>
 
             <div className="space-y-3 max-h-52 sm:max-h-64 overflow-y-auto pr-1.5 overscroll-contain scrollbar-thin">
-              {items.map((item) => (
-                <div key={item.product.id} className="flex gap-2.5 items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200/80">
-                  <img
-                    src={item.product.images[0]}
-                    alt={item.product.name}
-                    className="w-10 h-10 object-cover rounded-lg border shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-slate-800 truncate text-[11px]">{item.product.name}</p>
-                    <p className="text-[10px] text-slate-500 font-mono">
-                      Qty: {item.quantity} × ₹{item.product.sellingPrice}
-                    </p>
+              {items.map((item) => {
+                const isCombo = item.isCombo || item.product.id.startsWith('combo-') || item.product.categoryId === 'combos';
+                const hasFreeDelivery = item.freeDelivery === true || (item.product as any).freeDelivery === true;
+
+                return (
+                  <div key={item.product.id} className="flex gap-2.5 items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200/80">
+                    <div className="relative shrink-0">
+                      <img
+                        src={item.product.images[0] || '/products/double-delight.jpeg'}
+                        alt={item.product.name}
+                        className="w-10 h-10 object-cover rounded-lg border"
+                      />
+                      {isCombo && (
+                        <span className="absolute -top-1.5 -left-1.5 bg-amber-600 text-white font-black text-[7px] px-1 py-0.2 rounded-full uppercase">
+                          {item.comboBadge || 'COMBO'}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-bold text-slate-800 truncate text-[11px]">{item.product.name}</p>
+                        {hasFreeDelivery && (
+                          <span className="text-[9px] font-bold text-emerald-700 bg-emerald-100 px-1 py-0.2 rounded shrink-0">
+                            Free Shipping
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-slate-500 font-mono">
+                        Qty: {item.quantity} × ₹{item.product.sellingPrice}
+                      </p>
+                    </div>
+                    <span className="font-bold text-slate-900 text-xs">₹{item.product.sellingPrice * item.quantity}</span>
                   </div>
-                  <span className="font-bold text-slate-900">₹{item.product.sellingPrice * item.quantity}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Plant Pot Requirement Options */}

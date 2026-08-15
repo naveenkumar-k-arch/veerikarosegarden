@@ -122,53 +122,77 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               </button>
             </div>
           ) : (
-            items.map((item) => (
-              <div
-                key={item.product.id}
-                className="flex gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-200/80 items-center justify-between"
-              >
-                <img
-                  src={item.product.images[0] || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=300&q=80'}
-                  alt={item.product.name}
-                  className="w-16 h-16 object-cover rounded-xl border border-slate-200 shrink-0"
-                />
+            items.map((item) => {
+              const isCombo = item.isCombo || item.product.id.startsWith('combo-') || item.product.categoryId === 'combos';
+              const hasFreeDelivery = item.freeDelivery === true || (item.product as any).freeDelivery === true;
 
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-xs text-slate-900 truncate">{item.product.name}</h4>
-                  <p className="text-[11px] text-emerald-800 font-medium truncate">{item.product.tamilName}</p>
-                  <p className="text-xs font-bold text-slate-800 mt-1">₹{item.product.sellingPrice}</p>
-                </div>
+              return (
+                <div
+                  key={item.product.id}
+                  className="flex gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-200/80 items-center justify-between"
+                >
+                  <div className="relative shrink-0">
+                    <img
+                      src={item.product.images[0] || '/products/double-delight.jpeg'}
+                      alt={item.product.name}
+                      className="w-16 h-16 object-cover rounded-xl border border-slate-200"
+                    />
+                    {isCombo && (
+                      <span className="absolute -top-1.5 -left-1.5 bg-amber-600 text-white font-black text-[8px] px-1.5 py-0.5 rounded-full shadow-xs uppercase">
+                        {item.comboBadge || 'COMBO'}
+                      </span>
+                    )}
+                  </div>
 
-                <div className="flex flex-col items-end gap-2">
-                  <button
-                    onClick={() => onRemoveItem(item.product.id)}
-                    className="text-slate-400 hover:text-rose-600 transition-colors p-1"
-                    title="Remove item"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-bold text-xs text-slate-900 truncate">{item.product.name}</h4>
+                    {item.product.tamilName && (
+                      <p className="text-[11px] text-emerald-800 font-medium truncate">{item.product.tamilName}</p>
+                    )}
+                    {hasFreeDelivery && (
+                      <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-1.5 py-0.2 rounded mt-0.5">
+                        <Truck className="w-2.5 h-2.5" /> Free Delivery
+                      </span>
+                    )}
+                    <div className="flex items-baseline gap-1.5 mt-0.5">
+                      <span className="text-xs font-bold text-slate-800">₹{item.product.sellingPrice}</span>
+                      {item.product.mrp > item.product.sellingPrice && (
+                        <span className="text-[10px] text-slate-400 line-through">₹{item.product.mrp}</span>
+                      )}
+                    </div>
+                  </div>
 
-                  <div className="flex items-center border border-slate-300 rounded-lg bg-white">
+                  <div className="flex flex-col items-end gap-2 shrink-0">
                     <button
-                      onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
-                      className="p-1 text-slate-600 hover:bg-slate-100 rounded-l-lg"
-                      title="Decrease quantity"
+                      onClick={() => onRemoveItem(item.product.id)}
+                      className="text-slate-400 hover:text-rose-600 transition-colors p-1"
+                      title="Remove item"
                     >
-                      <Minus className="w-3.5 h-3.5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
-                    <span className="px-2.5 text-xs font-bold text-slate-800">{item.quantity}</span>
-                    <button
-                      onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
-                      disabled={item.quantity >= 20}
-                      className="p-1 text-slate-600 hover:bg-slate-100 rounded-r-lg disabled:opacity-30 disabled:cursor-not-allowed"
-                      title={item.quantity >= 20 ? "Maximum 20 plants per item" : "Increase quantity"}
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                    </button>
+
+                    <div className="flex items-center border border-slate-300 rounded-lg bg-white">
+                      <button
+                        onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
+                        className="p-1 text-slate-600 hover:bg-slate-100 rounded-l-lg"
+                        title="Decrease quantity"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="px-2.5 text-xs font-bold text-slate-800">{item.quantity}</span>
+                      <button
+                        onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
+                        disabled={item.quantity >= 20}
+                        className="p-1 text-slate-600 hover:bg-slate-100 rounded-r-lg disabled:opacity-30 disabled:cursor-not-allowed"
+                        title={item.quantity >= 20 ? "Maximum 20 plants per item" : "Increase quantity"}
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 

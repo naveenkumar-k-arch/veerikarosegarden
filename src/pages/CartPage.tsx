@@ -124,69 +124,121 @@ export const CartPage: React.FC<CartPageProps> = ({
         {/* Cart Items List */}
         <div className="lg:col-span-2 space-y-4">
           <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs divide-y divide-slate-100 overflow-hidden">
-            {items.map((item) => (
-              <div key={item.product.id} className="p-4 sm:p-5 flex gap-4 items-center">
-                <img
-                  src={item.product.images?.[0] || '/products/double-delight.jpeg'}
-                  alt={item.product.name}
-                  className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-2xl border border-slate-200/80 shrink-0 bg-slate-50"
-                />
+            {items.map((item) => {
+              const isCombo = item.isCombo || item.product.id.startsWith('combo-') || item.product.categoryId === 'combos';
+              const hasFreeDelivery = item.freeDelivery === true || (item.product as any).freeDelivery === true;
+              const hasDiscount = item.product.mrp > item.product.sellingPrice;
+              const discountPercent = hasDiscount ? Math.round(((item.product.mrp - item.product.sellingPrice) / item.product.mrp) * 100) : 0;
 
-                <div className="flex-1 min-w-0 space-y-1">
-                  <h3 className="font-bold text-slate-900 text-sm sm:text-base truncate">
-                    {item.product.name}
-                  </h3>
-                  {item.product.tamilName && (
-                    <p className="text-xs font-medium text-emerald-700 font-sans">
-                      {item.product.tamilName}
-                    </p>
-                  )}
-                  <p className="text-xs font-extrabold text-slate-900">
-                    ₹{item.product.sellingPrice}{' '}
-                    {item.product.mrp > item.product.sellingPrice && (
-                      <span className="line-through text-slate-400 font-normal text-[11px] ml-1">
-                        ₹{item.product.mrp}
+              return (
+                <div key={item.product.id} className="p-4 sm:p-5 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                  <div className="relative shrink-0">
+                    <img
+                      src={item.product.images?.[0] || '/products/double-delight.jpeg'}
+                      alt={item.product.name}
+                      className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-2xl border border-slate-200/80 bg-slate-50"
+                    />
+                    {isCombo && (
+                      <span className="absolute -top-2 -left-2 bg-gradient-to-r from-amber-600 to-rose-600 text-white font-black text-[9px] px-2 py-0.5 rounded-full shadow-sm tracking-wider uppercase">
+                        {item.comboBadge || 'COMBO'}
                       </span>
                     )}
-                  </p>
+                  </div>
 
-                  <div className="flex items-center gap-3 pt-2">
-                    {/* Quantity controls */}
-                    <div className="flex items-center border border-slate-200 bg-slate-50 rounded-xl">
-                      <button
-                        onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
-                        className="p-1.5 text-slate-600 hover:text-emerald-700 cursor-pointer"
-                        aria-label="Decrease quantity"
-                      >
-                        <Minus className="w-3.5 h-3.5" />
-                      </button>
-                      <span className="px-3 font-extrabold text-xs text-slate-900 font-mono">
-                        {item.quantity}
-                      </span>
-                      <button
-                        onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
-                        className="p-1.5 text-slate-600 hover:text-emerald-700 cursor-pointer"
-                        aria-label="Increase quantity"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                      </button>
+                  <div className="flex-1 min-w-0 space-y-1.5 w-full">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-bold text-slate-900 text-sm sm:text-base">
+                        {item.product.name}
+                      </h3>
+                      {hasFreeDelivery && (
+                        <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 font-extrabold text-[10px] px-2 py-0.5 rounded-md">
+                          <Truck className="w-3 h-3 text-emerald-600" /> Free Delivery
+                        </span>
+                      )}
+                      {discountPercent > 0 && (
+                        <span className="bg-rose-50 text-rose-700 font-black text-[10px] px-1.5 py-0.5 rounded-md border border-rose-200">
+                          {discountPercent}% OFF
+                        </span>
+                      )}
                     </div>
 
-                    <button
-                      onClick={() => onRemoveItem(item.product.id)}
-                      className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                      title="Remove plant"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {item.product.tamilName && (
+                      <p className="text-xs font-medium text-emerald-700 font-sans">
+                        {item.product.tamilName}
+                      </p>
+                    )}
+
+                    {/* Included plants in combo bundle */}
+                    {isCombo && item.comboProducts && item.comboProducts.length > 0 && (
+                      <div className="bg-amber-50/70 border border-amber-200/60 rounded-xl p-2 text-[11px] text-amber-950 font-medium space-y-1">
+                        <span className="font-bold text-amber-900 flex items-center gap-1">
+                          <span>🌿 Included in Bundle ({item.comboProducts.length} Plants):</span>
+                        </span>
+                        <div className="flex flex-wrap gap-1.5 pt-0.5">
+                          {item.comboProducts.map((p, idx) => (
+                            <span key={p.id || idx} className="bg-white px-2 py-0.5 rounded-md text-[10px] font-semibold text-slate-700 border border-amber-200">
+                              {p.name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-baseline gap-2 pt-0.5">
+                      <span className="text-sm sm:text-base font-black text-slate-900">
+                        ₹{item.product.sellingPrice}
+                      </span>
+                      {hasDiscount && (
+                        <span className="line-through text-slate-400 font-normal text-xs">
+                          ₹{item.product.mrp}
+                        </span>
+                      )}
+                      <span className="text-[11px] text-slate-400 font-medium">per package</span>
+                    </div>
+
+                    <div className="flex items-center justify-between sm:justify-start gap-4 pt-2">
+                      {/* Quantity controls */}
+                      <div className="flex items-center border border-slate-200 bg-slate-50 rounded-xl">
+                        <button
+                          onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
+                          className="p-1.5 text-slate-600 hover:text-emerald-700 cursor-pointer"
+                          aria-label="Decrease quantity"
+                        >
+                          <Minus className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="px-3 font-extrabold text-xs text-slate-900 font-mono">
+                          {item.quantity}
+                        </span>
+                        <button
+                          onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
+                          className="p-1.5 text-slate-600 hover:text-emerald-700 cursor-pointer"
+                          aria-label="Increase quantity"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      <button
+                        onClick={() => onRemoveItem(item.product.id)}
+                        className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1 text-xs font-bold"
+                        title="Remove item"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        <span className="sm:hidden text-[11px]">Remove</span>
+                      </button>
+
+                      <div className="sm:hidden text-right font-black text-slate-900 text-sm">
+                        ₹{item.product.sellingPrice * item.quantity}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="hidden sm:block text-right font-black text-slate-900 text-base shrink-0">
+                    ₹{item.product.sellingPrice * item.quantity}
                   </div>
                 </div>
-
-                <div className="text-right font-extrabold text-slate-900 text-sm sm:text-base shrink-0">
-                  ₹{item.product.sellingPrice * item.quantity}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Plant Pot Requirement Selection */}

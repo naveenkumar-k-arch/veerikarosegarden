@@ -7,16 +7,33 @@ interface SplashScreenProps {
 export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
   const [phase, setPhase] = useState<'title-in' | 'hold' | 'open' | 'done'>('title-in');
 
+  const handleDismiss = () => {
+    try {
+      sessionStorage.setItem('vrg_splash_shown', 'true');
+    } catch {}
+    setPhase('done');
+    onComplete();
+  };
+
   useEffect(() => {
-    // Phase 1: title animates in (0ms → 1200ms)
-    const t1 = setTimeout(() => setPhase('hold'), 1200);
-    // Phase 2: hold (1200ms → 2600ms)
-    const t2 = setTimeout(() => setPhase('open'), 2600);
-    // Phase 3: curtains open (2600ms → 3500ms), then fire onComplete
+    try {
+      if (sessionStorage.getItem('vrg_splash_shown') === 'true') {
+        onComplete();
+        setPhase('done');
+        return;
+      }
+      sessionStorage.setItem('vrg_splash_shown', 'true');
+    } catch {}
+
+    // Phase 1: title animates in (0ms → 200ms)
+    const t1 = setTimeout(() => setPhase('hold'), 200);
+    // Phase 2: hold (200ms → 450ms)
+    const t2 = setTimeout(() => setPhase('open'), 450);
+    // Phase 3: curtains open smoothly (450ms → 800ms)
     const t3 = setTimeout(() => {
       setPhase('done');
       onComplete();
-    }, 3500);
+    }, 800);
 
     return () => {
       clearTimeout(t1);
@@ -30,11 +47,13 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
   return (
     <div
       id="splash-screen"
+      onClick={handleDismiss}
       style={{
         position: 'fixed',
         inset: 0,
         zIndex: 9999,
         display: 'flex',
+        cursor: 'pointer',
         pointerEvents: phase === 'open' ? 'none' : 'all',
       }}
     >
@@ -48,7 +67,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
           height: '100%',
           background: 'linear-gradient(135deg, #0f1a0e 0%, #1a2e1a 40%, #0d2218 100%)',
           transform: phase === 'open' ? 'translateX(-100%)' : 'translateX(0)',
-          transition: phase === 'open' ? 'transform 0.9s cubic-bezier(0.76, 0, 0.24, 1)' : 'none',
+          transition: phase === 'open' ? 'transform 0.4s cubic-bezier(0.76, 0, 0.24, 1)' : 'none',
           zIndex: 2,
         }}
       />
@@ -62,7 +81,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
           height: '100%',
           background: 'linear-gradient(225deg, #0f1a0e 0%, #1a2e1a 40%, #0d2218 100%)',
           transform: phase === 'open' ? 'translateX(100%)' : 'translateX(0)',
-          transition: phase === 'open' ? 'transform 0.9s cubic-bezier(0.76, 0, 0.24, 1)' : 'none',
+          transition: phase === 'open' ? 'transform 0.4s cubic-bezier(0.76, 0, 0.24, 1)' : 'none',
           zIndex: 2,
         }}
       />

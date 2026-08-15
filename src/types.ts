@@ -62,6 +62,12 @@ export interface Category {
 export interface CartItem {
   product: Product;
   quantity: number;
+  isCombo?: boolean;
+  comboId?: string;
+  comboTitle?: string;
+  comboBadge?: string;
+  freeDelivery?: boolean;
+  comboProducts?: Product[];
 }
 
 export interface ShippingAddress {

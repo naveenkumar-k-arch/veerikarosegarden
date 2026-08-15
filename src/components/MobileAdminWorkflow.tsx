@@ -248,6 +248,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   // ==================== COMBO MODAL STATE ====================
   const [showComboModal, setShowComboModal] = useState(false);
   const [editingCombo, setEditingCombo] = useState<Combo | null>(null);
+  const [savingCombo, setSavingCombo] = useState(false);
   const [comboForm, setComboForm] = useState({
     title: '',
     subtitle: '',
@@ -3871,6 +3872,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
+                setSavingCombo(true);
                 try {
                   if (onSaveCombo) {
                     await onSaveCombo({
@@ -3889,6 +3891,8 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                   handleCloseModal(() => setShowComboModal(false));
                 } catch (err: any) {
                   alert(err?.message || 'Failed to save combo offer');
+                } finally {
+                  setSavingCombo(false);
                 }
               }}
               className="p-4 overflow-y-auto space-y-3 text-xs"
@@ -3962,9 +3966,11 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                           checked={isSelected}
                           onChange={() => {
                             if (isSelected) {
-                              setComboForm(prev => ({ ...prev, productIds: prev.productIds.filter(id => id !== p.id) }));
+                              const nextIds = comboForm.productIds.filter(id => id !== p.id);
+                              setComboForm(prev => ({ ...prev, productIds: nextIds }));
                             } else {
-                              setComboForm(prev => ({ ...prev, productIds: [...prev.productIds, p.id] }));
+                              const nextIds = [...comboForm.productIds, p.id];
+                              setComboForm(prev => ({ ...prev, productIds: nextIds }));
                             }
                           }}
                           className="w-3.5 h-3.5 text-emerald-700 rounded"
@@ -4010,9 +4016,10 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
               <button
                 type="submit"
-                className="w-full py-3 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
+                disabled={savingCombo}
+                className="w-full py-3 bg-[#14532d] hover:bg-[#0f3d21] disabled:bg-slate-400 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2"
               >
-                {editingCombo ? 'Save Combo Changes' : 'Publish Combo Offer'}
+                {savingCombo ? 'Saving Combo Package...' : (editingCombo ? 'Save Combo Changes' : 'Publish Combo Offer')}
               </button>
             </form>
           </div>

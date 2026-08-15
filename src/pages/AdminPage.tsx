@@ -1503,31 +1503,69 @@ const silentRefresh = async (): Promise<boolean> => {
             const isEdit = Boolean(comboData.id);
             const url = isEdit ? `/api/admin/combos/${comboData.id}` : '/api/admin/combos';
             const method = isEdit ? 'PUT' : 'POST';
+
+            // Map products list for instant display
+            const prodMap = new Map(products.map(p => [p.id, p]));
+            const matchedProds = (comboData.productIds || []).map((pid: string) => prodMap.get(pid)).filter(Boolean) as Product[];
+            const fullComboItem = {
+              ...comboData,
+              products: matchedProds,
+              id: comboData.id || 'combo-' + Date.now()
+            };
+
             if (isEdit) {
-              setCombos(prev => prev.map(c => c.id === comboData.id ? { ...c, ...comboData } : c));
+              setCombos(prev => {
+                const next = prev.map(c => c.id === comboData.id ? { ...c, ...fullComboItem } : c);
+                try {
+                  const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
+                  cached.combos = next;
+                  localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+                } catch {}
+                return next;
+              });
             } else {
-              setCombos(prev => [{ ...comboData, id: 'combo-' + Date.now() }, ...prev]);
+              setCombos(prev => {
+                const next = [fullComboItem, ...prev];
+                try {
+                  const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
+                  cached.combos = next;
+                  localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+                } catch {}
+                return next;
+              });
             }
+
+            window.dispatchEvent(new CustomEvent('vrg_combos_updated'));
+
             try {
               const res = await authFetch(url, { method, body: JSON.stringify(comboData) });
               const data = await res.json().catch(() => null);
-              if (data && !data.success) throw new Error(data.message || 'Failed to save combo offer');
-              await fetchData();
+              if (data && data.success && data.combo) {
+                setCombos(prev => prev.map(c => (c.id === data.combo.id || c.id === comboData.id) ? { ...c, ...data.combo } : c));
+              }
+              window.dispatchEvent(new CustomEvent('vrg_combos_updated'));
             } catch (e: any) {
               console.error('Error in onSaveCombo:', e);
-              await fetchData();
               throw e;
             }
           }}
           onDeleteCombo={async (id) => {
             if (!confirm('Are you sure you want to delete this combo offer?')) return;
-            setCombos(prev => prev.filter(c => c.id !== id));
+            setCombos(prev => {
+              const next = prev.filter(c => c.id !== id);
+              try {
+                const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
+                cached.combos = next;
+                localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+              } catch {}
+              return next;
+            });
+            window.dispatchEvent(new CustomEvent('vrg_combos_updated'));
+
             try {
               await authFetch(`/api/admin/combos/${id}`, { method: 'DELETE' });
-              await fetchData();
             } catch (e) {
               console.error(e);
-              await fetchData();
             }
           }}
           onSaveFinance={async (fnData) => {
@@ -3072,18 +3110,24 @@ const silentRefresh = async (): Promise<boolean> => {
                               <button
                                 onClick={async () => {
                                   if (!confirm(`Delete combo package "${combo.title}"?`)) return;
-                                  setCombos(prev => prev.filter(c => c.id !== combo.id));
+                                  const id = combo.id;
+                                  setCombos(prev => {
+                                    const next = prev.filter(c => c.id !== id);
+                                    try {
+                                      const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
+                                      cached.combos = next;
+                                      localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+                                    } catch {}
+                                    return next;
+                                  });
+                                  window.dispatchEvent(new CustomEvent('vrg_combos_updated'));
                                   try {
-                                    const res = await authFetch(`/api/admin/combos/${combo.id}`, { method: 'DELETE' });
-                                    const data = await res.json().catch(() => ({}));
-                                    if (!data.success) {
-                                      await authFetch(`/api/admin/combos/${combo.id}/delete`, { method: 'POST' });
-                                    }
-                                  } catch {
-                                    await authFetch(`/api/admin/combos/${combo.id}/delete`, { method: 'POST' }).catch(() => {});
+                                    await authFetch(`/api/admin/combos/${id}`, { method: 'DELETE' });
+                                  } catch (e) {
+                                    console.error('Error deleting combo:', e);
                                   }
                                 }}
-                                className="p-1.5 bg-rose-50 text-rose-600 rounded-lg border border-rose-200 hover:bg-rose-100"
+                                className="p-1.5 bg-rose-50 text-rose-600 rounded-lg border border-rose-200 hover:bg-rose-100 cursor-pointer"
                                 title="Delete Combo"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -4997,28 +5041,63 @@ const silentRefresh = async (): Promise<boolean> => {
                   comboPrice: Number(comboForm.comboPrice || 0)
                 };
 
+                const prodMap = new Map(products.map(p => [p.id, p]));
+                const matchedProds = (comboForm.productIds || []).map(pid => prodMap.get(pid)).filter(Boolean) as Product[];
+                const fullComboItem = {
+                  ...payload,
+                  products: matchedProds,
+                  id: editingCombo?.id || 'combo-' + Date.now()
+                };
+
                 if (editingCombo) {
-                  const res = await authFetch(`/api/admin/combos/${editingCombo.id}`, {
-                    method: 'PUT',
-                    body: JSON.stringify(payload)
+                  setCombos(prev => {
+                    const next = prev.map(c => c.id === editingCombo.id ? { ...c, ...fullComboItem } : c);
+                    try {
+                      const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
+                      cached.combos = next;
+                      localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+                    } catch {}
+                    return next;
                   });
-                  const data = await res.json();
-                  if (data.success) {
-                    setCombos(prev => prev.map(c => c.id === editingCombo.id ? { ...c, ...payload } : c));
-                  }
                 } else {
-                  const res = await authFetch('/api/admin/combos', {
-                    method: 'POST',
-                    body: JSON.stringify(payload)
+                  setCombos(prev => {
+                    const next = [fullComboItem, ...prev];
+                    try {
+                      const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
+                      cached.combos = next;
+                      localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+                    } catch {}
+                    return next;
                   });
-                  const data = await res.json();
-                  if (data.success && data.combo) {
-                    setCombos(prev => [data.combo, ...prev]);
-                  }
                 }
 
+                window.dispatchEvent(new CustomEvent('vrg_combos_updated'));
                 setShowComboModal(false);
-                setTimeout(() => fetchData(), 1000);
+
+                try {
+                  if (editingCombo) {
+                    const res = await authFetch(`/api/admin/combos/${editingCombo.id}`, {
+                      method: 'PUT',
+                      body: JSON.stringify(payload)
+                    });
+                    const data = await res.json().catch(() => null);
+                    if (data && data.success && data.combo) {
+                      setCombos(prev => prev.map(c => c.id === data.combo.id ? { ...c, ...data.combo } : c));
+                    }
+                  } else {
+                    const res = await authFetch('/api/admin/combos', {
+                      method: 'POST',
+                      body: JSON.stringify(payload)
+                    });
+                    const data = await res.json().catch(() => null);
+                    if (data && data.success && data.combo) {
+                      setCombos(prev => prev.map(c => c.id === fullComboItem.id ? { ...c, ...data.combo } : c));
+                    }
+                  }
+                  window.dispatchEvent(new CustomEvent('vrg_combos_updated'));
+                } catch (err) {
+                  console.error('Error saving combo:', err);
+                }
               }}
               className="flex-1 flex flex-col min-h-0"
             >

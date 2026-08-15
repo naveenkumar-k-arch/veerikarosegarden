@@ -47,7 +47,7 @@ apiRouter.get('/health', async (req, res) => {
 // ================= PRODUCT ROUTES =================
 apiRouter.get('/products', async (req, res) => {
   try {
-    res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=120');
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
     const { search, categoryId, featured, bestSeller, minPrice, maxPrice, sort } = req.query;
     const hasFilter = Boolean(search || categoryId || featured === 'true' || bestSeller === 'true' || minPrice || maxPrice || sort);
     const products = await db.getProducts(hasFilter ? {
@@ -122,7 +122,7 @@ apiRouter.delete('/products/:id', requireAdmin, async (req: AuthenticatedRequest
 // ================= CATEGORY ROUTES =================
 apiRouter.get('/categories', async (req, res) => {
   try {
-    res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=120');
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
     const { onlyFeatured, showAll } = req.query;
     const isFeaturedOnly = onlyFeatured === 'true';
     const isShowAll = showAll === 'true';
@@ -300,7 +300,7 @@ const DEFAULT_BANNERS = [
 
 apiRouter.get('/banners', async (req, res) => {
   try {
-    res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=120');
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
     let banners = await db.getBanners();
     // Auto-seed default banners if table is empty
     if (!banners || banners.length === 0) {
@@ -462,7 +462,7 @@ apiRouter.delete('/admin/coupons/:id', requireAdmin, handleDeleteCoupon);
 // ================= COMBOS & OFFERS =================
 apiRouter.get('/combos', async (req, res) => {
   try {
-    res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=120');
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
     const combos = await db.getCombos();
     res.json({ success: true, count: combos.length, combos });
   } catch (error: any) {
@@ -512,7 +512,7 @@ apiRouter.post('/combos/delete', requireAdmin, handleDeleteCombo);
 // ================= REVIEWS =================
 apiRouter.get('/reviews', async (req, res) => {
   try {
-    res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=120');
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
     const { productId } = req.query;
     const reviews = await db.getReviews(productId as string | undefined);
     res.json({ success: true, reviews });
@@ -605,6 +605,7 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
     const verifiedItems = [];
 
     const allProducts = await db.getProducts();
+    const allCombos = await db.getCombos();
 
     for (const item of items) {
       if (!item || !item.productId) {
@@ -615,6 +616,28 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
       const validQty = Math.max(1, Math.floor(Number(item.quantity) || 1));
       if (isNaN(validQty) || validQty < 1) {
         return res.status(400).json({ success: false, message: 'Quantity must be a positive integer.' });
+      }
+
+      // Check if it's a combo item
+      const matchedCombo = allCombos.find(c => c.id === item.productId || (item.productId && item.productId.includes(c.id)));
+      if (matchedCombo) {
+        const verifiedPrice = Number(matchedCombo.comboPrice);
+        const itemTotal = verifiedPrice * validQty;
+        calculatedSubtotal += itemTotal;
+
+        verifiedItems.push({
+          productId: matchedCombo.id,
+          sku: 'CMB-' + matchedCombo.id.slice(-6),
+          name: matchedCombo.title,
+          tamilName: matchedCombo.subtitle || 'சிறப்பு சேர்க்கை தொகுப்பு',
+          price: verifiedPrice,
+          mrp: Number(matchedCombo.originalPrice || verifiedPrice),
+          quantity: validQty,
+          image: matchedCombo.imageUrl || matchedCombo.products?.[0]?.images?.[0] || '',
+          freeDelivery: matchedCombo.freeDelivery === true,
+          isCombo: true
+        });
+        continue;
       }
 
       // Strictly lookup product from Server Database — NEVER trust client-supplied prices

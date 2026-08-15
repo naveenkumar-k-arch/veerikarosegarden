@@ -6,24 +6,25 @@ import { Header } from './components/Header';
 import { SecondaryNavbar } from './components/SecondaryNavbar';
 import { Footer } from './components/Footer';
 import { CartDrawer } from './components/CartDrawer';
-import { PlantCareModal } from './components/PlantCareModal';
-import { PhonePeModal } from './components/PhonePeModal';
-import { ExpertAdviceModal } from './components/ExpertAdviceModal';
 import { SplashScreen } from './components/SplashScreen';
-import { MobileCheckoutFlow } from './components/MobileCheckoutFlow';
 import { ToastContainer } from './components/ToastContainer';
 
 import { HomePage } from './pages/HomePage';
-import { ShopPage } from './pages/ShopPage';
-import { ProductDetailsPage } from './pages/ProductDetailsPage';
-import { CartPage } from './pages/CartPage';
 
+const ShopPage = React.lazy(() => import('./pages/ShopPage').then(m => ({ default: m.ShopPage })));
+const ProductDetailsPage = React.lazy(() => import('./pages/ProductDetailsPage').then(m => ({ default: m.ProductDetailsPage })));
+const CartPage = React.lazy(() => import('./pages/CartPage').then(m => ({ default: m.CartPage })));
 const CheckoutPage = React.lazy(() => import('./pages/CheckoutPage').then(m => ({ default: m.CheckoutPage })));
 const OrderStatusPage = React.lazy(() => import('./pages/OrderStatusPage').then(m => ({ default: m.OrderStatusPage })));
 const AccountPage = React.lazy(() => import('./pages/AccountPage').then(m => ({ default: m.AccountPage })));
 const PoliciesPage = React.lazy(() => import('./pages/PoliciesPage').then(m => ({ default: m.PoliciesPage })));
 const AdminPage = React.lazy(() => import('./pages/AdminPage').then(m => ({ default: m.AdminPage })));
 const AdminLoginForm = React.lazy(() => import('./components/AdminLoginForm').then(m => ({ default: m.AdminLoginForm })));
+
+const PlantCareModal = React.lazy(() => import('./components/PlantCareModal').then(m => ({ default: m.PlantCareModal })));
+const PhonePeModal = React.lazy(() => import('./components/PhonePeModal').then(m => ({ default: m.PhonePeModal })));
+const ExpertAdviceModal = React.lazy(() => import('./components/ExpertAdviceModal').then(m => ({ default: m.ExpertAdviceModal })));
+const MobileCheckoutFlow = React.lazy(() => import('./components/MobileCheckoutFlow').then(m => ({ default: m.MobileCheckoutFlow })));
 
 import { INITIAL_PRODUCTS, INITIAL_CATEGORIES } from './data/catalogData';
 
@@ -32,13 +33,21 @@ import { calculateDeliveryFee } from './utils/delivery';
 import { toast } from './utils/toast';
 
 export const App: React.FC = () => {
-  // Splash Screen State — only shows on initial load/refresh if landing on Home page ('/' or '')
+  // Splash Screen State — only shows once on very first visit in session if landing on Home page
   const [showSplash, setShowSplash] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
+    try {
+      if (sessionStorage.getItem('vrg_splash_shown') === 'true') return false;
+    } catch {}
     const pathname = window.location.pathname.trim().replace(/\/+$/, '') || '/';
     return pathname === '/' || pathname === '';
   });
-  const handleSplashComplete = useCallback(() => setShowSplash(false), []);
+  const handleSplashComplete = useCallback(() => {
+    try {
+      sessionStorage.setItem('vrg_splash_shown', 'true');
+    } catch {}
+    setShowSplash(false);
+  }, []);
 
   // Helper to parse URL path into page name & param ID for multi-page routing
   const getPageFromUrl = (pathname: string): { page: string; paramId?: string } => {
@@ -563,18 +572,37 @@ export const App: React.FC = () => {
   }, [user]);
 
   // Cart Operations
-  const handleAddToCart = (product: Product, quantity = 1) => {
+  const handleAddToCart = (product: Product, quantity = 1, meta?: {
+    isCombo?: boolean;
+    comboId?: string;
+    comboTitle?: string;
+    comboBadge?: string;
+    freeDelivery?: boolean;
+    comboProducts?: Product[];
+  }) => {
     toast.success(`Added "${product.name}" to cart (${quantity > 1 ? quantity + ' items' : '1 item'})!`, 'Cart Updated');
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
       if (existing) {
         return prev.map((item) =>
           item.product.id === product.id
-            ? { ...item, quantity: Math.min(20, item.quantity + quantity) }
+            ? { ...item, quantity: Math.min(20, item.quantity + quantity), ...(meta || {}) }
             : item
         );
       }
-      return [...prev, { product, quantity: Math.min(20, Math.max(1, quantity)) }];
+      return [
+        ...prev,
+        {
+          product,
+          quantity: Math.min(20, Math.max(1, quantity)),
+          isCombo: meta?.isCombo || (product as any).isCombo || product.id.startsWith('combo-'),
+          comboId: meta?.comboId || (product.id.startsWith('combo-') ? product.id : undefined),
+          comboTitle: meta?.comboTitle || (product.id.startsWith('combo-') ? product.name : undefined),
+          comboBadge: meta?.comboBadge,
+          freeDelivery: meta?.freeDelivery ?? (product as any).freeDelivery ?? false,
+          comboProducts: meta?.comboProducts || []
+        }
+      ];
     });
   };
 
@@ -1173,57 +1201,64 @@ export const App: React.FC = () => {
         appliedCoupon={appliedCoupon}
       />
 
-      {/* Plant Care Advice Modal */}
-      {careGuideProduct && (
-        <PlantCareModal
-          product={careGuideProduct}
-          onClose={() => setCareGuideProduct(null)}
-        />
-      )}
+      {/* Lazy Modals & Checkout Flow */}
+      <React.Suspense fallback={null}>
+        {/* Plant Care Advice Modal */}
+        {careGuideProduct && (
+          <PlantCareModal
+            product={careGuideProduct}
+            onClose={() => setCareGuideProduct(null)}
+          />
+        )}
 
-      {/* Expert Advice & Call Helpline Modal */}
-      <ExpertAdviceModal
-        isOpen={isExpertAdviceOpen}
-        onClose={() => setIsExpertAdviceOpen(false)}
-      />
+        {/* Expert Advice & Call Helpline Modal */}
+        {isExpertAdviceOpen && (
+          <ExpertAdviceModal
+            isOpen={isExpertAdviceOpen}
+            onClose={() => setIsExpertAdviceOpen(false)}
+          />
+        )}
 
-      {/* PhonePe PG Modal */}
-      {phonepeModal && phonepeModal.open && (
-        <PhonePeModal
-          merchantTransactionId={phonepeModal.merchantTxnId}
-          amount={phonepeModal.amount}
-          orderId={phonepeModal.orderId}
-          payUrl={phonepeModal.payUrl}
-          onSuccess={(oid) => {
-            setPhonepeModal(null);
-            navigateTo('order-status', { orderId: oid || phonepeModal.orderId });
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-          onFailure={(err) => {
-            setPhonepeModal(null);
-            alert(`Payment failed: ${err}`);
-          }}
-          onCancel={() => setPhonepeModal(null)}
-        />
-      )}
+        {/* PhonePe PG Modal */}
+        {phonepeModal && phonepeModal.open && (
+          <PhonePeModal
+            merchantTransactionId={phonepeModal.merchantTxnId}
+            amount={phonepeModal.amount}
+            orderId={phonepeModal.orderId}
+            payUrl={phonepeModal.payUrl}
+            onSuccess={(oid) => {
+              setPhonepeModal(null);
+              navigateTo('order-status', { orderId: oid || phonepeModal.orderId });
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onFailure={(err) => {
+              setPhonepeModal(null);
+              alert(`Payment failed: ${err}`);
+            }}
+            onCancel={() => setPhonepeModal(null)}
+          />
+        )}
 
-      {/* Mobile Multi-Step Checkout Flow — full-screen, mobile only */}
-      <MobileCheckoutFlow
-        isOpen={isMobileCheckoutOpen}
-        onClose={() => setIsMobileCheckoutOpen(false)}
-        items={cart}
-        user={user}
-        appliedCoupon={appliedCoupon}
-        onApplyCoupon={handleApplyCoupon}
-        onRemoveCoupon={() => setAppliedCoupon(null)}
-        onPlaceOrder={handlePlaceOrder}
-        onUpdateQuantity={handleUpdateCartQty}
-        onRemoveItem={handleRemoveFromCart}
-        onNavigateToAccount={() => {
-          setIsMobileCheckoutOpen(false);
-          navigateTo('account');
-        }}
-      />
+        {/* Mobile Multi-Step Checkout Flow — full-screen, mobile only */}
+        {isMobileCheckoutOpen && (
+          <MobileCheckoutFlow
+            isOpen={isMobileCheckoutOpen}
+            onClose={() => setIsMobileCheckoutOpen(false)}
+            items={cart}
+            user={user}
+            appliedCoupon={appliedCoupon}
+            onApplyCoupon={handleApplyCoupon}
+            onRemoveCoupon={() => setAppliedCoupon(null)}
+            onPlaceOrder={handlePlaceOrder}
+            onUpdateQuantity={handleUpdateCartQty}
+            onRemoveItem={handleRemoveFromCart}
+            onNavigateToAccount={() => {
+              setIsMobileCheckoutOpen(false);
+              navigateTo('account');
+            }}
+          />
+        )}
+      </React.Suspense>
 
       {/* Floating Sticky Cart Button */}
       <button

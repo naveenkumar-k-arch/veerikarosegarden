@@ -40,10 +40,9 @@ export default defineConfig(() => {
           manualChunks(id) {
             if (id.includes('node_modules')) {
               if (id.includes('jspdf') || id.includes('html2canvas')) return 'vendor-pdf';
-              if (id.includes('react') || id.includes('react-dom')) return 'vendor-react';
-              if (id.includes('lucide-react')) return 'vendor-icons';
               if (id.includes('firebase')) return 'vendor-firebase';
-              return 'vendor-core';
+              if (id.includes('lucide-react')) return 'vendor-icons';
+              return 'vendor-libs';
             }
           }
         }
