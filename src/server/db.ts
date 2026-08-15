@@ -6476,7 +6476,32 @@ class Store {
 
   // COMBOS & OFFERS
   async getCombos(): Promise<Combo[]> {
-    const rawCombos = memoryCombosStore.filter(c => !deletedComboIds.has(c.id) && !deletedComboIds.has(c.id.toLowerCase()));
+    let dbCombos: any[] = [];
+    const prisma = getPrismaClient();
+    if (prisma) {
+      try {
+        dbCombos = await prisma.combo.findMany({
+          orderBy: { createdAt: 'desc' }
+        });
+      } catch (err) {
+        console.warn('Prisma getCombos notice:', err);
+      }
+    }
+
+    // Merge database combos with memory store and filter deleted
+    const combined = [...dbCombos, ...memoryCombosStore];
+    const seenIds = new Set<string>();
+    const rawCombos: any[] = [];
+
+    for (const c of combined) {
+      const cid = c.id;
+      if (!cid || seenIds.has(cid) || seenIds.has(cid.toLowerCase()) || deletedComboIds.has(cid) || deletedComboIds.has(cid.toLowerCase())) {
+        continue;
+      }
+      seenIds.add(cid);
+      seenIds.add(cid.toLowerCase());
+      rawCombos.push(c);
+    }
 
     // Fast robust product lookup
     const allProducts = (this.productsCache?.data && this.productsCache.data.length > 0)
@@ -6582,44 +6607,48 @@ class Store {
       updatedAt: new Date().toISOString()
     };
 
-    // 1. Instant 0ms in-memory & disk save
+    // 1. Instant in-memory & disk save
     memoryCombosStore.unshift(newCombo);
     saveDiskCombos(memoryCombosStore);
     deletedComboIds.delete(id);
     deletedComboIds.delete(id.toLowerCase());
     saveDiskDeletedCombos(deletedComboIds);
 
-    // 2. Safe async sync with Prisma
+    // 2. Persist synchronously to Prisma Neon PostgreSQL
     const prisma = getPrismaClient();
     if (prisma) {
-      prisma.combo.upsert({
-        where: { id },
-        update: {
-          title,
-          subtitle,
-          badge,
-          productIds,
-          originalPrice,
-          comboPrice,
-          discountPercent,
-          imageUrl: newCombo.imageUrl,
-          active,
-          freeDelivery
-        },
-        create: {
-          id,
-          title,
-          subtitle,
-          badge,
-          productIds,
-          originalPrice,
-          comboPrice,
-          discountPercent,
-          imageUrl: newCombo.imageUrl,
-          active,
-          freeDelivery
-        }
-      }).catch(err => console.error('Prisma addCombo background error:', err));
+      try {
+        await prisma.combo.upsert({
+          where: { id },
+          update: {
+            title,
+            subtitle,
+            badge,
+            productIds,
+            originalPrice,
+            comboPrice,
+            discountPercent,
+            imageUrl: newCombo.imageUrl,
+            active,
+            freeDelivery
+          },
+          create: {
+            id,
+            title,
+            subtitle,
+            badge,
+            productIds,
+            originalPrice,
+            comboPrice,
+            discountPercent,
+            imageUrl: newCombo.imageUrl,
+            active,
+            freeDelivery
+          }
+        });
+      } catch (err) {
+        console.error('Prisma addCombo error:', err);
+      }
     }
 
     return newCombo;
@@ -6691,36 +6720,40 @@ class Store {
     deletedComboIds.delete(cleanId);
     deletedComboIds.delete(cleanId.toLowerCase());
 
-    // Safe async sync with Prisma
+    // Safe sync with Prisma
     const prisma = getPrismaClient();
     if (prisma) {
-      prisma.combo.upsert({
-        where: { id: cleanId },
-        create: {
-          id: cleanId,
-          title: updatedCombo.title,
-          subtitle: updatedCombo.subtitle,
-          badge: updatedCombo.badge || 'COMBO OFFER',
-          productIds: updatedCombo.productIds,
-          originalPrice: updatedCombo.originalPrice,
-          comboPrice: updatedCombo.comboPrice,
-          discountPercent: updatedCombo.discountPercent,
-          imageUrl: updatedCombo.imageUrl,
-          active: updatedCombo.active,
-          freeDelivery: updatedCombo.freeDelivery
-        },
-        update: {
-          ...(updates.title ? { title: updates.title } : {}),
-          ...(updates.subtitle !== undefined ? { subtitle: updates.subtitle } : {}),
-          ...(updates.badge ? { badge: updates.badge } : {}),
-          ...(updates.productIds ? { productIds: updates.productIds } : {}),
-          ...(updates.originalPrice !== undefined ? { originalPrice: origPrice } : {}),
-          ...(updates.comboPrice !== undefined ? { comboPrice: cmbPrice, discountPercent: disPercent } : {}),
-          ...(updates.imageUrl !== undefined ? { imageUrl: updates.imageUrl } : {}),
-          ...(updates.active !== undefined ? { active: updates.active } : {}),
-          ...(updates.freeDelivery !== undefined ? { freeDelivery: updates.freeDelivery } : {})
-        }
-      }).catch(err => console.error('Prisma updateCombo background error:', err));
+      try {
+        await prisma.combo.upsert({
+          where: { id: cleanId },
+          create: {
+            id: cleanId,
+            title: updatedCombo.title,
+            subtitle: updatedCombo.subtitle,
+            badge: updatedCombo.badge || 'COMBO OFFER',
+            productIds: updatedCombo.productIds,
+            originalPrice: updatedCombo.originalPrice,
+            comboPrice: updatedCombo.comboPrice,
+            discountPercent: updatedCombo.discountPercent,
+            imageUrl: updatedCombo.imageUrl,
+            active: updatedCombo.active,
+            freeDelivery: updatedCombo.freeDelivery
+          },
+          update: {
+            ...(updates.title ? { title: updates.title } : {}),
+            ...(updates.subtitle !== undefined ? { subtitle: updates.subtitle } : {}),
+            ...(updates.badge ? { badge: updates.badge } : {}),
+            ...(updates.productIds ? { productIds: updates.productIds } : {}),
+            ...(updates.originalPrice !== undefined ? { originalPrice: origPrice } : {}),
+            ...(updates.comboPrice !== undefined ? { comboPrice: cmbPrice, discountPercent: disPercent } : {}),
+            ...(updates.imageUrl !== undefined ? { imageUrl: updates.imageUrl } : {}),
+            ...(updates.active !== undefined ? { active: updates.active } : {}),
+            ...(updates.freeDelivery !== undefined ? { freeDelivery: updates.freeDelivery } : {})
+          }
+        });
+      } catch (err) {
+        console.error('Prisma updateCombo error:', err);
+      }
     }
 
     return updatedCombo;
@@ -6734,14 +6767,14 @@ class Store {
     deletedComboIds.add(cleanId.toLowerCase());
     saveDiskDeletedCombos(deletedComboIds);
 
-    // 1. Instant 0ms remove from in-memory store
+    // 1. Remove from in-memory store
     for (let i = memoryCombosStore.length - 1; i >= 0; i--) {
       if (memoryCombosStore[i].id === cleanId || memoryCombosStore[i].id.toLowerCase() === cleanId.toLowerCase()) {
         memoryCombosStore.splice(i, 1);
       }
     }
 
-    // 2. Instant save to disk
+    // 2. Save to disk
     saveDiskCombos(memoryCombosStore);
 
     // 3. Remove from default seed combos
@@ -6751,19 +6784,21 @@ class Store {
       }
     }
 
-    // 4. Safe async delete from Prisma
+    // 4. Delete from Prisma
     const prisma = getPrismaClient();
     if (prisma) {
-      prisma.combo.deleteMany({
-        where: {
-          OR: [
-            { id: cleanId },
-            { id: cleanId.toLowerCase() }
-          ]
-        }
-      }).catch(err => {
-        console.error('Prisma deleteCombo background error:', err);
-      });
+      try {
+        await prisma.combo.deleteMany({
+          where: {
+            OR: [
+              { id: cleanId },
+              { id: cleanId.toLowerCase() }
+            ]
+          }
+        });
+      } catch (err) {
+        console.error('Prisma deleteCombo error:', err);
+      }
     }
     return true;
   }

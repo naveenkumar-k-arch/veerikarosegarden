@@ -510,16 +510,16 @@ apiRouter.get('/combos', async (req, res) => {
   }
 });
 
-apiRouter.post('/admin/combos', requireAdmin, async (req: AuthenticatedRequest, res) => {
+const handleAddCombo = async (req: AuthenticatedRequest, res: express.Response) => {
   try {
     const combo = await db.addCombo(req.body);
     res.status(201).json({ success: true, combo, message: 'Plant combo package created successfully' });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
   }
-});
+};
 
-apiRouter.put('/admin/combos/:id', requireAdmin, async (req: AuthenticatedRequest, res) => {
+const handleUpdateCombo = async (req: AuthenticatedRequest, res: express.Response) => {
   try {
     const updated = await db.updateCombo(req.params.id, req.body);
     if (!updated) return res.status(404).json({ success: false, message: 'Combo not found' });
@@ -527,7 +527,12 @@ apiRouter.put('/admin/combos/:id', requireAdmin, async (req: AuthenticatedReques
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
   }
-});
+};
+
+apiRouter.post('/admin/combos', requireAdmin, handleAddCombo);
+apiRouter.post('/combos', requireAdmin, handleAddCombo);
+apiRouter.put('/admin/combos/:id', requireAdmin, handleUpdateCombo);
+apiRouter.put('/combos/:id', requireAdmin, handleUpdateCombo);
 
 const handleDeleteCombo = async (req: AuthenticatedRequest, res: express.Response) => {
   try {
