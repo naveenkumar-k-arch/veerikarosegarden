@@ -1157,6 +1157,42 @@ apiRouter.get('/admin/dashboard', requireAdmin, async (req: AuthenticatedRequest
   }
 });
 
+// Lightweight serializers for admin bootstrap listing: trims massive base64 strings (>20KB)
+// Full raw base64 images are loaded on-demand via GET /api/products/:id or GET /api/orders/:id
+function sanitizeBootstrapProducts(prods: any[]): any[] {
+  return prods.map(p => {
+    const images = Array.isArray(p.images) ? p.images : (p.image ? [p.image] : []);
+    const sanitizedImages = images.map((img: string) => {
+      if (typeof img === 'string' && img.startsWith('data:image/') && img.length > 20000) {
+        return '/products/double-delight.jpeg';
+      }
+      return img;
+    });
+    return {
+      ...p,
+      images: sanitizedImages,
+      image: sanitizedImages[0] || '/products/double-delight.jpeg'
+    };
+  });
+}
+
+function sanitizeBootstrapOrders(ords: any[]): any[] {
+  return ords.map(o => {
+    const hasProof = Boolean(o.paymentProofUrl);
+    if (o.paymentProofUrl && typeof o.paymentProofUrl === 'string' && o.paymentProofUrl.startsWith('data:image/') && o.paymentProofUrl.length > 20000) {
+      return {
+        ...o,
+        hasPaymentProof: true,
+        paymentProofUrl: undefined
+      };
+    }
+    return {
+      ...o,
+      hasPaymentProof: hasProof
+    };
+  });
+}
+
 apiRouter.get('/admin/bootstrap', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const now = Date.now();
@@ -1195,9 +1231,9 @@ apiRouter.get('/admin/bootstrap', requireAdmin, async (req: AuthenticatedRequest
     const responsePayload = {
       success: true,
       stats,
-      products,
+      products: sanitizeBootstrapProducts(products),
       categories,
-      orders,
+      orders: sanitizeBootstrapOrders(orders),
       coupons,
       banners,
       reviews,

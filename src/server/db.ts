@@ -5717,12 +5717,15 @@ class Store {
     const prisma = getPrismaClient();
     if (prisma) {
       try {
-        await prisma.inventory.deleteMany({ where: { productId: id } }).catch(() => {});
-        await prisma.cartItem.deleteMany({ where: { productId: id } }).catch(() => {});
-        await prisma.wishlistItem.deleteMany({ where: { productId: id } }).catch(() => {});
-        await prisma.review.deleteMany({ where: { productId: id } }).catch(() => {});
-        await prisma.image.deleteMany({ where: { productId: id } }).catch(() => {});
-        await prisma.orderItem.deleteMany({ where: { productId: id } }).catch(() => {});
+        // Parallel deletion of all dependent child records in 1 roundtrip cycle
+        await Promise.all([
+          prisma.inventory.deleteMany({ where: { productId: id } }).catch(() => {}),
+          prisma.cartItem.deleteMany({ where: { productId: id } }).catch(() => {}),
+          prisma.wishlistItem.deleteMany({ where: { productId: id } }).catch(() => {}),
+          prisma.review.deleteMany({ where: { productId: id } }).catch(() => {}),
+          prisma.image.deleteMany({ where: { productId: id } }).catch(() => {}),
+          prisma.orderItem.deleteMany({ where: { productId: id } }).catch(() => {})
+        ]);
         await prisma.product.deleteMany({ where: { OR: [{ id }, { sku: id }] } }).catch(() => {});
       } catch (err) {
         console.error('Prisma deleteProduct error:', err);
@@ -7412,39 +7415,19 @@ class Store {
     const prisma = getPrismaClient();
     if (prisma) {
       try {
-        await prisma.orderItem.deleteMany({
-          where: {
-            order: {
-              OR: [
-                { id: clean },
-                { orderNumber: clean },
-                { merchantTransactionId: clean }
-              ]
-            }
-          }
-        }).catch(() => {});
-
-        await prisma.payment.deleteMany({
-          where: {
-            order: {
-              OR: [
-                { id: clean },
-                { orderNumber: clean },
-                { merchantTransactionId: clean }
-              ]
-            }
-          }
-        }).catch(() => {});
-
-        await prisma.order.deleteMany({
-          where: {
-            OR: [
-              { id: clean },
-              { orderNumber: clean },
-              { merchantTransactionId: clean }
-            ]
-          }
-        }).catch(() => {});
+        const orderMatch = {
+          OR: [
+            { id: clean },
+            { orderNumber: clean },
+            { merchantTransactionId: clean }
+          ]
+        };
+        // Parallel deletion of dependent items and payment logs
+        await Promise.all([
+          prisma.orderItem.deleteMany({ where: { order: orderMatch } }).catch(() => {}),
+          prisma.payment.deleteMany({ where: { order: orderMatch } }).catch(() => {})
+        ]);
+        await prisma.order.deleteMany({ where: orderMatch }).catch(() => {});
       } catch (err) {
         console.error('Prisma deleteOrder error:', err);
       }

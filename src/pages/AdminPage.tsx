@@ -121,16 +121,32 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'categories' | 'orders' | 'inventory' | 'coupons' | 'banners' | 'reviews' | 'settings' | 'audit' | 'finances' | 'payment_logs'>('dashboard');
   const [orderFilterStage, setOrderFilterStage] = useState<'all' | 'pending' | 'packing' | 'dispatched' | 'delivered'>('all');
 
-  // Secure session-scoped cache for instant (<30ms) Stale-While-Revalidate UI hydration
+  // Multi-tiered persistent cache for instant (0ms) Stale-While-Revalidate UI hydration
   const getAdminSessionCache = (): any => {
     try {
-      const saved = sessionStorage.getItem('vrg_admin_session_cache');
-      if (saved) {
-        const parsed = JSON.parse(saved);
+      const sessionSaved = sessionStorage.getItem('vrg_admin_session_cache');
+      if (sessionSaved) {
+        const parsed = JSON.parse(sessionSaved);
+        if (parsed && typeof parsed === 'object' && parsed.success) return parsed;
+      }
+      const localSaved = localStorage.getItem('vrg_admin_persisted_cache');
+      if (localSaved) {
+        const parsed = JSON.parse(localSaved);
         if (parsed && typeof parsed === 'object' && parsed.success) return parsed;
       }
     } catch {}
     return null;
+  };
+
+  const persistAdminCache = (updater: (prev: any) => any) => {
+    try {
+      const raw = sessionStorage.getItem('vrg_admin_session_cache') || localStorage.getItem('vrg_admin_persisted_cache');
+      const cached = raw ? JSON.parse(raw) : { success: true };
+      const next = updater(cached);
+      const str = JSON.stringify({ success: true, ...next });
+      sessionStorage.setItem('vrg_admin_session_cache', str);
+      localStorage.setItem('vrg_admin_persisted_cache', str);
+    } catch {}
   };
 
   const initialCache = React.useMemo(() => getAdminSessionCache(), []);
@@ -703,7 +719,9 @@ const silentRefresh = async (): Promise<boolean> => {
         if (Array.isArray(bRes.paymentLogs)) setPaymentLogs(bRes.paymentLogs);
 
         try {
-          sessionStorage.setItem('vrg_admin_session_cache', JSON.stringify(bRes));
+          const str = JSON.stringify(bRes);
+          sessionStorage.setItem('vrg_admin_session_cache', str);
+          localStorage.setItem('vrg_admin_persisted_cache', str);
         } catch {}
       } else {
         // Fast fallback: fetch public endpoints without 401 retry overhead
@@ -745,7 +763,7 @@ const silentRefresh = async (): Promise<boolean> => {
   };
 
   useEffect(() => {
-    // Purge legacy local storage blacklists and stale caches
+    // Purge legacy local storage blacklists
     localStorage.removeItem('vrg_deleted_orders');
     localStorage.removeItem('vrg_deleted_products');
     localStorage.removeItem('vrg_deleted_categories');
@@ -754,8 +772,6 @@ const silentRefresh = async (): Promise<boolean> => {
     localStorage.removeItem('vrg_orders');
     localStorage.removeItem('veerika_customer_orders');
     localStorage.removeItem('vrg_user_orders');
-    localStorage.removeItem('vrg_admin_bootstrap_cache');
-    localStorage.removeItem('vrg_products');
 
     fetchData(false);
 
@@ -883,13 +899,7 @@ const silentRefresh = async (): Promise<boolean> => {
           ? prev.map(p => p.id === targetId ? { ...p, ...savedProd } as Product : p)
           : [{ ...savedProd } as Product, ...prev.filter(p => p.id !== savedProd.id)];
         updatedProductsList = next;
-        try {
-          const raw = sessionStorage.getItem('vrg_admin_session_cache');
-          const cached = raw ? JSON.parse(raw) : {};
-          cached.products = next;
-          sessionStorage.setItem('vrg_admin_session_cache', JSON.stringify(cached));
-          localStorage.setItem('vrg_products', JSON.stringify(next));
-        } catch {}
+        persistAdminCache(c => ({ ...c, products: next }));
         return next;
       });
 
@@ -915,13 +925,7 @@ const silentRefresh = async (): Promise<boolean> => {
     let nextList: Product[] = [];
     setProducts(prev => {
       nextList = prev.filter(p => p.id !== id);
-      try {
-        localStorage.setItem('vrg_products', JSON.stringify(nextList));
-        const raw = sessionStorage.getItem('vrg_admin_session_cache');
-        const cached = raw ? JSON.parse(raw) : {};
-        cached.products = nextList;
-        sessionStorage.setItem('vrg_admin_session_cache', JSON.stringify(cached));
-      } catch {}
+      persistAdminCache(c => ({ ...c, products: nextList }));
       return nextList;
     });
     toast.success(`Product "${name}" deleted.`, 'Product Deleted');
@@ -1288,13 +1292,7 @@ const silentRefresh = async (): Promise<boolean> => {
     let nextList: Product[] = [];
     setProducts(prev => {
       nextList = prev.map(p => p.id === productId ? { ...p, stock: validStock } : p);
-      try {
-        const raw = sessionStorage.getItem('vrg_admin_session_cache');
-        const cached = raw ? JSON.parse(raw) : {};
-        cached.products = nextList;
-        sessionStorage.setItem('vrg_admin_session_cache', JSON.stringify(cached));
-        localStorage.setItem('vrg_products', JSON.stringify(nextList));
-      } catch {}
+      persistAdminCache(c => ({ ...c, products: nextList }));
       return nextList;
     });
 
