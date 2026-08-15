@@ -667,9 +667,18 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
       }
 
       // Check if it's a combo item
-      const matchedCombo = allCombos.find(c => c.id === item.productId || (item.productId && item.productId.includes(c.id)));
+      let matchedCombo = allCombos.find(c => 
+        c.id === item.productId || 
+        (item.productId && (item.productId.includes(c.id) || c.id.includes(item.productId))) ||
+        (item.sku && c.id.includes(item.sku.replace('CMB-', '')))
+      );
+
+      if (!matchedCombo && (item.isCombo || String(item.productId).startsWith('combo-') || String(item.sku).startsWith('CMB-'))) {
+        matchedCombo = await db.getComboById(item.productId);
+      }
+
       if (matchedCombo) {
-        const verifiedPrice = Number(matchedCombo.comboPrice);
+        const verifiedPrice = Math.max(0, Number(matchedCombo.comboPrice));
         const itemTotal = verifiedPrice * validQty;
         calculatedSubtotal += itemTotal;
 
@@ -703,7 +712,7 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
 
       // Enforce database price
       const verifiedPrice = Number(dbProduct.sellingPrice);
-      if (isNaN(verifiedPrice) || verifiedPrice <= 0) {
+      if (isNaN(verifiedPrice) || verifiedPrice < 0) {
         return res.status(400).json({ success: false, message: 'Invalid product pricing configuration.' });
       }
 
@@ -761,8 +770,11 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
 
     // Server-side Shipping Charge calculation
     const targetState = shippingAddress?.state || 'Tamil Nadu';
+    const allItemsHaveFreeDelivery = verifiedItems.length > 0 && verifiedItems.every(i => i.freeDelivery === true);
     let shippingCharge = 0;
-    if (req.body.shippingCharge !== undefined && !isNaN(Number(req.body.shippingCharge)) && Number(req.body.shippingCharge) > 0) {
+    if (allItemsHaveFreeDelivery) {
+      shippingCharge = 0;
+    } else if (req.body.shippingCharge !== undefined && !isNaN(Number(req.body.shippingCharge))) {
       shippingCharge = Number(req.body.shippingCharge);
     } else {
       shippingCharge = calculateDeliveryFee(verifiedItems, targetState);
