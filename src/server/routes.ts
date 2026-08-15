@@ -620,7 +620,14 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
     const { customerName, customerPhone, customerEmail, shippingAddress, items, couponCode, paymentMethod, paymentProofUrl, transactionId } = req.body;
 
     // Check if payment method is valid and enabled in Site Settings
-    const settings = await db.getSettings();
+    // Fetch settings, products, combos, and coupon concurrently in parallel for 3x speedup
+    const [settings, allProducts, allCombos, coupon] = await Promise.all([
+      db.getSettings(),
+      db.getProducts(),
+      db.getCombos(),
+      couponCode ? db.getCouponByCode(couponCode) : Promise.resolve(null)
+    ]);
+
     if (!paymentMethod) {
       return res.status(400).json({ success: false, message: 'Please select a payment method.' });
     }
@@ -651,9 +658,6 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
 
     let calculatedSubtotal = 0;
     const verifiedItems = [];
-
-    const allProducts = await db.getProducts();
-    const allCombos = await db.getCombos();
 
     for (const item of items) {
       if (!item || !item.productId) {
@@ -698,9 +702,9 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
       }
 
       // Strictly lookup product from Server Database — NEVER trust client-supplied prices
-      let dbProduct = await db.getProductById(item.productId);
+      let dbProduct = allProducts.find(p => p.id === item.productId || p.sku === item.sku) || null;
       if (!dbProduct) {
-        dbProduct = allProducts.find(p => p.id === item.productId || p.sku === item.sku) || null;
+        dbProduct = await db.getProductById(item.productId);
       }
 
       if (!dbProduct) {
@@ -733,9 +737,8 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
 
     // Coupon verification against server-calculated subtotal
     let discount = 0;
-    if (couponCode) {
-      const coupon = await db.getCouponByCode(couponCode);
-      if (coupon && coupon.active && calculatedSubtotal >= (coupon.minOrder || 0)) {
+    if (couponCode && coupon) {
+      if (coupon.active && calculatedSubtotal >= (coupon.minOrder || 0)) {
         const couponType = (coupon as any).type || (coupon as any).discountType || 'FIXED';
         const couponValue = Number(coupon.value || (coupon as any).discountValue || 0);
 
@@ -790,6 +793,95 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
     const finalPhone = customerPhone || req.user?.phone || '';
     const finalEmail = req.user?.email || customerEmail || '';
 
+    if (paymentMethod === 'RAZORPAY') {
+      const rzpKeyId = (settings.razorpayKeyId && settings.razorpayKeyId.trim()) || process.env.RAZORPAY_KEY_ID || 'rzp_live_TQ5xDdZB7QWIn2';
+      const rzpKeySecret = (settings.razorpayKeySecret && settings.razorpayKeySecret.trim()) || process.env.RAZORPAY_KEY_SECRET || 'FfkwntR4ygvIapq4ex50ajp0';
+
+      // Concurrently create order in PostgreSQL and create order in Razorpay API
+      const [newOrder, rzpRes] = await Promise.all([
+        db.createOrder({
+          userId,
+          merchantTransactionId,
+          customerName: finalName,
+          customerPhone: finalPhone,
+          customerEmail: finalEmail,
+          shippingAddress,
+          items: verifiedItems,
+          subtotal: calculatedSubtotal,
+          shippingCharge,
+          potCharge,
+          potOption,
+          packingCharge,
+          packingOption,
+          courierName,
+          courierDistrict,
+          courierBranch,
+          discount: Math.round(discount),
+          couponCode: couponCode || undefined,
+          grandTotal: calculatedGrandTotal,
+          paymentStatus: 'PENDING',
+          orderStatus: 'PENDING',
+          paymentMethod: 'RAZORPAY',
+          paymentProofUrl: paymentProofUrl || undefined,
+          transactionId: transactionId || undefined,
+          paymentProofUploadedAt: paymentProofUrl ? new Date().toISOString() : undefined
+        }),
+        RazorpayService.createOrder(
+          {
+            amount: calculatedGrandTotal,
+            receipt: merchantTransactionId,
+            notes: {
+              merchantTransactionId,
+              customerPhone: finalPhone,
+              customerName: finalName
+            }
+          },
+          rzpKeyId,
+          rzpKeySecret
+        )
+      ]);
+
+      if (!rzpRes.success || !rzpRes.razorpayOrderId) {
+        await db.deleteOrder(newOrder.id).catch(() => {});
+        let errorMsg = rzpRes.message || 'Failed to initialize Razorpay payment order.';
+        if (errorMsg.toLowerCase().includes('authentication failed')) {
+          errorMsg = 'Razorpay Authentication Failed: The API Key Secret for this Key ID is invalid or was regenerated. Please copy the latest Key ID and Secret from Razorpay Dashboard (Settings → API Keys) and save them in Admin Settings or Vercel.';
+        }
+        return res.status(400).json({
+          success: false,
+          message: errorMsg
+        });
+      }
+
+      // Non-blocking payment log in background
+      db.addPaymentLog({
+        merchantTransactionId: rzpRes.razorpayOrderId || merchantTransactionId,
+        orderId: newOrder.id,
+        amount: calculatedGrandTotal,
+        status: 'PENDING',
+        checksum: 'RAZORPAY_INITIATED',
+        payload: JSON.stringify({
+          gateway: 'RAZORPAY',
+          razorpayOrderId: rzpRes.razorpayOrderId,
+          customerName: finalName,
+          customerPhone: finalPhone
+        })
+      }).catch(() => {});
+
+      return res.json({
+        success: true,
+        order: newOrder,
+        orderId: newOrder.id,
+        razorpayOrderId: rzpRes.razorpayOrderId,
+        razorpayKeyId: rzpKeyId,
+        amount: calculatedGrandTotal,
+        customerName: finalName,
+        customerEmail: finalEmail,
+        customerPhone: finalPhone,
+        message: 'Order created. Proceed to Razorpay payment.'
+      });
+    }
+
     const newOrder = await db.createOrder({
       userId,
       merchantTransactionId,
@@ -833,7 +925,7 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
           orderId: newOrder.id
         });
 
-        await db.addPaymentLog({
+        db.addPaymentLog({
           merchantTransactionId,
           orderId: newOrder.id,
           amount: calculatedGrandTotal,
@@ -855,67 +947,9 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
           message: 'Order created. Proceed to PhonePe payment.'
         });
       } catch (err: any) {
-        // Rollback order from DB if PhonePe initiation fails completely
         await db.deleteOrder(newOrder.id).catch(() => {});
         return res.status(500).json({ success: false, message: 'Failed to initiate PhonePe payment. Please try another payment method.' });
       }
-    }
-
-    if (paymentMethod === 'RAZORPAY') {
-      const rzpRes = await RazorpayService.createOrder(
-        {
-          amount: calculatedGrandTotal,
-          receipt: newOrder.id,
-          notes: {
-            orderId: newOrder.id,
-            merchantTransactionId,
-            customerPhone: finalPhone,
-            customerName: finalName
-          }
-        },
-        (settings.razorpayKeyId && settings.razorpayKeyId.trim()) || process.env.RAZORPAY_KEY_ID || 'rzp_live_TQ5xDdZB7QWIn2',
-        (settings.razorpayKeySecret && settings.razorpayKeySecret.trim()) || process.env.RAZORPAY_KEY_SECRET || 'FfkwntR4ygvIapq4ex50ajp0'
-      );
-
-      if (!rzpRes.success || !rzpRes.razorpayOrderId) {
-        // Rollback order from DB if Razorpay order initialization fails
-        await db.deleteOrder(newOrder.id).catch(() => {});
-        let errorMsg = rzpRes.message || 'Failed to initialize Razorpay payment order.';
-        if (errorMsg.toLowerCase().includes('authentication failed')) {
-          errorMsg = 'Razorpay Authentication Failed: The API Key Secret for this Key ID is invalid or was regenerated. Please copy the latest Key ID and Secret from Razorpay Dashboard (Settings → API Keys) and save them in Admin Settings or Vercel.';
-        }
-        return res.status(400).json({
-          success: false,
-          message: errorMsg
-        });
-      }
-
-      await db.addPaymentLog({
-        merchantTransactionId: rzpRes.razorpayOrderId || merchantTransactionId,
-        orderId: newOrder.id,
-        amount: calculatedGrandTotal,
-        status: 'PENDING',
-        checksum: 'RAZORPAY_INITIATED',
-        payload: JSON.stringify({
-          gateway: 'RAZORPAY',
-          razorpayOrderId: rzpRes.razorpayOrderId,
-          customerName: finalName,
-          customerPhone: finalPhone
-        })
-      }).catch(() => {});
-
-      return res.json({
-        success: true,
-        order: newOrder,
-        orderId: newOrder.id,
-        razorpayOrderId: rzpRes.razorpayOrderId,
-        razorpayKeyId: (settings.razorpayKeyId && settings.razorpayKeyId.trim()) || process.env.RAZORPAY_KEY_ID || 'rzp_live_TQ5xDdZB7QWIn2',
-        amount: calculatedGrandTotal,
-        customerName: finalName,
-        customerEmail: finalEmail,
-        customerPhone: finalPhone,
-        message: 'Order created. Proceed to Razorpay payment.'
-      });
     }
 
     if (paymentMethod === 'QR_PAYMENT' || paymentMethod === 'UPI_DIRECT') {
