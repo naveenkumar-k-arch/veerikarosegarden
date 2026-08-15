@@ -208,17 +208,47 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
         )}
 
+        {/* Fresh Nursery Arrivals (All New Plants) Pull Section */}
+        {products.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 16 }}>🌿</span>
+                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 800, color: '#1a2e1a', margin: 0 }}>
+                  Fresh Arrivals & All Plants
+                </h2>
+              </div>
+              <button
+                onClick={() => onNavigate('shop')}
+                style={{ background: 'none', border: 'none', color: '#16a34a', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2 }}
+              >
+                All ({products.length}) <ChevronRight style={{ width: 14, height: 14 }} />
+              </button>
+            </div>
+            <HorizontalScrollRow>
+              {products.slice(0, 15).map(product => (
+                <CompactProductCard
+                  key={product.id}
+                  product={product}
+                  onAddToCart={onAddToCart}
+                  onViewDetails={onViewDetails}
+                />
+              ))}
+            </HorizontalScrollRow>
+          </div>
+        )}
+
         {/* Category-by-Category Horizontal Pull Sections */}
         {activeCategories.map(cat => {
           const catProducts = products.filter(p => {
-            if (p.status !== 'ACTIVE') return false;
+            if (p.status === 'DISABLED') return false;
             const cName = (cat.name || '').toLowerCase();
             const cSlug = (cat.slug || '').toLowerCase();
             const cId = (cat.id || '').toLowerCase();
             const pCatId = (p.categoryId || '').toLowerCase();
             const pCatName = (p.categoryName || '').toLowerCase();
             return (
-              (pCatId && (pCatId === cId || pCatId === cSlug)) ||
+              (pCatId && (pCatId === cId || pCatId === cSlug || pCatId.includes(cId) || cId.includes(pCatId))) ||
               (pCatName && (pCatName === cName || cName.includes(pCatName) || pCatName.includes(cName)))
             );
           });

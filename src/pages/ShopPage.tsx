@@ -26,7 +26,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
   onViewDetails,
   onOpenCareGuide
 }) => {
-  const [maxPrice, setMaxPrice] = useState<number>(500);
+  const [maxPrice, setMaxPrice] = useState<number>(10000);
   const [sortBy, setSortBy] = useState<string>('popular');
   const [inStockOnly, setInStockOnly] = useState<boolean>(false);
   const [mobileFilterOpen, setMobileFilterOpen] = useState<boolean>(false);
@@ -45,12 +45,14 @@ export const ShopPage: React.FC<ShopPageProps> = ({
 
     const pCatId = (p.categoryId || '').toLowerCase();
     const pCatName = (p.categoryName || '').toLowerCase();
-    const pTags = Array.isArray(p.tags) ? p.tags.map(t => t.toLowerCase()) : [];
+    const pTags = Array.isArray(p.tags) ? p.tags.map(t => (t || '').toLowerCase()) : [];
     const pName = (p.name || '').toLowerCase();
 
     // 1. Direct ID or Slug match
     if (pCatId && (pCatId === targetId || pCatId === targetSlug)) return true;
     if (pCatName && (pCatName === targetName || pCatName === targetSlug)) return true;
+    if (pCatId && (pCatId.includes(targetId) || targetId.includes(pCatId))) return true;
+    if (pCatName && (pCatName.includes(targetName) || targetName.includes(pCatName))) return true;
 
     // 2. Specific Category Mappings
     if (targetId === 'cat-herbals' || targetSlug === 'herbals' || targetName.includes('herbal') || targetName.includes('மூலிகை')) {
@@ -87,18 +89,18 @@ export const ShopPage: React.FC<ShopPageProps> = ({
 
   // Filter products
   let filtered = products.filter((p) => {
-    if (p.status !== 'ACTIVE') return false;
+    if (p.status === 'DISABLED') return false;
     if (selectedCategory && !isProductInCat(p, selectedCategory)) return false;
     if (p.sellingPrice > maxPrice) return false;
-    if (inStockOnly && p.stock <= 0) return false;
+    if (inStockOnly && (p.stock !== undefined && p.stock <= 0)) return false;
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
-      const matchName = p.name.toLowerCase().includes(q);
-      const matchEnglish = p.englishName.toLowerCase().includes(q);
-      const matchTamil = p.tamilName.toLowerCase().includes(q);
-      const matchScientific = p.scientificName.toLowerCase().includes(q);
-      const matchTags = p.tags.some((t) => t.toLowerCase().includes(q));
+      const matchName = (p.name || '').toLowerCase().includes(q);
+      const matchEnglish = (p.englishName || '').toLowerCase().includes(q);
+      const matchTamil = (p.tamilName || '').toLowerCase().includes(q);
+      const matchScientific = (p.scientificName || '').toLowerCase().includes(q);
+      const matchTags = Array.isArray(p.tags) && p.tags.some((t) => (t || '').toLowerCase().includes(q));
       return matchName || matchEnglish || matchTamil || matchScientific || matchTags;
     }
 

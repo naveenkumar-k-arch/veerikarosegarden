@@ -32,7 +32,8 @@ export const CompactProductCard: React.FC<CompactProductCardProps> = ({
     : 0;
 
   const defaultImg = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=400&q=80';
-  const displayImg = imgError || !product.images[0] ? defaultImg : product.images[0];
+  const rawImg = (Array.isArray(product.images) && product.images[0]) || (product as any).imageUrl || (product as any).image;
+  const displayImg = imgError || !rawImg ? defaultImg : rawImg;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -289,7 +290,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     : 0;
 
   const defaultImg = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80';
-  const displayImg = imgError || !product.images[0] ? defaultImg : product.images[0];
+  const rawImg = (Array.isArray(product.images) && product.images[0]) || (product as any).imageUrl || (product as any).image;
+  const displayImg = imgError || !rawImg ? defaultImg : rawImg;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
