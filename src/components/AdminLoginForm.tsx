@@ -37,6 +37,19 @@ export const AdminLoginForm: React.FC<AdminLoginFormProps> = ({ onLoginSuccess, 
           localStorage.setItem('vrg_admin_role', data.user.role);
           localStorage.setItem('vrg_remember_admin', 'true');
         }
+
+        // Background prefetch bootstrap data immediately with newly issued session cookie
+        fetch('/api/admin/bootstrap', { credentials: 'include' })
+          .then(r => r.json())
+          .then(bData => {
+            if (bData?.success) {
+              const str = JSON.stringify(bData);
+              sessionStorage.setItem('vrg_admin_session_cache', str);
+              localStorage.setItem('vrg_admin_persisted_cache', str);
+            }
+          })
+          .catch(() => {});
+
         setLoading(false);
         onLoginSuccess(data.user);
         return;

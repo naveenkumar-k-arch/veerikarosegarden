@@ -152,8 +152,28 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
   const initialCache = React.useMemo(() => getAdminSessionCache(), []);
 
   const [stats, setStats] = useState<any>(() => initialCache?.stats || null);
-  const [products, setProducts] = useState<Product[]>(() => Array.isArray(initialCache?.products) ? initialCache.products : []);
-  const [categories, setCategories] = useState<Category[]>(() => Array.isArray(initialCache?.categories) ? initialCache.categories : []);
+  const [products, setProducts] = useState<Product[]>(() => {
+    if (Array.isArray(initialCache?.products) && initialCache.products.length > 0) return initialCache.products;
+    try {
+      const saved = localStorage.getItem('vrg_products');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return DEFAULT_PRODUCTS;
+  });
+  const [categories, setCategories] = useState<Category[]>(() => {
+    if (Array.isArray(initialCache?.categories) && initialCache.categories.length > 0) return initialCache.categories;
+    try {
+      const saved = localStorage.getItem('vrg_categories');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return DEFAULT_CATEGORIES;
+  });
   const [orders, setOrders] = useState<Order[]>(() => Array.isArray(initialCache?.orders) ? initialCache.orders : []);
   const [coupons, setCoupons] = useState<Coupon[]>(() => Array.isArray(initialCache?.coupons) ? initialCache.coupons : []);
   const [combos, setCombos] = useState<Combo[]>(() => Array.isArray(initialCache?.combos) ? initialCache.combos : []);
@@ -446,7 +466,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsMsg, setSettingsMsg] = useState<string | null>(null);
   const [paymentLogs, setPaymentLogs] = useState<PaymentLog[]>(() => Array.isArray(initialCache?.paymentLogs) ? initialCache.paymentLogs : []);
-  const [loading, setLoading] = useState<boolean>(() => !initialCache || (!initialCache.products?.length && !initialCache.orders?.length));
+  const [loading, setLoading] = useState<boolean>(false);
   const [selectedProofOrder, setSelectedProofOrder] = useState<Order | null>(null);
 
 
@@ -656,10 +676,7 @@ const silentRefresh = async (): Promise<boolean> => {
     return res;
   };
 
-  const fetchData = async (isInitial = false) => {
-    if (isInitial && orders.length === 0 && products.length === 0) {
-      setLoading(true);
-    }
+  const fetchData = async () => {
     try {
       const bRes = await authFetch('/api/admin/bootstrap').then((r) => r.json()).catch(() => null);
 
