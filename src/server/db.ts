@@ -5299,7 +5299,6 @@ class Store {
       }
 
       const items = await prisma.product.findMany({
-        where: { inStock: true },
         include: { categoryRel: true, inventory: true },
         orderBy: { createdAt: 'desc' }
       });
@@ -5317,7 +5316,7 @@ class Store {
         mrp: p.originalPrice || p.price,
         sellingPrice: p.price,
         discount: p.originalPrice > 0 ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100) : 0,
-        images: p.images && p.images.length > 0 ? p.images : [p.image],
+        images: p.images && p.images.length > 0 ? p.images : (p.image ? [p.image] : ['https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80']),
         rating: p.rating || 5.0,
         reviewCount: p.reviewsCount || 0,
         stock: p.inventory?.quantity ?? 50,
@@ -5396,9 +5395,13 @@ class Store {
       return results.filter(p => !deletedProductIds.has(p.id));
     };
 
-    // Trigger background cache refresh if expired or uninitialized
-    if (Date.now() >= this.productsCache.expiresAt) {
-      this.refreshProductsCache().catch(() => {});
+    // If cache is expired or cold start, fetch directly so newly added DB plants show immediately!
+    if (this.productsCache.expiresAt === 0 || Date.now() >= this.productsCache.expiresAt) {
+      if (this.productsCache.expiresAt === 0) {
+        await this.refreshProductsCache();
+      } else {
+        this.refreshProductsCache().catch(() => {});
+      }
     }
 
     const currentList = this.productsCache.data;
