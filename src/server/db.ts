@@ -766,7 +766,7 @@ const DEFAULT_PRODUCTS: Product[] = [
       fertilizer: 'Organic plant food.',
       soil: 'Porous soil mix.'
     },
-    images: ['/products/double-delight.jpeg'],
+    images: ['/products/new_plant_20.jpg'],
     featured: true,
     bestSeller: true,
     trending: true,
