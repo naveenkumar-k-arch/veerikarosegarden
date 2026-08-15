@@ -1492,10 +1492,13 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                 className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 text-white font-extrabold text-sm rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
               >
                 {loading ? (
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Connecting to Secure Razorpay...</span>
+                  </div>
                 ) : (
                   <>
-                    <span>{!paymentMethod ? 'SELECT PAYMENT METHOD' : 'CONFIRM & PLACE ORDER'}</span>
+                    <span>{!paymentMethod ? 'SELECT PAYMENT METHOD' : `CONFIRM & PLACE NURSERY ORDER (₹${grandTotal})`}</span>
                     {paymentMethod && <Check className="w-4 h-4" />}
                   </>
                 )}

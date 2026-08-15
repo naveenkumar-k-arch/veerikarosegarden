@@ -5393,6 +5393,11 @@ class Store {
 
 
   async getProductById(id: string): Promise<Product | undefined> {
+    if (this.productsCache.data && this.productsCache.data.length > 0) {
+      const match = this.productsCache.data.find(p => p.id === id || p.sku === id);
+      if (match) return match;
+    }
+
     const prisma = getPrismaClient();
     if (prisma) {
       try {
