@@ -1141,8 +1141,18 @@ apiRouter.get('/admin/dashboard', requireAdmin, async (req: AuthenticatedRequest
   }
 });
 
+// In-memory bootstrap response cache (15s TTL) — eliminates repeated DB hits from 30s polling
+let bootstrapCache: { data: any; expiresAt: number } = { data: null, expiresAt: 0 };
+
 apiRouter.get('/admin/bootstrap', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
+    const now = Date.now();
+    if (bootstrapCache.data && now < bootstrapCache.expiresAt) {
+      res.setHeader('Cache-Control', 'no-store');
+      res.setHeader('X-Bootstrap-Cache', 'HIT');
+      return res.json(bootstrapCache.data);
+    }
+
     const [
       orders,
       products,
@@ -1169,8 +1179,7 @@ apiRouter.get('/admin/bootstrap', requireAdmin, async (req: AuthenticatedRequest
 
     const stats = await db.getDashboardStats(orders, products);
 
-    res.setHeader('Cache-Control', 'no-store');
-    res.json({
+    const responsePayload = {
       success: true,
       stats,
       products,
@@ -1183,7 +1192,13 @@ apiRouter.get('/admin/bootstrap', requireAdmin, async (req: AuthenticatedRequest
       paymentLogs,
       finances,
       combos
-    });
+    };
+
+    bootstrapCache = { data: responsePayload, expiresAt: Date.now() + 15000 };
+
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('X-Bootstrap-Cache', 'MISS');
+    res.json(responsePayload);
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to fetch admin bootstrap data' });
   }

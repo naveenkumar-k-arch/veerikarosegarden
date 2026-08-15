@@ -18,10 +18,17 @@ export function getPrismaClient(): PrismaClient | null {
 
   if (!global.__prismaGlobal) {
     try {
-      // For Neon serverless: append pgbouncer params if not already present
-      const serverlessUrl = dbUrl.includes('pgbouncer')
-        ? dbUrl
-        : dbUrl.replace('?sslmode=require', '?sslmode=require&pgbouncer=true&connect_timeout=15');
+      // For Supabase Transaction Pooler: ensure pgbouncer mode + limit connections for serverless
+      let serverlessUrl = dbUrl;
+      if (!serverlessUrl.includes('pgbouncer')) {
+        serverlessUrl += (serverlessUrl.includes('?') ? '&' : '?') + 'pgbouncer=true';
+      }
+      if (!serverlessUrl.includes('connection_limit')) {
+        serverlessUrl += '&connection_limit=1';
+      }
+      if (!serverlessUrl.includes('connect_timeout')) {
+        serverlessUrl += '&connect_timeout=10';
+      }
 
       global.__prismaGlobal = new PrismaClient({
         datasources: {
@@ -30,6 +37,11 @@ export function getPrismaClient(): PrismaClient | null {
           }
         },
         log: ['error']
+      });
+
+      // Eagerly connect on init to eliminate cold-start latency on first query
+      global.__prismaGlobal.$connect().catch((err) => {
+        console.warn('Prisma eager connect notice:', err);
       });
     } catch (err) {
       console.error('Failed to initialize Prisma Client:', err);
