@@ -65,9 +65,24 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
     }
   }, [branches, metturBranch, onChangeMetturBranch]);
 
-  const profCourierCharge = deliveryOption === 'FULL_SOIL'
-    ? totalPlantCount * 100
-    : totalPlantCount * 60;
+  const inTN = shippingState ? (shippingState.toLowerCase().includes('tamil') || shippingState.toLowerCase() === 'tn') : true;
+  const isFullSoilAllowed = inTN;
+  const isMetturAllowed = totalPlantCount >= 3;
+
+  const reducedSoilCharge = (inTN ? 60 : 100) + Math.max(0, totalPlantCount - 1) * 20;
+  const fullSoilCharge = totalPlantCount * 100;
+  const metturParcelCharge = Math.ceil(Math.max(1, totalPlantCount) / 6) * 60;
+
+  // Auto fallback if Full Soil or Mettur become invalid
+  useEffect(() => {
+    if (deliveryOption === 'FULL_SOIL' && (!isFullSoilAllowed || totalPlantCount > 5)) {
+      if (onChangeDeliveryOption) onChangeDeliveryOption('REDUCED_SOIL');
+    }
+    if (selectedCourier === 'METTUR_PARCEL' && !isMetturAllowed) {
+      onChangeCourier('PROFESSIONAL_COURIER');
+      if (onChangeDeliveryOption) onChangeDeliveryOption('REDUCED_SOIL');
+    }
+  }, [isFullSoilAllowed, isMetturAllowed, totalPlantCount, deliveryOption, selectedCourier]);
 
   return (
     <div className={`rounded-3xl border border-slate-200 bg-white p-4 sm:p-5 space-y-4 shadow-xs ${className}`}>
@@ -82,7 +97,7 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
               Choose Courier &amp; Delivery Partner
             </h3>
             <p className="text-[10px] sm:text-xs text-slate-600 font-medium">
-              Select your preferred parcel network for safe nursery dispatch.
+              Destination: <strong className="text-emerald-800 font-bold">{shippingState || 'Tamil Nadu'}</strong> ({inTN ? '₹60 base shipping' : '₹100 base shipping'})
             </p>
           </div>
         </div>
@@ -163,30 +178,34 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
                         />
                         <div>
                           <p className="text-[11px] font-black text-slate-900">🌿 Professional Courier – Reduced Soil</p>
-                          <p className="text-[10px] text-emerald-700 font-bold">Available</p>
+                          <p className="text-[10px] text-emerald-700 font-bold">
+                            {inTN ? '₹60 for 1st plant + ₹20/addl' : '₹100 for 1st plant + ₹20/addl'}
+                          </p>
                         </div>
                       </div>
                       <div className="text-right shrink-0">
                         <span className="text-xs font-black text-emerald-900 block">
-                          {hasFreeDelivery ? '₹0' : `₹${totalPlantCount * 60}`}
+                          {hasFreeDelivery ? '₹0' : `₹${reducedSoilCharge}`}
                         </span>
                         <span className="text-[9px] text-slate-400 font-medium">Delivery Charge</span>
-                        <span className="text-[8px] text-slate-400 block">₹60/plant</span>
                       </div>
                     </div>
 
                     {/* Full Soil Option */}
                     <div
                       onClick={() => {
-                        if (totalPlantCount > 5) return; // enforce max 5 plants
+                        if (!isFullSoilAllowed) return;
+                        if (totalPlantCount > 5) return;
                         onChangeDeliveryOption && onChangeDeliveryOption('FULL_SOIL');
                       }}
-                      className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-all ${
-                        totalPlantCount > 5
-                          ? 'border-slate-200 bg-slate-100 opacity-50 cursor-not-allowed'
+                      className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all ${
+                        !isFullSoilAllowed
+                          ? 'border-slate-200 bg-slate-100/80 opacity-60 cursor-not-allowed'
+                          : totalPlantCount > 5
+                          ? 'border-slate-200 bg-slate-100 opacity-60 cursor-not-allowed'
                           : deliveryOption === 'FULL_SOIL'
-                            ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-400/30'
-                            : 'border-slate-200 bg-white hover:bg-slate-50'
+                            ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-400/30 cursor-pointer'
+                            : 'border-slate-200 bg-white hover:bg-slate-50 cursor-pointer'
                       }`}
                     >
                       <div className="flex items-center gap-2.5">
@@ -194,27 +213,33 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
                           type="radio"
                           name="profCourierOption"
                           checked={deliveryOption === 'FULL_SOIL'}
-                          disabled={totalPlantCount > 5}
+                          disabled={!isFullSoilAllowed || totalPlantCount > 5}
                           onChange={() => {
-                            if (totalPlantCount <= 5) onChangeDeliveryOption && onChangeDeliveryOption('FULL_SOIL');
+                            if (isFullSoilAllowed && totalPlantCount <= 5) onChangeDeliveryOption && onChangeDeliveryOption('FULL_SOIL');
                           }}
-                          className="accent-emerald-700 cursor-pointer"
+                          className="accent-emerald-700 cursor-pointer disabled:cursor-not-allowed"
                         />
                         <div>
-                          <p className="text-[11px] font-black text-slate-900">🌱 Professional Courier – Full Soil</p>
-                          <p className="text-[10px] font-bold text-amber-600">
-                            {totalPlantCount > 5
-                              ? `⚠️ Maximum 5 plants (you have ${totalPlantCount})`
-                              : 'Maximum 5 plants'}
+                          <p className="text-[11px] font-black text-slate-900 flex items-center gap-1.5">
+                            <span>🌱 Professional Courier – Full Soil</span>
+                            {!isFullSoilAllowed && (
+                              <span className="text-[8px] bg-rose-100 text-rose-800 font-bold px-1.5 py-0.5 rounded">Tamil Nadu Only</span>
+                            )}
+                          </p>
+                          <p className="text-[10px] font-bold text-amber-700">
+                            {!isFullSoilAllowed
+                              ? '🚫 Full Soil is available only within Tamil Nadu due to transit weight limits.'
+                              : totalPlantCount > 5
+                              ? `⚠️ Maximum 5 plants for Full Soil (you have ${totalPlantCount})`
+                              : 'Available for Tamil Nadu (Max 5 plants)'}
                           </p>
                         </div>
                       </div>
                       <div className="text-right shrink-0">
                         <span className="text-xs font-black text-emerald-900 block">
-                          {hasFreeDelivery ? '₹0' : `₹${totalPlantCount * 100}`}
+                          {!isFullSoilAllowed ? 'N/A' : hasFreeDelivery ? '₹0' : `₹${fullSoilCharge}`}
                         </span>
-                        <span className="text-[9px] text-slate-400 font-medium">Delivery Charge</span>
-                        <span className="text-[8px] text-slate-400 block">₹100/plant</span>
+                        <span className="text-[9px] text-slate-400 font-medium">{isFullSoilAllowed ? '₹100/plant' : 'Not Available'}</span>
                       </div>
                     </div>
                   </div>
@@ -226,9 +251,9 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
             {selectedCourier !== 'PROFESSIONAL_COURIER' && (
               <div className="text-right shrink-0">
                 <span className="text-xs sm:text-sm font-black text-emerald-900 block">
-                  {hasFreeDelivery ? '₹0' : `from ₹${totalPlantCount * 60}`}
+                  {hasFreeDelivery ? '₹0' : `from ₹${reducedSoilCharge}`}
                 </span>
-                <span className="text-[9px] text-slate-400 font-medium">₹60/plant</span>
+                <span className="text-[9px] text-slate-400 font-medium">Doorstep</span>
               </div>
             )}
           </div>
@@ -237,13 +262,16 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
         {/* 2. Mettur Parcel Service */}
         <div
           onClick={() => {
+            if (!isMetturAllowed) return;
             onChangeCourier('METTUR_PARCEL');
             if (onChangeDeliveryOption) onChangeDeliveryOption('METTUR_PARCEL');
           }}
-          className={`p-3.5 sm:p-4 rounded-2xl border-2 transition-all cursor-pointer ${
-            selectedCourier === 'METTUR_PARCEL'
-              ? 'border-emerald-600 bg-emerald-50/70 ring-2 ring-emerald-500/20 shadow-xs'
-              : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100'
+          className={`p-3.5 sm:p-4 rounded-2xl border-2 transition-all ${
+            !isMetturAllowed
+              ? 'border-slate-200 bg-slate-100/80 opacity-70 cursor-not-allowed'
+              : selectedCourier === 'METTUR_PARCEL'
+              ? 'border-emerald-600 bg-emerald-50/70 ring-2 ring-emerald-500/20 shadow-xs cursor-pointer'
+              : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100 cursor-pointer'
           }`}
         >
           <div className="flex items-start justify-between gap-3">
@@ -252,31 +280,44 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
                 type="radio"
                 name="courierPartner"
                 checked={selectedCourier === 'METTUR_PARCEL'}
+                disabled={!isMetturAllowed}
                 onChange={() => {
-                  onChangeCourier('METTUR_PARCEL');
-                  if (onChangeDeliveryOption) onChangeDeliveryOption('METTUR_PARCEL');
+                  if (isMetturAllowed) {
+                    onChangeCourier('METTUR_PARCEL');
+                    if (onChangeDeliveryOption) onChangeDeliveryOption('METTUR_PARCEL');
+                  }
                 }}
-                className="mt-1 accent-emerald-700 cursor-pointer"
+                className="mt-1 accent-emerald-700 cursor-pointer disabled:cursor-not-allowed"
               />
               <div className="space-y-0.5">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <h4 className="text-xs sm:text-sm font-black text-slate-900">
-                    📦 Mettur Parcel Service
+                    📦 Mettur Parcel Service (Branch Pickup)
                   </h4>
                   <span className="text-[9px] font-black bg-amber-100 text-amber-900 px-2 py-0.5 rounded-md">
-                    All India • Available from 3 plants • Full Soil / Open Box
+                    Min 3 Plants Required
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-600">
-                  Economical bulk parcel service with pickup depots across Tamil Nadu, Karnataka (Bangalore), Kerala (Palakkad) &amp; Pondicherry.
+                  Economical bulk parcel service with pickup depots across Tamil Nadu, Bangalore &amp; Pondicherry.
                 </p>
+                {!isMetturAllowed && (
+                  <p className="text-[10px] font-bold text-rose-700 pt-1">
+                    ⚠️ Mettur Parcel requires a minimum of 3 plants (You currently have {totalPlantCount} plant{totalPlantCount !== 1 ? 's' : ''}). Please add more plants to enable Mettur Service.
+                  </p>
+                )}
+                {isMetturAllowed && (
+                  <p className="text-[10px] font-bold text-emerald-800 pt-0.5">
+                    Rate: ₹60 for 1–6 plants, +₹60 for every additional 6 plants.
+                  </p>
+                )}
               </div>
             </div>
             <div className="text-right shrink-0">
               <span className="text-xs sm:text-sm font-black text-emerald-900 block">
-                {hasFreeDelivery ? '₹0' : totalPlantCount < 3 ? '₹60' : `₹${Math.ceil(totalPlantCount / 6) * 60}`}
+                {!isMetturAllowed ? 'Min 3 Qty' : hasFreeDelivery ? '₹0' : `₹${metturParcelCharge}`}
               </span>
-              <span className="text-[9px] text-slate-400 font-medium">Packing / Delivery Charge</span>
+              <span className="text-[9px] text-slate-400 font-medium">Delivery Charge</span>
             </div>
           </div>
 

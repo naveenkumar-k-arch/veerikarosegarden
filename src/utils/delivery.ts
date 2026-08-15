@@ -90,3 +90,45 @@ export const INDIAN_STATES = [
   'Andhra Pradesh',
   'Puducherry'
 ];
+
+export type DeliveryOptionType = 'REDUCED_SOIL' | 'FULL_SOIL' | 'METTUR_PARCEL';
+
+/**
+ * Calculates delivery charge based on soil/courier option, plant count, and destination state:
+ * 1. REDUCED_SOIL:
+ *    - Tamil Nadu: ₹60 for 1st plant, +₹20 for 2nd plant, +₹20 for 3rd plant, etc. (60 + (N - 1) * 20)
+ *    - Other States (Karnataka, Kerala, AP, Puducherry): ₹100 for 1st plant, +₹20 for each additional plant (100 + (N - 1) * 20)
+ * 2. FULL_SOIL:
+ *    - Available ONLY in Tamil Nadu: ₹100 per plant (N * 100) (Max 5 plants)
+ *    - Other states: Disabled / fallback to Reduced Soil
+ * 3. METTUR_PARCEL:
+ *    - Minimum 3 plants required
+ *    - 1 to 6 plants (or 3 to 6): ₹60
+ *    - 7 to 12 plants: ₹120 (+₹60 continuous for every 6 plants: ceil(N / 6) * 60)
+ */
+export function getDeliveryChargeForOption(
+  opt: DeliveryOptionType,
+  count: number,
+  stateName: string = 'Tamil Nadu'
+): number {
+  if (count <= 0) return 0;
+  const inTN = isTamilNadu(stateName);
+
+  if (opt === 'REDUCED_SOIL') {
+    const base = inTN ? 60 : 100;
+    return base + (count - 1) * 20;
+  }
+
+  if (opt === 'FULL_SOIL') {
+    if (!inTN) {
+      return 100 + (count - 1) * 20;
+    }
+    return count * 100;
+  }
+
+  if (opt === 'METTUR_PARCEL') {
+    return Math.ceil(Math.max(1, count) / 6) * 60;
+  }
+
+  return (inTN ? 60 : 100) + (count - 1) * 20;
+}

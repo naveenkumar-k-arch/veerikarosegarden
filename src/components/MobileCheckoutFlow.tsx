@@ -6,7 +6,7 @@ import {
   Download, ExternalLink, RefreshCw, FileText
 } from 'lucide-react';
 import { CartItem, ShippingAddress, PaymentMethod, User, SiteSettings, Product } from '../types';
-import { INDIAN_STATES, isTamilNadu } from '../utils/delivery';
+import { INDIAN_STATES, isTamilNadu, getDeliveryChargeForOption, DeliveryOptionType } from '../utils/delivery';
 import { computeOrderTotals } from '../utils/orderTotals';
 import { CourierSelectionSection, CourierPartnerType } from './CourierSelectionSection';
 import { PlantProtectivePackingSection, PackingOptionType } from './PlantProtectivePackingSection';
@@ -55,18 +55,6 @@ interface MobileCheckoutFlowProps {
   onRemoveItem: (productId: string) => void;
   onNavigateToAccount: () => void;
 }
-
-type DeliveryOptionType = 'REDUCED_SOIL' | 'FULL_SOIL' | 'METTUR_PARCEL';
-
-const getDeliveryChargeForOption = (opt: DeliveryOptionType, count: number): number => {
-  if (opt === 'REDUCED_SOIL') return count * 60;
-  if (opt === 'FULL_SOIL') return count * 100;
-  if (opt === 'METTUR_PARCEL') {
-    if (count < 3) return 60;
-    return Math.ceil(count / 6) * 60;
-  }
-  return count * 60;
-};
 
 const DELIVERY_TERMS = [
   '🌿 Plants are live/semi-dormant saplings. Minor leaf stress during transit is normal and temporary.',
@@ -285,17 +273,23 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
     return sum + (isCombo ? bundleCount * i.quantity : i.quantity);
   }, 0);
 
-  // Auto fallback if option becomes unavailable due to plant count changes
+  // Auto fallback if option becomes unavailable due to state or plant count changes
   useEffect(() => {
-    if (deliveryOption === 'FULL_SOIL' && totalPlantCount > 5) {
+    const inTN = isTamilNadu(address.state);
+    if (deliveryOption === 'FULL_SOIL' && (!inTN || totalPlantCount > 5)) {
       setDeliveryOption('REDUCED_SOIL');
     }
-    if (deliveryOption === 'METTUR_PARCEL' && totalPlantCount < 3) {
+    if (courierPartner === 'METTUR_PARCEL' && totalPlantCount < 3) {
+      setCourierPartner('PROFESSIONAL_COURIER');
       setDeliveryOption('REDUCED_SOIL');
     }
-  }, [totalPlantCount, deliveryOption]);
+  }, [totalPlantCount, deliveryOption, courierPartner, address.state]);
 
-  const baseShipping = getDeliveryChargeForOption(courierPartner === 'METTUR_PARCEL' ? 'METTUR_PARCEL' : deliveryOption, chargeablePlantCount);
+  const baseShipping = getDeliveryChargeForOption(
+    courierPartner === 'METTUR_PARCEL' ? 'METTUR_PARCEL' : deliveryOption,
+    chargeablePlantCount,
+    address.state
+  );
   const shippingCharge = hasAllFreeDelivery ? 0 : (chargeablePlantCount === 0 ? 0 : baseShipping);
   const packingCharge = courierPartner === 'METTUR_PARCEL'
     ? (selectedPacking === 'EXTRA_SECURE' ? 10 : selectedPacking === 'MAX_PROTECTION' ? 15 : 0)
@@ -986,39 +980,22 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
         )}
 
         {/* ═══════════════════════════════════════════════════════════════════
-            STEP 2 — Order Summary
+            STEP 2 — Apply Coupon / Discounts
         ═══════════════════════════════════════════════════════════════════ */}
         {step === 2 && (
           <div className="flex flex-col min-h-full">
-            <Header title="Order Summary" subtitle={`(${items.length} item${items.length !== 1 ? 's' : ''})`} onBack={() => handleGoBack(1)} />
+            <Header title="Apply Coupon" subtitle="Add discount or voucher code to your order" onBack={() => handleGoBack(1)} />
 
             <div className="flex-1 px-4 py-3 space-y-4">
-              {/* State selector */}
-              <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 space-y-2">
-                <label className="text-[11px] font-extrabold text-slate-700 flex items-center gap-1.5">
-                  <Truck className="w-3.5 h-3.5 text-emerald-600" />
-                  🚚 Delivery State Rate Preview:
-                </label>
-                <select
-                  value={previewState}
-                  onChange={(e) => setPreviewState(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 cursor-pointer"
-                >
-                  {INDIAN_STATES.map(st => (
-                    <option key={st} value={st}>{st} {isTamilNadu(st) ? '(₹60 base shipping)' : '(₹100 base shipping)'}</option>
-                  ))}
-                </select>
-              </div>
-
               {/* Coupon */}
-              <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 space-y-2">
+              <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 space-y-2.5">
                 <label className="text-[11px] font-extrabold text-slate-700 flex items-center gap-1.5">
                   <Tag className="w-3.5 h-3.5 text-emerald-600" />
-                  Apply Coupon / Discount Code
+                  Have a Coupon / Promo Code?
                 </label>
                 {appliedCoupon ? (
                   <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs">
-                    <span className="font-bold text-emerald-800">✅ {appliedCoupon.code} (−₹{appliedCoupon.discountAmount})</span>
+                    <span className="font-bold text-emerald-800">✅ {appliedCoupon.code} (−₹{appliedCoupon.discountAmount} Applied)</span>
                     <button onClick={onRemoveCoupon} className="text-rose-600 font-bold hover:underline text-xs cursor-pointer">Remove</button>
                   </div>
                 ) : (
@@ -1041,28 +1018,6 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                   </p>
                 )}
               </div>
-
-              {/* Price breakdown */}
-              <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-2.5 text-xs text-slate-600">
-                <div className="flex justify-between">
-                  <span className="font-medium">Subtotal:</span>
-                  <span className="font-bold text-slate-900">₹{summaryTotals.subtotal}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-medium">Delivery Fee:</span>
-                  <span className="font-bold text-slate-900">₹{summaryTotals.shippingFee}</span>
-                </div>
-                {appliedCoupon && (
-                  <div className="flex justify-between text-emerald-700 font-semibold">
-                    <span>Coupon Discount:</span>
-                    <span>−₹{summaryTotals.discountAmount}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-sm font-extrabold text-slate-900 pt-2 border-t border-slate-200">
-                  <span>Grand Total:</span>
-                  <span className="text-emerald-800 text-base">₹{summaryTotals.grandTotal}</span>
-                </div>
-              </div>
             </div>
 
             <div className="px-4 pb-6 pt-3 border-t border-slate-100 bg-white">
@@ -1072,7 +1027,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                   <button onClick={() => { handleClose(); onNavigateToAccount(); }} className="underline font-bold cursor-pointer">Login / Sign Up →</button>
                 </div>
               )}
-              <ProceedBtn label="PROCEED TO CHECKOUT" onClick={() => goTo(3)} />
+              <ProceedBtn label="PROCEED TO DELIVERY ADDRESS" onClick={() => goTo(3)} />
             </div>
           </div>
         )}
@@ -1245,6 +1200,39 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                   onChangePacking={setSelectedPacking}
                 />
               )}
+
+              {/* Delivery State Rate Preview Guide */}
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-2 text-xs">
+                <p className="font-extrabold text-slate-800 flex items-center gap-1.5 text-xs">
+                  <Truck className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>🚚 Delivery State Rate Preview:</span>
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px]">
+                  <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border border-slate-200">
+                    <span className="font-bold text-slate-800">🌿 Tamil Nadu</span>
+                    <span className="font-black text-emerald-800">₹60 base shipping</span>
+                  </div>
+                  <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border border-slate-200">
+                    <span className="font-bold text-slate-800">🌿 Karnataka</span>
+                    <span className="font-black text-emerald-800">₹100 base shipping</span>
+                  </div>
+                  <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border border-slate-200">
+                    <span className="font-bold text-slate-800">🌿 Kerala</span>
+                    <span className="font-black text-emerald-800">₹100 base shipping</span>
+                  </div>
+                  <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border border-slate-200">
+                    <span className="font-bold text-slate-800">🌿 Andhra Pradesh</span>
+                    <span className="font-black text-emerald-800">₹100 base shipping</span>
+                  </div>
+                  <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border border-slate-200">
+                    <span className="font-bold text-slate-800">🌿 Puducherry</span>
+                    <span className="font-black text-emerald-800">₹100 base shipping</span>
+                  </div>
+                </div>
+                <p className="text-[10px] text-slate-500 font-medium pt-0.5">
+                  💡 Reduced Soil: ₹60 (TN) / ₹100 (Other states) for 1st plant + ₹20 for each additional plant.
+                </p>
+              </div>
 
               {/* Price summary */}
               <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-2 text-xs text-slate-600">
