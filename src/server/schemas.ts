@@ -18,7 +18,11 @@ export const orderItemSchema = z.object({
   quantity: z.number().int().positive('Quantity must be greater than 0'),
   sku: z.string().optional(),
   name: z.string().optional(),
-  price: z.number().positive().optional()
+  tamilName: z.string().optional(),
+  price: z.number().optional(),
+  image: z.string().optional(),
+  freeDelivery: z.boolean().optional(),
+  isCombo: z.boolean().optional()
 });
 
 export const createOrderSchema = z.object({
@@ -39,6 +43,11 @@ export const createOrderSchema = z.object({
       { message: 'Payment proof must be a valid image or URL' }
     ),
   transactionId: z.string().max(100).optional().nullable().transform(val => val || undefined),
+  shippingCharge: z.number().min(0).optional(),
+  subtotal: z.number().min(0).optional(),
+  grandTotal: z.number().min(0).optional(),
+  discount: z.number().min(0).optional(),
+  deliveryOption: z.string().optional(),
   potOption: z.string().optional(),
   potCharge: z.number().min(0).optional(),
   packingOption: z.string().optional(),
