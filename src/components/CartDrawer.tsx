@@ -154,6 +154,19 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                         <Truck className="w-2.5 h-2.5" /> Free Delivery
                       </span>
                     )}
+                    {isCombo && item.comboProducts && item.comboProducts.length > 0 && (
+                      <div className="bg-amber-50 border border-amber-200/80 rounded-lg p-1.5 mt-1 text-[10px] space-y-0.5">
+                        <span className="font-bold text-amber-900 block">🌿 Bundle ({item.comboProducts.length} Plants):</span>
+                        <div className="flex flex-wrap gap-1">
+                          {item.comboProducts.map((p, idx) => (
+                            <span key={p.id || idx} className="bg-white px-1.5 py-0.5 rounded text-[9px] font-semibold text-slate-700 border border-amber-200 truncate max-w-[150px]">
+                              {p.name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="flex items-baseline gap-1.5 mt-0.5">
                       <span className="text-xs font-bold text-slate-800">₹{item.product.sellingPrice}</span>
                       {item.product.mrp > item.product.sellingPrice && (

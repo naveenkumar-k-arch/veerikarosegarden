@@ -125,7 +125,7 @@ function loadDiskCombos(): Combo[] {
     if (fs.existsSync(COMBOS_STORE_FILE)) {
       const data = fs.readFileSync(COMBOS_STORE_FILE, 'utf-8');
       const parsed = JSON.parse(data);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
   } catch (err) {
     console.error('Error reading combos_store.json:', err);
@@ -5474,8 +5474,8 @@ class Store {
             category: product.categoryName || 'Roses',
             categoryId: validCategoryId,
             description: product.description || '',
-            price: product.sellingPrice,
-            originalPrice: product.mrp,
+            price: product.sellingPrice || (product as any).price || 0,
+            originalPrice: product.mrp || (product as any).originalPrice || (product as any).price || product.sellingPrice || 0,
             image: product.images?.[0] || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80',
             images: product.images || [],
             isFeatured: product.featured || false,
@@ -5882,6 +5882,7 @@ class Store {
         }
       });
 
+      this.invalidateCategoriesCache();
       return {
         id: c.id,
         name: c.name,
@@ -5962,6 +5963,7 @@ class Store {
         }
       });
 
+      this.invalidateCategoriesCache();
       return {
         id: c.id,
         name: c.name,
@@ -6015,9 +6017,11 @@ class Store {
 
       deletedCategoryIds.add(id);
       await prisma.category.delete({ where: { id } }).catch(() => {});
+      this.invalidateCategoriesCache();
       return { success: true, message: 'Category deleted successfully' };
     } catch (err: any) {
       deletedCategoryIds.add(id);
+      this.invalidateCategoriesCache();
       return { success: true, message: 'Category deleted successfully' };
     }
   }
@@ -6032,35 +6036,12 @@ class Store {
         console.error('Prisma deleteAllCategories error:', err);
       }
     }
+    this.invalidateCategoriesCache();
     return true;
   }
 
 
   // BANNERS
-  async addBanner(data: { title: string; subtitle?: string; imageUrl: string; targetCategory?: string; active?: boolean; order?: number }): Promise<Banner> {
-    const prisma = getPrismaClient();
-    const id = 'banner-' + Date.now();
-    if (prisma) {
-      try {
-        const b = await prisma.banner.create({
-          data: {
-            id,
-            title: data.title,
-            subtitle: data.subtitle || '',
-            imageUrl: data.imageUrl,
-            targetCategory: data.targetCategory || '',
-            active: data.active !== false,
-            order: data.order || 1
-          }
-        });
-        return { id: b.id, title: b.title, subtitle: b.subtitle || '', imageUrl: b.imageUrl, targetCategory: b.targetCategory || '', active: b.active, order: b.order };
-      } catch (err) {
-        console.error('Prisma addBanner error:', err);
-      }
-    }
-    return { id, ...data, subtitle: data.subtitle || '', targetCategory: data.targetCategory || '', active: data.active !== false, order: data.order || 1 };
-  }
-
   private static readonly DEFAULT_BANNERS: Banner[] = [
     {
       id: 'banner-1',
@@ -6091,10 +6072,106 @@ class Store {
     }
   ];
 
+  private memoryBanners: Banner[] = [...Store.DEFAULT_BANNERS];
+  private deletedBannerIds = new Set<string>();
+
   private bannersCache: { data: Banner[]; expiresAt: number } = {
     data: Store.DEFAULT_BANNERS,
     expiresAt: 0
   };
+
+  invalidateBannersCache() {
+    this.bannersCache.expiresAt = 0;
+  }
+
+  async addBanner(data: { title: string; subtitle?: string; imageUrl: string; targetCategory?: string; active?: boolean; order?: number }): Promise<Banner> {
+    const id = 'banner-' + Date.now();
+    const newBanner: Banner = {
+      id,
+      title: data.title,
+      subtitle: data.subtitle || '',
+      imageUrl: data.imageUrl,
+      targetCategory: data.targetCategory || '',
+      active: data.active !== false,
+      order: data.order || (this.memoryBanners.length + 1)
+    };
+
+    this.memoryBanners.push(newBanner);
+    this.deletedBannerIds.delete(id);
+    this.bannersCache = {
+      data: this.memoryBanners.filter(b => !this.deletedBannerIds.has(b.id) && b.active !== false),
+      expiresAt: Date.now() + 300000
+    };
+
+    const prisma = getPrismaClient();
+    if (prisma) {
+      prisma.banner.create({
+        data: {
+          id,
+          title: data.title,
+          subtitle: data.subtitle || '',
+          imageUrl: data.imageUrl,
+          targetCategory: data.targetCategory || '',
+          active: data.active !== false,
+          order: data.order || 1
+        }
+      }).catch(err => console.error('Prisma addBanner background error:', err));
+    }
+    return newBanner;
+  }
+
+  async updateBanner(id: string, updates: Partial<Banner>): Promise<Banner | null> {
+    const idx = this.memoryBanners.findIndex(b => b.id === id);
+    if (idx !== -1) {
+      this.memoryBanners[idx] = { ...this.memoryBanners[idx], ...updates };
+    }
+    this.bannersCache = {
+      data: this.memoryBanners.filter(b => !this.deletedBannerIds.has(b.id) && b.active !== false),
+      expiresAt: Date.now() + 300000
+    };
+
+    const prisma = getPrismaClient();
+    if (prisma) {
+      prisma.banner.upsert({
+        where: { id },
+        update: {
+          ...(updates.title ? { title: updates.title } : {}),
+          ...(updates.subtitle !== undefined ? { subtitle: updates.subtitle } : {}),
+          ...(updates.imageUrl ? { imageUrl: updates.imageUrl } : {}),
+          ...(updates.targetCategory !== undefined ? { targetCategory: updates.targetCategory } : {}),
+          ...(updates.active !== undefined ? { active: updates.active } : {}),
+          ...(updates.order !== undefined ? { order: updates.order } : {})
+        },
+        create: {
+          id,
+          title: updates.title || 'Special Banner',
+          subtitle: updates.subtitle || '',
+          imageUrl: updates.imageUrl || 'https://images.unsplash.com/photo-1502977249166-824b3a8a4d6d',
+          targetCategory: updates.targetCategory || '',
+          active: updates.active !== false,
+          order: updates.order || 1
+        }
+      }).catch(err => console.error('Prisma updateBanner background error:', err));
+    }
+    return this.memoryBanners.find(b => b.id === id) || null;
+  }
+
+  async deleteBanner(id: string): Promise<boolean> {
+    this.deletedBannerIds.add(id);
+    this.memoryBanners = this.memoryBanners.filter(b => b.id !== id);
+    this.bannersCache = {
+      data: this.memoryBanners.filter(b => !this.deletedBannerIds.has(b.id) && b.active !== false),
+      expiresAt: Date.now() + 300000
+    };
+
+    const prisma = getPrismaClient();
+    if (prisma) {
+      prisma.banner.deleteMany({ where: { id } }).catch(err => {
+        console.error('Prisma deleteBanner background error:', err);
+      });
+    }
+    return true;
+  }
 
   async getBanners(): Promise<Banner[]> {
     if (Date.now() >= this.bannersCache.expiresAt) {
@@ -6116,7 +6193,7 @@ class Store {
                   targetCategory: b.targetCategory || '',
                   active: b.active,
                   order: b.order
-                })),
+                })).filter(b => !this.deletedBannerIds.has(b.id)),
                 expiresAt: Date.now() + 300000
               };
             }
@@ -6126,7 +6203,7 @@ class Store {
         }
       })();
     }
-    return this.bannersCache.data;
+    return this.bannersCache.data.filter(b => !this.deletedBannerIds.has(b.id));
   }
 
   // COUPONS
@@ -6202,11 +6279,11 @@ class Store {
           data: {
             id,
             code: coupon.code.toUpperCase(),
-            discountType: coupon.type === 'FIXED' ? 'FIXED' : 'PERCENTAGE',
-            discountValue: coupon.value,
-            minOrderValue: coupon.minOrder || 0,
-            maxDiscount: coupon.maxDiscount || null,
-            isActive: coupon.active !== false
+            discountType: (coupon.type === 'FIXED' || (coupon as any).discountType === 'FIXED') ? 'FIXED' : 'PERCENTAGE',
+            discountValue: Number(coupon.value ?? (coupon as any).discountValue ?? 10),
+            minOrderValue: Number(coupon.minOrder ?? (coupon as any).minOrderValue ?? 0),
+            maxDiscount: (coupon.maxDiscount || (coupon as any).maxDiscount) ? Number(coupon.maxDiscount || (coupon as any).maxDiscount) : null,
+            isActive: (coupon.active ?? (coupon as any).isActive) !== false
           }
         });
 
@@ -6261,15 +6338,34 @@ class Store {
 
   // COMBOS & OFFERS
   async getCombos(): Promise<Combo[]> {
-    const rawCombos = memoryCombosStore.filter(c => !deletedComboIds.has(c.id));
+    const rawCombos = memoryCombosStore.filter(c => !deletedComboIds.has(c.id) && !deletedComboIds.has(c.id.toLowerCase()));
 
-    // Fast in-memory product lookup
-    const allProducts = this.productsCache.data;
-    const prodMap = new Map(allProducts.map(p => [p.id, p]));
+    // Fast robust product lookup
+    const allProducts = (this.productsCache?.data && this.productsCache.data.length > 0)
+      ? this.productsCache.data
+      : await this.getProducts().catch(() => DEFAULT_PRODUCTS);
+
+    const prodMap = new Map<string, Product>();
+    allProducts.forEach(p => {
+      if (p.id) {
+        prodMap.set(p.id, p);
+        prodMap.set(p.id.toLowerCase(), p);
+      }
+      if (p.sku) {
+        prodMap.set(p.sku, p);
+        prodMap.set(p.sku.toLowerCase(), p);
+      }
+    });
 
     return rawCombos.map(c => {
       const pIds: string[] = Array.isArray(c.productIds) ? c.productIds : [];
-      const matchedProds = pIds.map(pid => prodMap.get(pid)).filter(Boolean) as Product[];
+      const matchedProds = pIds.map(pid => {
+        if (!pid) return null;
+        const p = prodMap.get(pid) || prodMap.get(pid.toLowerCase());
+        if (p) return p;
+        return allProducts.find(item => item.id === pid || item.id.toLowerCase() === pid.toLowerCase() || item.sku === pid) || null;
+      }).filter(Boolean) as Product[];
+
       return {
         id: c.id,
         title: c.title,
@@ -6284,24 +6380,24 @@ class Store {
         active: c.active !== false,
         order: c.order || 1,
         freeDelivery: c.freeDelivery === true,
-        createdAt: c.createdAt ? (typeof c.createdAt === 'string' ? c.createdAt : c.createdAt.toISOString()) : new Date().toISOString(),
-        updatedAt: c.updatedAt ? (typeof c.updatedAt === 'string' ? c.updatedAt : c.updatedAt.toISOString()) : new Date().toISOString()
+        createdAt: c.createdAt ? (typeof c.createdAt === 'string' ? c.createdAt : (c.createdAt as any).toISOString?.() || String(c.createdAt)) : new Date().toISOString(),
+        updatedAt: c.updatedAt ? (typeof c.updatedAt === 'string' ? c.updatedAt : (c.updatedAt as any).toISOString?.() || String(c.updatedAt)) : new Date().toISOString()
       };
     });
   }
 
   async getComboById(id: string): Promise<Combo | null> {
     const cleanId = (id || '').trim();
-    if (!cleanId || deletedComboIds.has(cleanId)) return null;
+    if (!cleanId || deletedComboIds.has(cleanId) || deletedComboIds.has(cleanId.toLowerCase())) return null;
     const combos = await this.getCombos();
-    return combos.find(c => c.id === cleanId) || null;
+    return combos.find(c => c.id === cleanId || c.id.toLowerCase() === cleanId.toLowerCase()) || null;
   }
 
   async addCombo(data: Partial<Combo>): Promise<Combo> {
     const id = data.id || 'combo-' + Date.now();
-    const title = data.title || 'Special Plant Combo';
-    const subtitle = data.subtitle || '';
-    const badge = data.badge || 'COMBO OFFER';
+    const title = (data.title || 'Special Plant Combo').trim();
+    const subtitle = (data.subtitle || '').trim();
+    const badge = (data.badge || 'COMBO OFFER').trim();
     const productIds = Array.isArray(data.productIds) ? data.productIds : [];
     const originalPrice = Number(data.originalPrice || 0);
     const comboPrice = Number(data.comboPrice || 0);
@@ -6310,9 +6406,25 @@ class Store {
     const active = data.active !== false;
     const freeDelivery = data.freeDelivery === true;
 
-    const allProducts = await this.getProducts();
-    const prodMap = new Map(allProducts.map(p => [p.id, p]));
-    const matchedProds = productIds.map(pid => prodMap.get(pid)).filter(Boolean) as Product[];
+    const allProducts = (this.productsCache?.data && this.productsCache.data.length > 0)
+      ? this.productsCache.data
+      : await this.getProducts().catch(() => DEFAULT_PRODUCTS);
+
+    const prodMap = new Map<string, Product>();
+    allProducts.forEach(p => {
+      if (p.id) {
+        prodMap.set(p.id, p);
+        prodMap.set(p.id.toLowerCase(), p);
+      }
+      if (p.sku) {
+        prodMap.set(p.sku, p);
+      }
+    });
+
+    const matchedProds = productIds.map(pid => {
+      if (!pid) return null;
+      return prodMap.get(pid) || prodMap.get(pid.toLowerCase()) || allProducts.find(p => p.id === pid || p.sku === pid) || null;
+    }).filter(Boolean) as Product[];
 
     const newCombo: Combo = {
       id,
@@ -6324,7 +6436,7 @@ class Store {
       originalPrice,
       comboPrice,
       discountPercent,
-      imageUrl: imageUrl || matchedProds[0]?.images?.[0] || '/products/pink-guava-plant.jpeg',
+      imageUrl: imageUrl || matchedProds[0]?.images?.[0] || '/products/double-delight.jpeg',
       active,
       freeDelivery,
       order: 1,
@@ -6332,16 +6444,30 @@ class Store {
       updatedAt: new Date().toISOString()
     };
 
-    // 1. Instant in-memory and disk save
+    // 1. Instant 0ms in-memory & disk save
     memoryCombosStore.unshift(newCombo);
     saveDiskCombos(memoryCombosStore);
     deletedComboIds.delete(id);
+    deletedComboIds.delete(id.toLowerCase());
 
     // 2. Safe async sync with Prisma
     const prisma = getPrismaClient();
     if (prisma) {
-      prisma.combo.create({
-        data: {
+      prisma.combo.upsert({
+        where: { id },
+        update: {
+          title,
+          subtitle,
+          badge,
+          productIds,
+          originalPrice,
+          comboPrice,
+          discountPercent,
+          imageUrl: newCombo.imageUrl,
+          active,
+          freeDelivery
+        },
+        create: {
           id,
           title,
           subtitle,
@@ -6364,17 +6490,30 @@ class Store {
     const cleanId = (id || '').trim();
     if (!cleanId) return null;
 
-    const allProducts = await this.getProducts();
-    const prodMap = new Map(allProducts.map(p => [p.id, p]));
+    const allProducts = (this.productsCache?.data && this.productsCache.data.length > 0)
+      ? this.productsCache.data
+      : await this.getProducts().catch(() => DEFAULT_PRODUCTS);
 
-    let existingIdx = memoryCombosStore.findIndex(c => c.id === cleanId);
+    const prodMap = new Map<string, Product>();
+    allProducts.forEach(p => {
+      if (p.id) {
+        prodMap.set(p.id, p);
+        prodMap.set(p.id.toLowerCase(), p);
+      }
+      if (p.sku) prodMap.set(p.sku, p);
+    });
+
+    let existingIdx = memoryCombosStore.findIndex(c => c.id === cleanId || c.id.toLowerCase() === cleanId.toLowerCase());
     let current = existingIdx !== -1 ? memoryCombosStore[existingIdx] : null;
 
     const origPrice = updates.originalPrice !== undefined ? Number(updates.originalPrice) : (current?.originalPrice || 0);
     const cmbPrice = updates.comboPrice !== undefined ? Number(updates.comboPrice) : (current?.comboPrice || 0);
     const disPercent = origPrice > 0 ? Math.round(((origPrice - cmbPrice) / origPrice) * 100) : 0;
     const pIds = updates.productIds !== undefined ? updates.productIds : (current?.productIds || []);
-    const matchedProds = pIds.map(pid => prodMap.get(pid)).filter(Boolean) as Product[];
+    const matchedProds = pIds.map(pid => {
+      if (!pid) return null;
+      return prodMap.get(pid) || prodMap.get(pid.toLowerCase()) || allProducts.find(p => p.id === pid || p.sku === pid) || null;
+    }).filter(Boolean) as Product[];
 
     const updatedCombo: Combo = {
       ...(current || {
@@ -6408,6 +6547,7 @@ class Store {
     }
     saveDiskCombos(memoryCombosStore);
     deletedComboIds.delete(cleanId);
+    deletedComboIds.delete(cleanId.toLowerCase());
 
     // Safe async sync with Prisma
     const prisma = getPrismaClient();
@@ -6449,22 +6589,36 @@ class Store {
     if (!cleanId) return false;
 
     deletedComboIds.add(cleanId);
+    deletedComboIds.add(cleanId.toLowerCase());
 
-    // 1. Instant remove from in-memory store
-    const idx = memoryCombosStore.findIndex(c => c.id === cleanId);
-    if (idx !== -1) memoryCombosStore.splice(idx, 1);
+    // 1. Instant 0ms remove from in-memory store
+    for (let i = memoryCombosStore.length - 1; i >= 0; i--) {
+      if (memoryCombosStore[i].id === cleanId || memoryCombosStore[i].id.toLowerCase() === cleanId.toLowerCase()) {
+        memoryCombosStore.splice(i, 1);
+      }
+    }
 
     // 2. Instant save to disk
     saveDiskCombos(memoryCombosStore);
 
     // 3. Remove from default seed combos
-    const defIdx = DEFAULT_COMBOS.findIndex(c => c.id === cleanId);
-    if (defIdx !== -1) DEFAULT_COMBOS.splice(defIdx, 1);
+    for (let i = DEFAULT_COMBOS.length - 1; i >= 0; i--) {
+      if (DEFAULT_COMBOS[i].id === cleanId || DEFAULT_COMBOS[i].id.toLowerCase() === cleanId.toLowerCase()) {
+        DEFAULT_COMBOS.splice(i, 1);
+      }
+    }
 
     // 4. Safe async delete from Prisma
     const prisma = getPrismaClient();
     if (prisma) {
-      prisma.combo.deleteMany({ where: { id: cleanId } }).catch(err => {
+      prisma.combo.deleteMany({
+        where: {
+          OR: [
+            { id: cleanId },
+            { id: cleanId.toLowerCase() }
+          ]
+        }
+      }).catch(err => {
         console.error('Prisma deleteCombo background error:', err);
       });
     }
@@ -6472,7 +6626,14 @@ class Store {
   }
 
   async deleteAllCombos(): Promise<boolean> {
-    DEFAULT_COMBOS.forEach(c => deletedComboIds.add(c.id));
+    DEFAULT_COMBOS.forEach(c => {
+      deletedComboIds.add(c.id);
+      deletedComboIds.add(c.id.toLowerCase());
+    });
+    memoryCombosStore.forEach(c => {
+      deletedComboIds.add(c.id);
+      deletedComboIds.add(c.id.toLowerCase());
+    });
     memoryCombosStore.length = 0;
     DEFAULT_COMBOS.length = 0;
     saveDiskCombos(memoryCombosStore);

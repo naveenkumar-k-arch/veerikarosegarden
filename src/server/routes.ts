@@ -312,14 +312,50 @@ apiRouter.get('/banners', async (req, res) => {
   }
 });
 
-apiRouter.post('/banners', requireAdmin, async (req: AuthenticatedRequest, res) => {
+const handleCreateBanner = async (req: AuthenticatedRequest, res: express.Response) => {
   try {
     const banner = await db.addBanner(req.body);
-    res.status(201).json({ success: true, banner });
+    res.status(201).json({ success: true, banner, message: 'Banner created successfully' });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
   }
-});
+};
+
+apiRouter.post('/banners', requireAdmin, handleCreateBanner);
+apiRouter.post('/admin/banners', requireAdmin, handleCreateBanner);
+
+const handleUpdateBanner = async (req: AuthenticatedRequest, res: express.Response) => {
+  try {
+    const id = req.params?.id || req.body?.id;
+    if (!id) return res.status(400).json({ success: false, message: 'Banner ID required' });
+    const banner = await db.updateBanner(id, req.body);
+    if (!banner) return res.status(404).json({ success: false, message: 'Banner not found' });
+    res.json({ success: true, banner, message: 'Banner updated successfully' });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+apiRouter.put('/banners/:id', requireAdmin, handleUpdateBanner);
+apiRouter.put('/admin/banners/:id', requireAdmin, handleUpdateBanner);
+apiRouter.post('/admin/banners/:id/update', requireAdmin, handleUpdateBanner);
+
+const handleDeleteBanner = async (req: AuthenticatedRequest, res: express.Response) => {
+  try {
+    const id = req.params?.id || req.body?.id || (req.query?.id as string);
+    if (!id) return res.status(400).json({ success: false, message: 'Banner ID is required' });
+    await db.deleteBanner(String(id));
+    res.json({ success: true, message: `Banner #${id} deleted successfully` });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
+  }
+};
+
+apiRouter.delete('/banners/:id', requireAdmin, handleDeleteBanner);
+apiRouter.delete('/admin/banners/:id', requireAdmin, handleDeleteBanner);
+apiRouter.post('/banners/delete', requireAdmin, handleDeleteBanner);
+apiRouter.post('/admin/banners/delete', requireAdmin, handleDeleteBanner);
+apiRouter.post('/admin/banners/:id/delete', requireAdmin, handleDeleteBanner);
 
 // Admin: Seed default banners and sample coupons into DB
 apiRouter.post('/admin/seed', requireAdmin, async (req: AuthenticatedRequest, res) => {

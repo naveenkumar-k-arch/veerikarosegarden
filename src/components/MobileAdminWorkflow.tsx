@@ -3790,22 +3790,29 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             </div>
 
             <form
-              onSubmit={async (e) => {
+              onSubmit={(e) => {
                 e.preventDefault();
-                try {
-                  if (onSaveCategory) {
-                    await onSaveCategory({
-                      id: editingCategory?.id,
-                      name: categoryForm.name.trim(),
-                      tamilName: categoryForm.tamilName.trim() || categoryForm.name.trim(),
-                      slug: categoryForm.slug || categoryForm.name.toLowerCase().replace(/\s+/g, '-'),
-                      image: categoryForm.image,
-                      description: categoryForm.description
-                    });
-                  }
-                  handleCloseModal(() => setShowCategoryModal(false));
-                } catch (err: any) {
-                  alert(err?.message || 'Failed to save category');
+                const trimmedName = categoryForm.name.trim();
+                if (!trimmedName) return;
+
+                const catPayload = {
+                  id: editingCategory?.id,
+                  name: trimmedName,
+                  tamilName: categoryForm.tamilName.trim() || trimmedName,
+                  slug: categoryForm.slug || trimmedName.toLowerCase().replace(/\s+/g, '-'),
+                  image: categoryForm.image,
+                  description: categoryForm.description
+                };
+
+                // 1. Instant 0ms modal close & toast feedback
+                handleCloseModal(() => setShowCategoryModal(false));
+                toast.success(editingCategory ? `Category "${trimmedName}" updated!` : `Category "${trimmedName}" created!`, 'Category Saved');
+
+                // 2. Optimistic parent state update
+                if (onSaveCategory) {
+                  onSaveCategory(catPayload).catch(err => {
+                    console.error('Background category save error:', err);
+                  });
                 }
               }}
               className="p-4 overflow-y-auto space-y-3 text-xs"
@@ -3870,29 +3877,33 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             </div>
 
             <form
-              onSubmit={async (e) => {
+              onSubmit={(e) => {
                 e.preventDefault();
-                setSavingCombo(true);
-                try {
-                  if (onSaveCombo) {
-                    await onSaveCombo({
-                      id: editingCombo?.id,
-                      title: comboForm.title.trim(),
-                      subtitle: comboForm.subtitle.trim(),
-                      badge: comboForm.badge.trim(),
-                      productIds: comboForm.productIds,
-                      originalPrice: Number(comboForm.originalPrice),
-                      comboPrice: Number(comboForm.comboPrice),
-                      imageUrl: comboForm.imageUrl,
-                      active: comboForm.active,
-                      freeDelivery: comboForm.freeDelivery
-                    });
-                  }
-                  handleCloseModal(() => setShowComboModal(false));
-                } catch (err: any) {
-                  alert(err?.message || 'Failed to save combo offer');
-                } finally {
-                  setSavingCombo(false);
+                const trimmedTitle = comboForm.title.trim();
+                if (!trimmedTitle) return;
+
+                const comboPayload = {
+                  id: editingCombo?.id,
+                  title: trimmedTitle,
+                  subtitle: comboForm.subtitle.trim(),
+                  badge: comboForm.badge.trim() || 'COMBO OFFER',
+                  productIds: comboForm.productIds,
+                  originalPrice: Number(comboForm.originalPrice),
+                  comboPrice: Number(comboForm.comboPrice),
+                  imageUrl: comboForm.imageUrl,
+                  active: comboForm.active,
+                  freeDelivery: comboForm.freeDelivery
+                };
+
+                // 1. Instant 0ms modal close & toast feedback
+                handleCloseModal(() => setShowComboModal(false));
+                toast.success(editingCombo ? `Combo "${trimmedTitle}" updated!` : `Combo "${trimmedTitle}" published!`, 'Combo Saved');
+
+                // 2. Optimistic parent state update
+                if (onSaveCombo) {
+                  onSaveCombo(comboPayload).catch(err => {
+                    console.error('Background combo save error:', err);
+                  });
                 }
               }}
               className="p-4 overflow-y-auto space-y-3 text-xs"
@@ -4016,10 +4027,9 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
               <button
                 type="submit"
-                disabled={savingCombo}
-                className="w-full py-3 bg-[#14532d] hover:bg-[#0f3d21] disabled:bg-slate-400 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-3 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2"
               >
-                {savingCombo ? 'Saving Combo Package...' : (editingCombo ? 'Save Combo Changes' : 'Publish Combo Offer')}
+                {editingCombo ? 'Save Combo Changes' : 'Publish Combo Offer'}
               </button>
             </form>
           </div>
@@ -4042,22 +4052,28 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             <form
               onSubmit={(e) => {
                 e.preventDefault();
+                const revPayload = {
+                  id: `rev-${Date.now()}`,
+                  userName: reviewForm.userName.trim() || 'Customer',
+                  location: reviewForm.location,
+                  rating: Number(reviewForm.rating || 5),
+                  title: reviewForm.title || `${reviewForm.rating || 5} Star Review`,
+                  comment: reviewForm.comment.trim(),
+                  imageUrl: reviewForm.imageUrl,
+                  productName: reviewForm.productName,
+                  status: reviewForm.status,
+                  featured: reviewForm.featured,
+                  createdAt: new Date().toISOString()
+                };
+
+                // 1. Instant 0ms modal close & toast feedback
+                handleCloseModal(() => setShowReviewModal(false));
+                toast.success('Customer review published successfully!', 'Review Published');
+
+                // 2. Optimistic parent state update
                 if (onSaveReview) {
-                  onSaveReview({
-                    id: `rev-${Date.now()}`,
-                    userName: reviewForm.userName,
-                    location: reviewForm.location,
-                    rating: Number(reviewForm.rating),
-                    title: reviewForm.title,
-                    comment: reviewForm.comment,
-                    imageUrl: reviewForm.imageUrl,
-                    productName: reviewForm.productName,
-                    status: reviewForm.status,
-                    featured: reviewForm.featured,
-                    createdAt: new Date().toISOString()
-                  });
+                  onSaveReview(revPayload);
                 }
-                setShowReviewModal(false);
               }}
               className="p-4 overflow-y-auto space-y-3 text-xs"
             >
@@ -4187,21 +4203,32 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             </div>
 
             <form
-              onSubmit={async (e) => {
+              onSubmit={(e) => {
                 e.preventDefault();
+                const code = couponForm.code.toUpperCase().trim();
+                if (!code) return;
+
+                const couponPayload = {
+                  code,
+                  type: couponForm.discountType === 'PERCENTAGE' ? 'PERCENT' : 'FIXED',
+                  value: Number(couponForm.discountValue),
+                  minOrder: Number(couponForm.minOrderAmount),
+                  maxUsageCount: Number(couponForm.maxUsageCount),
+                  expiryDate: couponForm.expiryDate || undefined,
+                  active: couponForm.isActive,
+                  description: couponForm.description
+                };
+
+                // 1. Instant 0ms modal close & toast feedback
+                handleCloseModal(() => setShowCouponModal(false));
+                toast.success(`Coupon "${code}" saved successfully!`, 'Coupon Saved');
+
+                // 2. Optimistic parent state update
                 if (onSaveCoupon) {
-                  await onSaveCoupon({
-                    code: couponForm.code.toUpperCase().trim(),
-                    type: couponForm.discountType === 'PERCENTAGE' ? 'PERCENT' : 'FIXED',
-                    value: Number(couponForm.discountValue),
-                    minOrder: Number(couponForm.minOrderAmount),
-                    maxUsageCount: Number(couponForm.maxUsageCount),
-                    expiryDate: couponForm.expiryDate || undefined,
-                    active: couponForm.isActive,
-                    description: couponForm.description
+                  onSaveCoupon(couponPayload).catch(err => {
+                    console.error('Background coupon save error:', err);
                   });
                 }
-                setShowCouponModal(false);
               }}
               className="p-4 overflow-y-auto space-y-3 text-xs"
             >
@@ -4322,22 +4349,30 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             </div>
 
             <form
-              onSubmit={async (e) => {
+              onSubmit={(e) => {
                 e.preventDefault();
+                const financePayload = {
+                  id: editingFinance?.id,
+                  type: financeForm.type,
+                  title: financeForm.title.trim(),
+                  category: financeForm.category,
+                  costAmount: Number(financeForm.costAmount),
+                  sellAmount: Number(financeForm.sellAmount || 0),
+                  quantity: Number(financeForm.quantity || 1),
+                  notes: financeForm.notes,
+                  date: financeForm.date
+                };
+
+                // 1. Instant 0ms modal close & toast feedback
+                handleCloseModal(() => setShowFinanceModal(false));
+                toast.success('Financial entry recorded successfully!', 'Finance Saved');
+
+                // 2. Optimistic parent state update
                 if (onSaveFinance) {
-                  await onSaveFinance({
-                    id: editingFinance?.id,
-                    type: financeForm.type,
-                    title: financeForm.title,
-                    category: financeForm.category,
-                    costAmount: Number(financeForm.costAmount),
-                    sellAmount: Number(financeForm.sellAmount || 0),
-                    quantity: Number(financeForm.quantity || 1),
-                    notes: financeForm.notes,
-                    date: financeForm.date
+                  onSaveFinance(financePayload).catch(err => {
+                    console.error('Background finance save error:', err);
                   });
                 }
-                setShowFinanceModal(false);
               }}
               className="p-4 overflow-y-auto space-y-3 text-xs"
             >
@@ -4483,21 +4518,32 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             </div>
 
             <form
-              onSubmit={async (e) => {
+              onSubmit={(e) => {
                 e.preventDefault();
+                const title = bannerForm.title.trim();
+                if (!title) return;
+
+                const bannerPayload = {
+                  id: editingBanner?.id,
+                  title,
+                  subtitle: bannerForm.subtitle.trim(),
+                  imageUrl: bannerForm.imageUrl.trim(),
+                  link: bannerForm.link,
+                  ctaText: bannerForm.ctaText,
+                  active: bannerForm.active,
+                  order: Number(bannerForm.order || 1)
+                };
+
+                // 1. Instant 0ms modal close & toast feedback
+                handleCloseModal(() => setShowBannerModal(false));
+                toast.success(editingBanner ? `Banner "${title}" updated!` : `Banner "${title}" published!`, 'Banner Saved');
+
+                // 2. Optimistic parent state update
                 if (onSaveBanner) {
-                  await onSaveBanner({
-                    id: editingBanner?.id,
-                    title: bannerForm.title,
-                    subtitle: bannerForm.subtitle,
-                    imageUrl: bannerForm.imageUrl,
-                    link: bannerForm.link,
-                    ctaText: bannerForm.ctaText,
-                    active: bannerForm.active,
-                    order: Number(bannerForm.order || 1)
+                  onSaveBanner(bannerPayload).catch(err => {
+                    console.error('Background banner save error:', err);
                   });
                 }
-                handleCloseModal(() => setShowBannerModal(false));
               }}
               className="p-4 overflow-y-auto space-y-3 text-xs"
             >

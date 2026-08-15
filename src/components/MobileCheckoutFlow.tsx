@@ -811,6 +811,18 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                             <Truck className="w-2.5 h-2.5" /> Free Delivery
                           </span>
                         )}
+                        {isCombo && item.comboProducts && item.comboProducts.length > 0 && (
+                          <div className="bg-amber-50 border border-amber-200/80 rounded-lg p-1.5 mt-1 text-[10px] space-y-0.5">
+                            <span className="font-bold text-amber-900 block">🌿 Bundle ({item.comboProducts.length} Plants):</span>
+                            <div className="flex flex-wrap gap-1">
+                              {item.comboProducts.map((p, idx) => (
+                                <span key={p.id || idx} className="bg-white px-1.5 py-0.5 rounded text-[9px] font-semibold text-slate-700 border border-amber-200 truncate max-w-[140px]">
+                                  {p.name}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                         <div className="flex items-baseline gap-1.5 mt-0.5">
                           <p className="text-xs font-extrabold text-slate-800">₹{item.product.sellingPrice}</p>
                           {item.product.mrp > item.product.sellingPrice && (

@@ -951,6 +951,18 @@ const compressImageBase64 = (dataUrl: string, maxWidth = 1000, maxHeight = 1000,
                           </span>
                         )}
                       </div>
+                      {isCombo && item.comboProducts && item.comboProducts.length > 0 && (
+                        <div className="bg-amber-50 border border-amber-200/80 rounded-md p-1 mt-0.5 text-[9px] space-y-0.5">
+                          <span className="font-bold text-amber-900 block">🌿 Bundle ({item.comboProducts.length} Plants):</span>
+                          <div className="flex flex-wrap gap-1">
+                            {item.comboProducts.map((p, idx) => (
+                              <span key={p.id || idx} className="bg-white px-1 py-0.2 rounded text-[8.5px] font-semibold text-slate-700 border border-amber-200 truncate max-w-[130px]">
+                                {p.name}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       <p className="text-[10px] text-slate-500 font-mono">
                         Qty: {item.quantity} × ₹{item.product.sellingPrice}
                       </p>
