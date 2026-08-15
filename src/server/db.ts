@@ -7383,7 +7383,23 @@ class Store {
         }
       }
     });
-    const result = Array.from(uniqueMap.values());
+    const result = Array.from(uniqueMap.values()).filter(o => {
+      if (!o || !o.id || deletedOrderIds.has(o.id) || deletedOrderIds.has(o.merchantTransactionId)) {
+        return false;
+      }
+      // For automated online gateways (Razorpay, PhonePe):
+      // Only include orders if payment succeeded!
+      // If customer cancelled or did not complete payment, discard from active orders
+      const isOnlineGateway = o.paymentMethod === 'RAZORPAY' || o.paymentMethod === 'PHONEPE' || (o.paymentMethod as string) === 'CARD';
+      if (isOnlineGateway && o.paymentStatus !== 'SUCCESS') {
+        return false;
+      }
+      // If order was explicitly cancelled and unpaid, do not show
+      if (o.orderStatus === 'CANCELLED' && o.paymentStatus !== 'SUCCESS') {
+        return false;
+      }
+      return true;
+    });
     if (!userId) {
       this.ordersCache = { data: result, expiresAt: Date.now() + 60000 };
     }

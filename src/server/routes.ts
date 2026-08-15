@@ -949,6 +949,31 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
   }
 });
 
+// Discard cancelled or abandoned pending checkout attempts
+apiRouter.post('/orders/:id/cancel-pending', async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    if (orderId) {
+      await db.deleteOrder(orderId);
+    }
+    res.json({ success: true, message: 'Unpaid pending checkout attempt discarded.' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message || 'Error discarding pending order.' });
+  }
+});
+
+apiRouter.delete('/orders/:id', async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    if (orderId) {
+      await db.deleteOrder(orderId);
+    }
+    res.json({ success: true, message: 'Order deleted successfully.' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message || 'Error deleting order.' });
+  }
+});
+
 apiRouter.get('/orders', requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
     const user = req.user;
