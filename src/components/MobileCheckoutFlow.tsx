@@ -476,27 +476,17 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
       order_id: orderRes.razorpayOrderId,
       modal: {
         ondismiss: async () => {
-          setLoading(true);
-          // Check if order was actually verified by Razorpay webhook or completed during app switch
-          try {
-            await new Promise(r => setTimeout(r, 1200));
-            const checkRes = await fetch(`/api/orders/${orderRes.orderId}`);
-            const checkData = await checkRes.json();
-            if (checkData?.success && (checkData?.order?.paymentStatus === 'SUCCESS' || checkData?.order?.orderStatus === 'PROCESSING' || checkData?.order?.orderStatus === 'CONFIRMED')) {
-              if (onOrderConfirmed) {
-                onOrderConfirmed(checkData.order);
-              }
-              setPlacedOrderId(orderRes.orderId);
-              isPaymentInProgressRef.current = false;
-              setLoading(false);
-              goTo(7);
-              return;
-            }
-          } catch {}
-
           isPaymentInProgressRef.current = false;
           setLoading(false);
-          setOrderError('Payment was not completed. Your items are safe in cart — tap Pay Now to retry.');
+          setOrderError('Payment was cancelled or not completed. Your items are safe in cart — tap Pay Now to try again.');
+          // Immediately purge the uncompleted draft order from the server
+          try {
+            await fetch(`/api/orders/${orderRes.orderId}/cancel-pending`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ reason: 'Customer dismissed or cancelled payment modal' })
+            });
+          } catch {}
         }
       },
       handler: async function (response: any) {

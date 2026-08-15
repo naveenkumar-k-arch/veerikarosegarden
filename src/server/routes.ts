@@ -974,6 +974,19 @@ apiRouter.delete('/orders/:id', async (req, res) => {
   }
 });
 
+apiRouter.get('/orders/:id', async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const order = await db.getOrderById(orderId);
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found.' });
+    }
+    res.json({ success: true, order });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message || 'Failed to fetch order.' });
+  }
+});
+
 apiRouter.get('/orders', requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
     const user = req.user;
