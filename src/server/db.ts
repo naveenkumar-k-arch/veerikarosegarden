@@ -5391,19 +5391,20 @@ class Store {
 
 
   async getProductById(id: string): Promise<Product | undefined> {
+    if (deletedProductIds.has(id)) return undefined;
     if (this.productsCache.data && this.productsCache.data.length > 0) {
-      const match = this.productsCache.data.find(p => p.id === id || p.sku === id);
+      const match = this.productsCache.data.find(p => (p.id === id || p.sku === id) && !deletedProductIds.has(p.id));
       if (match) return match;
     }
 
     const prisma = getPrismaClient();
     if (prisma) {
       try {
-        const p = await prisma.product.findUnique({
-          where: { id },
+        const p = await prisma.product.findFirst({
+          where: { OR: [{ id }, { sku: id }] },
           include: { categoryRel: true, inventory: true }
         });
-        if (p) {
+        if (p && !deletedProductIds.has(p.id)) {
           return {
             id: p.id,
             sku: p.sku || `VRG-${p.id.slice(0, 6).toUpperCase()}`,
@@ -5445,7 +5446,7 @@ class Store {
         console.error('Prisma getProductById error:', err);
       }
     }
-    return DEFAULT_PRODUCTS.find(p => p.id === id);
+    return DEFAULT_PRODUCTS.find(p => (p.id === id || p.sku === id) && !deletedProductIds.has(p.id));
   }
 
   async addProduct(product: Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'rating' | 'reviewCount'>): Promise<Product> {
@@ -5701,7 +5702,7 @@ class Store {
   async deleteProduct(id: string): Promise<boolean> {
     deletedProductIds.add(id);
     if (this.productsCache && Array.isArray(this.productsCache.data)) {
-      this.productsCache.data = this.productsCache.data.filter(p => p.id !== id);
+      this.productsCache.data = this.productsCache.data.filter(p => p.id !== id && p.sku !== id);
     }
     this.invalidateProductsCache();
     const prisma = getPrismaClient();
@@ -5713,7 +5714,7 @@ class Store {
         await prisma.review.deleteMany({ where: { productId: id } }).catch(() => {});
         await prisma.image.deleteMany({ where: { productId: id } }).catch(() => {});
         await prisma.orderItem.deleteMany({ where: { productId: id } }).catch(() => {});
-        await prisma.product.delete({ where: { id } }).catch(() => {});
+        await prisma.product.deleteMany({ where: { OR: [{ id }, { sku: id }] } }).catch(() => {});
       } catch (err) {
         console.error('Prisma deleteProduct error:', err);
       }
