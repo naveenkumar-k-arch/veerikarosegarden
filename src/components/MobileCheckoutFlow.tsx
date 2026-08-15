@@ -470,6 +470,30 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
       return;
     }
 
+    // Auto status poller: Polls server in background while user completes payment in UPI app / Razorpay
+    const pollInterval = setInterval(async () => {
+      try {
+        const check = await fetch(`/api/orders/${orderRes.orderId}`);
+        const d = await check.json();
+        if (d.success && d.order && (d.order.paymentStatus === 'SUCCESS' || d.order.orderStatus === 'CONFIRMED')) {
+          clearInterval(pollInterval);
+          paymentCompletedRef.current = true;
+          isPaymentInProgressRef.current = false;
+          setLoading(false);
+          setOrderError(null);
+          setPlacedOrderId(orderRes.orderId);
+          setFetchedOrder(d.order);
+          if (onOrderConfirmed) {
+            onOrderConfirmed(d.order);
+          }
+          goTo(7, true);
+        }
+      } catch {}
+    }, 2500);
+
+    // Timeout poller after 2 minutes
+    setTimeout(() => clearInterval(pollInterval), 120000);
+
     const options: any = {
       key: orderRes.razorpayKeyId || (import.meta as any).env?.VITE_RAZORPAY_KEY_ID || 'rzp_live_TQ5xDdZB7QWIn2',
       amount: Math.round((orderRes.amount || grandTotal) * 100), // in paise
@@ -480,18 +504,41 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
       order_id: orderRes.razorpayOrderId,
       modal: {
         ondismiss: async () => {
-          // If payment already succeeded or is verifying in handler, do NOT abort or show error!
           if (paymentCompletedRef.current) return;
+          // Final background check on dismiss in case payment finished just as modal closed
+          try {
+            const check = await fetch(`/api/orders/${orderRes.orderId}`);
+            const d = await check.json();
+            if (d.success && d.order && (d.order.paymentStatus === 'SUCCESS' || d.order.orderStatus === 'CONFIRMED')) {
+              clearInterval(pollInterval);
+              paymentCompletedRef.current = true;
+              isPaymentInProgressRef.current = false;
+              setLoading(false);
+              setOrderError(null);
+              setPlacedOrderId(orderRes.orderId);
+              setFetchedOrder(d.order);
+              if (onOrderConfirmed) {
+                onOrderConfirmed(d.order);
+              }
+              goTo(7, true);
+              return;
+            }
+          } catch {}
+
           isPaymentInProgressRef.current = false;
           setLoading(false);
           setOrderError('Payment was not completed. Your items are safe in cart — tap Pay Now to try again.');
         }
       },
       handler: async function (response: any) {
+        clearInterval(pollInterval);
         paymentCompletedRef.current = true;
         isPaymentInProgressRef.current = true;
         setLoading(true);
         setOrderError(null);
+        setPlacedOrderId(orderRes.orderId);
+        goTo(7, true);
+
         try {
           const verifyRes = await fetch('/api/razorpay/verify', {
             method: 'POST',

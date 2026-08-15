@@ -131,7 +131,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   const paymentCompletedRef = useRef(false);
 
   const goTo = useCallback((next: number) => {
-    if (animating) return;
+    if (animating && next !== 7) return;
     const isForward = next > step;
     setDirection(isForward ? 'forward' : 'back');
     setAnimating(true);
@@ -466,6 +466,31 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       setLoading(false);
       return;
     }
+
+    // Auto status poller: Polls server in background while user completes payment in UPI app / Razorpay
+    const pollInterval = setInterval(async () => {
+      try {
+        const check = await fetch(`/api/orders/${orderRes.orderId}`);
+        const d = await check.json();
+        if (d.success && d.order && (d.order.paymentStatus === 'SUCCESS' || d.order.orderStatus === 'CONFIRMED')) {
+          clearInterval(pollInterval);
+          paymentCompletedRef.current = true;
+          setLoading(false);
+          setOrderError(null);
+          setPlacedOrderId(orderRes.orderId);
+          setFetchedOrder(d.order);
+          if (onOrderConfirmed) {
+            onOrderConfirmed(d.order);
+          }
+          setStep(7);
+          goTo(7);
+        }
+      } catch {}
+    }, 2500);
+
+    // Timeout poller after 2 minutes
+    setTimeout(() => clearInterval(pollInterval), 120000);
+
     const options: any = {
       key: orderRes.razorpayKeyId || (import.meta as any).env?.VITE_RAZORPAY_KEY_ID || 'rzp_live_TQ5xDdZB7QWIn2',
       amount: Math.round(orderRes.amount * 100),
@@ -476,16 +501,40 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       order_id: orderRes.razorpayOrderId,
       modal: {
         ondismiss: async () => {
-          // If payment was completed or is being verified, do NOT abort or show error!
           if (paymentCompletedRef.current) return;
+          // Final background check on dismiss in case payment finished just as modal closed
+          try {
+            const check = await fetch(`/api/orders/${orderRes.orderId}`);
+            const d = await check.json();
+            if (d.success && d.order && (d.order.paymentStatus === 'SUCCESS' || d.order.orderStatus === 'CONFIRMED')) {
+              clearInterval(pollInterval);
+              paymentCompletedRef.current = true;
+              setLoading(false);
+              setOrderError(null);
+              setPlacedOrderId(orderRes.orderId);
+              setFetchedOrder(d.order);
+              if (onOrderConfirmed) {
+                onOrderConfirmed(d.order);
+              }
+              setStep(7);
+              goTo(7);
+              return;
+            }
+          } catch {}
+
           setLoading(false);
           setOrderError('Payment was not completed. Your items are safe in cart — click Pay Now to try again.');
         }
       },
       handler: async (response: any) => {
+        clearInterval(pollInterval);
         paymentCompletedRef.current = true;
         setLoading(true);
         setOrderError(null);
+        setPlacedOrderId(orderRes.orderId);
+        setStep(7);
+        goTo(7);
+
         try {
           const verifyRes = await fetch('/api/razorpay/verify', {
             method: 'POST',
@@ -505,15 +554,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
               onOrderConfirmed(verifyData.order || { id: orderRes.orderId, grandTotal: orderRes.amount });
             }
             setPlacedOrderId(orderRes.orderId);
+            setStep(7);
             goTo(7);
-          } else {
-            paymentCompletedRef.current = false;
-            setOrderError(verifyData.message || 'Payment verification failed.');
           }
         } catch {
           setLoading(false);
-          paymentCompletedRef.current = false;
-          setOrderError('Error verifying payment with server.');
         }
       },
       prefill: {
@@ -530,9 +575,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         setOrderError(`Payment failed: ${resp.error?.description || 'Transaction declined.'}`);
         setLoading(false);
       });
-      setLoading(false);
       rzp.open();
     } catch {
+      clearInterval(pollInterval);
       setLoading(false);
       setOrderError('Failed to open Razorpay payment window.');
     }

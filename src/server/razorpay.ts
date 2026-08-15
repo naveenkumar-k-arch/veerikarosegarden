@@ -88,4 +88,46 @@ export class RazorpayService {
       return false;
     }
   }
+
+  /**
+   * Fetch payments for an order directly from Razorpay API
+   */
+  static async checkOrderPayments(
+    razorpayOrderId: string,
+    keyId: string,
+    keySecret: string
+  ): Promise<{ success: boolean; isPaid: boolean; paymentId?: string; status?: string; message?: string }> {
+    try {
+      if (!razorpayOrderId || !keyId || !keySecret) {
+        return { success: false, isPaid: false, message: 'Missing parameters' };
+      }
+      const authHeader = 'Basic ' + Buffer.from(`${keyId.trim()}:${keySecret.trim()}`).toString('base64');
+      const response = await fetch(`https://api.razorpay.com/v1/orders/${encodeURIComponent(razorpayOrderId)}/payments`, {
+        headers: { Authorization: authHeader }
+      });
+      const data = await response.json();
+      if (!response.ok || !Array.isArray(data.items)) {
+        return { success: false, isPaid: false, message: data.error?.description || 'Failed to fetch order payments' };
+      }
+
+      const capturedPayment = data.items.find((p: any) => p.status === 'captured' || p.status === 'authorized');
+      if (capturedPayment) {
+        return {
+          success: true,
+          isPaid: true,
+          paymentId: capturedPayment.id,
+          status: capturedPayment.status
+        };
+      }
+
+      return {
+        success: true,
+        isPaid: false,
+        status: data.items[0]?.status || 'pending'
+      };
+    } catch (err: any) {
+      console.error('[RazorpayService] Check Order Payments Exception:', err);
+      return { success: false, isPaid: false, message: err.message };
+    }
+  }
 }

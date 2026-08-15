@@ -1242,6 +1242,40 @@ apiRouter.get('/orders/:id', async (req: AuthenticatedRequest, res) => {
       }
     }
 
+    // Auto-verify Razorpay payment if pending
+    if (order.paymentMethod === 'RAZORPAY' && order.paymentStatus === 'PENDING') {
+      try {
+        const settings = await db.getSettings();
+        const rzpKeyId = (settings?.razorpayKeyId && settings.razorpayKeyId.trim()) || process.env.RAZORPAY_KEY_ID || 'rzp_live_TQ5xDdZB7QWIn2';
+        const rzpKeySecret = (settings?.razorpayKeySecret && settings.razorpayKeySecret.trim()) || process.env.RAZORPAY_KEY_SECRET || 'FfkwntR4ygvIapq4ex50ajp0';
+        
+        let rzpOrderId = (order as any).razorpayOrderId;
+        if (!rzpOrderId) {
+          const logs = await db.getPaymentLogs(order.id).catch(() => []);
+          for (const l of logs) {
+            try {
+              const p = JSON.parse(l.payload || '{}');
+              if (p.razorpayOrderId) { rzpOrderId = p.razorpayOrderId; break; }
+            } catch {}
+          }
+        }
+        if (!rzpOrderId && order.merchantTransactionId && order.merchantTransactionId.startsWith('order_')) {
+          rzpOrderId = order.merchantTransactionId;
+        }
+
+        if (rzpOrderId) {
+          const checkRes = await RazorpayService.checkOrderPayments(rzpOrderId, rzpKeyId, rzpKeySecret);
+          if (checkRes.success && checkRes.isPaid) {
+            const updated = await db.updateOrderStatus(order.id, 'CONFIRMED', undefined, undefined, 'SUCCESS');
+            if (updated) order = updated;
+            invalidateBootstrapCache();
+          }
+        }
+      } catch (err) {
+        console.warn('Auto Razorpay verification error on getOrderById:', err);
+      }
+    }
+
     // Non-blocking background PhonePe status check if explicitly requested with short timeout
     if (req.query.verify === 'phonepe' && order.paymentMethod === 'PHONEPE' && order.paymentStatus === 'PENDING' && order.merchantTransactionId) {
       Promise.race([
@@ -1586,7 +1620,36 @@ apiRouter.post('/orders/:id/cancel-pending', async (req: AuthenticatedRequest, r
       return res.json({ success: true, message: 'Order not found.' });
     }
 
-    if (order.paymentStatus === 'PENDING' || order.orderStatus === 'PENDING') {
+    // Safety check: before cancelling, verify if user actually completed payment on Razorpay!
+    if (order.paymentMethod === 'RAZORPAY') {
+      const settings = await db.getSettings();
+      const rzpKeyId = (settings?.razorpayKeyId && settings.razorpayKeyId.trim()) || process.env.RAZORPAY_KEY_ID || 'rzp_live_TQ5xDdZB7QWIn2';
+      const rzpKeySecret = (settings?.razorpayKeySecret && settings.razorpayKeySecret.trim()) || process.env.RAZORPAY_KEY_SECRET || 'FfkwntR4ygvIapq4ex50ajp0';
+      
+      let rzpOrderId = (order as any).razorpayOrderId;
+      if (!rzpOrderId) {
+        const logs = await db.getPaymentLogs(order.id).catch(() => []);
+        for (const l of logs) {
+          try {
+            const p = JSON.parse(l.payload || '{}');
+            if (p.razorpayOrderId) { rzpOrderId = p.razorpayOrderId; break; }
+          } catch {}
+        }
+      }
+      if (!rzpOrderId && order.merchantTransactionId && order.merchantTransactionId.startsWith('order_')) {
+        rzpOrderId = order.merchantTransactionId;
+      }
+      if (rzpOrderId) {
+        const checkRes = await RazorpayService.checkOrderPayments(rzpOrderId, rzpKeyId, rzpKeySecret);
+        if (checkRes.success && checkRes.isPaid) {
+          await db.updateOrderStatus(id, 'CONFIRMED', undefined, undefined, 'SUCCESS');
+          invalidateBootstrapCache();
+          return res.json({ success: true, message: 'Payment was captured. Order confirmed!' });
+        }
+      }
+    }
+
+    if (order.paymentStatus === 'PENDING' && order.orderStatus === 'PENDING') {
       await db.updateOrderStatus(id, 'CANCELLED', undefined, undefined, 'FAILED');
       await db.addPaymentLog({
         merchantTransactionId: order.merchantTransactionId || id,
@@ -1596,6 +1659,7 @@ apiRouter.post('/orders/:id/cancel-pending', async (req: AuthenticatedRequest, r
         checksum: 'PAYMENT_CANCELLED_BY_USER',
         payload: JSON.stringify({ reason: reason || 'Customer cancelled payment modal before completion' })
       }).catch(() => {});
+      invalidateBootstrapCache();
     }
 
     res.json({ success: true, message: 'Pending order cancelled.' });
