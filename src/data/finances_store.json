@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "id": "fin-1786857882602-90",
+    "type": "EXPENSE",
+    "title": "Vermicompost 50kg wholesale bags",
+    "category": "Fertilizer & Soil",
+    "costAmount": 1800,
+    "sellAmount": 0,
+    "quantity": 4,
+    "notes": "Direct nursery procurement",
+    "date": "2026-08-16",
+    "createdAt": "2026-08-16T05:24:42.602Z"
+  }
+]

@@ -5821,8 +5821,12 @@ class Store {
   }
 
   async getCategories(options?: { onlyActive?: boolean; onlyFeatured?: boolean }): Promise<Category[]> {
-    if (Date.now() >= this.categoriesCache.expiresAt) {
-      this.refreshCategoriesCache().catch(() => {});
+    if (this.categoriesCache.expiresAt === 0 || Date.now() >= this.categoriesCache.expiresAt) {
+      if (this.categoriesCache.expiresAt === 0) {
+        await this.refreshCategoriesCache();
+      } else {
+        this.refreshCategoriesCache().catch(() => {});
+      }
     }
 
     let results = this.categoriesCache.data;
@@ -5947,8 +5951,7 @@ class Store {
         }
       });
 
-      this.invalidateCategoriesCache();
-      return {
+      const newCatResult: Category = {
         id: c.id,
         name: c.name,
         tamilName: c.nameTamil,
@@ -5967,6 +5970,14 @@ class Store {
         createdAt: c.createdAt.toISOString(),
         updatedAt: c.updatedAt.toISOString()
       };
+
+      DEFAULT_CATEGORIES.push(newCatResult);
+      if (this.categoriesCache && Array.isArray(this.categoriesCache.data)) {
+        this.categoriesCache.data = [...this.categoriesCache.data.filter(cat => cat.id !== newCatResult.id), newCatResult];
+        this.categoriesCache.expiresAt = Date.now() + 300000;
+      }
+      this.invalidateCategoriesCache();
+      return newCatResult;
     }
 
     throw new Error('Database connection unavailable.');
