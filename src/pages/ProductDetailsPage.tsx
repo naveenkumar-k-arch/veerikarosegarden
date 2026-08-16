@@ -97,8 +97,8 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
       <div className="bg-white rounded-3xl border border-slate-200/80 shadow-md p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Gallery Column */}
         <div className="space-y-4">
-          <div className="h-80 sm:h-96 w-full rounded-2xl overflow-hidden bg-slate-100 relative border border-slate-200">
-            <img src={selectedImg} alt={product.name} className="w-full h-full object-cover" decoding="async" />
+          <div className="aspect-[16/9] sm:aspect-[16/10] max-h-72 sm:max-h-80 w-full rounded-2xl overflow-hidden bg-slate-100 relative border border-slate-200 shadow-xs flex items-center justify-center">
+            <img src={selectedImg} alt={product.name} className="w-full h-full object-cover object-center" decoding="async" />
             <span className="absolute top-3 left-3 bg-emerald-800 text-white text-xs font-bold px-3 py-1 rounded-full shadow-xs">
               {product.categoryName}
             </span>
