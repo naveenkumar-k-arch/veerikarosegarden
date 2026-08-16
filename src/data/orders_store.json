@@ -1,1 +1,56 @@
-[]
+[
+  {
+    "id": "ORD-8256",
+    "customerName": "Kavitha Ramesh",
+    "customerPhone": "9842156789",
+    "customerEmail": "kavitha.ramesh@gmail.com",
+    "shippingAddress": {
+      "fullName": "Kavitha Ramesh",
+      "phone": "9842156789",
+      "houseNo": "Plot 42, Rose Villa",
+      "street": "Gandhi Nagar 2nd Street",
+      "villageTown": "Pennagaram",
+      "district": "Dharmapuri",
+      "state": "Tamil Nadu",
+      "pincode": "636810",
+      "addressType": "Home"
+    },
+    "items": [
+      {
+        "productId": "vrg-ink-spot-rose",
+        "sku": "VRG-RARE-071",
+        "name": "Ink Spot Rose (இங்க் ஸ்பாட் ரோஸ்)",
+        "tamilName": "இங்க் ஸ்பாட் அரிய ரோஜா",
+        "price": 140,
+        "mrp": 190,
+        "quantity": 2,
+        "image": "/products/vrg/ink-spot-rose.png"
+      },
+      {
+        "productId": "prod-wa-1786880994231-501",
+        "sku": "WA-SPEC",
+        "name": "Special Yellow Button Rose (மஞ்சள் பட்டன் ரோஜா)",
+        "tamilName": "Special Yellow Button Rose (மஞ்சள் பட்டன் ரோஜா)",
+        "price": 120,
+        "mrp": 120,
+        "quantity": 1,
+        "image": "/products/double-delight.jpeg"
+      }
+    ],
+    "subtotal": 400,
+    "discount": 0,
+    "shippingCharge": 0,
+    "grandTotal": 400,
+    "orderStatus": "PROCESSING",
+    "paymentStatus": "SUCCESS",
+    "paymentMethod": "QR_PAYMENT",
+    "transactionId": "WA_1786880994231",
+    "merchantTransactionId": "WA_1786880994231",
+    "trackingNumber": "ST-99887766",
+    "courierName": "ST Courier",
+    "createdAt": "2026-08-16T11:49:54.620Z",
+    "updatedAt": "2026-08-16T11:49:55.357Z",
+    "notes": "Moisture packed with coir pith, dispatch ready",
+    "orderNumber": "ORD-8256"
+  }
+]

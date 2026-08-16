@@ -7454,6 +7454,252 @@ class Store {
     return memOrder;
   }
 
+  async createAdminOrder(data: any): Promise<Order> {
+    const prisma = getPrismaClient();
+    let nextIndex = 8256;
+    if (prisma) {
+      try {
+        const lastOrder = await prisma.order.findFirst({
+          orderBy: { createdAt: 'desc' },
+          select: { orderNumber: true }
+        });
+        if (lastOrder && lastOrder.orderNumber) {
+          const match = lastOrder.orderNumber.match(/\d+/);
+          if (match) {
+            nextIndex = parseInt(match[0], 10) + 1;
+          }
+        }
+      } catch {
+        nextIndex = 8000 + Math.floor(Math.random() * 1000);
+      }
+    }
+
+    const id = data.id || `ORD-${nextIndex}`;
+    const orderNumber = data.orderNumber || id;
+    const merchantTransactionId = data.merchantTransactionId || `WA_${Date.now()}`;
+
+    const addrObj = typeof data.shippingAddress === 'object' && data.shippingAddress !== null
+      ? data.shippingAddress
+      : (parseShippingAddress(data.shippingAddress) || {});
+    const addrStr = typeof data.shippingAddress === 'string' ? data.shippingAddress : JSON.stringify(addrObj);
+
+    const items: OrderItemSnapshot[] = (data.items || []).map((it: any) => ({
+      productId: it.productId || `prod-wa-${Date.now()}-${Math.floor(Math.random()*1000)}`,
+      sku: it.sku || `WA-${(it.name || 'PLANT').slice(0, 4).toUpperCase()}`,
+      name: it.name || it.productName || 'Nursery Plant',
+      tamilName: it.tamilName || it.name || 'நார்சரி செடி',
+      price: Number(it.price || 0),
+      mrp: Number(it.mrp || it.price || 0),
+      quantity: Number(it.quantity || 1),
+      image: it.image || '/products/double-delight.jpeg'
+    }));
+
+    const subtotal = Number(data.subtotal ?? items.reduce((s, it) => s + (it.price * it.quantity), 0));
+    const shippingCharge = Number(data.shippingCharge ?? data.deliveryFee ?? 0);
+    const discount = Number(data.discount ?? 0);
+    const grandTotal = Number(data.grandTotal ?? data.totalAmount ?? (subtotal + shippingCharge - discount));
+
+    const order: Order = {
+      id,
+      orderNumber,
+      merchantTransactionId,
+      customerName: data.customerName || addrObj.fullName || 'WhatsApp Customer',
+      customerPhone: data.customerPhone || addrObj.phone || '',
+      customerEmail: data.customerEmail || '',
+      shippingAddress: addrObj,
+      items,
+      subtotal,
+      shippingCharge,
+      discount,
+      grandTotal,
+      paymentStatus: data.paymentStatus || 'SUCCESS',
+      orderStatus: data.orderStatus || 'PENDING',
+      paymentMethod: data.paymentMethod || 'WHATSAPP',
+      notes: data.notes || '',
+      trackingNumber: data.trackingNumber || '',
+      courierName: data.courierName || '',
+      createdAt: data.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    if (prisma) {
+      try {
+        const pIds = items.map(i => i.productId);
+        const existingProds = await prisma.product.findMany({
+          where: { id: { in: pIds } },
+          select: { id: true }
+        }).catch(() => []);
+        const existingSet = new Set(existingProds.map(p => p.id));
+        const missingItems = items.filter(i => !existingSet.has(i.productId));
+        if (missingItems.length > 0) {
+          await Promise.all(missingItems.map(item => {
+            const uniqueSku = item.sku || `WA-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
+            return prisma.product.create({
+              data: {
+                id: item.productId,
+                sku: uniqueSku,
+                name: item.name,
+                nameTamil: item.tamilName || item.name,
+                price: item.price,
+                originalPrice: item.mrp || item.price,
+                category: 'WhatsApp Orders',
+                categoryId: null,
+                image: item.image || '/products/double-delight.jpeg',
+                description: 'WhatsApp Custom Ordered Plant',
+                inventory: { create: { quantity: 100 } }
+              }
+            }).catch(() => null);
+          }));
+        }
+
+        await prisma.order.create({
+          data: {
+            id: order.id,
+            orderNumber: order.id,
+            merchantTransactionId: order.merchantTransactionId,
+            customerName: order.customerName,
+            customerPhone: order.customerPhone,
+            customerEmail: order.customerEmail || null,
+            shippingAddress: addrStr,
+            subtotal: order.subtotal,
+            discount: order.discount,
+            deliveryFee: order.shippingCharge,
+            totalAmount: order.grandTotal,
+            status: (order.orderStatus === 'DELIVERED' ? 'DELIVERED' : order.orderStatus === 'PROCESSING' ? 'PACKING' : order.orderStatus === 'DISPATCHED' ? 'DISPATCHED' : 'PENDING') as any,
+            paymentStatus: order.paymentStatus === 'SUCCESS' ? 'SUCCESS' : 'PENDING',
+            paymentMethod: (order.paymentMethod === 'COD' ? 'COD' : order.paymentMethod === 'PHONEPE' ? 'PHONEPE' : 'UPI') as any,
+            notes: order.notes || '',
+            trackingNumber: order.trackingNumber || null,
+            items: {
+              create: items.map(it => ({
+                productId: it.productId,
+                productName: it.name,
+                price: it.price,
+                quantity: it.quantity,
+                totalPrice: it.price * it.quantity
+              }))
+            }
+          }
+        });
+      } catch (err: any) {
+        console.error('Prisma createAdminOrder error:', err?.message || err);
+      }
+    }
+
+    this.memoryOrders.unshift(order);
+    if (!(globalThis as any).globalMemoryOrdersBuffer) (globalThis as any).globalMemoryOrdersBuffer = [];
+    (globalThis as any).globalMemoryOrdersBuffer.unshift(order);
+
+    const allDisk = loadDiskOrders();
+    allDisk.unshift(order);
+    saveDiskOrders(allDisk);
+
+    this.invalidateOrdersCache();
+    return order;
+  }
+
+  async updateOrderFull(id: string, updates: any): Promise<Order | null> {
+    this.invalidateOrdersCache();
+    const cleanId = (id || '').trim().toLowerCase();
+    
+    let existing = await this.getOrderById(id);
+    if (!existing) return null;
+
+    const addrObj = updates.shippingAddress 
+      ? (typeof updates.shippingAddress === 'object' && updates.shippingAddress !== null ? updates.shippingAddress : parseShippingAddress(updates.shippingAddress)) 
+      : existing.shippingAddress;
+    const addrStr = typeof addrObj === 'string' ? addrObj : JSON.stringify(addrObj);
+
+    const updatedItems = updates.items ? updates.items.map((it: any) => ({
+      productId: it.productId || `prod-wa-${Date.now()}-${Math.floor(Math.random()*1000)}`,
+      sku: it.sku || `WA-${(it.name || 'PLANT').slice(0, 4).toUpperCase()}`,
+      name: it.name || it.productName || 'Nursery Plant',
+      tamilName: it.tamilName || it.name || 'நார்சரி செடி',
+      price: Number(it.price || 0),
+      mrp: Number(it.mrp || it.price || 0),
+      quantity: Number(it.quantity || 1),
+      image: it.image || '/products/double-delight.jpeg'
+    })) : existing.items;
+
+    const subtotal = Number(updates.subtotal ?? (updatedItems ? updatedItems.reduce((s: number, it: any) => s + (it.price * it.quantity), 0) : existing.subtotal));
+    const shippingCharge = Number(updates.shippingCharge ?? updates.deliveryFee ?? existing.shippingCharge);
+    const discount = Number(updates.discount ?? existing.discount);
+    const grandTotal = Number(updates.grandTotal ?? updates.totalAmount ?? (subtotal + shippingCharge - discount));
+
+    const updatedOrder: Order = {
+      ...existing,
+      ...updates,
+      id: existing.id,
+      orderNumber: existing.orderNumber || existing.id,
+      customerName: updates.customerName || existing.customerName,
+      customerPhone: updates.customerPhone || existing.customerPhone,
+      customerEmail: updates.customerEmail !== undefined ? updates.customerEmail : existing.customerEmail,
+      shippingAddress: addrObj,
+      items: updatedItems,
+      subtotal,
+      shippingCharge,
+      discount,
+      grandTotal,
+      paymentStatus: updates.paymentStatus || existing.paymentStatus,
+      orderStatus: updates.orderStatus || existing.orderStatus,
+      paymentMethod: updates.paymentMethod || existing.paymentMethod,
+      notes: updates.notes !== undefined ? updates.notes : existing.notes,
+      trackingNumber: updates.trackingNumber !== undefined ? updates.trackingNumber : existing.trackingNumber,
+      courierName: updates.courierName !== undefined ? updates.courierName : existing.courierName,
+      updatedAt: new Date().toISOString()
+    };
+
+    this.memoryOrders = this.memoryOrders.map(o => (o.id && o.id.toLowerCase() === cleanId) ? updatedOrder : o);
+    if ((globalThis as any).globalMemoryOrdersBuffer) {
+      (globalThis as any).globalMemoryOrdersBuffer = (globalThis as any).globalMemoryOrdersBuffer.map((o: Order) => (o.id && o.id.toLowerCase() === cleanId) ? updatedOrder : o);
+    }
+
+    const allDisk = loadDiskOrders();
+    const diskIdx = allDisk.findIndex(o => o.id && o.id.toLowerCase() === cleanId);
+    if (diskIdx !== -1) {
+      allDisk[diskIdx] = updatedOrder;
+    } else {
+      allDisk.unshift(updatedOrder);
+    }
+    saveDiskOrders(allDisk);
+
+    const prisma = getPrismaClient();
+    if (prisma) {
+      try {
+        const orderMatch = {
+          OR: [
+            { id: existing.id },
+            { orderNumber: existing.id },
+            { merchantTransactionId: existing.merchantTransactionId }
+          ]
+        };
+
+        await prisma.order.updateMany({
+          where: orderMatch,
+          data: {
+            customerName: updatedOrder.customerName,
+            customerPhone: updatedOrder.customerPhone,
+            customerEmail: updatedOrder.customerEmail || null,
+            shippingAddress: addrStr,
+            subtotal: updatedOrder.subtotal,
+            discount: updatedOrder.discount,
+            deliveryFee: updatedOrder.shippingCharge,
+            totalAmount: updatedOrder.grandTotal,
+            status: (updatedOrder.orderStatus === 'DELIVERED' ? 'DELIVERED' : updatedOrder.orderStatus === 'PROCESSING' ? 'PACKING' : updatedOrder.orderStatus === 'DISPATCHED' ? 'DISPATCHED' : 'PENDING') as any,
+            paymentStatus: updatedOrder.paymentStatus === 'SUCCESS' ? 'SUCCESS' : 'PENDING',
+            paymentMethod: (updatedOrder.paymentMethod === 'COD' ? 'COD' : updatedOrder.paymentMethod === 'PHONEPE' ? 'PHONEPE' : 'UPI') as any,
+            notes: updatedOrder.notes || '',
+            trackingNumber: updatedOrder.trackingNumber || null
+          }
+        });
+      } catch (err: any) {
+        console.error('Prisma updateOrderFull error:', err?.message || err);
+      }
+    }
+
+    return updatedOrder;
+  }
+
   // PAYMENT LOGS
   private inMemoryPaymentLogs: PaymentLog[] = [];
 

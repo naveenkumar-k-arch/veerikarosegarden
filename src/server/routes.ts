@@ -1381,6 +1381,42 @@ apiRouter.put('/admin/orders/:id/status', requireAdmin, async (req: Authenticate
   }
 });
 
+// Admin create manual / WhatsApp order
+const handleCreateAdminOrderRoute = async (req: AuthenticatedRequest, res: express.Response) => {
+  try {
+    const order = await db.createAdminOrder(req.body);
+    invalidateBootstrapCache();
+    res.status(201).json({ success: true, order, message: 'WhatsApp / Offline order created successfully' });
+  } catch (error: any) {
+    console.error('Error creating admin order:', error);
+    res.status(400).json({ success: false, message: error.message || 'Failed to create order' });
+  }
+};
+
+apiRouter.post('/admin/orders', requireAdmin, handleCreateAdminOrderRoute);
+apiRouter.post('/admin/orders/create', requireAdmin, handleCreateAdminOrderRoute);
+
+// Admin full order update
+const handleUpdateOrderFullRoute = async (req: AuthenticatedRequest, res: express.Response) => {
+  try {
+    const id = req.params?.id || req.body?.id || req.body?.orderId;
+    if (!id) return res.status(400).json({ success: false, message: 'Order ID is required' });
+
+    const order = await db.updateOrderFull(String(id), req.body);
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+    
+    invalidateBootstrapCache();
+    res.json({ success: true, order, message: 'Order updated successfully' });
+  } catch (error: any) {
+    console.error('Error updating order:', error);
+    res.status(400).json({ success: false, message: error.message || 'Failed to update order' });
+  }
+};
+
+apiRouter.put('/admin/orders/:id', requireAdmin, handleUpdateOrderFullRoute);
+apiRouter.post('/admin/orders/:id/update', requireAdmin, handleUpdateOrderFullRoute);
+apiRouter.patch('/admin/orders/:id', requireAdmin, handleUpdateOrderFullRoute);
+
 // Admin delete order
 const handleDeleteOrderRoute = async (req: AuthenticatedRequest, res: express.Response) => {
   try {
