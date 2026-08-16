@@ -796,7 +796,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
       const cleanEmail = (user?.email?.includes('@')) ? user.email : `cust${cleanPhone}@veerikanursery.com`;
       const courierLabel = courierPartner === 'METTUR_PARCEL'
         ? 'Mettur Parcel Service'
-        : 'Professional Courier';
+        : (deliveryOption === 'FULL_SOIL' ? 'Professional Courier (Full Soil)' : 'Professional Courier (Reduced Soil)');
 
       const res = await onPlaceOrder({
         customerName: address.fullName || user?.name || 'Customer',
@@ -807,7 +807,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
         paymentProofUrl: effectivePM === 'QR_PAYMENT' ? paymentProofUrl : undefined,
         transactionId: effectivePM === 'QR_PAYMENT' ? transactionId : undefined,
         potCharge: 0,
-        potOption: 'NONE',
+        potOption: deliveryOption,
         packingCharge,
         packingOption: selectedPacking,
         courierName: courierLabel,

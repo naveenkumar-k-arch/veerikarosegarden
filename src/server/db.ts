@@ -7765,6 +7765,12 @@ class Store {
       notes: updates.notes !== undefined ? updates.notes : existing.notes,
       trackingNumber: updates.trackingNumber !== undefined ? updates.trackingNumber : existing.trackingNumber,
       courierName: updates.courierName !== undefined ? updates.courierName : existing.courierName,
+      courierDistrict: updates.courierDistrict !== undefined ? updates.courierDistrict : existing.courierDistrict,
+      courierBranch: updates.courierBranch !== undefined ? updates.courierBranch : existing.courierBranch,
+      potOption: updates.potOption !== undefined ? updates.potOption : existing.potOption,
+      potCharge: updates.potCharge !== undefined ? updates.potCharge : existing.potCharge,
+      packingOption: updates.packingOption !== undefined ? updates.packingOption : existing.packingOption,
+      packingCharge: updates.packingCharge !== undefined ? updates.packingCharge : existing.packingCharge,
       updatedAt: new Date().toISOString()
     };
 
@@ -7793,6 +7799,18 @@ class Store {
           ]
         };
 
+        const notesPayload = JSON.stringify({
+          proof: updatedOrder.paymentProofUrl || null,
+          txnId: updatedOrder.transactionId || null,
+          packingOption: updatedOrder.packingOption || 'STANDARD',
+          packingCharge: updatedOrder.packingCharge || 0,
+          potOption: updatedOrder.potOption || null,
+          potCharge: updatedOrder.potCharge || 0,
+          courierName: updatedOrder.courierName || null,
+          courierDistrict: updatedOrder.courierDistrict || null,
+          courierBranch: updatedOrder.courierBranch || null
+        });
+
         await prisma.order.updateMany({
           where: orderMatch,
           data: {
@@ -7807,7 +7825,7 @@ class Store {
             status: (updatedOrder.orderStatus === 'DELIVERED' ? 'DELIVERED' : updatedOrder.orderStatus === 'PROCESSING' ? 'PACKING' : updatedOrder.orderStatus === 'DISPATCHED' ? 'DISPATCHED' : 'PENDING') as any,
             paymentStatus: updatedOrder.paymentStatus === 'SUCCESS' ? 'SUCCESS' : 'PENDING',
             paymentMethod: (updatedOrder.paymentMethod === 'COD' ? 'COD' : updatedOrder.paymentMethod === 'PHONEPE' ? 'PHONEPE' : 'UPI') as any,
-            notes: updatedOrder.notes || '',
+            notes: notesPayload,
             trackingNumber: updatedOrder.trackingNumber || null
           }
         });

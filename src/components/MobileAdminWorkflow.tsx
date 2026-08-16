@@ -821,11 +821,14 @@ Your parcel dispatched today 🚚
   const handleAwbChange = (awb: string) => {
     setDispatchForm(prev => {
       let link = '';
-      if (prev.courierName === 'Delhivery') link = `https://delhivery.com/track/${awb}`;
-      else if (prev.courierName === 'ST Courier') link = `https://stcourier.com/track/${awb}`;
-      else if (prev.courierName === 'Professional Courier') link = `https://www.tpcindia.com/track.aspx?docno=${awb}`;
-      else if (prev.courierName === 'DTDC') link = `https://www.dtdc.in/tracking/tracking_results.asp?Tid=${awb}`;
-      else if (prev.courierName === 'India Post') link = `https://www.indiapost.gov.in/`;
+      const cName = (prev.courierName || '').toLowerCase();
+      if (cName.includes('delhivery')) link = `https://delhivery.com/track/${awb}`;
+      else if (cName.includes('st courier')) link = `https://stcourier.com/track/${awb}`;
+      else if (cName.includes('professional')) link = `https://www.tpcindia.com/track.aspx?docno=${awb}`;
+      else if (cName.includes('mettur')) link = `https://www.metturtransports.com/`;
+      else if (cName.includes('dtdc')) link = `https://www.dtdc.in/tracking/tracking_results.asp?Tid=${awb}`;
+      else if (cName.includes('india post') || cName.includes('speed post')) link = `https://www.indiapost.gov.in/`;
+      else if (awb) link = `https://www.google.com/search?q=${encodeURIComponent((prev.courierName || 'Courier') + ' tracking ' + awb)}`;
       return {
         ...prev,
         awbNumber: awb,
@@ -1334,6 +1337,24 @@ Your parcel dispatched today 🚚
                       </span>
                     </div>
 
+                    {/* Customer Selected Courier Badge */}
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-700 bg-slate-50 px-2.5 py-1 rounded-xl border border-slate-200/80">
+                      <Truck className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                      <span className="font-bold text-slate-900 truncate">
+                        {order.courierName || 'Professional Courier'}
+                        {order.courierBranch ? ` • ${order.courierBranch}` : ''}
+                      </span>
+                      {order.potOption === 'FULL_SOIL' && (
+                        <span className="text-[9px] bg-emerald-100 text-emerald-900 font-bold px-1.5 py-0.5 rounded-md shrink-0">Full Soil</span>
+                      )}
+                      {order.packingOption === 'EXTRA_SECURE' && (
+                        <span className="text-[9px] bg-amber-100 text-amber-900 font-bold px-1.5 py-0.5 rounded-md shrink-0">Extra Secure</span>
+                      )}
+                      {order.packingOption === 'MAX_PROTECTION' && (
+                        <span className="text-[9px] bg-purple-100 text-purple-900 font-bold px-1.5 py-0.5 rounded-md shrink-0">Max Protect</span>
+                      )}
+                    </div>
+
                     <div className="flex items-center justify-between pt-1 border-t border-slate-100 flex-wrap gap-1">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
@@ -1450,6 +1471,126 @@ Your parcel dispatched today 🚚
                   </span>
                 </div>
               </div>
+            </div>
+
+            {/* Courier & Delivery Partner Card (Prominently displays exact customer choice) */}
+            <div className="bg-white p-4 rounded-2xl border-2 border-emerald-300 shadow-xs space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-xl bg-emerald-700 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                    <Truck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900 leading-tight">
+                      Customer Selected Courier Service
+                    </h3>
+                    <p className="text-[10px] text-slate-500 font-medium">Exact delivery method & depot chosen at checkout</p>
+                  </div>
+                </div>
+                <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border ${
+                  (selectedOrder.courierName || '').toLowerCase().includes('mettur')
+                    ? 'bg-amber-100 text-amber-900 border-amber-300'
+                    : 'bg-emerald-100 text-emerald-950 border-emerald-300'
+                }`}>
+                  {(selectedOrder.courierName || '').toLowerCase().includes('mettur') ? '📦 Branch Pickup' : '🚚 Doorstep Delivery'}
+                </span>
+              </div>
+
+              {/* Main Courier Partner Info */}
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <span className="text-[10px] font-extrabold uppercase text-slate-500 tracking-wider block">Courier Partner</span>
+                    <p className="text-sm font-black text-slate-900 flex items-center gap-1.5 mt-0.5">
+                      <span>{selectedOrder.courierName || 'Professional Courier'}</span>
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] font-extrabold uppercase text-slate-500 tracking-wider block">Delivery Fee</span>
+                    <p className="text-xs font-black text-emerald-800 mt-0.5">
+                      {selectedOrder.shippingCharge === 0 ? 'FREE' : `₹${selectedOrder.shippingCharge}`}
+                    </p>
+                  </div>
+                </div>
+
+                {/* If Mettur Parcel Branch & District is selected */}
+                {(selectedOrder.courierBranch || selectedOrder.courierDistrict || (selectedOrder.courierName || '').toLowerCase().includes('mettur')) && (
+                  <div className="mt-2 p-2.5 bg-amber-50 rounded-lg border border-amber-300 text-xs space-y-1">
+                    <div className="flex items-center gap-1.5 font-bold text-amber-950 text-[11px]">
+                      <MapPin className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                      <span>Mettur Parcel Pickup Branch Hub:</span>
+                    </div>
+                    <p className="font-extrabold text-amber-900 text-xs pl-5">
+                      {selectedOrder.courierBranch || 'Customer selected local Mettur Parcel Hub'}
+                      {selectedOrder.courierDistrict ? ` (${selectedOrder.courierDistrict} District)` : ''}
+                    </p>
+                    <p className="text-[10px] text-amber-800 pl-5">
+                      ⚠️ Note: Customer will collect plant package directly from this Mettur branch depot.
+                    </p>
+                  </div>
+                )}
+
+                {/* Soil & Packaging Details Grid */}
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div className="p-2 bg-white rounded-lg border border-slate-200 space-y-0.5">
+                    <span className="text-[10px] font-bold text-slate-500 block">Soil / Root Delivery:</span>
+                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1">
+                      {selectedOrder.potOption === 'FULL_SOIL' || (selectedOrder.courierName || '').toLowerCase().includes('full soil')
+                        ? '🪴 Full Soil Pot'
+                        : '🌱 Reduced Soil (Transit Safe)'}
+                    </span>
+                  </div>
+
+                  <div className="p-2 bg-white rounded-lg border border-slate-200 space-y-0.5">
+                    <span className="text-[10px] font-bold text-slate-500 block">Protective Packing:</span>
+                    <span className="text-xs font-bold text-slate-800 truncate">
+                      {selectedOrder.packingOption === 'EXTRA_SECURE'
+                        ? '📦 Extra Secure (+₹10)'
+                        : selectedOrder.packingOption === 'MAX_PROTECTION'
+                        ? '🛡️ Max Protection (+₹15)'
+                        : 'Standard Safe Box'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Live Tracking / AWB if Dispatched or Quick Dispatch Action */}
+              {selectedOrder.trackingNumber ? (
+                <div className="p-2.5 bg-blue-50 rounded-xl border border-blue-200 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-[10px] font-bold text-blue-900 block">AWB / Tracking Number:</span>
+                    <span className="font-mono font-black text-blue-950">{selectedOrder.trackingNumber}</span>
+                  </div>
+                  <a
+                    href={selectedOrder.deliveryNotes || `https://www.google.com/search?q=${encodeURIComponent((selectedOrder.courierName || 'Courier') + ' ' + selectedOrder.trackingNumber)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-[11px] flex items-center gap-1 shadow-2xs cursor-pointer"
+                  >
+                    <span>Track Live</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-[11px] text-slate-500 font-medium">Status: Awaiting Dispatch</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDispatchForm({
+                        courierName: selectedOrder.courierName || 'Professional Courier',
+                        awbNumber: selectedOrder.trackingNumber || '',
+                        trackingLink: selectedOrder.deliveryNotes || ''
+                      });
+                      navigateScreen('dispatch_order', selectedOrder);
+                    }}
+                    className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-xs cursor-pointer"
+                  >
+                    <Truck className="w-3.5 h-3.5" />
+                    <span>Dispatch via {selectedOrder.courierName || 'Courier'}</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Ordered Plants Itemized List */}
@@ -1718,7 +1859,7 @@ Your parcel dispatched today 🚚
                 <button
                   onClick={() => {
                     setDispatchForm({
-                      courierName: selectedOrder.courierName || 'Delhivery',
+                      courierName: selectedOrder.courierName || 'Professional Courier',
                       awbNumber: selectedOrder.trackingNumber || '',
                       trackingLink: selectedOrder.deliveryNotes || ''
                     });
@@ -1859,6 +2000,25 @@ Your parcel dispatched today 🚚
               <span className="font-semibold text-slate-600">{selectedOrder.customerName || selectedOrder.shippingAddress?.fullName}</span>
             </div>
 
+            {/* Customer Selected Courier Notice */}
+            <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase text-amber-900 tracking-wider">Customer Preference:</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-200 text-amber-950">
+                  {(selectedOrder.courierName || '').toLowerCase().includes('mettur') ? '📦 Branch Pickup' : '🚚 Doorstep Delivery'}
+                </span>
+              </div>
+              <p className="font-black text-xs text-amber-950 flex items-center gap-1.5 mt-0.5">
+                <Truck className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                <span>{selectedOrder.courierName || 'Professional Courier'}</span>
+              </p>
+              {(selectedOrder.courierBranch || selectedOrder.courierDistrict) && (
+                <p className="text-[11px] text-amber-900 font-bold pl-5">
+                  📍 Pickup Branch: {selectedOrder.courierBranch} {selectedOrder.courierDistrict ? `(${selectedOrder.courierDistrict} District)` : ''}
+                </p>
+              )}
+            </div>
+
             <form onSubmit={handleSaveDispatch} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3.5">
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-700 block">Courier Partner</label>
@@ -1870,13 +2030,16 @@ Your parcel dispatched today 🚚
                   }}
                   className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700"
                 >
-                  <option value="Delhivery">Delhivery</option>
+                  <option value="Professional Courier">Professional Courier (Doorstep)</option>
+                  <option value="Professional Courier – Reduced Soil">Professional Courier – Reduced Soil</option>
+                  <option value="Professional Courier – Full Soil">Professional Courier – Full Soil</option>
+                  <option value="Mettur Parcel Service">Mettur Parcel Service (Branch Pickup)</option>
                   <option value="ST Courier">ST Courier</option>
-                  <option value="Professional Courier">Professional Courier</option>
+                  <option value="Delhivery">Delhivery</option>
                   <option value="DTDC">DTDC</option>
                   <option value="India Post">India Post (Speed Post)</option>
-                  <option value="Self Delivery">Self Delivery</option>
-                  <option value="Other">Other</option>
+                  <option value="Self Delivery">Self Delivery (Nursery Farm Team)</option>
+                  <option value="Other">Other Courier / Transport</option>
                 </select>
               </div>
 

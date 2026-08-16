@@ -207,6 +207,19 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
           pdf.setFontSize(7.8);
           pdf.text('7904020206', pos.x + 2.5, pos.y + 33);
 
+          // Courier Partner Tag
+          const courierPartnerTag = order.courierName || 'Professional Courier';
+          pdf.setFillColor(240, 253, 244);
+          pdf.roundedRect(pos.x + 2, pos.y + 38, 32, 10, 1, 1, 'F');
+          pdf.setDrawColor(187, 247, 208);
+          pdf.setLineWidth(0.2);
+          pdf.roundedRect(pos.x + 2, pos.y + 38, 32, 10, 1, 1, 'S');
+          pdf.setTextColor(20, 83, 45);
+          pdf.setFont('helvetica', 'bold');
+          pdf.setFontSize(5.8);
+          const cLines = pdf.splitTextToSize(courierPartnerTag + (order.courierBranch ? ` (${order.courierBranch})` : ''), 30);
+          pdf.text(cLines.slice(0, 3), pos.x + 3, pos.y + 41.5);
+
           // Vertical Divider 1
           pdf.setDrawColor(226, 232, 240);
           pdf.setLineWidth(0.25);
@@ -485,6 +498,10 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
                             <p className="text-[11px] text-slate-800 pt-0.5">
                               7904020206
                             </p>
+                            <div className="mt-2 p-1 bg-emerald-50 rounded border border-emerald-200 text-[9px] text-emerald-900 font-bold leading-tight">
+                              🚚 {order.courierName || 'Professional Courier'}
+                              {order.courierBranch ? ` (${order.courierBranch})` : ''}
+                            </div>
                           </div>
                         </div>
                       </div>
