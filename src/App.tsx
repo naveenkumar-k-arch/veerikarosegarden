@@ -154,8 +154,20 @@ export const App: React.FC = () => {
   const [isExpertAdviceOpen, setIsExpertAdviceOpen] = useState<boolean>(false);
 
   // Data Collections State — Fast LocalStorage cache hydrate with background SWR sync
+  const CATALOG_SYNC_VERSION = 'vrg_cat_v2026_08_16_107';
   const [products, setProducts] = useState<Product[]>(() => {
     try {
+      if (typeof window !== 'undefined') {
+        const storedVersion = localStorage.getItem('vrg_catalog_sync_ver');
+        if (storedVersion !== CATALOG_SYNC_VERSION) {
+          localStorage.removeItem('vrg_products');
+          localStorage.removeItem('vrg_categories');
+          localStorage.removeItem('vrg_deleted_products');
+          sessionStorage.removeItem('vrg_pending_saved_products');
+          localStorage.setItem('vrg_catalog_sync_ver', CATALOG_SYNC_VERSION);
+          return INITIAL_PRODUCTS;
+        }
+      }
       const deletedSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_products') || '[]'));
       const saved = localStorage.getItem('vrg_products');
       if (saved) {
@@ -165,7 +177,7 @@ export const App: React.FC = () => {
         }
       }
     } catch {}
-    return [];
+    return INITIAL_PRODUCTS;
   });
 
   const [categories, setCategories] = useState<Category[]>(() => {
@@ -176,7 +188,7 @@ export const App: React.FC = () => {
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch {}
-    return [];
+    return INITIAL_CATEGORIES;
   });
 
   const [banners, setBanners] = useState<Banner[]>(() => {

@@ -933,7 +933,9 @@ const silentRefresh = async (): Promise<boolean> => {
     setProductSaving(true);
 
     // Auto-generate SKU if not provided
-    const autoSku = prodForm.sku ||
+    const targetId = editingProduct?.id;
+    const isEdit = Boolean(targetId);
+    const autoSku = prodForm.sku || editingProduct?.sku ||
       `VRG-${(prodForm.name || 'PLANT').replace(/\s+/g, '-').toUpperCase().slice(0, 12)}-${Date.now().toString(36).toUpperCase()}`;
 
     // Compute discount % if not set
@@ -983,8 +985,6 @@ const silentRefresh = async (): Promise<boolean> => {
       status: (prodForm.status || 'ACTIVE') as 'ACTIVE' | 'INACTIVE' | 'ARCHIVED'
     };
 
-    const targetId = editingProduct?.id;
-    const isEdit = Boolean(targetId);
     const tempId = targetId || ('prod-' + Date.now());
     const optimisticProd: Product = {
       ...payload,
@@ -999,7 +999,7 @@ const silentRefresh = async (): Promise<boolean> => {
     let updatedProductsList: Product[] = [];
     setProducts(prev => {
       const next = isEdit
-        ? prev.map(p => p.id === targetId ? { ...p, ...optimisticProd } : p)
+        ? prev.map(p => (p.id === targetId || (p.sku && p.sku === payload.sku)) ? { ...p, ...optimisticProd } : p)
         : [{ ...optimisticProd }, ...prev.filter(p => p.id !== tempId && p.sku !== payload.sku)];
       updatedProductsList = next;
       persistAdminCache(c => ({ ...c, products: next }));
@@ -1013,8 +1013,13 @@ const silentRefresh = async (): Promise<boolean> => {
       return next;
     });
 
-    savePendingProductToSession(optimisticProd);
-    pendingProductsRef.current.set(tempId, { product: optimisticProd, savedAt: Date.now() });
+    if (!isEdit) {
+      savePendingProductToSession(optimisticProd);
+      pendingProductsRef.current.set(tempId, { product: optimisticProd, savedAt: Date.now() });
+    } else {
+      clearPendingProductFromSession(targetId);
+      pendingProductsRef.current.set(targetId, { product: optimisticProd, savedAt: Date.now() });
+    }
 
     // Instantly close modal and show toast
     setShowProductModal(false);
@@ -1038,10 +1043,15 @@ const silentRefresh = async (): Promise<boolean> => {
       .then(data => {
         if (data?.success && data?.product) {
           const serverProd: Product = data.product;
-          savePendingProductToSession(serverProd);
-          pendingProductsRef.current.set(serverProd.id, { product: serverProd, savedAt: Date.now() });
+          if (!isEdit) {
+            savePendingProductToSession(serverProd);
+            pendingProductsRef.current.set(serverProd.id, { product: serverProd, savedAt: Date.now() });
+          } else {
+            clearPendingProductFromSession(serverProd.id);
+            pendingProductsRef.current.set(serverProd.id, { product: serverProd, savedAt: Date.now() });
+          }
           setProducts(prev => {
-            const next = prev.map(p => (p.id === tempId || p.id === serverProd.id) ? { ...p, ...serverProd } : p);
+            const next = prev.map(p => (p.id === tempId || p.id === serverProd.id || (serverProd.sku && p.sku === serverProd.sku)) ? { ...p, ...serverProd } : p);
             persistAdminCache(c => ({ ...c, products: next }));
             try {
               localStorage.setItem('vrg_products', JSON.stringify(next));
@@ -1705,10 +1715,8 @@ const silentRefresh = async (): Promise<boolean> => {
             } catch {}
           }}
           onSaveProduct={async (prod) => {
-            const isEdit = Boolean(prod.id);
-            const url = isEdit ? `/api/products/${prod.id}` : '/api/products';
-            const method = isEdit ? 'PUT' : 'POST';
-
+            const targetId = prod.id;
+            const isEdit = Boolean(targetId);
             const autoSku = prod.sku ||
               `VRG-${(prod.name || 'PLANT').replace(/\s+/g, '-').toUpperCase().slice(0, 12)}-${Date.now().toString(36).toUpperCase()}`;
             const mrp = Number(prod.mrp) || Number(prod.sellingPrice) || 0;
@@ -1750,14 +1758,13 @@ const silentRefresh = async (): Promise<boolean> => {
               status: prod.status || 'ACTIVE'
             };
 
-            const targetId = prod.id;
             const tempId = targetId || ('prod-' + Date.now());
             const optimisticProd: Product = {
               ...payload,
               id: tempId,
-              rating: 5.0,
-              reviewCount: 0,
-              createdAt: new Date().toISOString(),
+              rating: prod.rating || 5.0,
+              reviewCount: prod.reviewCount || 0,
+              createdAt: prod.createdAt || new Date().toISOString(),
               updatedAt: new Date().toISOString()
             } as Product;
 
@@ -1765,7 +1772,7 @@ const silentRefresh = async (): Promise<boolean> => {
             let updatedList: Product[] = [];
             setProducts(prev => {
               const next = isEdit
-                ? prev.map(p => p.id === prod.id ? { ...p, ...optimisticProd } : p)
+                ? prev.map(p => (p.id === targetId || (p.sku && p.sku === payload.sku)) ? { ...p, ...optimisticProd } : p)
                 : [{ ...optimisticProd }, ...prev.filter(p => p.id !== tempId && p.sku !== payload.sku)];
               updatedList = next;
               persistAdminCache(c => ({ ...c, products: next }));
@@ -1779,14 +1786,22 @@ const silentRefresh = async (): Promise<boolean> => {
               return next;
             });
 
-            savePendingProductToSession(optimisticProd);
-            pendingProductsRef.current.set(tempId, { product: optimisticProd, savedAt: Date.now() });
+            if (!isEdit) {
+              savePendingProductToSession(optimisticProd);
+              pendingProductsRef.current.set(tempId, { product: optimisticProd, savedAt: Date.now() });
+            } else {
+              clearPendingProductFromSession(targetId);
+              pendingProductsRef.current.set(targetId, { product: optimisticProd, savedAt: Date.now() });
+            }
 
             try {
               window.dispatchEvent(new CustomEvent('vrg_products_updated', { detail: updatedList }));
             } catch {}
 
             // 2. Non-blocking Background Persistence
+            const url = isEdit ? `/api/products/${targetId}` : '/api/products';
+            const method = isEdit ? 'PUT' : 'POST';
+
             authFetch(url, {
               method,
               body: JSON.stringify(payload)
@@ -1795,10 +1810,15 @@ const silentRefresh = async (): Promise<boolean> => {
               .then(data => {
                 if (data?.success && data?.product) {
                   const serverProd = data.product;
-                  savePendingProductToSession(serverProd);
-                  pendingProductsRef.current.set(serverProd.id, { product: serverProd, savedAt: Date.now() });
+                  if (!isEdit) {
+                    savePendingProductToSession(serverProd);
+                    pendingProductsRef.current.set(serverProd.id, { product: serverProd, savedAt: Date.now() });
+                  } else {
+                    clearPendingProductFromSession(serverProd.id);
+                    pendingProductsRef.current.set(serverProd.id, { product: serverProd, savedAt: Date.now() });
+                  }
                   setProducts(prev => {
-                    const next = prev.map(p => (p.id === tempId || p.id === serverProd.id) ? { ...p, ...serverProd } : p);
+                    const next = prev.map(p => (p.id === tempId || p.id === serverProd.id || (serverProd.sku && p.sku === serverProd.sku)) ? { ...p, ...serverProd } : p);
                     persistAdminCache(c => ({ ...c, products: next }));
                     try {
                       localStorage.setItem('vrg_products', JSON.stringify(next));

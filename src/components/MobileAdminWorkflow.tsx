@@ -3557,18 +3557,25 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                   : ['https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80'];
 
                 // Instantly dismiss modal and show success feedback (0ms)
-                handleCloseModal(() => setShowProductModal(false));
-                const toastMsg = editingProduct ? `Plant "${trimmedName}" updated successfully!` : `Plant "${trimmedName}" added!`;
+                const currentEditing = editingProduct;
+                handleCloseModal(() => {
+                  setShowProductModal(false);
+                  setEditingProduct(null);
+                });
+                const toastMsg = currentEditing ? `Plant "${trimmedName}" updated successfully!` : `Plant "${trimmedName}" added!`;
                 setProductSuccessToast(toastMsg);
                 toast.success(toastMsg, 'Product Saved');
                 setTimeout(() => setProductSuccessToast(null), 3000);
 
                 if (onSaveProduct) {
                   onSaveProduct({
-                    id: editingProduct?.id,
+                    ...(currentEditing || {}),
+                    id: currentEditing?.id,
+                    sku: currentEditing?.sku,
                     name: trimmedName,
                     englishName: trimmedName,
                     tamilName: productForm.tamilName.trim() || trimmedName,
+                    scientificName: currentEditing?.scientificName || '',
                     categoryId: productForm.categoryId || categories[0]?.id || 'cat-roses',
                     categoryName: productForm.categoryName || catObj?.name || 'Roses',
                     mrp,
@@ -3577,10 +3584,23 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                     plantHeight: productForm.plantHeight || '1-2 Feet',
                     potSize: productForm.potSize || '8 Inch Bag',
                     sunlight: productForm.sunlight || 'Full Sun',
+                    waterRequirement: currentEditing?.waterRequirement || 'Daily',
+                    floweringSeason: currentEditing?.floweringSeason || 'All Year',
+                    careInstructions: currentEditing?.careInstructions || {
+                      watering: 'Water daily in the morning.',
+                      sunlight: 'Requires 5 hours direct sunlight.',
+                      fertilizer: 'Apply vermicompost every 15 days.',
+                      soil: 'Red soil mixed with coco peat.'
+                    },
                     images: validImages,
                     image: validImages[0],
                     imageUrl: validImages[0],
-                    description: productForm.description.trim() || trimmedName
+                    description: productForm.description.trim() || trimmedName,
+                    featured: currentEditing?.featured ?? false,
+                    bestSeller: currentEditing?.bestSeller ?? false,
+                    trending: currentEditing?.trending ?? false,
+                    tags: currentEditing?.tags || [productForm.categoryName || 'Plant'],
+                    status: currentEditing?.status || 'ACTIVE'
                   }).catch(err => {
                     console.error('Background error saving plant:', err);
                   });
