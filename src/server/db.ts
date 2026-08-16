@@ -3,7 +3,7 @@ import path from 'path';
 import { Product, Category, Order, Coupon, Banner, Review, SiteSettings, PaymentLog, OrderItemSnapshot, PaymentMethod, FinancialEntry, Combo } from '../types.js';
 
 import { getPrismaClient, executeInTransaction } from './prisma.js';
-import { firestoreSaveOrder, firestoreGetAllOrders, firestoreUpdateOrder } from './firestore.js';
+import { firestoreSaveOrder, firestoreGetAllOrders, firestoreUpdateOrder, firestoreDeleteOrder } from './firestore.js';
 
 function parseShippingAddress(val: any): any {
   if (!val) return {};
@@ -73,6 +73,32 @@ function saveDiskOrders(orders: Order[]) {
     console.error('Error writing orders_store.json:', err);
   }
 }
+
+const DELETED_ORDERS_STORE_FILE = path.resolve(process.cwd(), 'src/data/deleted_orders.json');
+
+function loadDiskDeletedOrders(): Set<string> {
+  try {
+    if (fs.existsSync(DELETED_ORDERS_STORE_FILE)) {
+      const data = fs.readFileSync(DELETED_ORDERS_STORE_FILE, 'utf-8');
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed)) return new Set(parsed);
+    }
+  } catch (err) {
+    console.error('Error reading deleted_orders.json:', err);
+  }
+  return new Set();
+}
+
+function saveDiskDeletedOrders(ids: Set<string>) {
+  try {
+    const dir = path.dirname(DELETED_ORDERS_STORE_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(DELETED_ORDERS_STORE_FILE, JSON.stringify(Array.from(ids), null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error writing deleted_orders.json:', err);
+  }
+}
+
 
 const FINANCES_STORE_FILE = path.resolve(process.cwd(), 'src/data/finances_store.json');
 
@@ -4730,7 +4756,7 @@ const deletedProductIds: Set<string> = (globalThis as any)._deletedProductIds ||
 const deletedCategoryIds = (globalThis as any)._deletedCategoryIds || ((globalThis as any)._deletedCategoryIds = new Set<string>());
 const deletedCouponIds = (globalThis as any)._deletedCouponIds || ((globalThis as any)._deletedCouponIds = new Set<string>());
 const deletedFinanceIds = (globalThis as any)._deletedFinanceIds || ((globalThis as any)._deletedFinanceIds = new Set<string>());
-const deletedOrderIds = (globalThis as any)._deletedOrderIds || ((globalThis as any)._deletedOrderIds = new Set<string>());
+const deletedOrderIds: Set<string> = (globalThis as any)._deletedOrderIds || ((globalThis as any)._deletedOrderIds = loadDiskDeletedOrders());
 const deletedComboIds = (globalThis as any)._deletedComboIds || ((globalThis as any)._deletedComboIds = loadDiskDeletedCombos());
 
 export const DEFAULT_COMBOS: Combo[] = loadDiskCombos();
@@ -5080,7 +5106,7 @@ class Store {
     return Boolean(updated);
   }
 
-  async addProduct(product: Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'rating' | 'reviewCount'>): Promise<Product> {
+  async addProduct(product: Partial<Product> & { name: string }): Promise<Product> {
     const prisma = getPrismaClient();
     const id = 'prod-' + Date.now();
     const sku = product.sku || `VRG-${id.slice(-6).toUpperCase()}`;
@@ -7226,8 +7252,29 @@ class Store {
     const clean = (id || '').trim();
     if (clean) {
       deletedOrderIds.add(clean);
+      saveDiskDeletedOrders(deletedOrderIds);
     }
-    this.memoryOrders = this.memoryOrders.filter(o => o.id !== clean && o.merchantTransactionId !== clean);
+    this.memoryOrders = this.memoryOrders.filter(o => o.id !== clean && o.merchantTransactionId !== clean && (o as any).orderNumber !== clean);
+    
+    // Clear from global buffer if present
+    if (Array.isArray((globalThis as any).globalMemoryOrdersBuffer)) {
+      (globalThis as any).globalMemoryOrdersBuffer = (globalThis as any).globalMemoryOrdersBuffer.filter((o: any) => 
+        o.id !== clean && o.merchantTransactionId !== clean && o.orderNumber !== clean
+      );
+    }
+
+    // Prune disk orders store if present
+    try {
+      const diskOrders = loadDiskOrders();
+      if (diskOrders.length > 0) {
+        const filtered = diskOrders.filter(o => o.id !== clean && o.merchantTransactionId !== clean && (o as any).orderNumber !== clean);
+        saveDiskOrders(filtered);
+      }
+    } catch {}
+
+    // Non-blocking firestore deletion
+    firestoreDeleteOrder(clean).catch(() => {});
+
     const prisma = getPrismaClient();
     if (prisma) {
       try {

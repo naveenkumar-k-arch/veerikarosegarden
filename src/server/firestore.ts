@@ -106,3 +106,16 @@ export async function firestoreUpdateOrder(orderId: string, updates: Record<stri
     console.error('Firestore updateOrder error:', err);
   }
 }
+
+export async function firestoreDeleteOrder(orderId: string): Promise<void> {
+  try {
+    const docId = orderId.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const url = `${FIRESTORE_BASE}/orders/${docId}`;
+    await fetch(url, {
+      method: 'DELETE'
+    }).catch(() => null);
+  } catch (err) {
+    console.error('Firestore deleteOrder error:', err);
+  }
+}
+

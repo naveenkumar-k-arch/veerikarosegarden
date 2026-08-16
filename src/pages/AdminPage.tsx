@@ -220,7 +220,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
     } catch {}
     return INITIAL_CATEGORIES;
   });
-  const [orders, setOrders] = useState<Order[]>(() => Array.isArray(initialCache?.orders) ? initialCache.orders : []);
+  const [orders, setOrders] = useState<Order[]>(() => {
+    const deletedOrderSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_orders') || '[]'));
+    const list = Array.isArray(initialCache?.orders) ? initialCache.orders : [];
+    return list.filter((o: Order) => o && o.id && !deletedOrderSet.has(o.id) && (!o.merchantTransactionId || !deletedOrderSet.has(o.merchantTransactionId)));
+  });
   const [coupons, setCoupons] = useState<Coupon[]>(() => Array.isArray(initialCache?.coupons) ? initialCache.coupons : []);
   const [combos, setCombos] = useState<Combo[]>(() => Array.isArray(initialCache?.combos) ? initialCache.combos : []);
   const [showComboModal, setShowComboModal] = useState(false);
@@ -827,7 +831,8 @@ const silentRefresh = async (): Promise<boolean> => {
         if (Array.isArray(bRes.coupons)) setCoupons(bRes.coupons);
         if (Array.isArray(bRes.orders)) {
           const now = Date.now();
-          setOrders(bRes.orders.map((apiOrder: Order) => {
+          const deletedOrderSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_orders') || '[]'));
+          setOrders(bRes.orders.filter((o: Order) => o && o.id && !deletedOrderSet.has(o.id) && (!o.merchantTransactionId || !deletedOrderSet.has(o.merchantTransactionId))).map((apiOrder: Order) => {
             const pending = pendingOrderStatusRef.current.get(apiOrder.id) || (apiOrder.merchantTransactionId ? pendingOrderStatusRef.current.get(apiOrder.merchantTransactionId) : undefined);
             if (pending && now - pending.time < 15000) {
               return {
@@ -1324,11 +1329,55 @@ const silentRefresh = async (): Promise<boolean> => {
   const handleDeleteOrder = async (orderId: string) => {
     if (!confirm(`⚠️ Are you sure you want to permanently delete Order #${orderId}? This action cannot be undone.`)) return;
 
-    // Remove order from UI state
-    setOrders(prev => prev.filter(o => o.id !== orderId && o.merchantTransactionId !== orderId));
+    // 1. Remove order from UI state & all local storage lists
+    setOrders(prev => {
+      const filtered = prev.filter(o => o.id !== orderId && o.merchantTransactionId !== orderId && o.orderNumber !== orderId);
+      const keysToSave = ['veerika_admin_orders', 'vrg_user_orders', 'veerika_customer_orders', 'vrg_orders', 'vrg_my_orders'];
+      keysToSave.forEach(key => {
+        try {
+          const raw = localStorage.getItem(key);
+          if (raw) {
+            const list = JSON.parse(raw);
+            if (Array.isArray(list)) {
+              localStorage.setItem(key, JSON.stringify(list.filter((o: any) => o.id !== orderId && o.merchantTransactionId !== orderId && o.orderNumber !== orderId)));
+            }
+          }
+        } catch {}
+      });
+      return filtered;
+    });
+
+    // 2. Track in vrg_deleted_orders set
+    try {
+      const deletedSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_orders') || '[]'));
+      deletedSet.add(orderId);
+      localStorage.setItem('vrg_deleted_orders', JSON.stringify(Array.from(deletedSet)));
+
+      // 3. Purge from admin caches
+      const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
+      if (Array.isArray(cached.orders)) {
+        cached.orders = cached.orders.filter((o: any) => o.id !== orderId && o.merchantTransactionId !== orderId && o.orderNumber !== orderId);
+        localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+      }
+      const pCache = JSON.parse(localStorage.getItem('vrg_admin_persisted_cache') || '{}');
+      if (Array.isArray(pCache.orders)) {
+        pCache.orders = pCache.orders.filter((o: any) => o.id !== orderId && o.merchantTransactionId !== orderId && o.orderNumber !== orderId);
+        localStorage.setItem('vrg_admin_persisted_cache', JSON.stringify(pCache));
+      }
+      const sCache = JSON.parse(sessionStorage.getItem('vrg_admin_session_cache') || '{}');
+      if (Array.isArray(sCache.orders)) {
+        sCache.orders = sCache.orders.filter((o: any) => o.id !== orderId && o.merchantTransactionId !== orderId && o.orderNumber !== orderId);
+        sessionStorage.setItem('vrg_admin_session_cache', JSON.stringify(sCache));
+      }
+    } catch {}
+
+    // 4. Dispatch global event for instant 0ms cross-tab & component synchronization
+    window.dispatchEvent(new CustomEvent('vrg_order_deleted', { detail: { id: orderId } }));
+    window.dispatchEvent(new CustomEvent('vrg_orders_sync', { detail: { deletedId: orderId } }));
+
     toast.success(`Order #${orderId} deleted successfully.`, 'Order Deleted');
 
-    // Trigger backend deletion endpoints
+    // 5. Trigger backend deletion endpoints
     try {
       await authFetch(`/api/admin/orders/${encodeURIComponent(orderId)}`, { method: 'DELETE' }).catch(() => null);
       await authFetch('/api/admin/orders/delete', { method: 'POST', body: JSON.stringify({ id: orderId }) }).catch(() => null);

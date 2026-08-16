@@ -1,5 +1,47 @@
 [
   {
+    "id": "prod-1786884888842",
+    "sku": "VRG-HELLO-MSVT4K5D",
+    "name": "hello",
+    "englishName": "hello",
+    "tamilName": "hello",
+    "scientificName": "",
+    "categoryId": "cat-herbals",
+    "categoryName": "Herbal Plants",
+    "description": "hello",
+    "mrp": 299,
+    "sellingPrice": 25,
+    "discount": 92,
+    "image": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80",
+    "imageUrl": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80",
+    "images": [
+      "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80"
+    ],
+    "rating": 4.8,
+    "reviewCount": 0,
+    "stock": 25,
+    "plantHeight": "1.5 - 2 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Requires 5 hours direct sunlight.",
+    "waterRequirement": "Water daily in the morning.",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning.",
+      "sunlight": "Requires 5 hours direct sunlight.",
+      "fertilizer": "Apply vermicompost every 15 days.",
+      "soil": "Red soil mixed with coco peat."
+    },
+    "featured": false,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "herbal plants"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:54:48.907Z",
+    "updatedAt": "2026-08-16T12:55:57.519Z"
+  },
+  {
     "id": "combo-1786876625168",
     "sku": "CMB-625168",
     "name": "Birthday Party Rose",

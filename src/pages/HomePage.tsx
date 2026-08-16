@@ -69,8 +69,25 @@ export const HomePage: React.FC<HomePageProps> = ({
   };
 
   const approvedReviews = getLiveReviews().filter(r => r.status === 'APPROVED');
-  const featuredProducts = products.filter(p => p.featured).slice(0, 8);
-  const bestSellers = products.filter(p => p.bestSeller).slice(0, 8);
+
+  // Helper: exclude combo/offer products from regular grids — they belong only in CombosSection
+  const isComboProduct = (p: Product) => {
+    const catId = (p.categoryId || '').toLowerCase();
+    const catName = (p.categoryName || '').toLowerCase();
+    const id = (p.id || '').toLowerCase();
+    return (
+      catId === 'combos' ||
+      catId === 'offers' ||
+      catName.includes('combo') ||
+      catName.includes('offer') ||
+      id.startsWith('combo-') ||
+      (p.tags && p.tags.some(t => t === 'combo' || t === 'offer' || t === 'bundle'))
+    );
+  };
+
+  const regularProducts = products.filter(p => !isComboProduct(p));
+  const featuredProducts = regularProducts.filter(p => p.featured).slice(0, 8);
+  const bestSellers = regularProducts.filter(p => p.bestSeller).slice(0, 8);
   const activeCategories = categories.filter(c => c.isActive !== false).sort((a, b) => (a.order ?? 1) - (b.order ?? 1));
   const displayCategories = (activeCategories.filter(c => c.isFeatured).length > 0 ? activeCategories.filter(c => c.isFeatured) : activeCategories).slice(0, 8);
 
@@ -209,7 +226,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         )}
 
         {/* Fresh Nursery Arrivals (All New Plants) Pull Section */}
-        {products.length > 0 && (
+        {regularProducts.length > 0 && (
           <div style={{ marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', marginBottom: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -222,11 +239,11 @@ export const HomePage: React.FC<HomePageProps> = ({
                 onClick={() => onNavigate('shop')}
                 style={{ background: 'none', border: 'none', color: '#16a34a', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2 }}
               >
-                All ({products.length}) <ChevronRight style={{ width: 14, height: 14 }} />
+                All ({regularProducts.length}) <ChevronRight style={{ width: 14, height: 14 }} />
               </button>
             </div>
             <HorizontalScrollRow>
-              {products.slice(0, 15).map(product => (
+              {regularProducts.slice(0, 15).map(product => (
                 <CompactProductCard
                   key={product.id}
                   product={product}
@@ -302,14 +319,14 @@ export const HomePage: React.FC<HomePageProps> = ({
           </button>
         </div>
         <div className="hp-product-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
-          {products.slice(0, 24).map(p => (
+          {regularProducts.slice(0, 24).map(p => (
             <ProductCard key={p.id} product={p} onAddToCart={onAddToCart} onViewDetails={onViewDetails} onOpenCareGuide={onOpenCareGuide} />
           ))}
         </div>
-        {products.length > 24 && (
+        {regularProducts.length > 24 && (
           <div style={{ textAlign: 'center', marginTop: 24 }}>
             <button className="btn-green" onClick={() => onNavigate('shop')}>
-              View All {products.length} Plants <ArrowRight style={{ width: 15, height: 15 }} />
+              View All {regularProducts.length} Plants <ArrowRight style={{ width: 15, height: 15 }} />
             </button>
           </div>
         )}

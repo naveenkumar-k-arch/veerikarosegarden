@@ -41,6 +41,24 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
       const data = await res.json();
       if (data.success && data.order) {
         setOrder(data.order);
+      } else if (res.status === 404 || (data && !data.success)) {
+        setOrder(null);
+        // Clear from local caches
+        const keys = ['vrg_my_orders', 'vrg_orders', 'veerika_customer_orders', 'veerika_admin_orders'];
+        keys.forEach(k => {
+          try {
+            const raw = localStorage.getItem(k);
+            if (raw) {
+              const list: Order[] = JSON.parse(raw);
+              if (Array.isArray(list)) {
+                localStorage.setItem(k, JSON.stringify(list.filter(o => 
+                  o.id.toLowerCase() !== cleanTarget.toLowerCase() && 
+                  (!o.merchantTransactionId || o.merchantTransactionId.toLowerCase() !== cleanTarget.toLowerCase())
+                )));
+              }
+            }
+          } catch {}
+        });
       }
     } catch (err) {
       console.error('Error fetching order status:', err);
@@ -70,12 +88,24 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
       fetchOrder();
     };
 
+    const handleOrderDeleted = (e: any) => {
+      const delId = (e?.detail?.id || e?.detail?.deletedId || '').toLowerCase().trim();
+      const targetClean = (orderId || '').trim().toLowerCase();
+      if (delId && (delId === targetClean || delId === order?.merchantTransactionId?.toLowerCase())) {
+        setOrder(null);
+      }
+    };
+
     window.addEventListener('orderStatusUpdated', handleSync);
+    window.addEventListener('vrg_order_deleted', handleOrderDeleted);
+    window.addEventListener('vrg_orders_sync', handleOrderDeleted);
     window.addEventListener('storage', handleSync);
 
     return () => {
       clearInterval(interval);
       window.removeEventListener('orderStatusUpdated', handleSync);
+      window.removeEventListener('vrg_order_deleted', handleOrderDeleted);
+      window.removeEventListener('vrg_orders_sync', handleOrderDeleted);
       window.removeEventListener('storage', handleSync);
     };
   }, [orderId]);

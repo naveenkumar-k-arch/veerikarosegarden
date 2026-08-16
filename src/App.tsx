@@ -227,7 +227,8 @@ export const App: React.FC = () => {
   const [reviews, setReviews] = useState<Review[]>(getInitialReviews);
   const getInitialUserOrders = (): Order[] => {
     let localOrders: Order[] = [];
-    const keysToRead = ['vrg_user_orders', 'veerika_customer_orders'];
+    const keysToRead = ['vrg_my_orders', 'vrg_user_orders', 'veerika_customer_orders'];
+    const deletedOrderSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_orders') || '[]'));
 
     keysToRead.forEach(key => {
       try {
@@ -243,7 +244,7 @@ export const App: React.FC = () => {
 
     const uniqueMap = new Map<string, Order>();
     localOrders.forEach(o => {
-      if (o && o.id) {
+      if (o && o.id && !deletedOrderSet.has(o.id) && (!o.merchantTransactionId || !deletedOrderSet.has(o.merchantTransactionId))) {
         uniqueMap.set(o.id, o);
       }
     });
@@ -461,20 +462,24 @@ export const App: React.FC = () => {
         credentials: 'include'
       }).catch(() => null);
       const data = res ? await res.json().catch(() => null) : null;
-      let apiOrders = data?.success && Array.isArray(data.orders) ? data.orders : [];
-
-      const orderMap = new Map<string, Order>();
-      apiOrders.forEach((o: Order) => { if (o && o.id) orderMap.set(o.id, o); });
-      localOrders.forEach((o: Order) => { if (o && o.id && !orderMap.has(o.id)) orderMap.set(o.id, o); });
-
-      const finalOrders = Array.from(orderMap.values());
-      setUserOrders(finalOrders);
-      try {
-        localStorage.setItem('vrg_my_orders', JSON.stringify(finalOrders));
-      } catch {}
+      if (data?.success && Array.isArray(data.orders)) {
+        const deletedOrderSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_orders') || '[]'));
+        const apiOrders = data.orders.filter((o: Order) => o && o.id && !deletedOrderSet.has(o.id) && (!o.merchantTransactionId || !deletedOrderSet.has(o.merchantTransactionId)));
+        setUserOrders(apiOrders);
+        try {
+          localStorage.setItem('vrg_my_orders', JSON.stringify(apiOrders));
+          localStorage.setItem('vrg_user_orders', JSON.stringify(apiOrders));
+          localStorage.setItem('veerika_customer_orders', JSON.stringify(apiOrders));
+        } catch {}
+      } else if (!res) {
+        // Fallback to local cache only if completely offline/unreachable
+        const deletedOrderSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_orders') || '[]'));
+        setUserOrders(localOrders.filter(o => o && o.id && !deletedOrderSet.has(o.id) && (!o.merchantTransactionId || !deletedOrderSet.has(o.merchantTransactionId))));
+      }
     } catch (err) {
       console.error('Error fetching user orders:', err);
-      setUserOrders(localOrders);
+      const deletedOrderSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_orders') || '[]'));
+      setUserOrders(localOrders.filter(o => o && o.id && !deletedOrderSet.has(o.id) && (!o.merchantTransactionId || !deletedOrderSet.has(o.merchantTransactionId))));
     }
   };
 
@@ -487,6 +492,25 @@ export const App: React.FC = () => {
     fetchUserOrders();
 
     const handleSync = () => fetchUserOrders();
+    const handleOrderDeleted = (e?: any) => {
+      const delId = e?.detail?.id || e?.detail?.deletedId;
+      if (delId) {
+        setUserOrders(prev => prev.filter(o => o.id !== delId && o.merchantTransactionId !== delId && (o as any).orderNumber !== delId));
+        ['vrg_my_orders', 'vrg_user_orders', 'veerika_customer_orders', 'vrg_orders', 'veerika_admin_orders'].forEach(k => {
+          try {
+            const raw = localStorage.getItem(k);
+            if (raw) {
+              const list = JSON.parse(raw);
+              if (Array.isArray(list)) {
+                localStorage.setItem(k, JSON.stringify(list.filter((o: any) => o.id !== delId && o.merchantTransactionId !== delId && o.orderNumber !== delId)));
+              }
+            }
+          } catch {}
+        });
+      } else {
+        fetchUserOrders();
+      }
+    };
     const handleProductSync = (e?: any) => {
       const deletedSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_products') || '[]'));
       if (e?.detail && Array.isArray(e.detail)) {
@@ -504,6 +528,8 @@ export const App: React.FC = () => {
     };
 
     window.addEventListener('orderStatusUpdated', handleSync);
+    window.addEventListener('vrg_order_deleted', handleOrderDeleted);
+    window.addEventListener('vrg_orders_sync', handleOrderDeleted);
     window.addEventListener('vrg_products_updated', handleProductSync);
     window.addEventListener('vrg_categories_updated', handleProductSync);
     window.addEventListener('vrg_combos_updated', handleProductSync);
@@ -607,6 +633,8 @@ export const App: React.FC = () => {
 
     return () => {
       window.removeEventListener('orderStatusUpdated', handleSync);
+      window.removeEventListener('vrg_order_deleted', handleOrderDeleted);
+      window.removeEventListener('vrg_orders_sync', handleOrderDeleted);
       window.removeEventListener('vrg_products_updated', handleProductSync);
       window.removeEventListener('vrg_categories_updated', handleProductSync);
       window.removeEventListener('vrg_combos_updated', handleProductSync);
