@@ -199,9 +199,6 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
                 </span>
               )}
             </div>
-            <p className="text-[11px] text-slate-500 font-medium">
-              Inclusive of all taxes. Free shipping on orders above ₹499.
-            </p>
           </div>
 
           {/* Description */}

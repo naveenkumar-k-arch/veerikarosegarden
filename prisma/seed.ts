@@ -1,179 +1,4518 @@
-import { PrismaClient, Role } from '@prisma/client';
-import argon2 from 'argon2';
-import dotenv from 'dotenv';
-import fs from 'fs';
-import path from 'path';
-
-dotenv.config();
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+const CATEGORIES = [
+  {
+    "id": "cat-rose",
+    "name": "Rose Varieties",
+    "tamilName": "ரோஜா வகைகள்",
+    "slug": "rose-varieties",
+    "image": "/categories/rose-varieties.jpg",
+    "description": "Premium live hybrid rose plants, double delight & button rose varieties.",
+    "order": 1,
+    "isActive": true,
+    "isFeatured": true,
+    "productCount": 15
+  },
+  {
+    "id": "cat-herbals",
+    "name": "Herbal Plants",
+    "tamilName": "மூலிகை (Herbals)",
+    "slug": "herbals",
+    "image": "/categories/herbal-plants.jpg",
+    "description": "Medicinal plants including Neeli Avuri, Sangu Poo, Aavaram Poo, Vasambu, Vetrilai & Rosemary.",
+    "order": 2,
+    "isActive": true,
+    "isFeatured": true,
+    "productCount": 12
+  },
+  {
+    "id": "cat-jasmine",
+    "name": "Jasmine Varieties",
+    "tamilName": "மல்லி பூ வகைகள் (Jasmine Vts)",
+    "slug": "jasmine-varieties",
+    "image": "/categories/jasmine-varieties.jpg",
+    "description": "Fragrant Raja Malli (10 layer), Mysuru Malli, Pachai Mullai, Kakatan & Jadhi Malli.",
+    "order": 3,
+    "isActive": true,
+    "isFeatured": true,
+    "productCount": 8
+  },
+  {
+    "id": "cat-creeper",
+    "name": "Creeper Roses",
+    "tamilName": "கொடி ரோஸ் வகைகள் (Creeper)",
+    "slug": "creeper-roses",
+    "image": "/categories/creeper-roses.jpg",
+    "description": "Climbing and hanging rose varieties like Creeper Jackie, Red Cascade & Pink Creeper.",
+    "order": 4,
+    "isActive": true,
+    "isFeatured": true,
+    "productCount": 6
+  },
+  {
+    "id": "cat-miniature",
+    "name": "Miniature Roses",
+    "tamilName": "மினியேச்சர் ரோஸ் வகைகள்",
+    "slug": "miniature-roses",
+    "image": "/categories/miniature-roses.jpg",
+    "description": "Compact miniature rose plants for balcony pots, table garden and containers.",
+    "order": 5,
+    "isActive": true,
+    "isFeatured": true,
+    "productCount": 4
+  },
+  {
+    "id": "cat-rare",
+    "name": "Rare & Exotic Roses",
+    "tamilName": "அரிய வகை ரோஜாக்கள் (Rare & Exotic)",
+    "slug": "rare-exotic-roses",
+    "image": "/categories/exotics-rare-roses.jpg",
+    "description": "Exclusive rare varieties like Ink Spot, Teddy Bear, Black Jade, Blue For You, Fireworks Ruffle, Black Magic & Abracadabra.",
+    "order": 6,
+    "isActive": true,
+    "isFeatured": true,
+    "productCount": 20
+  },
+  {
+    "id": "cat-fruits",
+    "name": "Fruit Plants",
+    "tamilName": "பழ மரங்கள் (Fruit Plants)",
+    "slug": "fruit-plants",
+    "image": "/categories/fruit-plants.jpg",
+    "description": "High-yielding live fruit saplings including Black Grapes, Kalapadi Sapota, Miracle Fruit, Water Apple & PKM 1 Moringa.",
+    "order": 7,
+    "isActive": true,
+    "isFeatured": true,
+    "productCount": 17
+  },
+  {
+    "id": "cat-flowering",
+    "name": "Flowering Plants",
+    "tamilName": "பூச்செடிகள் (Flowering Plants)",
+    "slug": "flowering-plants",
+    "image": "/categories/flowering-plants.jpg",
+    "description": "Beautiful fragrant flowering garden plants including Manoranjitham, Parijadham, Krishnakamalam & Shenbagam.",
+    "order": 8,
+    "isActive": true,
+    "isFeatured": true,
+    "productCount": 20
+  }
+];
+
+const PRODUCTS = [
+  {
+    "id": "vrg-creeper-jackie-rose",
+    "sku": "VRG-CREE-001",
+    "name": "Creeper Jackie Rose",
+    "englishName": "Creeper Jackie Rose",
+    "tamilName": "ஜாக்கி கொடி ரோஜா",
+    "scientificName": "Rosa 'Jackie' Climber",
+    "categoryId": "cat-creeper",
+    "categoryName": "Creeper Roses",
+    "description": "Fast-growing fragrant climbing rose with delicate soft-yellow to cream blooms, ideal for garden arches and pergolas.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 14,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/creeper-jackie-rose.png"
+    ],
+    "image": "/products/vrg/creeper-jackie-rose.png",
+    "imageUrl": "/products/vrg/creeper-jackie-rose.png",
+    "plantHeight": "4-6 Feet Climber",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "creeper roses",
+      "creeper jackie rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-birthday-party-creeper-rose",
+    "sku": "VRG-CREE-003",
+    "name": "Birthday Party Creeper Rose",
+    "englishName": "Birthday Party Creeper Rose",
+    "tamilName": "பர்த்டே பார்ட்டி கொடி ரோஜா",
+    "scientificName": "Rosa 'Birthday Party'",
+    "categoryId": "cat-creeper",
+    "categoryName": "Creeper Roses",
+    "description": "Vibrant cluster-flowering celebratory climbing rose with rich pastel tones that blooms profusely.",
+    "mrp": 120,
+    "sellingPrice": 80,
+    "discount": 33,
+    "stock": 15,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/birthday-party-creeper-rose.png"
+    ],
+    "image": "/products/vrg/birthday-party-creeper-rose.png",
+    "imageUrl": "/products/vrg/birthday-party-creeper-rose.png",
+    "plantHeight": "3-5 Feet Climber",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "creeper roses",
+      "birthday party creeper rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-baby-romantica-creeper-rose",
+    "sku": "VRG-CREE-004",
+    "name": "Baby Romantica Creeper Rose",
+    "englishName": "Baby Romantica Creeper Rose",
+    "tamilName": "பேபி ரொமாண்டிகா கொடி ரோஜா",
+    "scientificName": "Rosa 'Baby Romantica'",
+    "categoryId": "cat-creeper",
+    "categoryName": "Creeper Roses",
+    "description": "Double petal romantic ochre-yellow and pink blended creeper rose with compact climbing branches.",
+    "mrp": 160,
+    "sellingPrice": 120,
+    "discount": 25,
+    "stock": 8,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/baby-romantica-creeper-rose.png"
+    ],
+    "image": "/products/vrg/baby-romantica-creeper-rose.png",
+    "imageUrl": "/products/vrg/baby-romantica-creeper-rose.png",
+    "plantHeight": "3-5 Feet Climber",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": false,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "creeper roses",
+      "baby romantica creeper rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-red-cascade-climber-rose",
+    "sku": "VRG-CREE-005",
+    "name": "Red Cascade Climber Rose",
+    "englishName": "Red Cascade Climber Rose",
+    "tamilName": "சிவப்பு கொடி ரோஜா (ரெட் காஸ்கேட்)",
+    "scientificName": "Rosa 'Red Cascade'",
+    "categoryId": "cat-creeper",
+    "categoryName": "Creeper Roses",
+    "description": "Heavy blooming deep crimson cascading creeper rose producing large sprays of miniature velvety roses.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 6,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/red-cascade-climber-rose.png"
+    ],
+    "image": "/products/vrg/red-cascade-climber-rose.png",
+    "imageUrl": "/products/vrg/red-cascade-climber-rose.png",
+    "plantHeight": "5-8 Feet Climber",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "creeper roses",
+      "red cascade climber rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-suloli-hanging-rose-creeper",
+    "sku": "VRG-CREE-006",
+    "name": "Suloli Hanging Rose (Creeper)",
+    "englishName": "Suloli Hanging Rose (Creeper)",
+    "tamilName": "சுலோலி தொங்கும் கொடி ரோஜா",
+    "scientificName": "Rosa 'Suloli'",
+    "categoryId": "cat-creeper",
+    "categoryName": "Creeper Roses",
+    "description": "Special drooping branch rose plant ideal for hanging baskets, patio rails, and wall trellis.",
+    "mrp": 120,
+    "sellingPrice": 80,
+    "discount": 33,
+    "stock": 5,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/suloli-hanging-rose-creeper.png"
+    ],
+    "image": "/products/vrg/suloli-hanging-rose-creeper.png",
+    "imageUrl": "/products/vrg/suloli-hanging-rose-creeper.png",
+    "plantHeight": "2-3 Feet Trailing",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "creeper roses",
+      "suloli hanging rose (creeper)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-pink-creeper-rose-bush",
+    "sku": "VRG-CREE-007",
+    "name": "Pink Creeper Rose",
+    "englishName": "Pink Creeper Rose",
+    "tamilName": "இளஞ்சிவப்பு கொடி ரோஜா",
+    "scientificName": "Rosa 'Pink Climber'",
+    "categoryId": "cat-creeper",
+    "categoryName": "Creeper Roses",
+    "description": "Classic pink cluster climbing rose with long blooming cycles and delightful sweet fragrance.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 25,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/pink-creeper-rose-bush.png"
+    ],
+    "image": "/products/vrg/pink-creeper-rose-bush.png",
+    "imageUrl": "/products/vrg/pink-creeper-rose-bush.png",
+    "plantHeight": "5-8 Feet Climber",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "creeper roses",
+      "pink creeper rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-purple-hibiscus",
+    "sku": "VRG-FLOW-009",
+    "name": "Purple Hibiscus",
+    "englishName": "Purple Hibiscus",
+    "tamilName": "நீல/ஊதா செம்பருத்தி",
+    "scientificName": "Hibiscus rosa-sinensis 'Purple'",
+    "categoryId": "cat-flowering",
+    "categoryName": "Flowering Plants",
+    "description": "Exotic deep purple hibiscus flowering plant for daily puja rituals and vibrant garden beauty.",
+    "mrp": 180,
+    "sellingPrice": 140,
+    "discount": 22,
+    "stock": 9,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/purple-hibiscus.png"
+    ],
+    "image": "/products/vrg/purple-hibiscus.png",
+    "imageUrl": "/products/vrg/purple-hibiscus.png",
+    "plantHeight": "2-3 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "flowering plants",
+      "purple hibiscus"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-manoranjitham-plant",
+    "sku": "VRG-FLOW-010",
+    "name": "Manoranjitham (Climbing Ylang Ylang)",
+    "englishName": "Manoranjitham (Climbing Ylang Ylang)",
+    "tamilName": "மனோரஞ்சிதம் செடி (Free Shipping)",
+    "scientificName": "Artabotrys hexapetalus",
+    "categoryId": "cat-flowering",
+    "categoryName": "Flowering Plants",
+    "description": "Intensely fragrant climbing ylang-ylang vine producing green-to-yellow flowers with exotic banana-apple scent.",
+    "mrp": 160,
+    "sellingPrice": 120,
+    "discount": 25,
+    "stock": 49,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/manoranjitham-plant.png"
+    ],
+    "image": "/products/vrg/manoranjitham-plant.png",
+    "imageUrl": "/products/vrg/manoranjitham-plant.png",
+    "plantHeight": "3-5 Feet Vine",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "flowering plants",
+      "manoranjitham (climbing ylang ylang)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-panneer-kodi-milagu",
+    "sku": "VRG-FLOW-011",
+    "name": "Panneer Kodi Milagu (Pepper Vine)",
+    "englishName": "Panneer Kodi Milagu (Pepper Vine)",
+    "tamilName": "பன்னீர் கொடி மிளகு",
+    "scientificName": "Piper nigrum var.",
+    "categoryId": "cat-flowering",
+    "categoryName": "Flowering Plants",
+    "description": "Traditional aromatic ornamental pepper climber vine with glossy foliage and attractive peppercorn clusters.",
+    "mrp": 180,
+    "sellingPrice": 140,
+    "discount": 22,
+    "stock": 15,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/panneer-kodi-milagu.png"
+    ],
+    "image": "/products/vrg/panneer-kodi-milagu.png",
+    "imageUrl": "/products/vrg/panneer-kodi-milagu.png",
+    "plantHeight": "3-6 Feet Vine",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Partial Shade",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": false,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "flowering plants",
+      "panneer kodi milagu (pepper vine)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-red-henna-sigappu-marudhani",
+    "sku": "VRG-FLOW-012",
+    "name": "Red Henna (Sigappu Marudhani)",
+    "englishName": "Red Henna (Sigappu Marudhani)",
+    "tamilName": "சிகப்பு மருதாணி செடி",
+    "scientificName": "Lawsonia inermis 'Red'",
+    "categoryId": "cat-flowering",
+    "categoryName": "Flowering Plants",
+    "description": "Authentic organic red stain henna plant with dense therapeutic aromatic leaves and fragrant flowers.",
+    "mrp": 120,
+    "sellingPrice": 80,
+    "discount": 33,
+    "stock": 26,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/red-henna-sigappu-marudhani.png"
+    ],
+    "image": "/products/vrg/red-henna-sigappu-marudhani.png",
+    "imageUrl": "/products/vrg/red-henna-sigappu-marudhani.png",
+    "plantHeight": "2-4 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Alternate Days",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "flowering plants",
+      "red henna (sigappu marudhani)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-srilankan-malli-plant",
+    "sku": "VRG-FLOW-013",
+    "name": "Srilankan Malli",
+    "englishName": "Srilankan Malli",
+    "tamilName": "இலங்கை மல்லி செடி",
+    "scientificName": "Jasminum sambac 'Sri Lankan'",
+    "categoryId": "cat-flowering",
+    "categoryName": "Flowering Plants",
+    "description": "Special heavy-scented Sri Lankan jasmine variety with round bud formation and high flower yield.",
+    "mrp": 120,
+    "sellingPrice": 80,
+    "discount": 33,
+    "stock": 8,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/srilankan-malli-plant.png"
+    ],
+    "image": "/products/vrg/srilankan-malli-plant.png",
+    "imageUrl": "/products/vrg/srilankan-malli-plant.png",
+    "plantHeight": "2-3 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "flowering plants",
+      "srilankan malli"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-kodi-sambangi-climbing-tuberose",
+    "sku": "VRG-FLOW-014",
+    "name": "Kodi Sambangi (Climbing Tuberose)",
+    "englishName": "Kodi Sambangi (Climbing Tuberose)",
+    "tamilName": "கொடி சம்பங்கி செடி",
+    "scientificName": "Telosma cordata",
+    "categoryId": "cat-flowering",
+    "categoryName": "Flowering Plants",
+    "description": "Sweetly scented climbing sambangi vine bearing bunches of greenish-yellow night-fragrant flowers.",
+    "mrp": 180,
+    "sellingPrice": 140,
+    "discount": 22,
+    "stock": 10,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/kodi-sambangi-climbing-tuberose.png"
+    ],
+    "image": "/products/vrg/kodi-sambangi-climbing-tuberose.png",
+    "imageUrl": "/products/vrg/kodi-sambangi-climbing-tuberose.png",
+    "plantHeight": "4-6 Feet Climber",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": false,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "flowering plants",
+      "kodi sambangi (climbing tuberose)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-rangoon-creeper-single-petal",
+    "sku": "VRG-FLOW-015",
+    "name": "Rangoon Creeper (Single Petal)",
+    "englishName": "Rangoon Creeper (Single Petal)",
+    "tamilName": "ரங்கூன் மல்லி (ஒற்றை இதழ்)",
+    "scientificName": "Combretum indicum",
+    "categoryId": "cat-flowering",
+    "categoryName": "Flowering Plants",
+    "description": "Color-changing fragrant creeper that transitions from white in morning to pink at noon and deep crimson by dusk.",
+    "mrp": 90,
+    "sellingPrice": 50,
+    "discount": 44,
+    "stock": 24,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/rangoon-creeper-single-petal.png"
+    ],
+    "image": "/products/vrg/rangoon-creeper-single-petal.png",
+    "imageUrl": "/products/vrg/rangoon-creeper-single-petal.png",
+    "plantHeight": "5-10 Feet Climber",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "flowering plants",
+      "rangoon creeper (single petal)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-barleria-cristata-december-poo",
+    "sku": "VRG-FLOW-016",
+    "name": "Barleria Cristata (December Poo)",
+    "englishName": "Barleria Cristata (December Poo)",
+    "tamilName": "டிசம்பர் பூ செடி (வயலட்/பிங்க்)",
+    "scientificName": "Barleria cristata",
+    "categoryId": "cat-flowering",
+    "categoryName": "Flowering Plants",
+    "description": "Classic South Indian winter-blooming December flower plant in vivid tones, cherished for garlands and hair adornment.",
+    "mrp": 180,
+    "sellingPrice": 140,
+    "discount": 22,
+    "stock": 5,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/barleria-cristata-december-poo.png"
+    ],
+    "image": "/products/vrg/barleria-cristata-december-poo.png",
+    "imageUrl": "/products/vrg/barleria-cristata-december-poo.png",
+    "plantHeight": "1.5-2.5 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "Winter",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": false,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "flowering plants",
+      "barleria cristata (december poo)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-magilam-poo-maram",
+    "sku": "VRG-FLOW-017",
+    "name": "Magilam Poo Maram (Bullet Wood)",
+    "englishName": "Magilam Poo Maram (Bullet Wood)",
+    "tamilName": "மகிழம் பூ மரம்",
+    "scientificName": "Mimusops elengi",
+    "categoryId": "cat-flowering",
+    "categoryName": "Flowering Plants",
+    "description": "Sacred celestial temple tree with star-shaped flowers that retain their heavenly aroma even after drying.",
+    "mrp": 120,
+    "sellingPrice": 80,
+    "discount": 33,
+    "stock": 15,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/magilam-poo-maram.png"
+    ],
+    "image": "/products/vrg/magilam-poo-maram.png",
+    "imageUrl": "/products/vrg/magilam-poo-maram.png",
+    "plantHeight": "3-5 Feet Sapling",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "flowering plants",
+      "magilam poo maram (bullet wood)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-yellow-parijadham",
+    "sku": "VRG-FLOW-018",
+    "name": "Yellow Parijadham",
+    "englishName": "Yellow Parijadham",
+    "tamilName": "மஞ்சள் பாரிஜாதம்",
+    "scientificName": "Nyctanthes arbor-tristis 'Aurea'",
+    "categoryId": "cat-flowering",
+    "categoryName": "Flowering Plants",
+    "description": "Rare auspicious yellow-tinted parijatham flowering tree with sweet divine night scent for morning puja.",
+    "mrp": 180,
+    "sellingPrice": 140,
+    "discount": 22,
+    "stock": 13,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/yellow-parijadham.png"
+    ],
+    "image": "/products/vrg/yellow-parijadham.png",
+    "imageUrl": "/products/vrg/yellow-parijadham.png",
+    "plantHeight": "2.5-4 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "flowering plants",
+      "yellow parijadham"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-bridal-bouquet-porana",
+    "sku": "VRG-FLOW-019",
+    "name": "Bridal Bouquet (Night Queen Kodi)",
+    "englishName": "Bridal Bouquet (Night Queen Kodi)",
+    "tamilName": "பிரைடல் பொக்கே / நைட்குயின் கொடி",
+    "scientificName": "Porana paniculata",
+    "categoryId": "cat-flowering",
+    "categoryName": "Flowering Plants",
+    "description": "Spectacular cascading white veil of tiny fragrant bridal star flowers creating an ethereal garden spectacle.",
+    "mrp": 110,
+    "sellingPrice": 70,
+    "discount": 36,
+    "stock": 23,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/bridal-bouquet-porana.png"
+    ],
+    "image": "/products/vrg/bridal-bouquet-porana.png",
+    "imageUrl": "/products/vrg/bridal-bouquet-porana.png",
+    "plantHeight": "4-8 Feet Climber",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "Winter & Spring",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "flowering plants",
+      "bridal bouquet (night queen kodi)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-panneer-pushpam-plant",
+    "sku": "VRG-FLOW-020",
+    "name": "Panneer Pushpam Plant",
+    "englishName": "Panneer Pushpam Plant",
+    "tamilName": "பன்னீர் புஷ்பம் செடி",
+    "scientificName": "Guettarda speciosa",
+    "categoryId": "cat-flowering",
+    "categoryName": "Flowering Plants",
+    "description": "Rose-scented sacred panneer pushpam with soothing natural aroma and serene white flowers.",
+    "mrp": 180,
+    "sellingPrice": 140,
+    "discount": 22,
+    "stock": 19,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/panneer-pushpam-plant.png"
+    ],
+    "image": "/products/vrg/panneer-pushpam-plant.png",
+    "imageUrl": "/products/vrg/panneer-pushpam-plant.png",
+    "plantHeight": "2-3.5 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": false,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "flowering plants",
+      "panneer pushpam plant"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-petrea-volubilis-violet",
+    "sku": "VRG-FLOW-021",
+    "name": "Petrea Volubilis Violet (Sandpaper Vine)",
+    "englishName": "Petrea Volubilis Violet (Sandpaper Vine)",
+    "tamilName": "பெட்ரியா வயலட் கொடி",
+    "scientificName": "Petrea volubilis",
+    "categoryId": "cat-flowering",
+    "categoryName": "Flowering Plants",
+    "description": "Queen's wreath sandpaper vine bearing cascading violet-blue star clusters resembling wisteria.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 7,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/petrea-volubilis-violet.png"
+    ],
+    "image": "/products/vrg/petrea-volubilis-violet.png",
+    "imageUrl": "/products/vrg/petrea-volubilis-violet.png",
+    "plantHeight": "4-7 Feet Climber",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "Spring & Summer",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "flowering plants",
+      "petrea volubilis violet (sandpaper vine)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-petrea-volubilis-white",
+    "sku": "VRG-FLOW-022",
+    "name": "Petrea Volubilis White (Sandpaper Vine)",
+    "englishName": "Petrea Volubilis White (Sandpaper Vine)",
+    "tamilName": "பெட்ரியா வெள்ளை கொடி",
+    "scientificName": "Petrea volubilis 'Alba'",
+    "categoryId": "cat-flowering",
+    "categoryName": "Flowering Plants",
+    "description": "Rare pure white weeping flower spikes on strong woody vine for grand entrance gates and fences.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 6,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/petrea-volubilis-white.png"
+    ],
+    "image": "/products/vrg/petrea-volubilis-white.png",
+    "imageUrl": "/products/vrg/petrea-volubilis-white.png",
+    "plantHeight": "4-7 Feet Climber",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "Spring & Summer",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": false,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "flowering plants",
+      "petrea volubilis white (sandpaper vine)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-krishnakamalam-violet",
+    "sku": "VRG-FLOW-023",
+    "name": "Krishnakamalam Violet (Passion Flower)",
+    "englishName": "Krishnakamalam Violet (Passion Flower)",
+    "tamilName": "கிருஷ்ணகமலம் வயலட் கொடி",
+    "scientificName": "Passiflora incarnata",
+    "categoryId": "cat-flowering",
+    "categoryName": "Flowering Plants",
+    "description": "Divine intricate crown-shaped passion flower vine in mystical violet, symbol of serenity and devotion.",
+    "mrp": 90,
+    "sellingPrice": 50,
+    "discount": 44,
+    "stock": 35,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/krishnakamalam-violet.png"
+    ],
+    "image": "/products/vrg/krishnakamalam-violet.png",
+    "imageUrl": "/products/vrg/krishnakamalam-violet.png",
+    "plantHeight": "4-8 Feet Climber",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "flowering plants",
+      "krishnakamalam violet (passion flower)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-krishnakamalam-red",
+    "sku": "VRG-FLOW-024",
+    "name": "Krishnakamalam Red (Passion Flower)",
+    "englishName": "Krishnakamalam Red (Passion Flower)",
+    "tamilName": "கிருஷ்ணகமலம் சிகப்பு கொடி",
+    "scientificName": "Passiflora coccinea",
+    "categoryId": "cat-flowering",
+    "categoryName": "Flowering Plants",
+    "description": "Scarlet red exotic passion flower vine with ornamental blooms that attract butterflies and hummingbirds.",
+    "mrp": 90,
+    "sellingPrice": 50,
+    "discount": 44,
+    "stock": 33,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/krishnakamalam-red.png"
+    ],
+    "image": "/products/vrg/krishnakamalam-red.png",
+    "imageUrl": "/products/vrg/krishnakamalam-red.png",
+    "plantHeight": "4-8 Feet Climber",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "flowering plants",
+      "krishnakamalam red (passion flower)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-night-queen-jasmine",
+    "sku": "VRG-FLOW-025",
+    "name": "Night Queen (Night Blooming Jasmine)",
+    "englishName": "Night Queen (Night Blooming Jasmine)",
+    "tamilName": "நைட் குயின் / அந்தி மல்லி",
+    "scientificName": "Cestrum nocturnum",
+    "categoryId": "cat-flowering",
+    "categoryName": "Flowering Plants",
+    "description": "Legendary night blooming jasmine shrub that fills entire neighborhood with enchanting aroma after sunset.",
+    "mrp": 180,
+    "sellingPrice": 140,
+    "discount": 22,
+    "stock": 5,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/night-queen-jasmine.png"
+    ],
+    "image": "/products/vrg/night-queen-jasmine.png",
+    "imageUrl": "/products/vrg/night-queen-jasmine.png",
+    "plantHeight": "2.5-4 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "flowering plants",
+      "night queen (night blooming jasmine)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-changing-rose-confederate",
+    "sku": "VRG-FLOW-026",
+    "name": "Changing Rose (Confederate Rose)",
+    "englishName": "Changing Rose (Confederate Rose)",
+    "tamilName": "நிறம் மாறும் ரோஜா (ஹைபிஸ்கஸ்)",
+    "scientificName": "Hibiscus mutabilis",
+    "categoryId": "cat-flowering",
+    "categoryName": "Flowering Plants",
+    "description": "Magic tri-color flowers that open pure white at dawn, blush pink by noon, and deepen to ruby red by evening.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 18,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/changing-rose-confederate.png"
+    ],
+    "image": "/products/vrg/changing-rose-confederate.png",
+    "imageUrl": "/products/vrg/changing-rose-confederate.png",
+    "plantHeight": "3-5 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "flowering plants",
+      "changing rose (confederate rose)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-white-shenbagam-plant",
+    "sku": "VRG-FLOW-027",
+    "name": "White Shenbagam Plant",
+    "englishName": "White Shenbagam Plant",
+    "tamilName": "வெள்ளை செண்பகம் செடி (Free Delivery)",
+    "scientificName": "Magnolia champaca var. alba",
+    "categoryId": "cat-flowering",
+    "categoryName": "Flowering Plants",
+    "description": "Pure white heavenly scented champaca tree sapling prized in temple worship and luxury perfumery.",
+    "mrp": 450,
+    "sellingPrice": 350,
+    "discount": 22,
+    "stock": 3,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/white-shenbagam-plant.png"
+    ],
+    "image": "/products/vrg/white-shenbagam-plant.png",
+    "imageUrl": "/products/vrg/white-shenbagam-plant.png",
+    "plantHeight": "3-5 Feet Sapling",
+    "potSize": "10 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "flowering plants",
+      "white shenbagam plant"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-orange-shenbagam-plant",
+    "sku": "VRG-FLOW-028",
+    "name": "Orange Shenbagam Flower Plant",
+    "englishName": "Orange Shenbagam Flower Plant",
+    "tamilName": "ஆரஞ்சு செண்பகம் செடி (Free Delivery)",
+    "scientificName": "Magnolia champaca 'Orange'",
+    "categoryId": "cat-flowering",
+    "categoryName": "Flowering Plants",
+    "description": "Golden orange deeply aromatic champak flowering tree sapling for garden prosperity and divine fragrance.",
+    "mrp": 450,
+    "sellingPrice": 350,
+    "discount": 22,
+    "stock": 2,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/orange-shenbagam-plant.png"
+    ],
+    "image": "/products/vrg/orange-shenbagam-plant.png",
+    "imageUrl": "/products/vrg/orange-shenbagam-plant.png",
+    "plantHeight": "3-5 Feet Sapling",
+    "potSize": "10 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "flowering plants",
+      "orange shenbagam flower plant"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-black-grapes-vine",
+    "sku": "VRG-FRUI-029",
+    "name": "Black Grape Vine (Live Plant)",
+    "englishName": "Black Grape Vine (Live Plant)",
+    "tamilName": "கருப்பு திராட்சை கொடி",
+    "scientificName": "Vitis vinifera 'Bangalore Blue'",
+    "categoryId": "cat-fruits",
+    "categoryName": "Fruit Plants",
+    "description": "Sweet, high-yielding seeded black grape vine that thrives on terrace pandals and garden trellises.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 27,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/black-grapes-vine.png"
+    ],
+    "image": "/products/vrg/black-grapes-vine.png",
+    "imageUrl": "/products/vrg/black-grapes-vine.png",
+    "plantHeight": "2-3 Feet Vine",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "Summer Harvest",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "fruit plants",
+      "black grape vine (live plant)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-kalapadi-sapota-plant",
+    "sku": "VRG-FRUI-030",
+    "name": "Kalapadi Sapota (Sweet Chiku)",
+    "englishName": "Kalapadi Sapota (Sweet Chiku)",
+    "tamilName": "காலாபாடி சப்போட்டா செடி",
+    "scientificName": "Manilkara zapota 'Kalapadi'",
+    "categoryId": "cat-fruits",
+    "categoryName": "Fruit Plants",
+    "description": "Premium slow-growing dwarf sapota variety yielding honey-sweet oval fruits, ideal for large container gardening.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 9,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/kalapadi-sapota-plant.png"
+    ],
+    "image": "/products/vrg/kalapadi-sapota-plant.png",
+    "imageUrl": "/products/vrg/kalapadi-sapota-plant.png",
+    "plantHeight": "2-3 Feet Grafted",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Alternate Days",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "fruit plants",
+      "kalapadi sapota (sweet chiku)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-egg-fruit-canistel-plant",
+    "sku": "VRG-FRUI-031",
+    "name": "Egg Fruit Plant (Canistel)",
+    "englishName": "Egg Fruit Plant (Canistel)",
+    "tamilName": "முட்டை பழம் செடி (Canistel)",
+    "scientificName": "Pouteria campechiana",
+    "categoryId": "cat-fruits",
+    "categoryName": "Fruit Plants",
+    "description": "Rich custard-like yellow fruit tree sapling known as yellow sapote or egg fruit, loaded with vitamins.",
+    "mrp": 210,
+    "sellingPrice": 150,
+    "discount": 29,
+    "stock": 3,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/egg-fruit-canistel-plant.png"
+    ],
+    "image": "/products/vrg/egg-fruit-canistel-plant.png",
+    "imageUrl": "/products/vrg/egg-fruit-canistel-plant.png",
+    "plantHeight": "2-3 Feet Sapling",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "Autumn Harvest",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": false,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "fruit plants",
+      "egg fruit plant (canistel)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-peanut-butter-fruit-plant",
+    "sku": "VRG-FRUI-032",
+    "name": "Peanut Butter Fruit Plant",
+    "englishName": "Peanut Butter Fruit Plant",
+    "tamilName": "பீநட் பட்டர் பழச் செடி",
+    "scientificName": "Bunchosia armeniaca",
+    "categoryId": "cat-fruits",
+    "categoryName": "Fruit Plants",
+    "description": "Exotic orange-red berries that taste remarkably like sweet creamy peanut butter.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 19,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/peanut-butter-fruit-plant.png"
+    ],
+    "image": "/products/vrg/peanut-butter-fruit-plant.png",
+    "imageUrl": "/products/vrg/peanut-butter-fruit-plant.png",
+    "plantHeight": "2-3 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "Summer",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "fruit plants",
+      "peanut butter fruit plant"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-miracle-fruit-seedling",
+    "sku": "VRG-FRUI-033",
+    "name": "Miracle Fruit Plant (Seedling)",
+    "englishName": "Miracle Fruit Plant (Seedling)",
+    "tamilName": "மிராக்கிள் ஃப்ரூட் செடி (அதிசய பழம்)",
+    "scientificName": "Synsepalum dulcificum",
+    "categoryId": "cat-fruits",
+    "categoryName": "Fruit Plants",
+    "description": "Famous miraculous berry plant containing miraculin that makes sour and bitter foods taste ultra-sweet.",
+    "mrp": 210,
+    "sellingPrice": 150,
+    "discount": 29,
+    "stock": 10,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/miracle-fruit-seedling.png"
+    ],
+    "image": "/products/vrg/miracle-fruit-seedling.png",
+    "imageUrl": "/products/vrg/miracle-fruit-seedling.png",
+    "plantHeight": "1-2 Feet",
+    "potSize": "6 Inch Bag",
+    "sunlight": "Partial Shade",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "fruit plants",
+      "miracle fruit plant (seedling)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-pune-red-athi-fig",
+    "sku": "VRG-FRUI-034",
+    "name": "Pune Red Athi (Fig Plant)",
+    "englishName": "Pune Red Athi (Fig Plant)",
+    "tamilName": "பூனே சிகப்பு அத்தி மரம்",
+    "scientificName": "Ficus carica 'Pune Red'",
+    "categoryId": "cat-fruits",
+    "categoryName": "Fruit Plants",
+    "description": "Heavy-fruiting sweet red fig variety rich in dietary fiber and iron, highly productive in pots.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 8,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/pune-red-athi-fig.png"
+    ],
+    "image": "/products/vrg/pune-red-athi-fig.png",
+    "imageUrl": "/products/vrg/pune-red-athi-fig.png",
+    "plantHeight": "2-3 Feet Layered",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Alternate Days",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "fruit plants",
+      "pune red athi (fig plant)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-nmk-golden-sapota",
+    "sku": "VRG-FRUI-035",
+    "name": "NMK Golden Sapota",
+    "englishName": "NMK Golden Sapota",
+    "tamilName": "NMK கோல்டன் சப்போட்டா செடி",
+    "scientificName": "Manilkara zapota 'NMK Golden'",
+    "categoryId": "cat-fruits",
+    "categoryName": "Fruit Plants",
+    "description": "High-yield commercial hybrid golden sapota with thin skin and extra juicy sugar-sweet flesh.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 20,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/nmk-golden-sapota.png"
+    ],
+    "image": "/products/vrg/nmk-golden-sapota.png",
+    "imageUrl": "/products/vrg/nmk-golden-sapota.png",
+    "plantHeight": "2-3 Feet Grafted",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": false,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "fruit plants",
+      "nmk golden sapota"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-ramar-seetha-custard-apple",
+    "sku": "VRG-FRUI-036",
+    "name": "Ramar Seetha (Red Custard Apple)",
+    "englishName": "Ramar Seetha (Red Custard Apple)",
+    "tamilName": "ராமர் சீதா பழச் செடி",
+    "scientificName": "Annona reticulata",
+    "categoryId": "cat-fruits",
+    "categoryName": "Fruit Plants",
+    "description": "Sweet red-tinted Ramar Seethapazham tree sapling with thick creamy aromatic pulp.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 10,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/ramar-seetha-custard-apple.png"
+    ],
+    "image": "/products/vrg/ramar-seetha-custard-apple.png",
+    "imageUrl": "/products/vrg/ramar-seetha-custard-apple.png",
+    "plantHeight": "2-3 Feet Sapling",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Moderate",
+    "floweringSeason": "Monsoon & Winter",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "fruit plants",
+      "ramar seetha (red custard apple)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-mul-seetha-soursop-graviola",
+    "sku": "VRG-FRUI-037",
+    "name": "Mul Seetha (Soursop / Graviola)",
+    "englishName": "Mul Seetha (Soursop / Graviola)",
+    "tamilName": "முள் சீதா மரம் (Graviola / Soursop)",
+    "scientificName": "Annona muricata",
+    "categoryId": "cat-fruits",
+    "categoryName": "Fruit Plants",
+    "description": "Renowned medicinal graviola soursop plant with prickled green fruit known for antioxidant benefits.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 29,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/mul-seetha-soursop-graviola.png"
+    ],
+    "image": "/products/vrg/mul-seetha-soursop-graviola.png",
+    "imageUrl": "/products/vrg/mul-seetha-soursop-graviola.png",
+    "plantHeight": "2-3 Feet Sapling",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "fruit plants",
+      "mul seetha (soursop / graviola)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-pkm-1-market-lemon",
+    "sku": "VRG-FRUI-038",
+    "name": "PKM 1 Market Lemon",
+    "englishName": "PKM 1 Market Lemon",
+    "tamilName": "PKM 1 எலுமிச்சை செடி",
+    "scientificName": "Citrus limon 'PKM-1'",
+    "categoryId": "cat-fruits",
+    "categoryName": "Fruit Plants",
+    "description": "Commercial high-juice seedless hybrid market lemon sapling bearing fruit all 365 days.",
+    "mrp": 180,
+    "sellingPrice": 140,
+    "discount": 22,
+    "stock": 17,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/pkm-1-market-lemon.png"
+    ],
+    "image": "/products/vrg/pkm-1-market-lemon.png",
+    "imageUrl": "/products/vrg/pkm-1-market-lemon.png",
+    "plantHeight": "2-3 Feet Layered",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "fruit plants",
+      "pkm 1 market lemon"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-kamala-orange-mandarin",
+    "sku": "VRG-FRUI-039",
+    "name": "Kamala Orange (Mandarin Orange)",
+    "englishName": "Kamala Orange (Mandarin Orange)",
+    "tamilName": "கமலா ஆரஞ்சு செடி",
+    "scientificName": "Citrus reticulata 'Kamala'",
+    "categoryId": "cat-fruits",
+    "categoryName": "Fruit Plants",
+    "description": "Juicy easy-peel sweet mandarin orange sapling adapted for home garden pots and ground cultivation.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 18,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/kamala-orange-mandarin.png"
+    ],
+    "image": "/products/vrg/kamala-orange-mandarin.png",
+    "imageUrl": "/products/vrg/kamala-orange-mandarin.png",
+    "plantHeight": "2-3 Feet Grafted",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "Winter Harvest",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": false,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "fruit plants",
+      "kamala orange (mandarin orange)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-pomelo-bubly-mass",
+    "sku": "VRG-FRUI-040",
+    "name": "Pomelo (Bubly Mass / Pamblimas)",
+    "englishName": "Pomelo (Bubly Mass / Pamblimas)",
+    "tamilName": "பப்ளிமாஸ் மரம் (Pomelo)",
+    "scientificName": "Citrus maxima",
+    "categoryId": "cat-fruits",
+    "categoryName": "Fruit Plants",
+    "description": "Giant sweet-tangy pink pulp pomelo citrus tree with large fragrant blossoms.",
+    "mrp": 210,
+    "sellingPrice": 150,
+    "discount": 29,
+    "stock": 20,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/pomelo-bubly-mass.png"
+    ],
+    "image": "/products/vrg/pomelo-bubly-mass.png",
+    "imageUrl": "/products/vrg/pomelo-bubly-mass.png",
+    "plantHeight": "2.5-3.5 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "Winter Harvest",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": false,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "fruit plants",
+      "pomelo (bubly mass / pamblimas)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-chamba-red-fruit",
+    "sku": "VRG-FRUI-041",
+    "name": "Chamba Red (Wax Apple)",
+    "englishName": "Chamba Red (Wax Apple)",
+    "tamilName": "ஜாம்போ சிகப்பு பழ மரம்",
+    "scientificName": "Syzygium samarangense 'Red'",
+    "categoryId": "cat-fruits",
+    "categoryName": "Fruit Plants",
+    "description": "Crisp bell-shaped ruby wax apple sapling yielding clusters of juicy crunchy refreshing fruit.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 48,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/chamba-red-fruit.png"
+    ],
+    "image": "/products/vrg/chamba-red-fruit.png",
+    "imageUrl": "/products/vrg/chamba-red-fruit.png",
+    "plantHeight": "2-3.5 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "Summer",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "fruit plants",
+      "chamba red (wax apple)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-red-water-apple-plant",
+    "sku": "VRG-FRUI-042",
+    "name": "Red Water Apple Plant",
+    "englishName": "Red Water Apple Plant",
+    "tamilName": "சிகப்பு வாட்டர் ஆப்பிள் செடி",
+    "scientificName": "Syzygium aqueum 'Red'",
+    "categoryId": "cat-fruits",
+    "categoryName": "Fruit Plants",
+    "description": "Sweet bell-shaped red water apple sapling that produces abundant hydrating fruits for home gardens.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 19,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/red-water-apple-plant.png"
+    ],
+    "image": "/products/vrg/red-water-apple-plant.png",
+    "imageUrl": "/products/vrg/red-water-apple-plant.png",
+    "plantHeight": "2-3 Feet Layered",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "Summer",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "fruit plants",
+      "red water apple plant"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-green-water-apple-plant",
+    "sku": "VRG-FRUI-043",
+    "name": "Green Water Apple Plant",
+    "englishName": "Green Water Apple Plant",
+    "tamilName": "பச்சை வாட்டர் ஆப்பிள் செடி",
+    "scientificName": "Syzygium aqueum 'Green'",
+    "categoryId": "cat-fruits",
+    "categoryName": "Fruit Plants",
+    "description": "Extra crisp crunchy green water apple variety with refreshing mild sweet flavor.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 19,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/green-water-apple-plant.png"
+    ],
+    "image": "/products/vrg/green-water-apple-plant.png",
+    "imageUrl": "/products/vrg/green-water-apple-plant.png",
+    "plantHeight": "2-3 Feet Layered",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "Summer",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": false,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "fruit plants",
+      "green water apple plant"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-white-water-apple-plant",
+    "sku": "VRG-FRUI-044",
+    "name": "White Water Apple Plant",
+    "englishName": "White Water Apple Plant",
+    "tamilName": "வெள்ளை வாட்டர் ஆப்பிள் செடி",
+    "scientificName": "Syzygium aqueum 'White'",
+    "categoryId": "cat-fruits",
+    "categoryName": "Fruit Plants",
+    "description": "Translucent ivory wax apple variety that is sweet, juicy, and low-maintenance.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 20,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/white-water-apple-plant.png"
+    ],
+    "image": "/products/vrg/white-water-apple-plant.png",
+    "imageUrl": "/products/vrg/white-water-apple-plant.png",
+    "plantHeight": "2-3 Feet Layered",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "Summer",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": false,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "fruit plants",
+      "white water apple plant"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-pkm-1-moringa-plant",
+    "sku": "VRG-FRUI-045",
+    "name": "PKM 1 Moringa (Drumstick Tree)",
+    "englishName": "PKM 1 Moringa (Drumstick Tree)",
+    "tamilName": "PKM 1 செடி முருங்கை மரம்",
+    "scientificName": "Moringa oleifera 'PKM-1'",
+    "categoryId": "cat-fruits",
+    "categoryName": "Fruit Plants",
+    "description": "Fast-growing high-yield annual drumstick sapling producing tender fleshy pods within 6 months.",
+    "mrp": 180,
+    "sellingPrice": 140,
+    "discount": 22,
+    "stock": 27,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/pkm-1-moringa-plant.png"
+    ],
+    "image": "/products/vrg/pkm-1-moringa-plant.png",
+    "imageUrl": "/products/vrg/pkm-1-moringa-plant.png",
+    "plantHeight": "2.5-4 Feet Sapling",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Alternate Days",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "fruit plants",
+      "pkm 1 moringa (drumstick tree)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-neeli-avuri-chedi",
+    "sku": "VRG-HERB-046",
+    "name": "Neeli Avuri Chedi (True Indigo)",
+    "englishName": "Neeli Avuri Chedi (True Indigo)",
+    "tamilName": "நீலி அவுரி செடி (2.5 Feet)",
+    "scientificName": "Indigofera tinctoria",
+    "categoryId": "cat-herbals",
+    "categoryName": "Herbal Plants",
+    "description": "Natural herbal hair dye and therapeutic indigo plant known for promoting dark shiny healthy hair.",
+    "mrp": 180,
+    "sellingPrice": 140,
+    "discount": 22,
+    "stock": 20,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/neeli-avuri-chedi.png"
+    ],
+    "image": "/products/vrg/neeli-avuri-chedi.png",
+    "imageUrl": "/products/vrg/neeli-avuri-chedi.png",
+    "plantHeight": "2.5 Feet Mature",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "herbal plants",
+      "neeli avuri chedi (true indigo)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-blue-sangu-poo-aparajita",
+    "sku": "VRG-HERB-047",
+    "name": "Blue Sangu Poo (Aparajita / Butterfly Pea)",
+    "englishName": "Blue Sangu Poo (Aparajita / Butterfly Pea)",
+    "tamilName": "நீல சங்கு பூ கொடி",
+    "scientificName": "Clitoria ternatea 'Blue'",
+    "categoryId": "cat-herbals",
+    "categoryName": "Herbal Plants",
+    "description": "Sacred blue tea flower vine with intense cobalt blossoms packed with memory-boosting antioxidants.",
+    "mrp": 180,
+    "sellingPrice": 140,
+    "discount": 22,
+    "stock": 12,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/blue-sangu-poo-aparajita.png"
+    ],
+    "image": "/products/vrg/blue-sangu-poo-aparajita.png",
+    "imageUrl": "/products/vrg/blue-sangu-poo-aparajita.png",
+    "plantHeight": "3-6 Feet Climber",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "herbal plants",
+      "blue sangu poo (aparajita / butterfly pea)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-white-sangu-poo-aparajita",
+    "sku": "VRG-HERB-048",
+    "name": "White Sangu Poo (White Butterfly Pea)",
+    "englishName": "White Sangu Poo (White Butterfly Pea)",
+    "tamilName": "வெள்ளை சங்கு பூ கொடி",
+    "scientificName": "Clitoria ternatea 'Alba'",
+    "categoryId": "cat-herbals",
+    "categoryName": "Herbal Plants",
+    "description": "Auspicious pure white shankhupushpi climber revered for holy puja and medicinal herbal remedies.",
+    "mrp": 180,
+    "sellingPrice": 140,
+    "discount": 22,
+    "stock": 12,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/white-sangu-poo-aparajita.png"
+    ],
+    "image": "/products/vrg/white-sangu-poo-aparajita.png",
+    "imageUrl": "/products/vrg/white-sangu-poo-aparajita.png",
+    "plantHeight": "3-6 Feet Climber",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": false,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "herbal plants",
+      "white sangu poo (white butterfly pea)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-aavaram-poo-tanners-cassia",
+    "sku": "VRG-HERB-049",
+    "name": "Aavaram Poo (Tanner's Cassia)",
+    "englishName": "Aavaram Poo (Tanner's Cassia)",
+    "tamilName": "ஆவாரம் பூ செடி",
+    "scientificName": "Senna auriculata",
+    "categoryId": "cat-herbals",
+    "categoryName": "Herbal Plants",
+    "description": "Traditional golden herbal flower shrub famous for blood sugar wellness, herbal tea, and natural skin glow.",
+    "mrp": 90,
+    "sellingPrice": 50,
+    "discount": 44,
+    "stock": 20,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/aavaram-poo-tanners-cassia.png"
+    ],
+    "image": "/products/vrg/aavaram-poo-tanners-cassia.png",
+    "imageUrl": "/products/vrg/aavaram-poo-tanners-cassia.png",
+    "plantHeight": "2-3 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Alternate Days",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "herbal plants",
+      "aavaram poo (tanner's cassia)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-vasambu-sweet-flag",
+    "sku": "VRG-HERB-050",
+    "name": "Vasambu (Sweet Flag / Baje)",
+    "englishName": "Vasambu (Sweet Flag / Baje)",
+    "tamilName": "வசம்பு செடி (பிள்ளை வளர்ப்பான்)",
+    "scientificName": "Acorus calamus",
+    "categoryId": "cat-herbals",
+    "categoryName": "Herbal Plants",
+    "description": "Sacred infant-care herbal root plant known as 'Pillai Valarppan' for digestion and protection.",
+    "mrp": 120,
+    "sellingPrice": 80,
+    "discount": 33,
+    "stock": 11,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/vasambu-sweet-flag.png"
+    ],
+    "image": "/products/vrg/vasambu-sweet-flag.png",
+    "imageUrl": "/products/vrg/vasambu-sweet-flag.png",
+    "plantHeight": "1-2 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Partial Shade",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "herbal plants",
+      "vasambu (sweet flag / baje)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-vetrilai-betel-leaf-vine",
+    "sku": "VRG-HERB-051",
+    "name": "Vetrilai (Betel Leaf Vine)",
+    "englishName": "Vetrilai (Betel Leaf Vine)",
+    "tamilName": "வெற்றிலை கொடி",
+    "scientificName": "Piper betle",
+    "categoryId": "cat-herbals",
+    "categoryName": "Herbal Plants",
+    "description": "Lush evergreen traditional betel vine with glossy aromatic heart leaves for daily home use.",
+    "mrp": 180,
+    "sellingPrice": 140,
+    "discount": 22,
+    "stock": 8,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/vetrilai-betel-leaf-vine.png"
+    ],
+    "image": "/products/vrg/vetrilai-betel-leaf-vine.png",
+    "imageUrl": "/products/vrg/vetrilai-betel-leaf-vine.png",
+    "plantHeight": "2-4 Feet Climber",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Partial Shade",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "herbal plants",
+      "vetrilai (betel leaf vine)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-ranakalli-miracle-leaf",
+    "sku": "VRG-HERB-052",
+    "name": "Ranakalli (Miracle Leaf / Katakataka)",
+    "englishName": "Ranakalli (Miracle Leaf / Katakataka)",
+    "tamilName": "ரணகள்ளி செடி (கிட்னி ஸ்டோன் மூலிகை)",
+    "scientificName": "Kalanchoe pinnata",
+    "categoryId": "cat-herbals",
+    "categoryName": "Herbal Plants",
+    "description": "Famous succulent herbal leaf plant renowned in Siddha medicine for kidney stone relief and wound healing.",
+    "mrp": 90,
+    "sellingPrice": 50,
+    "discount": 44,
+    "stock": 4,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/ranakalli-miracle-leaf.png"
+    ],
+    "image": "/products/vrg/ranakalli-miracle-leaf.png",
+    "imageUrl": "/products/vrg/ranakalli-miracle-leaf.png",
+    "plantHeight": "1-2 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Alternate Days",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "herbal plants",
+      "ranakalli (miracle leaf / katakataka)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-panneer-leaf-omavalli",
+    "sku": "VRG-HERB-053",
+    "name": "Panneer Leaf (Omavalli / Mexican Mint)",
+    "englishName": "Panneer Leaf (Omavalli / Mexican Mint)",
+    "tamilName": "பன்னீர் இலை / ஓமவள்ளி செடி",
+    "scientificName": "Plectranthus amboinicus",
+    "categoryId": "cat-herbals",
+    "categoryName": "Herbal Plants",
+    "description": "Thick fragrant therapeutic succulent leaves used for traditional cold, cough relief, and herbal rasam.",
+    "mrp": 180,
+    "sellingPrice": 140,
+    "discount": 22,
+    "stock": 10,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/panneer-leaf-omavalli.png"
+    ],
+    "image": "/products/vrg/panneer-leaf-omavalli.png",
+    "imageUrl": "/products/vrg/panneer-leaf-omavalli.png",
+    "plantHeight": "1-2 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Partial Shade",
+    "waterRequirement": "Alternate Days",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": false,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "herbal plants",
+      "panneer leaf (omavalli / mexican mint)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-nagathali-snake-plant",
+    "sku": "VRG-HERB-054",
+    "name": "Nagathali (Snake Repellent Plant)",
+    "englishName": "Nagathali (Snake Repellent Plant)",
+    "tamilName": "நாகதாளி செடி",
+    "scientificName": "Rhinacanthus nasutus",
+    "categoryId": "cat-herbals",
+    "categoryName": "Herbal Plants",
+    "description": "Traditional garden protective shrub with bird-shaped white blossoms, valued as a natural snake deterrent.",
+    "mrp": 180,
+    "sellingPrice": 140,
+    "discount": 22,
+    "stock": 17,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/nagathali-snake-plant.png"
+    ],
+    "image": "/products/vrg/nagathali-snake-plant.png",
+    "imageUrl": "/products/vrg/nagathali-snake-plant.png",
+    "plantHeight": "2-3 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": false,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "herbal plants",
+      "nagathali (snake repellent plant)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-rosemary-culinary-herb",
+    "sku": "VRG-HERB-055",
+    "name": "Rosemary (Live Herb Plant)",
+    "englishName": "Rosemary (Live Herb Plant)",
+    "tamilName": "ரோஸ்மேரி மூலிகை செடி",
+    "scientificName": "Salvia rosmarinus",
+    "categoryId": "cat-herbals",
+    "categoryName": "Herbal Plants",
+    "description": "Pungent needle-leaf aromatic herb widely used in gourmet cooking, hair oil preparations, and stress relief.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 1,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/rosemary-culinary-herb.png"
+    ],
+    "image": "/products/vrg/rosemary-culinary-herb.png",
+    "imageUrl": "/products/vrg/rosemary-culinary-herb.png",
+    "plantHeight": "1-1.5 Feet",
+    "potSize": "6 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Moderate",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "herbal plants",
+      "rosemary (live herb plant)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-mint-thulasi-basil",
+    "sku": "VRG-HERB-056",
+    "name": "Mint Thulasi (Mint Scented Basil)",
+    "englishName": "Mint Thulasi (Mint Scented Basil)",
+    "tamilName": "புதினா துளசி செடி",
+    "scientificName": "Ocimum basilicum var.",
+    "categoryId": "cat-herbals",
+    "categoryName": "Herbal Plants",
+    "description": "Unique hybrid sacred thulasi with a cooling refreshing mint aroma, great for herbal teas and wellness.",
+    "mrp": 180,
+    "sellingPrice": 140,
+    "discount": 22,
+    "stock": 20,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/mint-thulasi-basil.png"
+    ],
+    "image": "/products/vrg/mint-thulasi-basil.png",
+    "imageUrl": "/products/vrg/mint-thulasi-basil.png",
+    "plantHeight": "1.5-2.5 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": false,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "herbal plants",
+      "mint thulasi (mint scented basil)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-marikolunthu-davana",
+    "sku": "VRG-HERB-057",
+    "name": "Marikolunthu (Davana / Artemisia)",
+    "englishName": "Marikolunthu (Davana / Artemisia)",
+    "tamilName": "மரிக்கொழுந்து செடி",
+    "scientificName": "Artemisia pallens",
+    "categoryId": "cat-herbals",
+    "categoryName": "Herbal Plants",
+    "description": "Revered sweet-scented silver foliage herb used in traditional temple garlands and luxury south Indian perfumery.",
+    "mrp": 180,
+    "sellingPrice": 140,
+    "discount": 22,
+    "stock": 16,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/marikolunthu-davana.png"
+    ],
+    "image": "/products/vrg/marikolunthu-davana.png",
+    "imageUrl": "/products/vrg/marikolunthu-davana.png",
+    "plantHeight": "1-2 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "herbal plants",
+      "marikolunthu (davana / artemisia)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-raja-malli-10-layer-jasmine",
+    "sku": "VRG-JASM-058",
+    "name": "Raja Malli (10 Layer Jasmine)",
+    "englishName": "Raja Malli (10 Layer Jasmine)",
+    "tamilName": "ராஜ மல்லி (10 அடுக்கு மல்லி)",
+    "scientificName": "Jasminum sambac 'Grand Duke of Tuscany'",
+    "categoryId": "cat-jasmine",
+    "categoryName": "Jasmine Varieties",
+    "description": "Magnificent multi-layered royal grand duke jasmine with rose-like thick buds and intense lingering fragrance.",
+    "mrp": 90,
+    "sellingPrice": 50,
+    "discount": 44,
+    "stock": 44,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/raja-malli-10-layer-jasmine.png"
+    ],
+    "image": "/products/vrg/raja-malli-10-layer-jasmine.png",
+    "imageUrl": "/products/vrg/raja-malli-10-layer-jasmine.png",
+    "plantHeight": "2-3 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "jasmine varieties",
+      "raja malli (10 layer jasmine)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-mysuru-malli-madras-malli",
+    "sku": "VRG-JASM-059",
+    "name": "Mysuru Malli (Madras Malli)",
+    "englishName": "Mysuru Malli (Madras Malli)",
+    "tamilName": "மைசூர் மல்லி / மெட்ராஸ் மல்லி (Free Delivery)",
+    "scientificName": "Jasminum sambac",
+    "categoryId": "cat-jasmine",
+    "categoryName": "Jasmine Varieties",
+    "description": "Authentic round-bud Madurai/Mysuru jasmine with world-famous intoxicating perfume for daily pooja and hair adornment.",
+    "mrp": 160,
+    "sellingPrice": 120,
+    "discount": 25,
+    "stock": 48,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/mysuru-malli-madras-malli.png"
+    ],
+    "image": "/products/vrg/mysuru-malli-madras-malli.png",
+    "imageUrl": "/products/vrg/mysuru-malli-madras-malli.png",
+    "plantHeight": "2-3 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "Summer & Monsoon",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "jasmine varieties",
+      "mysuru malli (madras malli)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-pachai-mullai-jasmine",
+    "sku": "VRG-JASM-060",
+    "name": "Pachai Mullai (Green Jasmine)",
+    "englishName": "Pachai Mullai (Green Jasmine)",
+    "tamilName": "பச்சை முல்லை செடி",
+    "scientificName": "Jasminum auriculatum",
+    "categoryId": "cat-jasmine",
+    "categoryName": "Jasmine Varieties",
+    "description": "Prolific star jasmine variety with needle-like pointed buds and delicate sweet scent.",
+    "mrp": 90,
+    "sellingPrice": 50,
+    "discount": 44,
+    "stock": 14,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/pachai-mullai-jasmine.png"
+    ],
+    "image": "/products/vrg/pachai-mullai-jasmine.png",
+    "imageUrl": "/products/vrg/pachai-mullai-jasmine.png",
+    "plantHeight": "2-3 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "Summer",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": false,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "jasmine varieties",
+      "pachai mullai (green jasmine)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-white-kakatan-star-jasmine",
+    "sku": "VRG-JASM-061",
+    "name": "White Kakatan (Star Jasmine)",
+    "englishName": "White Kakatan (Star Jasmine)",
+    "tamilName": "வெள்ளை காகட்டான் செடி",
+    "scientificName": "Jasminum multiflorum",
+    "categoryId": "cat-jasmine",
+    "categoryName": "Jasmine Varieties",
+    "description": "Winter-hardy star shaped white jasmine bearing hundreds of snowy blossoms at every branch node.",
+    "mrp": 180,
+    "sellingPrice": 140,
+    "discount": 22,
+    "stock": 39,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/white-kakatan-star-jasmine.png"
+    ],
+    "image": "/products/vrg/white-kakatan-star-jasmine.png",
+    "imageUrl": "/products/vrg/white-kakatan-star-jasmine.png",
+    "plantHeight": "2.5-4 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "Winter & Spring",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "jasmine varieties",
+      "white kakatan (star jasmine)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-colour-kakatan-pink-star",
+    "sku": "VRG-JASM-062",
+    "name": "Colour Kakatan (Pink Star Jasmine)",
+    "englishName": "Colour Kakatan (Pink Star Jasmine)",
+    "tamilName": "கலர் காகட்டான் செடி",
+    "scientificName": "Jasminum nitidum 'Pink'",
+    "categoryId": "cat-jasmine",
+    "categoryName": "Jasmine Varieties",
+    "description": "Rare pink-tinged star jasmine buds opening into dazzling white-purple petals with sweet perfume.",
+    "mrp": 180,
+    "sellingPrice": 140,
+    "discount": 22,
+    "stock": 35,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/colour-kakatan-pink-star.png"
+    ],
+    "image": "/products/vrg/colour-kakatan-pink-star.png",
+    "imageUrl": "/products/vrg/colour-kakatan-pink-star.png",
+    "plantHeight": "2.5-4 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": false,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "jasmine varieties",
+      "colour kakatan (pink star jasmine)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-ramar-malli-jasmine",
+    "sku": "VRG-JASM-063",
+    "name": "Ramar Malli (Divine Jasmine)",
+    "englishName": "Ramar Malli (Divine Jasmine)",
+    "tamilName": "ராமர் மல்லி செடி",
+    "scientificName": "Jasminum sambac 'Ramar'",
+    "categoryId": "cat-jasmine",
+    "categoryName": "Jasmine Varieties",
+    "description": "Sacred long-petal jasmine revered in temples for deep spiritual aroma and continuous flowering.",
+    "mrp": 180,
+    "sellingPrice": 140,
+    "discount": 22,
+    "stock": 30,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/ramar-malli-jasmine.png"
+    ],
+    "image": "/products/vrg/ramar-malli-jasmine.png",
+    "imageUrl": "/products/vrg/ramar-malli-jasmine.png",
+    "plantHeight": "2-3 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "jasmine varieties",
+      "ramar malli (divine jasmine)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-pavazha-malli-coral-jasmine",
+    "sku": "VRG-JASM-064",
+    "name": "Pavazha Malli (Coral Jasmine / Parijat)",
+    "englishName": "Pavazha Malli (Coral Jasmine / Parijat)",
+    "tamilName": "பவழ மல்லி செடி (பாரிஜாதம்)",
+    "scientificName": "Nyctanthes arbor-tristis",
+    "categoryId": "cat-jasmine",
+    "categoryName": "Jasmine Varieties",
+    "description": "Divine night-flowering coral jasmine with bright orange stems and pure white petals that carpet the ground at dawn.",
+    "mrp": 180,
+    "sellingPrice": 140,
+    "discount": 22,
+    "stock": 3,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/pavazha-malli-coral-jasmine.png"
+    ],
+    "image": "/products/vrg/pavazha-malli-coral-jasmine.png",
+    "imageUrl": "/products/vrg/pavazha-malli-coral-jasmine.png",
+    "plantHeight": "3-5 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "Autumn & Winter",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "jasmine varieties",
+      "pavazha malli (coral jasmine / parijat)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-jadhi-malli-spanish-jasmine",
+    "sku": "VRG-JASM-065",
+    "name": "Jadhi Malli (Spanish / Royal Jasmine)",
+    "englishName": "Jadhi Malli (Spanish / Royal Jasmine)",
+    "tamilName": "ஜாதி மல்லி செடி (பிச்சி பூ)",
+    "scientificName": "Jasminum grandiflorum",
+    "categoryId": "cat-jasmine",
+    "categoryName": "Jasmine Varieties",
+    "description": "Prized pitchi poo climber producing elegant pointed pink-backed white flowers of royal fragrance.",
+    "mrp": 180,
+    "sellingPrice": 140,
+    "discount": 22,
+    "stock": 12,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/jadhi-malli-spanish-jasmine.png"
+    ],
+    "image": "/products/vrg/jadhi-malli-spanish-jasmine.png",
+    "imageUrl": "/products/vrg/jadhi-malli-spanish-jasmine.png",
+    "plantHeight": "3-6 Feet Climber",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "jasmine varieties",
+      "jadhi malli (spanish / royal jasmine)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-double-colour-miniature-rose",
+    "sku": "VRG-MINI-066",
+    "name": "Double Colour Miniature Rose",
+    "englishName": "Double Colour Miniature Rose",
+    "tamilName": "இரு நிற மினியேச்சர் ரோஜா",
+    "scientificName": "Rosa chinensis minima 'Bi-Color'",
+    "categoryId": "cat-miniature",
+    "categoryName": "Miniature Roses",
+    "description": "Dual-tone miniature rose packed with tiny multi-colored petals, perfect for balcony table pots and containers.",
+    "mrp": 120,
+    "sellingPrice": 80,
+    "discount": 33,
+    "stock": 10,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/double-colour-miniature-rose.png"
+    ],
+    "image": "/products/vrg/double-colour-miniature-rose.png",
+    "imageUrl": "/products/vrg/double-colour-miniature-rose.png",
+    "plantHeight": "1-1.5 Feet Miniature",
+    "potSize": "6 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "miniature roses",
+      "double colour miniature rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-pearl-orange-miniature-rose",
+    "sku": "VRG-MINI-067",
+    "name": "Pearl Orange Miniature Rose",
+    "englishName": "Pearl Orange Miniature Rose",
+    "tamilName": "முத்து ஆரஞ்சு மினியேச்சர் ரோஜா",
+    "scientificName": "Rosa chinensis minima 'Pearl Orange'",
+    "categoryId": "cat-miniature",
+    "categoryName": "Miniature Roses",
+    "description": "Warm glowing apricot-orange mini roses blooming in tight clusters throughout the season.",
+    "mrp": 120,
+    "sellingPrice": 80,
+    "discount": 33,
+    "stock": 4,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/pearl-orange-miniature-rose.png"
+    ],
+    "image": "/products/vrg/pearl-orange-miniature-rose.png",
+    "imageUrl": "/products/vrg/pearl-orange-miniature-rose.png",
+    "plantHeight": "1-1.5 Feet Miniature",
+    "potSize": "6 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "miniature roses",
+      "pearl orange miniature rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-pink-colour-miniature-rose",
+    "sku": "VRG-MINI-068",
+    "name": "Pink Colour Miniature Rose",
+    "englishName": "Pink Colour Miniature Rose",
+    "tamilName": "பிங்க் மினியேச்சர் ரோஜா",
+    "scientificName": "Rosa chinensis minima 'Pink'",
+    "categoryId": "cat-miniature",
+    "categoryName": "Miniature Roses",
+    "description": "Charming rose-pink miniature bushy plant creating a lush floral carpet in small garden spaces.",
+    "mrp": 120,
+    "sellingPrice": 80,
+    "discount": 33,
+    "stock": 5,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/pink-colour-miniature-rose.png"
+    ],
+    "image": "/products/vrg/pink-colour-miniature-rose.png",
+    "imageUrl": "/products/vrg/pink-colour-miniature-rose.png",
+    "plantHeight": "1-1.5 Feet Miniature",
+    "potSize": "6 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": false,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "miniature roses",
+      "pink colour miniature rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-yellow-miniature-rose",
+    "sku": "VRG-MINI-069",
+    "name": "Yellow Miniature Rose",
+    "englishName": "Yellow Miniature Rose",
+    "tamilName": "மஞ்சள் மினியேச்சர் ரோஜா",
+    "scientificName": "Rosa chinensis minima 'Yellow'",
+    "categoryId": "cat-miniature",
+    "categoryName": "Miniature Roses",
+    "description": "Cheerful golden lemon miniature rose with button blooms that brighten up window sills and borders.",
+    "mrp": 120,
+    "sellingPrice": 80,
+    "discount": 33,
+    "stock": 8,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/yellow-miniature-rose.png"
+    ],
+    "image": "/products/vrg/yellow-miniature-rose.png",
+    "imageUrl": "/products/vrg/yellow-miniature-rose.png",
+    "plantHeight": "1-1.5 Feet Miniature",
+    "potSize": "6 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "miniature roses",
+      "yellow miniature rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-cho-cho-centennial-miniature",
+    "sku": "VRG-RARE-070",
+    "name": "Cho Cho Centennial Miniature Rose",
+    "englishName": "Cho Cho Centennial Miniature Rose",
+    "tamilName": "சோ சோ சென்டென்னியல் ரோஜா",
+    "scientificName": "Rosa 'Cho Cho Centennial'",
+    "categoryId": "cat-rare",
+    "categoryName": "Rare & Exotic Roses",
+    "description": "Rare collector's miniature rose with intricate ruffled petals and exquisite pastel gradient.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 10,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/cho-cho-centennial-miniature.png"
+    ],
+    "image": "/products/vrg/cho-cho-centennial-miniature.png",
+    "imageUrl": "/products/vrg/cho-cho-centennial-miniature.png",
+    "plantHeight": "1.5-2 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "rare & exotic roses",
+      "cho cho centennial miniature rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-ink-spot-rose",
+    "sku": "VRG-RARE-071",
+    "name": "Ink Spot Rose (Velvet Black-Red)",
+    "englishName": "Ink Spot Rose (Velvet Black-Red)",
+    "tamilName": "இங்க் ஸ்பாட் அரிய ரோஜா",
+    "scientificName": "Rosa 'Ink Spot'",
+    "categoryId": "cat-rare",
+    "categoryName": "Rare & Exotic Roses",
+    "description": "Ultra dark velvety blackish-crimson rose with deep cupped form and intense luxury feel.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 1,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/ink-spot-rose.png"
+    ],
+    "image": "/products/vrg/ink-spot-rose.png",
+    "imageUrl": "/products/vrg/ink-spot-rose.png",
+    "plantHeight": "2.5-3.5 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "rare & exotic roses",
+      "ink spot rose (velvet black-red)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-pink-fairy-polyantha-rose",
+    "sku": "VRG-RARE-072",
+    "name": "Pink Fairy Rose (Polyantha)",
+    "englishName": "Pink Fairy Rose (Polyantha)",
+    "tamilName": "பிங்க் ஃபேரி ரோஜா",
+    "scientificName": "Rosa 'The Fairy'",
+    "categoryId": "cat-rare",
+    "categoryName": "Rare & Exotic Roses",
+    "description": "Renowned polyantha rose producing endless dense trusses of small rosette baby pink blossoms.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 6,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/pink-fairy-polyantha-rose.png"
+    ],
+    "image": "/products/vrg/pink-fairy-polyantha-rose.png",
+    "imageUrl": "/products/vrg/pink-fairy-polyantha-rose.png",
+    "plantHeight": "2-3 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": false,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "rare & exotic roses",
+      "pink fairy rose (polyantha)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-teddy-bear-terracotta-rose",
+    "sku": "VRG-RARE-073",
+    "name": "Teddy Bear Rose (Terracotta Brown)",
+    "englishName": "Teddy Bear Rose (Terracotta Brown)",
+    "tamilName": "டெடி பியர் டெரகோட்டா ரோஜா",
+    "scientificName": "Rosa 'Teddy Bear'",
+    "categoryId": "cat-rare",
+    "categoryName": "Rare & Exotic Roses",
+    "description": "Extremely rare brownish copper-orange rose with unique vintage antique shading.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 1,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/teddy-bear-terracotta-rose.png"
+    ],
+    "image": "/products/vrg/teddy-bear-terracotta-rose.png",
+    "imageUrl": "/products/vrg/teddy-bear-terracotta-rose.png",
+    "plantHeight": "1.5-2.5 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "rare & exotic roses",
+      "teddy bear rose (terracotta brown)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-black-jade-micro-mini-rose",
+    "sku": "VRG-RARE-074",
+    "name": "Black Jade Rose (Micro Mini)",
+    "englishName": "Black Jade Rose (Micro Mini)",
+    "tamilName": "பிளாக் ஜேட் ரோஜா",
+    "scientificName": "Rosa 'Black Jade'",
+    "categoryId": "cat-rare",
+    "categoryName": "Rare & Exotic Roses",
+    "description": "Darkest mini rose with almost black pointed buds opening into saturated deep garnet petals.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 3,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/black-jade-micro-mini-rose.png"
+    ],
+    "image": "/products/vrg/black-jade-micro-mini-rose.png",
+    "imageUrl": "/products/vrg/black-jade-micro-mini-rose.png",
+    "plantHeight": "1-1.5 Feet",
+    "potSize": "6 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "rare & exotic roses",
+      "black jade rose (micro mini)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-mini-eden-climbing-rose",
+    "sku": "VRG-RARE-075",
+    "name": "Mini Eden Rose (Romantic Climber)",
+    "englishName": "Mini Eden Rose (Romantic Climber)",
+    "tamilName": "மினி ஈடன் ரோஜா",
+    "scientificName": "Rosa 'Mini Eden'",
+    "categoryId": "cat-rare",
+    "categoryName": "Rare & Exotic Roses",
+    "description": "French cabbage rose style miniature climber with bi-colored pink center and cream outer petals.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 3,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/mini-eden-climbing-rose.png"
+    ],
+    "image": "/products/vrg/mini-eden-climbing-rose.png",
+    "imageUrl": "/products/vrg/mini-eden-climbing-rose.png",
+    "plantHeight": "3-5 Feet Climber",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "rare & exotic roses",
+      "mini eden rose (romantic climber)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-margo-koster-red-rose",
+    "sku": "VRG-RARE-076",
+    "name": "Margo Koster Red Rose",
+    "englishName": "Margo Koster Red Rose",
+    "tamilName": "மார்கோ கோஸ்டர் சிகப்பு ரோஜா",
+    "scientificName": "Rosa 'Margo Koster Red'",
+    "categoryId": "cat-rare",
+    "categoryName": "Rare & Exotic Roses",
+    "description": "Famous globe/cup-shaped Dutch polyantha rose forming tight round glowing red pompons.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 7,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/margo-koster-red-rose.png"
+    ],
+    "image": "/products/vrg/margo-koster-red-rose.png",
+    "imageUrl": "/products/vrg/margo-koster-red-rose.png",
+    "plantHeight": "1.5-2.5 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": false,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "rare & exotic roses",
+      "margo koster red rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-blue-for-you-rose",
+    "sku": "VRG-RARE-077",
+    "name": "Blue For You Rose (Slate Blue)",
+    "englishName": "Blue For You Rose (Slate Blue)",
+    "tamilName": "ப்ளூ ஃபார் யூ அரிய ரோஜா",
+    "scientificName": "Rosa 'Blue for You'",
+    "categoryId": "cat-rare",
+    "categoryName": "Rare & Exotic Roses",
+    "description": "Stunning slate lilac-blue floribunda with rich spicy fragrance and pale center eye.",
+    "mrp": 170,
+    "sellingPrice": 120,
+    "discount": 29,
+    "stock": 25,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/blue-for-you-rose.png"
+    ],
+    "image": "/products/vrg/blue-for-you-rose.png",
+    "imageUrl": "/products/vrg/blue-for-you-rose.png",
+    "plantHeight": "2.5-3.5 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "rare & exotic roses",
+      "blue for you rose (slate blue)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-stars-n-stripes-rose",
+    "sku": "VRG-RARE-078",
+    "name": "Stars 'n' Stripes Rose",
+    "englishName": "Stars 'n' Stripes Rose",
+    "tamilName": "ஸ்டார்ஸ் அண்ட் ஸ்ட்ரைப்ஸ் ரோஜா",
+    "scientificName": "Rosa 'Stars 'n' Stripes'",
+    "categoryId": "cat-rare",
+    "categoryName": "Rare & Exotic Roses",
+    "description": "Fascinating striped miniature rose with peppermint candy red and white radiating stripes.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 5,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/stars-n-stripes-rose.png"
+    ],
+    "image": "/products/vrg/stars-n-stripes-rose.png",
+    "imageUrl": "/products/vrg/stars-n-stripes-rose.png",
+    "plantHeight": "1.5-2.5 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "rare & exotic roses",
+      "stars 'n' stripes rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-fire-works-ruffle-rose",
+    "sku": "VRG-RARE-079",
+    "name": "Fireworks Ruffle Rose",
+    "englishName": "Fireworks Ruffle Rose",
+    "tamilName": "ஃபயர் ஒர்க்ஸ் ரஃபிள் ரோஜா",
+    "scientificName": "Rosa 'Fireworks Ruffle'",
+    "categoryId": "cat-rare",
+    "categoryName": "Rare & Exotic Roses",
+    "description": "Sensational ruffled serrated petals resembling firework explosions in warm red and gold.",
+    "mrp": 170,
+    "sellingPrice": 120,
+    "discount": 29,
+    "stock": 7,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/fire-works-ruffle-rose.png"
+    ],
+    "image": "/products/vrg/fire-works-ruffle-rose.png",
+    "imageUrl": "/products/vrg/fire-works-ruffle-rose.png",
+    "plantHeight": "2-3 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "rare & exotic roses",
+      "fireworks ruffle rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-kordes-jubilee-rose",
+    "sku": "VRG-RARE-080",
+    "name": "Kordes' Jubilee Rose",
+    "englishName": "Kordes' Jubilee Rose",
+    "tamilName": "கார்டீஸ் ஜூபிலி ரோஜா",
+    "scientificName": "Rosa 'Kordes Jubilee'",
+    "categoryId": "cat-rare",
+    "categoryName": "Rare & Exotic Roses",
+    "description": "Massive high-centered yellow blooms broadly edged with vibrant fuchsia pink and sweet fruit fragrance.",
+    "mrp": 170,
+    "sellingPrice": 120,
+    "discount": 29,
+    "stock": 14,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/kordes-jubilee-rose.png"
+    ],
+    "image": "/products/vrg/kordes-jubilee-rose.png",
+    "imageUrl": "/products/vrg/kordes-jubilee-rose.png",
+    "plantHeight": "3-4 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "rare & exotic roses",
+      "kordes' jubilee rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-lavender-simplicity-rose",
+    "sku": "VRG-RARE-081",
+    "name": "Lavender Simplicity Rose",
+    "englishName": "Lavender Simplicity Rose",
+    "tamilName": "லாவெண்டர் சிம்ப்ளிசிட்டி ரோஜா",
+    "scientificName": "Rosa 'Lavender Simplicity'",
+    "categoryId": "cat-rare",
+    "categoryName": "Rare & Exotic Roses",
+    "description": "Clear pastel lavender hedge rose with clean citrus aroma and excellent disease resistance.",
+    "mrp": 170,
+    "sellingPrice": 120,
+    "discount": 29,
+    "stock": 4,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/lavender-simplicity-rose.png"
+    ],
+    "image": "/products/vrg/lavender-simplicity-rose.png",
+    "imageUrl": "/products/vrg/lavender-simplicity-rose.png",
+    "plantHeight": "2.5-3.5 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "rare & exotic roses",
+      "lavender simplicity rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-paper-moon-exotic-rose",
+    "sku": "VRG-RARE-082",
+    "name": "Paper Moon Rose",
+    "englishName": "Paper Moon Rose",
+    "tamilName": "பேப்பர் மூன் ரோஜா",
+    "scientificName": "Rosa 'Paper Moon'",
+    "categoryId": "cat-rare",
+    "categoryName": "Rare & Exotic Roses",
+    "description": "Ethereal translucent silvery white rose with delicate lavender undertones.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 2,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/paper-moon-exotic-rose.png"
+    ],
+    "image": "/products/vrg/paper-moon-exotic-rose.png",
+    "imageUrl": "/products/vrg/paper-moon-exotic-rose.png",
+    "plantHeight": "2-3 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": false,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "rare & exotic roses",
+      "paper moon rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-margo-koster-pink-rose",
+    "sku": "VRG-RARE-083",
+    "name": "Margo Koster Pink Rose",
+    "englishName": "Margo Koster Pink Rose",
+    "tamilName": "மார்கோ கோஸ்டர் பிங்க் ரோஜா",
+    "scientificName": "Rosa 'Margo Koster Pink'",
+    "categoryId": "cat-rare",
+    "categoryName": "Rare & Exotic Roses",
+    "description": "Charming soft salmon-pink cup-shaped globe rose blooming in tight cheerful sprays.",
+    "mrp": 170,
+    "sellingPrice": 120,
+    "discount": 29,
+    "stock": 4,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/margo-koster-pink-rose.png"
+    ],
+    "image": "/products/vrg/margo-koster-pink-rose.png",
+    "imageUrl": "/products/vrg/margo-koster-pink-rose.png",
+    "plantHeight": "1.5-2.5 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": false,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "rare & exotic roses",
+      "margo koster pink rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-honey-dijon-mustard-rose",
+    "sku": "VRG-RARE-084",
+    "name": "Honey Dijon Rose",
+    "englishName": "Honey Dijon Rose",
+    "tamilName": "ஹனி டிஜோன் அரிய ரோஜா",
+    "scientificName": "Rosa 'Honey Dijon'",
+    "categoryId": "cat-rare",
+    "categoryName": "Rare & Exotic Roses",
+    "description": "Unique warm caramel, honey-mustard colored grandiflora rose with intoxicating fruity scent.",
+    "mrp": 170,
+    "sellingPrice": 120,
+    "discount": 29,
+    "stock": 25,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/honey-dijon-mustard-rose.png"
+    ],
+    "image": "/products/vrg/honey-dijon-mustard-rose.png",
+    "imageUrl": "/products/vrg/honey-dijon-mustard-rose.png",
+    "plantHeight": "3-4 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "rare & exotic roses",
+      "honey dijon rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-chocolate-rose-terracotta",
+    "sku": "VRG-RARE-085",
+    "name": "Chocolate Rose",
+    "englishName": "Chocolate Rose",
+    "tamilName": "சாக்லேட் பிரவுன் ரோஜா",
+    "scientificName": "Rosa 'Hot Cocoa'",
+    "categoryId": "cat-rare",
+    "categoryName": "Rare & Exotic Roses",
+    "description": "Deep velvety cinnamon-chocolate petals with smoked purple reverse, highly prized by florists.",
+    "mrp": 170,
+    "sellingPrice": 120,
+    "discount": 29,
+    "stock": 5,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/chocolate-rose-terracotta.png"
+    ],
+    "image": "/products/vrg/chocolate-rose-terracotta.png",
+    "imageUrl": "/products/vrg/chocolate-rose-terracotta.png",
+    "plantHeight": "2.5-3.5 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "rare & exotic roses",
+      "chocolate rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-black-magic-exotic-rose",
+    "sku": "VRG-RARE-086",
+    "name": "Black Magic Rose",
+    "englishName": "Black Magic Rose",
+    "tamilName": "பிளாக் மேஜிக் ரோஜா",
+    "scientificName": "Rosa 'Black Magic'",
+    "categoryId": "cat-rare",
+    "categoryName": "Rare & Exotic Roses",
+    "description": "World-famous deep dark blackish-red velvet rose with long vase life and commanding presence.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 25,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/black-magic-exotic-rose.png"
+    ],
+    "image": "/products/vrg/black-magic-exotic-rose.png",
+    "imageUrl": "/products/vrg/black-magic-exotic-rose.png",
+    "plantHeight": "3-4 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "rare & exotic roses",
+      "black magic rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-abracadabra-tiger-rose",
+    "sku": "VRG-RARE-087",
+    "name": "Abracadabra (Tiger Rose)",
+    "englishName": "Abracadabra (Tiger Rose)",
+    "tamilName": "அப்ரகதாப்ரா (டைகர் ஸ்ட்ரைப் ரோஜா)",
+    "scientificName": "Rosa 'Abracadabra'",
+    "categoryId": "cat-rare",
+    "categoryName": "Rare & Exotic Roses",
+    "description": "Exotic striped rose with dramatic splashes of lemon yellow and rich black-burgundy on every petal.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 25,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/abracadabra-tiger-rose.png"
+    ],
+    "image": "/products/vrg/abracadabra-tiger-rose.png",
+    "imageUrl": "/products/vrg/abracadabra-tiger-rose.png",
+    "plantHeight": "2.5-3.5 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "rare & exotic roses",
+      "abracadabra (tiger rose)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-fireworks-ruffle-crimson",
+    "sku": "VRG-RARE-088",
+    "name": "Fireworks Ruffle Crimson Rose",
+    "englishName": "Fireworks Ruffle Crimson Rose",
+    "tamilName": "ஃபயர் ஒர்க்ஸ் ரஃபிள் சிகப்பு ரோஜா",
+    "scientificName": "Rosa 'Fireworks Ruffle Crimson'",
+    "categoryId": "cat-rare",
+    "categoryName": "Rare & Exotic Roses",
+    "description": "Dramatic fringed crimson red exotic floribunda rose with ruffled wavy petal edges.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 25,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/fireworks-ruffle-crimson.png"
+    ],
+    "image": "/products/vrg/fireworks-ruffle-crimson.png",
+    "imageUrl": "/products/vrg/fireworks-ruffle-crimson.png",
+    "plantHeight": "2-3 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": false,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "rare & exotic roses",
+      "fireworks ruffle crimson rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-alfred-sisley-striped-rose",
+    "sku": "VRG-RARE-089",
+    "name": "Alfred Sisley Rose",
+    "englishName": "Alfred Sisley Rose",
+    "tamilName": "ஆல்ஃபிரட் சிஸ்லே பிரெஞ்ச் ரோஜா",
+    "scientificName": "Rosa 'Alfred Sisley'",
+    "categoryId": "cat-rare",
+    "categoryName": "Rare & Exotic Roses",
+    "description": "French painter rose boasting brushstrokes of orange, pink, and yellow with light apple fragrance.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 5,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/alfred-sisley-striped-rose.png"
+    ],
+    "image": "/products/vrg/alfred-sisley-striped-rose.png",
+    "imageUrl": "/products/vrg/alfred-sisley-striped-rose.png",
+    "plantHeight": "2.5-3.5 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "rare & exotic roses",
+      "alfred sisley rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-anny-duperey-golden-rose",
+    "sku": "VRG-ROSE-090",
+    "name": "Anny Duperey Rose (Golden Yellow)",
+    "englishName": "Anny Duperey Rose (Golden Yellow)",
+    "tamilName": "அன்னி டுபெரே மஞ்சள் ரோஜா",
+    "scientificName": "Rosa 'Anny Duperey'",
+    "categoryId": "cat-rose",
+    "categoryName": "Rose Varieties",
+    "description": "French Romantica yellow rose bearing deeply cupped golden blooms with delicious citrus fragrance.",
+    "mrp": 170,
+    "sellingPrice": 120,
+    "discount": 29,
+    "stock": 23,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/anny-duperey-golden-rose.png"
+    ],
+    "image": "/products/vrg/anny-duperey-golden-rose.png",
+    "imageUrl": "/products/vrg/anny-duperey-golden-rose.png",
+    "plantHeight": "2.5-3.5 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "rose varieties",
+      "anny duperey rose (golden yellow)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-button-pink-rose",
+    "sku": "VRG-ROSE-091",
+    "name": "Button Pink Rose",
+    "englishName": "Button Pink Rose",
+    "tamilName": "பட்டன் பிங்க் ரோஜா",
+    "scientificName": "Rosa 'Button Pink'",
+    "categoryId": "cat-rose",
+    "categoryName": "Rose Varieties",
+    "description": "Heavy blooming button rosette pink roses that flower in tight clusters all year round.",
+    "mrp": 120,
+    "sellingPrice": 80,
+    "discount": 33,
+    "stock": 7,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/button-pink-rose.png"
+    ],
+    "image": "/products/vrg/button-pink-rose.png",
+    "imageUrl": "/products/vrg/button-pink-rose.png",
+    "plantHeight": "1.5-2.5 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "rose varieties",
+      "button pink rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-sentimental-balloon-rose",
+    "sku": "VRG-ROSE-092",
+    "name": "Sentimental Rose (Balloon Rose)",
+    "englishName": "Sentimental Rose (Balloon Rose)",
+    "tamilName": "சென்டிமென்டல் பலூன் ரோஜா",
+    "scientificName": "Rosa 'Scentimental'",
+    "categoryId": "cat-rose",
+    "categoryName": "Rose Varieties",
+    "description": "Striking burgundy and white swirl-striped balloon rose with strong damask perfume.",
+    "mrp": 120,
+    "sellingPrice": 80,
+    "discount": 33,
+    "stock": 4,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/sentimental-balloon-rose.png"
+    ],
+    "image": "/products/vrg/sentimental-balloon-rose.png",
+    "imageUrl": "/products/vrg/sentimental-balloon-rose.png",
+    "plantHeight": "2.5-3.5 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "rose varieties",
+      "sentimental rose (balloon rose)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-orange-jadiga-rose",
+    "sku": "VRG-ROSE-093",
+    "name": "Orange Jadiga Rose",
+    "englishName": "Orange Jadiga Rose",
+    "tamilName": "ஆரஞ்சு ஜாடிகா ரோஜா",
+    "scientificName": "Rosa 'Orange Jadiga'",
+    "categoryId": "cat-rose",
+    "categoryName": "Rose Varieties",
+    "description": "Intense tangerine-orange traditional scented rose with layered ruffled petals.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 3,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/orange-jadiga-rose.png"
+    ],
+    "image": "/products/vrg/orange-jadiga-rose.png",
+    "imageUrl": "/products/vrg/orange-jadiga-rose.png",
+    "plantHeight": "2-3 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": false,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "rose varieties",
+      "orange jadiga rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-apple-red-rose",
+    "sku": "VRG-ROSE-094",
+    "name": "Apple Red Rose",
+    "englishName": "Apple Red Rose",
+    "tamilName": "ஆப்பிள் சிகப்பு ரோஜா",
+    "scientificName": "Rosa 'Apple Red'",
+    "categoryId": "cat-rose",
+    "categoryName": "Rose Varieties",
+    "description": "Crisp bright apple-red rose with high petal count and outstanding disease resistance.",
+    "mrp": 120,
+    "sellingPrice": 80,
+    "discount": 33,
+    "stock": 10,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/apple-red-rose.png"
+    ],
+    "image": "/products/vrg/apple-red-rose.png",
+    "imageUrl": "/products/vrg/apple-red-rose.png",
+    "plantHeight": "2-3 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "rose varieties",
+      "apple red rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-summer-snow-pink-rose",
+    "sku": "VRG-ROSE-095",
+    "name": "Summer Snow Pink Rose",
+    "englishName": "Summer Snow Pink Rose",
+    "tamilName": "சம்மர் ஸ்நோ பிங்க் ரோஜா",
+    "scientificName": "Rosa 'Summer Snow Pink'",
+    "categoryId": "cat-rose",
+    "categoryName": "Rose Varieties",
+    "description": "Cluster flowering floribunda with ruffled baby pink petals creating a snow-like coverage of flowers.",
+    "mrp": 120,
+    "sellingPrice": 80,
+    "discount": 33,
+    "stock": 2,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/summer-snow-pink-rose.png"
+    ],
+    "image": "/products/vrg/summer-snow-pink-rose.png",
+    "imageUrl": "/products/vrg/summer-snow-pink-rose.png",
+    "plantHeight": "2-3 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": false,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "rose varieties",
+      "summer snow pink rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-apricot-tea-rose",
+    "sku": "VRG-ROSE-096",
+    "name": "Apricot Rose",
+    "englishName": "Apricot Rose",
+    "tamilName": "ஆப்ரிகாட் ரோஜா",
+    "scientificName": "Rosa 'Apricot'",
+    "categoryId": "cat-rose",
+    "categoryName": "Rose Varieties",
+    "description": "Soft pastel peach-apricot hybrid tea rose with elegant spiral center and delicate tea scent.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 5,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/apricot-tea-rose.png"
+    ],
+    "image": "/products/vrg/apricot-tea-rose.png",
+    "imageUrl": "/products/vrg/apricot-tea-rose.png",
+    "plantHeight": "2.5-3.5 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "rose varieties",
+      "apricot rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-skintone-blush-rose",
+    "sku": "VRG-ROSE-097",
+    "name": "Skintone Rose (Blush Nude)",
+    "englishName": "Skintone Rose (Blush Nude)",
+    "tamilName": "ஸ்கின்டோன் ரோஜா",
+    "scientificName": "Rosa 'Skintone'",
+    "categoryId": "cat-rose",
+    "categoryName": "Rose Varieties",
+    "description": "Chic nude cream-blush modern floribunda rose favored for premium wedding decor.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 6,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/skintone-blush-rose.png"
+    ],
+    "image": "/products/vrg/skintone-blush-rose.png",
+    "imageUrl": "/products/vrg/skintone-blush-rose.png",
+    "plantHeight": "2-3 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": false,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "rose varieties",
+      "skintone rose (blush nude)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-7-days-yellow-rose",
+    "sku": "VRG-ROSE-098",
+    "name": "7 Days Yellow Rose",
+    "englishName": "7 Days Yellow Rose",
+    "tamilName": "7 டேஸ் மஞ்சள் ரோஜா",
+    "scientificName": "Rosa 'Seven Days Yellow'",
+    "categoryId": "cat-rose",
+    "categoryName": "Rose Varieties",
+    "description": "Continuous blooming everblooming sunny yellow rose that produces new flush of flowers every week.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 4,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/7-days-yellow-rose.png"
+    ],
+    "image": "/products/vrg/7-days-yellow-rose.png",
+    "imageUrl": "/products/vrg/7-days-yellow-rose.png",
+    "plantHeight": "2-3 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "rose varieties",
+      "7 days yellow rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-white-panneer-rose",
+    "sku": "VRG-ROSE-100",
+    "name": "White Panneer Rose",
+    "englishName": "White Panneer Rose",
+    "tamilName": "வெள்ளை பன்னீர் ரோஜா",
+    "scientificName": "Rosa damascena 'Alba'",
+    "categoryId": "cat-rose",
+    "categoryName": "Rose Varieties",
+    "description": "Traditional pure white panneer rose with authentic holy rosewater scent for puja and garlands.",
+    "mrp": 160,
+    "sellingPrice": 120,
+    "discount": 25,
+    "stock": 3,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/white-panneer-rose.png"
+    ],
+    "image": "/products/vrg/white-panneer-rose.png",
+    "imageUrl": "/products/vrg/white-panneer-rose.png",
+    "plantHeight": "2.5-3.5 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "rose varieties",
+      "white panneer rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-kashmiri-scented-rose",
+    "sku": "VRG-ROSE-101",
+    "name": "Kashmiri Rose",
+    "englishName": "Kashmiri Rose",
+    "tamilName": "காஷ்மீரி ரோஜா",
+    "scientificName": "Rosa 'Kashmir'",
+    "categoryId": "cat-rose",
+    "categoryName": "Rose Varieties",
+    "description": "Intensely scented deep crimson Kashmir rose with velvety petals and rich therapeutic aroma.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 2,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/kashmiri-scented-rose.png"
+    ],
+    "image": "/products/vrg/kashmiri-scented-rose.png",
+    "imageUrl": "/products/vrg/kashmiri-scented-rose.png",
+    "plantHeight": "2.5-3.5 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "rose varieties",
+      "kashmiri rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-naatu-paneer-rose",
+    "sku": "VRG-ROSE-102",
+    "name": "Naatu Rose (Country Paneer Rose)",
+    "englishName": "Naatu Rose (Country Paneer Rose)",
+    "tamilName": "நாட்டு பன்னீர் ரோஜா",
+    "scientificName": "Rosa damascena 'Country'",
+    "categoryId": "cat-rose",
+    "categoryName": "Rose Varieties",
+    "description": "Evergreen heirloom country paneer rose producing thousands of fragrant pink petals for gulkand and pooja.",
+    "mrp": 110,
+    "sellingPrice": 70,
+    "discount": 36,
+    "stock": 17,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/naatu-paneer-rose.png"
+    ],
+    "image": "/products/vrg/naatu-paneer-rose.png",
+    "imageUrl": "/products/vrg/naatu-paneer-rose.png",
+    "plantHeight": "2.5-4 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "rose varieties",
+      "naatu rose (country paneer rose)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-calcutta-rose-heavy-bloomer",
+    "sku": "VRG-ROSE-103",
+    "name": "Calcutta Rose",
+    "englishName": "Calcutta Rose",
+    "tamilName": "கல்கத்தா ரோஜா",
+    "scientificName": "Rosa 'Calcutta'",
+    "categoryId": "cat-rose",
+    "categoryName": "Rose Varieties",
+    "description": "Prolific heavy-blooming dark pink commercial garland rose with great heat tolerance.",
+    "mrp": 120,
+    "sellingPrice": 80,
+    "discount": 33,
+    "stock": 6,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/calcutta-rose-heavy-bloomer.png"
+    ],
+    "image": "/products/vrg/calcutta-rose-heavy-bloomer.png",
+    "imageUrl": "/products/vrg/calcutta-rose-heavy-bloomer.png",
+    "plantHeight": "2.5-3.5 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": false,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "rose varieties",
+      "calcutta rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-7-days-red-rose",
+    "sku": "VRG-ROSE-104",
+    "name": "7 Days Rose (Everblooming Red)",
+    "englishName": "7 Days Rose (Everblooming Red)",
+    "tamilName": "7 டேஸ் சிகப்பு ரோஜா",
+    "scientificName": "Rosa 'Seven Days Red'",
+    "categoryId": "cat-rose",
+    "categoryName": "Rose Varieties",
+    "description": "Our #1 best-selling everblooming garden rose that yields rich red blooms non-stop every single week.",
+    "mrp": 190,
+    "sellingPrice": 140,
+    "discount": 26,
+    "stock": 41,
+    "rating": 5.0,
+    "reviewCount": 18,
+    "images": [
+      "/products/vrg/7-days-red-rose.png"
+    ],
+    "image": "/products/vrg/7-days-red-rose.png",
+    "imageUrl": "/products/vrg/7-days-red-rose.png",
+    "plantHeight": "2-3 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "rose varieties",
+      "7 days rose (everblooming red)"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-british-queen-rose",
+    "sku": "VRG-ROSE-105",
+    "name": "British Queen Rose",
+    "englishName": "British Queen Rose",
+    "tamilName": "பிரிட்டிஷ் குயின் ரோஜா",
+    "scientificName": "Rosa 'British Queen'",
+    "categoryId": "cat-rose",
+    "categoryName": "Rose Varieties",
+    "description": "Vintage English style white-pink cupped rose with heavy petal layers and royal fragrance.",
+    "mrp": 150,
+    "sellingPrice": 100,
+    "discount": 33,
+    "stock": 3,
+    "rating": 4.8,
+    "reviewCount": 6,
+    "images": [
+      "/products/vrg/british-queen-rose.png"
+    ],
+    "image": "/products/vrg/british-queen-rose.png",
+    "imageUrl": "/products/vrg/british-queen-rose.png",
+    "plantHeight": "2.5-3.5 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": false,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "rose varieties",
+      "british queen rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  }
+];
+
 async function main() {
-  console.log('🌱 Starting production database initialization...');
+  console.log('Seeding 102 deduped products and 8 categories into database...');
 
-  // 1. Seed Super Admin User dynamically from environment variables
-  const adminEmail = (process.env.ADMIN_INITIAL_EMAIL || 'nv01110612@gmail.com').toLowerCase();
-  const rawPassword = process.env.ADMIN_INITIAL_PASSWORD || 'nv01110612@gmail.com';
-  const passwordHash = await argon2.hash(rawPassword);
+  // 1. Delete dependent transactional records first to avoid foreign key violations
+  console.log('Clearing existing order items and cart items...');
+  await prisma.orderItem.deleteMany({});
+  await prisma.cartItem.deleteMany({});
+  await prisma.order.deleteMany({});
+  await prisma.cart.deleteMany({});
+  await prisma.inventory.deleteMany({});
 
-  const adminUser = await prisma.user.upsert({
-    where: { email: adminEmail },
-    update: {
-      passwordHash,
-      role: Role.SUPER_ADMIN,
-      isVerified: true
-    },
-    create: {
-      email: adminEmail,
-      phone: '09360931606',
-      name: 'Super Admin',
-      passwordHash,
-      role: Role.SUPER_ADMIN,
-      isVerified: true
-    }
-  });
+  // 2. Delete existing products and categories
+  console.log('Clearing existing products and categories...');
+  await prisma.product.deleteMany({});
+  await prisma.category.deleteMany({});
 
-  console.log(`✅ Production Super Admin configured: ${adminUser.email}`);
-
-  // 2. Seed Default Production Site Settings
-  await prisma.siteSetting.upsert({
-    where: { id: 'default' },
-    update: {
-      businessName: process.env.BUSINESS_NAME || 'Veerika Rose Garden',
-      tagline: process.env.BUSINESS_TAGLINE || 'Premier Plant Nursery & Farm Direct Gardens',
-      phone: process.env.BUSINESS_PHONE || '+91 72008 26129',
-      email: process.env.BUSINESS_EMAIL || 'support@veerikarosegarden.com',
-      whatsapp: process.env.BUSINESS_WHATSAPP || '+917200826129',
-      address: process.env.BUSINESS_ADDRESS || 'Hosur & Madurai Nursery Road, Tamil Nadu, India',
-      googleMapsUrl: process.env.BUSINESS_MAPS_URL || 'https://maps.google.com',
-      workingHours: 'Mon - Sun: 7:00 AM - 8:00 PM',
-      taxRate: 5,
-      shippingFee: 50,
-      freeShippingThreshold: 499,
-      phonepeMerchantId: process.env.PHONEPE_MERCHANT_ID || '',
-      phonepeSaltKey: process.env.PHONEPE_SALT_KEY || '',
-      phonepeSaltIndex: process.env.PHONEPE_SALT_INDEX || '1',
-      phonepeEnv: (process.env.PHONEPE_ENV as string) || 'PRODUCTION'
-    },
-    create: {
-      id: 'default',
-      businessName: process.env.BUSINESS_NAME || 'Veerika Rose Garden',
-      tagline: process.env.BUSINESS_TAGLINE || 'Premier Plant Nursery & Farm Direct Gardens',
-      phone: process.env.BUSINESS_PHONE || '+91 72008 26129',
-      email: process.env.BUSINESS_EMAIL || 'support@veerikarosegarden.com',
-      whatsapp: process.env.BUSINESS_WHATSAPP || '+917200826129',
-      address: process.env.BUSINESS_ADDRESS || 'Hosur & Madurai Nursery Road, Tamil Nadu, India',
-      googleMapsUrl: process.env.BUSINESS_MAPS_URL || 'https://maps.google.com',
-      workingHours: 'Mon - Sun: 7:00 AM - 8:00 PM',
-      taxRate: 5,
-      shippingFee: 50,
-      freeShippingThreshold: 499,
-      phonepeMerchantId: process.env.PHONEPE_MERCHANT_ID || '',
-      phonepeSaltKey: process.env.PHONEPE_SALT_KEY || '',
-      phonepeSaltIndex: process.env.PHONEPE_SALT_INDEX || '1',
-      phonepeEnv: (process.env.PHONEPE_ENV as string) || 'PRODUCTION'
-    }
-  });
-  console.log('✅ Default Site Settings initialized.');
-
-  // 3. Seed Categories and 107 Products if needed
-  const categories = [
-    {
-      id: 'cat-rose',
-      name: 'Rose Varieties',
-      nameTamil: 'ரோஜா வகைகள்',
-      slug: 'rose-varieties',
-      image: '/categories/rose-varieties.jpg',
-      description: 'Premium live hybrid rose plants, double delight & button rose varieties.',
-      order: 1,
-      isActive: true,
-      isFeatured: true
-    },
-    {
-      id: 'cat-herbals',
-      name: 'Herbal Plants',
-      nameTamil: 'மூலிகை (Herbals)',
-      slug: 'herbals',
-      image: '/categories/herbal-plants.jpg',
-      description: 'Medicinal plants including Neeli Avuri, Sangu Poo, Aavaram Poo, Vasambu, Vetrilai & Rosemary.',
-      order: 2,
-      isActive: true,
-      isFeatured: true
-    },
-    {
-      id: 'cat-jasmine',
-      name: 'Jasmine Varieties',
-      nameTamil: 'மல்லி பூ வகைகள் (Jasmine Vts)',
-      slug: 'jasmine-varieties',
-      image: '/categories/jasmine-varieties.jpg',
-      description: 'Fragrant Raja Malli (10 layer), Mysuru Malli, Pachai Mullai, Kakatan & Jadhi Malli.',
-      order: 3,
-      isActive: true,
-      isFeatured: true
-    },
-    {
-      id: 'cat-creeper',
-      name: 'Creeper Roses',
-      nameTamil: 'கொடி ரோஸ் வகைகள் (Creeper)',
-      slug: 'creeper-roses',
-      image: '/categories/creeper-roses.jpg',
-      description: 'Climbing and hanging rose varieties like Creeper Jackie, Red Cascade & Pink Creeper.',
-      order: 4,
-      isActive: true,
-      isFeatured: true
-    },
-    {
-      id: 'cat-miniature',
-      name: 'Miniature Roses',
-      nameTamil: 'மினியேச்சர் ரோஸ் வகைகள்',
-      slug: 'miniature-roses',
-      image: '/categories/miniature-roses.jpg',
-      description: 'Compact miniature rose plants for balcony pots, table garden and containers.',
-      order: 5,
-      isActive: true,
-      isFeatured: true
-    },
-    {
-      id: 'cat-rare',
-      name: 'Rare & Exotic Roses',
-      nameTamil: 'அரிய வகை ரோஜாக்கள் (Rare & Exotic)',
-      slug: 'rare-exotic-roses',
-      image: '/categories/exotics-rare-roses.jpg',
-      description: 'Exclusive rare varieties like Ink Spot, Teddy Bear, Black Jade, Blue For You, Fireworks Ruffle, Black Magic & Abracadabra.',
-      order: 6,
-      isActive: true,
-      isFeatured: true
-    },
-    {
-      id: 'cat-fruits',
-      name: 'Fruit Plants',
-      nameTamil: 'பழ மரங்கள் (Fruit Plants)',
-      slug: 'fruit-plants',
-      image: '/categories/fruit-plants.jpg',
-      description: 'High-yielding live fruit saplings including Black Grapes, Kalapadi Sapota, Miracle Fruit, Water Apple & PKM 1 Moringa.',
-      order: 7,
-      isActive: true,
-      isFeatured: true
-    },
-    {
-      id: 'cat-flowering',
-      name: 'Flowering Plants',
-      nameTamil: 'பூச்செடிகள் (Flowering Plants)',
-      slug: 'flowering-plants',
-      image: '/categories/flowering-plants.jpg',
-      description: 'Beautiful fragrant flowering garden plants including Manoranjitham, Parijadham, Krishnakamalam & Shenbagam.',
-      order: 8,
-      isActive: true,
-      isFeatured: true
-    }
-  ];
-
-  for (const cat of categories) {
+  // 3. Insert categories
+  for (const cat of CATEGORIES) {
     await prisma.category.upsert({
       where: { id: cat.id },
       update: {
         name: cat.name,
-        nameTamil: cat.nameTamil,
+        nameTamil: cat.tamilName,
         slug: cat.slug,
         image: cat.image,
         description: cat.description,
@@ -181,62 +4520,62 @@ async function main() {
         isActive: cat.isActive,
         isFeatured: cat.isFeatured
       },
-      create: cat
+      create: {
+        id: cat.id,
+        name: cat.name,
+        nameTamil: cat.tamilName,
+        slug: cat.slug,
+        image: cat.image,
+        description: cat.description,
+        order: cat.order,
+        isActive: cat.isActive,
+        isFeatured: cat.isFeatured
+      }
     });
   }
+  console.log('Categories seeded successfully.');
 
-  const existingCount = await prisma.product.count();
-  if (existingCount === 0) {
-    const jsonPath = path.resolve(process.cwd(), 'scratch/vrg_107_products.json');
-    if (fs.existsSync(jsonPath)) {
-      const products = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
-      for (const p of products) {
-        await prisma.product.create({
-          data: {
-            id: p.id,
-            sku: p.sku,
-            name: p.name,
-            nameTamil: p.tamilName || p.name,
-            scientificName: p.scientificName || '',
-            category: p.categoryName,
-            categoryId: p.categoryId,
-            price: Number(p.sellingPrice),
-            originalPrice: Number(p.mrp),
-            rating: Number(p.rating) || 5.0,
-            reviewsCount: Number(p.reviewCount) || 12,
-            image: p.image,
-            images: p.images || [p.image],
-            inStock: Number(p.stock) > 0,
-            potSize: p.potSize || '8 Inch Bag',
-            careSunlight: p.sunlight || 'Full Sun',
-            careWatering: p.waterRequirement || 'Daily',
-            careSoil: p.careInstructions?.soil || 'Well-draining red soil mixed with 30% coco peat.',
-            careFertilizer: p.careInstructions?.fertilizer || 'Apply organic vermicompost / neem cake every 15 days.',
-            description: p.description,
-            isBestSeller: Boolean(p.bestSeller),
-            isFeatured: Boolean(p.featured),
-            inventory: {
-              create: {
-                quantity: Number(p.stock) || 25,
-                reserved: 0,
-                threshold: 5
-              }
-            }
+  // 4. Insert 102 products
+  for (const prod of PRODUCTS) {
+    const primaryImage = prod.images && prod.images.length > 0 ? prod.images[0] : (prod.image || `/products/vrg/${prod.id.replace('vrg-', '')}.png`);
+    const allImages = prod.images && prod.images.length > 0 ? prod.images : [primaryImage];
+    
+    await prisma.product.create({
+      data: {
+        id: prod.id,
+        sku: prod.sku,
+        name: prod.name,
+        nameTamil: prod.tamilName || prod.name,
+        scientificName: prod.scientificName || '',
+        category: prod.categoryName,
+        categoryId: prod.categoryId,
+        description: prod.description || '',
+        price: prod.sellingPrice,
+        originalPrice: prod.mrp,
+        image: primaryImage,
+        images: allImages,
+        isFeatured: Boolean(prod.featured),
+        isBestSeller: Boolean(prod.bestSeller),
+        potSize: prod.potSize || '8 Inch Bag',
+        inStock: (prod.stock ?? 25) > 0,
+        careWatering: prod.careInstructions?.watering || 'Daily',
+        careSunlight: prod.careInstructions?.sunlight || 'Full Sun',
+        careFertilizer: prod.careInstructions?.fertilizer || 'Organic compost',
+        careSoil: prod.careInstructions?.soil || 'Red soil',
+        inventory: {
+          create: {
+            quantity: prod.stock ?? 25
           }
-        });
+        }
       }
-      console.log(`✅ Seeded ${products.length} authentic VRG Nursery products!`);
-    }
-  } else {
-    console.log(`✅ Products already present in database (${existingCount} products).`);
+    });
   }
-
-  console.log('🎉 Production database setup completed cleanly!');
+  console.log(`Successfully seeded ${PRODUCTS.length} products into PostgreSQL database!`);
 }
 
 main()
-  .catch((e) => {
-    console.error('❌ Error during setup:', e);
+  .catch(e => {
+    console.error('Seed error:', e);
     process.exit(1);
   })
   .finally(async () => {

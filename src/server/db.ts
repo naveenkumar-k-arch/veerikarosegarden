@@ -188,7 +188,7 @@ const DEFAULT_CATEGORIES: Category[] = [
     "order": 1,
     "isActive": true,
     "isFeatured": true,
-    "productCount": 18
+    "productCount": 15
   },
   {
     "id": "cat-herbals",
@@ -224,7 +224,7 @@ const DEFAULT_CATEGORIES: Category[] = [
     "order": 4,
     "isActive": true,
     "isFeatured": true,
-    "productCount": 8
+    "productCount": 6
   },
   {
     "id": "cat-miniature",
@@ -315,49 +315,6 @@ const DEFAULT_PRODUCTS: Product[] = [
     "tags": [
       "creeper roses",
       "creeper jackie rose"
-    ],
-    "status": "ACTIVE",
-    "createdAt": "2026-08-16T12:00:00.000Z",
-    "updatedAt": "2026-08-16T12:00:00.000Z"
-  },
-  {
-    "id": "vrg-creeper-jackie-budded",
-    "sku": "VRG-CREE-002",
-    "name": "Creeper Jackie Rose (Budded)",
-    "englishName": "Creeper Jackie Rose (Budded)",
-    "tamilName": "ஜாக்கி கொடி ரோஜா (பட்டிங்)",
-    "scientificName": "Rosa 'Jackie' Climber",
-    "categoryId": "cat-creeper",
-    "categoryName": "Creeper Roses",
-    "description": "High-vigor budded climbing rose plant with continuous blooming habit for fences and compound walls.",
-    "mrp": 190,
-    "sellingPrice": 140,
-    "discount": 26,
-    "stock": 14,
-    "rating": 5.0,
-    "reviewCount": 18,
-    "images": [
-      "/products/vrg/creeper-jackie-budded.png"
-    ],
-    "image": "/products/vrg/creeper-jackie-budded.png",
-    "imageUrl": "/products/vrg/creeper-jackie-budded.png",
-    "plantHeight": "4-6 Feet Climber",
-    "potSize": "8 Inch Bag",
-    "sunlight": "Full Sun",
-    "waterRequirement": "Daily",
-    "floweringSeason": "All Year",
-    "careInstructions": {
-      "watering": "Water daily in the morning, avoid over-soaking soil.",
-      "sunlight": "Requires 4-6 hours direct sunlight.",
-      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
-      "soil": "Well-draining red soil mixed with 30% coco peat."
-    },
-    "featured": false,
-    "bestSeller": true,
-    "trending": true,
-    "tags": [
-      "creeper roses",
-      "creeper jackie rose (budded)"
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-16T12:00:00.000Z",
@@ -573,49 +530,6 @@ const DEFAULT_PRODUCTS: Product[] = [
     "tags": [
       "creeper roses",
       "pink creeper rose"
-    ],
-    "status": "ACTIVE",
-    "createdAt": "2026-08-16T12:00:00.000Z",
-    "updatedAt": "2026-08-16T12:00:00.000Z"
-  },
-  {
-    "id": "vrg-pink-creeper-rose-layered",
-    "sku": "VRG-CREE-008",
-    "name": "Pink Creeper Rose (Air Layered)",
-    "englishName": "Pink Creeper Rose (Air Layered)",
-    "tamilName": "பிங்க் கொடி ரோஜா (லேரிங்)",
-    "scientificName": "Rosa 'Pink Climber'",
-    "categoryId": "cat-creeper",
-    "categoryName": "Creeper Roses",
-    "description": "Hardy air-layered pink climbing rose with rapid root establishment and instant branch growth.",
-    "mrp": 190,
-    "sellingPrice": 140,
-    "discount": 26,
-    "stock": 10,
-    "rating": 4.8,
-    "reviewCount": 6,
-    "images": [
-      "/products/vrg/pink-creeper-rose-layered.png"
-    ],
-    "image": "/products/vrg/pink-creeper-rose-layered.png",
-    "imageUrl": "/products/vrg/pink-creeper-rose-layered.png",
-    "plantHeight": "5-8 Feet Climber",
-    "potSize": "8 Inch Bag",
-    "sunlight": "Full Sun",
-    "waterRequirement": "Daily",
-    "floweringSeason": "All Year",
-    "careInstructions": {
-      "watering": "Water daily in the morning, avoid over-soaking soil.",
-      "sunlight": "Requires 4-6 hours direct sunlight.",
-      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
-      "soil": "Well-draining red soil mixed with 30% coco peat."
-    },
-    "featured": false,
-    "bestSeller": false,
-    "trending": true,
-    "tags": [
-      "creeper roses",
-      "pink creeper rose (air layered)"
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-16T12:00:00.000Z",
@@ -4492,49 +4406,6 @@ const DEFAULT_PRODUCTS: Product[] = [
     "updatedAt": "2026-08-16T12:00:00.000Z"
   },
   {
-    "id": "vrg-suloli-hanging-rose-bush",
-    "sku": "VRG-ROSE-099",
-    "name": "Suloli Hanging Rose",
-    "englishName": "Suloli Hanging Rose",
-    "tamilName": "சுலோலி தொங்கும் ரோஜா (புதர் வகை)",
-    "scientificName": "Rosa 'Suloli Bush'",
-    "categoryId": "cat-rose",
-    "categoryName": "Rose Varieties",
-    "description": "Trailing bushy rose with pendulous flower stems loaded with pink rosette blooms.",
-    "mrp": 120,
-    "sellingPrice": 80,
-    "discount": 33,
-    "stock": 4,
-    "rating": 4.8,
-    "reviewCount": 6,
-    "images": [
-      "/products/vrg/suloli-hanging-rose-bush.png"
-    ],
-    "image": "/products/vrg/suloli-hanging-rose-bush.png",
-    "imageUrl": "/products/vrg/suloli-hanging-rose-bush.png",
-    "plantHeight": "1.5-2.5 Feet",
-    "potSize": "8 Inch Bag",
-    "sunlight": "Full Sun",
-    "waterRequirement": "Daily",
-    "floweringSeason": "All Year",
-    "careInstructions": {
-      "watering": "Water daily in the morning, avoid over-soaking soil.",
-      "sunlight": "Requires 4-6 hours direct sunlight.",
-      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
-      "soil": "Well-draining red soil mixed with 30% coco peat."
-    },
-    "featured": false,
-    "bestSeller": false,
-    "trending": true,
-    "tags": [
-      "rose varieties",
-      "suloli hanging rose"
-    ],
-    "status": "ACTIVE",
-    "createdAt": "2026-08-16T12:00:00.000Z",
-    "updatedAt": "2026-08-16T12:00:00.000Z"
-  },
-  {
     "id": "vrg-white-panneer-rose",
     "sku": "VRG-ROSE-100",
     "name": "White Panneer Rose",
@@ -4787,92 +4658,6 @@ const DEFAULT_PRODUCTS: Product[] = [
     "tags": [
       "rose varieties",
       "british queen rose"
-    ],
-    "status": "ACTIVE",
-    "createdAt": "2026-08-16T12:00:00.000Z",
-    "updatedAt": "2026-08-16T12:00:00.000Z"
-  },
-  {
-    "id": "vrg-paper-moon-white-rose",
-    "sku": "VRG-ROSE-106",
-    "name": "Paper Moon White Rose",
-    "englishName": "Paper Moon White Rose",
-    "tamilName": "பேப்பர் மூன் வெள்ளை ரோஜா",
-    "scientificName": "Rosa 'Paper Moon'",
-    "categoryId": "cat-rose",
-    "categoryName": "Rose Varieties",
-    "description": "Papery textured silvery-white rose with lavender tinge that glows under moonlight.",
-    "mrp": 190,
-    "sellingPrice": 140,
-    "discount": 26,
-    "stock": 2,
-    "rating": 4.8,
-    "reviewCount": 6,
-    "images": [
-      "/products/vrg/paper-moon-white-rose.png"
-    ],
-    "image": "/products/vrg/paper-moon-white-rose.png",
-    "imageUrl": "/products/vrg/paper-moon-white-rose.png",
-    "plantHeight": "2-3 Feet",
-    "potSize": "8 Inch Bag",
-    "sunlight": "Full Sun",
-    "waterRequirement": "Daily",
-    "floweringSeason": "All Year",
-    "careInstructions": {
-      "watering": "Water daily in the morning, avoid over-soaking soil.",
-      "sunlight": "Requires 4-6 hours direct sunlight.",
-      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
-      "soil": "Well-draining red soil mixed with 30% coco peat."
-    },
-    "featured": false,
-    "bestSeller": false,
-    "trending": true,
-    "tags": [
-      "rose varieties",
-      "paper moon white rose"
-    ],
-    "status": "ACTIVE",
-    "createdAt": "2026-08-16T12:00:00.000Z",
-    "updatedAt": "2026-08-16T12:00:00.000Z"
-  },
-  {
-    "id": "vrg-birthday-party-bush-rose",
-    "sku": "VRG-ROSE-107",
-    "name": "Birthday Party Rose (Bush)",
-    "englishName": "Birthday Party Rose (Bush)",
-    "tamilName": "பர்த்டே பார்ட்டி ரோஜா (புதர்)",
-    "scientificName": "Rosa 'Birthday Party Bush'",
-    "categoryId": "cat-rose",
-    "categoryName": "Rose Varieties",
-    "description": "Bush-form celebratory pink-coral cluster rose that blooms copiously for garden borders.",
-    "mrp": 120,
-    "sellingPrice": 80,
-    "discount": 33,
-    "stock": 15,
-    "rating": 5.0,
-    "reviewCount": 18,
-    "images": [
-      "/products/vrg/birthday-party-bush-rose.png"
-    ],
-    "image": "/products/vrg/birthday-party-bush-rose.png",
-    "imageUrl": "/products/vrg/birthday-party-bush-rose.png",
-    "plantHeight": "2-3 Feet",
-    "potSize": "8 Inch Bag",
-    "sunlight": "Full Sun",
-    "waterRequirement": "Daily",
-    "floweringSeason": "All Year",
-    "careInstructions": {
-      "watering": "Water daily in the morning, avoid over-soaking soil.",
-      "sunlight": "Requires 4-6 hours direct sunlight.",
-      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
-      "soil": "Well-draining red soil mixed with 30% coco peat."
-    },
-    "featured": true,
-    "bestSeller": true,
-    "trending": true,
-    "tags": [
-      "rose varieties",
-      "birthday party rose (bush)"
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-16T12:00:00.000Z",
