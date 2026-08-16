@@ -5229,18 +5229,23 @@ class Store {
   }
 
   async addFinancialEntry(data: Partial<FinancialEntry>): Promise<FinancialEntry> {
+    const cost = Number(data.costAmount) || (data.type === 'EXPENSE' ? Number((data as any).amount) : 0) || 0;
+    const sell = Number(data.sellAmount) || (data.type === 'REVENUE' || (data.type as any) === 'INCOME' ? Number((data as any).amount) : 0) || 0;
+    const amountVal = (data as any).amount !== undefined ? Number((data as any).amount) : (data.type === 'EXPENSE' ? cost : sell);
+
     const entry: FinancialEntry = {
       id: 'fin-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
       type: data.type || 'EXPENSE',
-      title: (data.title || 'Nursery Expense').trim(),
+      title: (data.title || (data as any).description || 'Nursery Expense').trim(),
       category: data.category || 'Other',
-      costAmount: Number(data.costAmount) || 0,
-      sellAmount: Number(data.sellAmount) || 0,
+      costAmount: cost,
+      sellAmount: sell,
+      amount: amountVal,
       quantity: Math.max(1, Number(data.quantity) || 1),
-      notes: (data.notes || '').trim(),
+      notes: (data.notes || (data as any).description || '').trim(),
       date: data.date || new Date().toISOString().split('T')[0],
       createdAt: new Date().toISOString()
-    };
+    } as any;
     const updated = [entry, ...this.memoryFinances];
     this.memoryFinances = updated;
     saveDiskFinances(updated);
@@ -5260,17 +5265,22 @@ class Store {
     const list = [...this.memoryFinances];
     const idx = list.findIndex(f => f.id === id);
     if (idx !== -1) {
+      const cost = data.costAmount !== undefined ? Number(data.costAmount) : ((data as any).amount !== undefined && (data.type === 'EXPENSE' || list[idx].type === 'EXPENSE') ? Number((data as any).amount) : list[idx].costAmount);
+      const sell = data.sellAmount !== undefined ? Number(data.sellAmount) : ((data as any).amount !== undefined && (data.type === 'REVENUE' || (data.type as any) === 'INCOME' || list[idx].type === 'REVENUE') ? Number((data as any).amount) : list[idx].sellAmount);
+      const amountVal = (data as any).amount !== undefined ? Number((data as any).amount) : (data.costAmount !== undefined ? cost : (data.sellAmount !== undefined ? sell : (list[idx] as any).amount));
+
       list[idx] = {
         ...list[idx],
         ...(data.type ? { type: data.type } : {}),
-        ...(data.title ? { title: data.title.trim() } : {}),
+        ...(data.title ? { title: data.title.trim() } : ((data as any).description ? { title: (data as any).description.trim() } : {})),
         ...(data.category ? { category: data.category } : {}),
-        ...(data.costAmount !== undefined ? { costAmount: Number(data.costAmount) } : {}),
-        ...(data.sellAmount !== undefined ? { sellAmount: Number(data.sellAmount) } : {}),
+        costAmount: cost,
+        sellAmount: sell,
+        amount: amountVal,
         ...(data.quantity !== undefined ? { quantity: Number(data.quantity) } : {}),
-        ...(data.notes !== undefined ? { notes: data.notes } : {}),
+        ...(data.notes !== undefined ? { notes: data.notes } : ((data as any).description ? { notes: (data as any).description } : {})),
         ...(data.date ? { date: data.date } : {})
-      };
+      } as any;
       this.memoryFinances = list;
       saveDiskFinances(list);
       return list[idx];
@@ -6365,7 +6375,7 @@ class Store {
   }
 
   async addBanner(data: { title: string; subtitle?: string; imageUrl: string; targetCategory?: string; active?: boolean; order?: number }): Promise<Banner> {
-    const id = 'banner-' + Date.now();
+    const id = 'banner-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
     const newBanner: Banner = {
       id,
       title: data.title,
@@ -6385,8 +6395,17 @@ class Store {
 
     const prisma = getPrismaClient();
     if (prisma) {
-      prisma.banner.create({
-        data: {
+      prisma.banner.upsert({
+        where: { id },
+        update: {
+          title: data.title,
+          subtitle: data.subtitle || '',
+          imageUrl: data.imageUrl,
+          targetCategory: data.targetCategory || '',
+          active: data.active !== false,
+          order: data.order || 1
+        },
+        create: {
           id,
           title: data.title,
           subtitle: data.subtitle || '',

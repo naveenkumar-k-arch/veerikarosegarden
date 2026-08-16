@@ -241,6 +241,7 @@ apiRouter.get('/admin/categories', requireAdmin, async (req: AuthenticatedReques
 apiRouter.post('/categories', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const category = await db.addCategory(req.body);
+    invalidateBootstrapCache();
     res.status(201).json({ success: true, category, message: 'Category created successfully' });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -250,6 +251,7 @@ apiRouter.post('/categories', requireAdmin, async (req: AuthenticatedRequest, re
 apiRouter.post('/admin/categories', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const category = await db.addCategory(req.body);
+    invalidateBootstrapCache();
     res.status(201).json({ success: true, category, message: 'Category created successfully' });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -262,6 +264,19 @@ apiRouter.put('/admin/categories/:id', requireAdmin, async (req: AuthenticatedRe
     if (!category) {
       return res.status(404).json({ success: false, message: 'Category not found' });
     }
+    invalidateBootstrapCache();
+    res.json({ success: true, category, message: 'Category updated successfully' });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+apiRouter.put('/categories/:id', requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const category = await db.updateCategory(req.params.id, req.body);
+    if (!category) {
+      return res.status(404).json({ success: false, message: 'Category not found' });
+    }
+    invalidateBootstrapCache();
     res.json({ success: true, category, message: 'Category updated successfully' });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -274,6 +289,7 @@ apiRouter.delete('/admin/categories/all', requireAdmin, async (req: Authenticate
       return res.status(400).json({ success: false, message: 'Bulk deletion requires explicit confirmation parameter (?confirm=CONFIRM_DELETE_ALL).' });
     }
     await db.deleteAllCategories();
+    invalidateBootstrapCache();
     res.json({ success: true, message: 'All categories removed successfully' });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
@@ -299,6 +315,32 @@ apiRouter.delete('/admin/categories/:id', requireAdmin, async (req: Authenticate
       return res.status(400).json({ success: false, message: result.message });
     }
 
+    invalidateBootstrapCache();
+    res.json({ success: true, message: 'Category deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
+  }
+});
+apiRouter.delete('/categories/:id', requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const force = req.query.force === 'true';
+    const targetCategoryId = req.query.targetCategoryId as string | undefined;
+    const result = await db.deleteCategory(req.params.id, { force, targetCategoryId });
+
+    if (!result.success && result.hasProducts) {
+      return res.status(400).json({
+        success: false,
+        code: 'HAS_PRODUCTS',
+        productCount: result.productCount,
+        message: result.message
+      });
+    }
+
+    if (!result.success) {
+      return res.status(400).json({ success: false, message: result.message });
+    }
+
+    invalidateBootstrapCache();
     res.json({ success: true, message: 'Category deleted successfully' });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
@@ -309,8 +351,8 @@ apiRouter.delete('/admin/categories/:id', requireAdmin, async (req: Authenticate
 const DEFAULT_BANNERS = [
   {
     id: 'banner-1',
-    title: 'ðŸŒ¸ Premium Rose Plants â€“ Direct from Our Farm',
-    subtitle: 'Hybrid & Rare Varieties. Free Shipping above â‚¹499.',
+    title: '🌸 Premium Rose Plants – Direct from Our Farm',
+    subtitle: 'Hybrid & Rare Varieties. Free Shipping above ₹499.',
     imageUrl: 'https://images.unsplash.com/photo-1502977249166-824b3a8a4d6d?auto=format&fit=crop&w=1200&q=80',
     targetCategory: 'Rose Varieties',
     active: true,
@@ -318,8 +360,8 @@ const DEFAULT_BANNERS = [
   },
   {
     id: 'banner-2',
-    title: 'ðŸŒ¿ Fresh Jasmine & Herbal Plants',
-    subtitle: 'Jadhi Malli, Ramar Malli & More â€“ Grown with Love',
+    title: '🌿 Fresh Jasmine & Herbal Plants',
+    subtitle: 'Jadhi Malli, Ramar Malli & More – Grown with Love',
     imageUrl: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=1200&q=80',
     targetCategory: 'Jasmine Varieties',
     active: true,
@@ -327,8 +369,8 @@ const DEFAULT_BANNERS = [
   },
   {
     id: 'banner-3',
-    title: 'ðŸŒ¹ Rare & Exotic Roses Collection',
-    subtitle: 'Black Magic, Moncou & Tiger Rose â€“ Limited Stock!',
+    title: '🌹 Rare & Exotic Roses Collection',
+    subtitle: 'Black Magic, Moncou & Tiger Rose – Limited Stock!',
     imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1200&q=80',
     targetCategory: 'Rare & Exotic Roses',
     active: true,
@@ -353,6 +395,7 @@ apiRouter.get('/banners', async (req, res) => {
 const handleCreateBanner = async (req: AuthenticatedRequest, res: express.Response) => {
   try {
     const banner = await db.addBanner(req.body);
+    invalidateBootstrapCache();
     res.status(201).json({ success: true, banner, message: 'Banner created successfully' });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -368,6 +411,7 @@ const handleUpdateBanner = async (req: AuthenticatedRequest, res: express.Respon
     if (!id) return res.status(400).json({ success: false, message: 'Banner ID required' });
     const banner = await db.updateBanner(id, req.body);
     if (!banner) return res.status(404).json({ success: false, message: 'Banner not found' });
+    invalidateBootstrapCache();
     res.json({ success: true, banner, message: 'Banner updated successfully' });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -383,6 +427,7 @@ const handleDeleteBanner = async (req: AuthenticatedRequest, res: express.Respon
     const id = req.params?.id || req.body?.id || (req.query?.id as string);
     if (!id) return res.status(400).json({ success: false, message: 'Banner ID is required' });
     await db.deleteBanner(String(id));
+    invalidateBootstrapCache();
     res.json({ success: true, message: `Banner #${id} deleted successfully` });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
@@ -508,6 +553,7 @@ apiRouter.post('/coupons', requireAdmin, validateBody(couponSchema), async (req:
       expiryDate: rawExpiry,
       active: req.body.isActive !== false
     });
+    invalidateBootstrapCache();
     res.status(201).json({ success: true, coupon });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -521,6 +567,7 @@ const handleDeleteCoupon = async (req: AuthenticatedRequest, res: express.Respon
       return res.status(400).json({ success: false, message: 'Coupon ID or code is required for deletion' });
     }
     await db.deleteCoupon(String(id));
+    invalidateBootstrapCache();
     res.json({ success: true, message: `Coupon '${id}' deleted successfully` });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
@@ -553,6 +600,7 @@ const handleUpdateCoupon = async (req: AuthenticatedRequest, res: express.Respon
 
     const coupon = await db.updateCoupon(id, updates);
     if (!coupon) return res.status(404).json({ success: false, message: 'Coupon not found' });
+    invalidateBootstrapCache();
     res.json({ success: true, coupon, message: 'Coupon updated successfully' });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message || 'Failed to update coupon' });
@@ -578,6 +626,7 @@ apiRouter.get('/combos', async (req, res) => {
 const handleAddCombo = async (req: AuthenticatedRequest, res: express.Response) => {
   try {
     const combo = await db.addCombo(req.body);
+    invalidateBootstrapCache();
     res.status(201).json({ success: true, combo, message: 'Plant combo package created successfully' });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -588,6 +637,7 @@ const handleUpdateCombo = async (req: AuthenticatedRequest, res: express.Respons
   try {
     const updated = await db.updateCombo(req.params.id, req.body);
     if (!updated) return res.status(404).json({ success: false, message: 'Combo not found' });
+    invalidateBootstrapCache();
     res.json({ success: true, combo: updated, message: 'Combo package updated successfully' });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -604,6 +654,7 @@ const handleDeleteCombo = async (req: AuthenticatedRequest, res: express.Respons
     const id = req.params.id || req.body?.id;
     if (!id) return res.status(400).json({ success: false, message: 'Combo ID is required' });
     await db.deleteCombo(id);
+    invalidateBootstrapCache();
     res.json({ success: true, message: 'Combo package deleted successfully' });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to delete combo package' });
@@ -634,6 +685,7 @@ apiRouter.get('/reviews', async (req, res) => {
 apiRouter.post('/reviews', async (req, res) => {
   try {
     const review = await db.addReview(req.body);
+    invalidateBootstrapCache();
     res.status(201).json({ success: true, review, message: 'Review submitted successfully!' });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -643,6 +695,7 @@ apiRouter.post('/reviews', async (req, res) => {
 apiRouter.post('/admin/reviews', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const review = await db.addReview(req.body);
+    invalidateBootstrapCache();
     res.status(201).json({ success: true, review, message: 'Review created successfully' });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -655,6 +708,7 @@ apiRouter.put('/admin/reviews/:id', requireAdmin, async (req: AuthenticatedReque
     if (!review) {
       return res.status(404).json({ success: false, message: 'Review not found' });
     }
+    invalidateBootstrapCache();
     res.json({ success: true, review, message: 'Review updated successfully' });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -664,6 +718,7 @@ apiRouter.put('/admin/reviews/:id', requireAdmin, async (req: AuthenticatedReque
 apiRouter.delete('/admin/reviews/:id', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     await db.deleteReview(req.params.id);
+    invalidateBootstrapCache();
     res.json({ success: true, message: 'Review deleted successfully' });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
@@ -673,6 +728,7 @@ apiRouter.delete('/admin/reviews/:id', requireAdmin, async (req: AuthenticatedRe
 apiRouter.delete('/reviews/:id', async (req, res) => {
   try {
     await db.deleteReview(req.params.id);
+    invalidateBootstrapCache();
     res.json({ success: true, message: 'Review deleted successfully' });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
@@ -1318,6 +1374,7 @@ apiRouter.put('/admin/orders/:id/status', requireAdmin, async (req: Authenticate
   try {
     const { orderStatus, trackingNumber, courierName, paymentStatus, paymentProofUrl } = req.body;
     const order = await db.updateOrderStatus(req.params.id, orderStatus, trackingNumber, courierName, paymentStatus, paymentProofUrl);
+    invalidateBootstrapCache();
     res.json({ success: true, order, message: 'Order status updated successfully' });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
@@ -1330,6 +1387,7 @@ const handleDeleteOrderRoute = async (req: AuthenticatedRequest, res: express.Re
     const id = req.params?.id || req.body?.id || req.body?.orderId;
     if (!id) return res.status(400).json({ success: false, message: 'Order ID is required' });
     await db.deleteOrder(String(id));
+    invalidateBootstrapCache();
     res.json({ success: true, message: `Order #${id} deleted successfully` });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
@@ -1866,6 +1924,7 @@ apiRouter.get('/admin/finances', requireAdmin, async (req: AuthenticatedRequest,
 apiRouter.post('/admin/finances', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const entry = await db.addFinancialEntry(req.body);
+    invalidateBootstrapCache();
     res.status(201).json({ success: true, entry, message: 'Financial entry recorded successfully!' });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -1879,6 +1938,7 @@ const handleDeleteFinance = async (req: AuthenticatedRequest, res: express.Respo
       return res.status(400).json({ success: false, message: 'ID required for finance entry deletion' });
     }
     const deleted = await db.deleteFinancialEntry(id);
+    invalidateBootstrapCache();
     res.json({ success: true, deleted, message: 'Financial entry removed successfully' });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -1899,6 +1959,7 @@ const handleUpdateFinance = async (req: AuthenticatedRequest, res: express.Respo
     if (!updated) {
       return res.status(404).json({ success: false, message: 'Financial entry not found' });
     }
+    invalidateBootstrapCache();
     res.json({ success: true, entry: updated, message: 'Financial entry updated successfully!' });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -1964,6 +2025,7 @@ const handleUpdateSettings = async (req: AuthenticatedRequest, res: express.Resp
       delete body.razorpayKeySecret;
     }
     const updated = await db.updateSettings(body);
+    invalidateBootstrapCache();
     // Return masked version so we never round-trip the real secret back to the client
     const safeUpdated = {
       ...updated,
