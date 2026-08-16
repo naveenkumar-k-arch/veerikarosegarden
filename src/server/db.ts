@@ -7524,33 +7524,15 @@ class Store {
 
     if (prisma) {
       try {
-        const pIds = items.map(i => i.productId);
+        const defaultProd = await prisma.product.findFirst({ select: { id: true } }).catch(() => null);
+        const fallbackId = defaultProd?.id || 'prod-rose-01';
+
+        const pIds = items.map(i => i.productId).filter(Boolean);
         const existingProds = await prisma.product.findMany({
           where: { id: { in: pIds } },
           select: { id: true }
         }).catch(() => []);
         const existingSet = new Set(existingProds.map(p => p.id));
-        const missingItems = items.filter(i => !existingSet.has(i.productId));
-        if (missingItems.length > 0) {
-          await Promise.all(missingItems.map(item => {
-            const uniqueSku = item.sku || `WA-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
-            return prisma.product.create({
-              data: {
-                id: item.productId,
-                sku: uniqueSku,
-                name: item.name,
-                nameTamil: item.tamilName || item.name,
-                price: item.price,
-                originalPrice: item.mrp || item.price,
-                category: 'WhatsApp Orders',
-                categoryId: null,
-                image: item.image || '/products/double-delight.jpeg',
-                description: 'WhatsApp Custom Ordered Plant',
-                inventory: { create: { quantity: 100 } }
-              }
-            }).catch(() => null);
-          }));
-        }
 
         await prisma.order.create({
           data: {
@@ -7572,7 +7554,7 @@ class Store {
             trackingNumber: order.trackingNumber || null,
             items: {
               create: items.map(it => ({
-                productId: it.productId,
+                productId: existingSet.has(it.productId) ? it.productId : fallbackId,
                 productName: it.name,
                 price: it.price,
                 quantity: it.quantity,
