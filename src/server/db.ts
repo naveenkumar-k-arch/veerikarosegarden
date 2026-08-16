@@ -5526,15 +5526,55 @@ class Store {
 
         newProd.createdAt = created.createdAt.toISOString();
         newProd.updatedAt = created.updatedAt.toISOString();
-      } catch (err) {
+      } catch (err: any) {
         console.error('Prisma addProduct error:', err);
+        // If duplicate SKU collision, retry with guaranteed unique timestamp SKU
+        if (err?.code === 'P2002' || (err?.message && err.message.includes('sku'))) {
+          try {
+            const fallbackSku = `VRG-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 1000)}`;
+            newProd.sku = fallbackSku;
+            const retryCreated = await prisma.product.create({
+              data: {
+                id,
+                sku: fallbackSku,
+                name: product.name,
+                nameTamil: product.tamilName || product.name,
+                scientificName: product.scientificName || '',
+                category: product.categoryName || 'Roses',
+                categoryId: validCategoryId,
+                description: product.description || '',
+                price: Number(product.sellingPrice) || 0,
+                originalPrice: Number(product.mrp) || Number(product.sellingPrice) || 0,
+                image: cleanImages[0],
+                images: cleanImages,
+                isFeatured: Boolean(product.featured),
+                isBestSeller: Boolean(product.bestSeller),
+                potSize: product.potSize || '8 Inch Bag',
+                inStock: (product.stock ?? 25) > 0,
+                careWatering: typeof product.careInstructions === 'object' ? product.careInstructions?.watering || 'Daily' : 'Daily',
+                careSunlight: typeof product.careInstructions === 'object' ? product.careInstructions?.sunlight || 'Full Sun' : 'Full Sun',
+                careFertilizer: typeof product.careInstructions === 'object' ? product.careInstructions?.fertilizer || 'Organic compost' : 'Organic compost',
+                careSoil: typeof product.careInstructions === 'object' ? product.careInstructions?.soil || 'Red soil' : 'Red soil',
+                inventory: {
+                  create: {
+                    quantity: Number(product.stock) >= 0 ? Number(product.stock) : 50
+                  }
+                }
+              }
+            });
+            newProd.createdAt = retryCreated.createdAt.toISOString();
+            newProd.updatedAt = retryCreated.updatedAt.toISOString();
+          } catch (retryErr) {
+            console.error('Prisma addProduct retry failed:', retryErr);
+          }
+        }
       }
     }
 
     // Always maintain in DEFAULT_PRODUCTS memory array and update productsCache
     DEFAULT_PRODUCTS.unshift(newProd);
     if (this.productsCache && Array.isArray(this.productsCache.data)) {
-      this.productsCache.data = [newProd, ...this.productsCache.data.filter(p => p.id !== newProd.id)];
+      this.productsCache.data = [newProd, ...this.productsCache.data.filter(p => p.id !== newProd.id && p.sku !== newProd.sku)];
       this.productsCache.expiresAt = Date.now() + 300000;
     }
     return newProd;

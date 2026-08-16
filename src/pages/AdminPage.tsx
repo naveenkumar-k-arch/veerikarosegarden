@@ -138,6 +138,43 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
     return null;
   };
 
+  const getPendingSavedProducts = (): Map<string, { product: Product; savedAt: number }> => {
+    const map = new Map<string, { product: Product; savedAt: number }>();
+    try {
+      const raw = sessionStorage.getItem('vrg_pending_saved_products');
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) {
+          const now = Date.now();
+          arr.forEach((item: any) => {
+            if (item && item.product && item.savedAt && (now - item.savedAt < 90000)) {
+              map.set(item.product.id, item);
+            }
+          });
+        }
+      }
+    } catch {}
+    return map;
+  };
+
+  const savePendingProductToSession = (product: Product) => {
+    try {
+      const map = getPendingSavedProducts();
+      map.set(product.id, { product, savedAt: Date.now() });
+      const arr = Array.from(map.values());
+      sessionStorage.setItem('vrg_pending_saved_products', JSON.stringify(arr));
+    } catch {}
+  };
+
+  const clearPendingProductFromSession = (productId: string) => {
+    try {
+      const map = getPendingSavedProducts();
+      map.delete(productId);
+      const arr = Array.from(map.values());
+      sessionStorage.setItem('vrg_pending_saved_products', JSON.stringify(arr));
+    } catch {}
+  };
+
   const persistAdminCache = (updater: (prev: any) => any) => {
     try {
       const raw = sessionStorage.getItem('vrg_admin_session_cache') || localStorage.getItem('vrg_admin_persisted_cache');
@@ -153,15 +190,22 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
 
   const [stats, setStats] = useState<any>(() => initialCache?.stats || null);
   const [products, setProducts] = useState<Product[]>(() => {
-    if (Array.isArray(initialCache?.products) && initialCache.products.length > 0) return initialCache.products;
-    try {
-      const saved = localStorage.getItem('vrg_products');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {}
-    return INITIAL_PRODUCTS;
+    const pending = Array.from(getPendingSavedProducts().values()).map(x => x.product);
+    let baseList: Product[] = INITIAL_PRODUCTS;
+    if (Array.isArray(initialCache?.products) && initialCache.products.length > 0) {
+      baseList = initialCache.products;
+    } else {
+      try {
+        const saved = localStorage.getItem('vrg_products');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) baseList = parsed;
+        }
+      } catch {}
+    }
+    const baseIds = new Set(baseList.map(p => p.id));
+    const toPrepend = pending.filter(p => !baseIds.has(p.id));
+    return [...toPrepend, ...baseList];
   });
   const [categories, setCategories] = useState<Category[]>(() => {
     if (Array.isArray(initialCache?.categories) && initialCache.categories.length > 0) return initialCache.categories;
@@ -678,7 +722,7 @@ const silentRefresh = async (): Promise<boolean> => {
 
   const fetchData = async () => {
     try {
-      const bRes = await authFetch('/api/admin/bootstrap').then((r) => r.json()).catch(() => null);
+      const bRes = await authFetch('/api/admin/bootstrap?fresh=true').then((r) => r.json()).catch(() => null);
 
       if (bRes?.success) {
         if (bRes.stats) setStats(bRes.stats);
@@ -702,9 +746,19 @@ const silentRefresh = async (): Promise<boolean> => {
         if (Array.isArray(bRes.products) && bRes.products.length > 0) {
           const now = Date.now();
           const deletedProdSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_products') || '[]'));
+          const pendingMap = getPendingSavedProducts();
           setProducts(prev => {
             let filtered = bRes.products.filter((p: Product) => !deletedProdSet.has(p.id) && !deletedProdSet.has(p.sku));
             
+            // Prune pending products that the server has now returned
+            const serverIds = new Set(filtered.map(p => p.id));
+            const serverSkus = new Set(filtered.map(p => p.sku));
+            pendingMap.forEach((item, pid) => {
+              if (serverIds.has(pid) || (item.product.sku && serverSkus.has(item.product.sku))) {
+                clearPendingProductFromSession(pid);
+              }
+            });
+
             // Merge stock overrides for recently-edited products
             filtered = filtered.map((apiProd: Product) => {
               const editedAt = pendingStockRef.current.get(apiProd.id);
@@ -715,14 +769,10 @@ const silentRefresh = async (): Promise<boolean> => {
               return apiProd;
             });
 
-            // Merge recently-saved products that the server hasn't returned yet
+            // Merge any remaining pending products from sessionStorage
             const filteredIds = new Set(filtered.map((p: Product) => p.id));
-            pendingProductsRef.current.forEach(({ product, savedAt }, id) => {
-              if (now - savedAt > 60000) {
-                pendingProductsRef.current.delete(id);
-                return;
-              }
-              if (!filteredIds.has(id) && !deletedProdSet.has(id)) {
+            pendingMap.forEach(({ product, savedAt }, id) => {
+              if (now - savedAt < 90000 && !filteredIds.has(id) && !deletedProdSet.has(id)) {
                 filtered.unshift(product);
               }
             });
@@ -960,9 +1010,10 @@ const silentRefresh = async (): Promise<boolean> => {
       setProductSaving(false);
       toast.success(`Plant "${payload.name}" saved successfully!`, 'Product Saved');
 
-      // Register saved product so polling doesn't overwrite it with stale server data
+      // Register saved product in session storage so refresh NEVER drops it
+      savePendingProductToSession(savedProd);
       pendingProductsRef.current.set(savedProd.id, { product: savedProd, savedAt: Date.now() });
-      setTimeout(() => pendingProductsRef.current.delete(savedProd.id), 60000);
+      setTimeout(() => pendingProductsRef.current.delete(savedProd.id), 90000);
 
       try {
         window.dispatchEvent(new CustomEvent('vrg_products_updated', { detail: updatedProductsList }));
@@ -1686,16 +1737,19 @@ const silentRefresh = async (): Promise<boolean> => {
               let updatedList: Product[] = [];
               if (data && data.success && data.product) {
                 const savedProd = data.product;
+                savePendingProductToSession(savedProd);
                 setProducts(prev => {
                   const next = isEdit
                     ? prev.map(p => p.id === prod.id ? { ...p, ...savedProd } as Product : p)
                     : [{ ...savedProd } as Product, ...prev.filter(p => p.sku !== payload.sku && p.id !== savedProd.id)];
                   updatedList = next;
+                  persistAdminCache(c => ({ ...c, products: next }));
                   try {
-                    const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
-                    cached.products = next;
-                    localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
                     localStorage.setItem('vrg_products', JSON.stringify(next));
+                    const deletedSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_products') || '[]'));
+                    if (savedProd.id) deletedSet.delete(savedProd.id);
+                    if (savedProd.sku) deletedSet.delete(savedProd.sku);
+                    localStorage.setItem('vrg_deleted_products', JSON.stringify(Array.from(deletedSet)));
                   } catch {}
                   return next;
                 });

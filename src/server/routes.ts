@@ -1104,7 +1104,8 @@ function sanitizeBootstrapOrders(ords: any[]): any[] {
 apiRouter.get('/admin/bootstrap', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const now = Date.now();
-    if (bootstrapCache.data && now < bootstrapCache.expiresAt) {
+    const isFresh = req.query.fresh === 'true' || req.headers['cache-control'] === 'no-cache';
+    if (!isFresh && bootstrapCache.data && now < bootstrapCache.expiresAt) {
       res.setHeader('Cache-Control', 'no-store');
       res.setHeader('X-Bootstrap-Cache', 'HIT');
       return res.json(bootstrapCache.data);

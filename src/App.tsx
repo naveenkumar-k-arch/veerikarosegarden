@@ -340,9 +340,32 @@ export const App: React.FC = () => {
       ]);
 
       if (pRes?.success && Array.isArray(pRes.products) && pRes.products.length > 0) {
-        setProducts(pRes.products);
+        let serverProds: Product[] = pRes.products;
         try {
-          localStorage.setItem('vrg_products', JSON.stringify(pRes.products));
+          const rawPending = sessionStorage.getItem('vrg_pending_saved_products');
+          if (rawPending) {
+            const arr = JSON.parse(rawPending);
+            if (Array.isArray(arr)) {
+              const now = Date.now();
+              const serverIds = new Set(serverProds.map(p => p.id));
+              const serverSkus = new Set(serverProds.map(p => p.sku));
+              const toPrepend: Product[] = [];
+              arr.forEach((item: any) => {
+                if (item && item.product && item.savedAt && (now - item.savedAt < 90000)) {
+                  if (!serverIds.has(item.product.id) && (!item.product.sku || !serverSkus.has(item.product.sku))) {
+                    toPrepend.push(item.product);
+                  }
+                }
+              });
+              if (toPrepend.length > 0) {
+                serverProds = [...toPrepend, ...serverProds];
+              }
+            }
+          }
+        } catch {}
+        setProducts(serverProds);
+        try {
+          localStorage.setItem('vrg_products', JSON.stringify(serverProds));
         } catch {}
       }
       if (cRes?.success && Array.isArray(cRes.categories) && cRes.categories.length > 0) {
