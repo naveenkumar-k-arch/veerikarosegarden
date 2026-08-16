@@ -838,16 +838,7 @@ const silentRefresh = async (): Promise<boolean> => {
 
         if (cbRes?.success && Array.isArray(cbRes.combos)) {
           const deletedComboSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_combos') || '[]'));
-          setCombos(prev => {
-            const serverMap = new Map(cbRes.combos.map((c: Combo) => [c.id, c]));
-            const merged = cbRes.combos.filter((c: Combo) => !deletedComboSet.has(c.id));
-            prev.forEach(localC => {
-              if (!deletedComboSet.has(localC.id) && !serverMap.has(localC.id)) {
-                merged.unshift(localC);
-              }
-            });
-            return merged;
-          });
+          setCombos(cbRes.combos.filter((c: Combo) => !deletedComboSet.has(c.id)));
         }
         if (pRes?.success && Array.isArray(pRes.products)) {
           const deletedProdSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_products') || '[]'));
