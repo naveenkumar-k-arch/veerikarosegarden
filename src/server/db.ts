@@ -5621,7 +5621,7 @@ class Store {
 
     if (prisma) {
       try {
-        await prisma.product.upsert({
+        const p = await prisma.product.upsert({
           where: { id },
           update: {
             ...(updates.name ? { name: updates.name } : {}),
@@ -5663,7 +5663,8 @@ class Store {
             careSunlight: updates.careInstructions?.sunlight || 'Requires 5 hours direct sunlight.',
             careFertilizer: updates.careInstructions?.fertilizer || 'Apply vermicompost every 15 days.',
             careSoil: updates.careInstructions?.soil || 'Red soil mixed with coco peat.'
-          }
+          },
+          include: { inventory: true }
         });
 
         if (updates.stock !== undefined) {
@@ -5674,66 +5675,111 @@ class Store {
           }).catch(() => {});
         }
 
+        prismaUpdated = {
+          id: p.id,
+          sku: p.sku || `VRG-${p.id.slice(0, 6).toUpperCase()}`,
+          name: p.name,
+          englishName: p.name,
+          tamilName: p.nameTamil || p.name,
+          scientificName: p.scientificName || '',
+          categoryId: p.categoryId || (p.category ? (p.category.toLowerCase().includes('rose') && !p.category.toLowerCase().includes('creeper') && !p.category.toLowerCase().includes('miniature') && !p.category.toLowerCase().includes('rare') ? 'cat-rose' : `cat-${p.category.toLowerCase().replace(/\s+/g, '-')}`) : 'cat-rose'),
+          categoryName: p.category,
+          description: p.description || '',
+          mrp: p.originalPrice || p.price,
+          sellingPrice: p.price,
+          discount: p.originalPrice > 0 ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100) : 0,
+          images: p.images && p.images.length > 0 ? p.images : (p.image ? [p.image] : []),
+          rating: p.rating || 5.0,
+          reviewCount: p.reviewsCount || 0,
+          stock: updates.stock !== undefined ? Number(updates.stock) : (p.inventory?.quantity ?? 50),
+          plantHeight: updates.plantHeight || '1.5 - 2 Feet',
+          potSize: p.potSize || updates.potSize || '8 Inch Bag',
+          sunlight: (p.careSunlight as any) || updates.sunlight || 'Full Sun',
+          waterRequirement: (p.careWatering as any) || updates.waterRequirement || 'Daily',
+          floweringSeason: updates.floweringSeason || 'All Year',
+          careInstructions: {
+            watering: p.careWatering || updates.careInstructions?.watering || 'Water daily in the morning.',
+            sunlight: p.careSunlight || updates.careInstructions?.sunlight || 'Requires 5 hours direct sunlight.',
+            fertilizer: p.careFertilizer || updates.careInstructions?.fertilizer || 'Organic compost',
+            soil: p.careSoil || updates.careInstructions?.soil || 'Red soil'
+          },
+          featured: Boolean(p.isFeatured),
+          bestSeller: Boolean(p.isBestSeller),
+          trending: true,
+          tags: [p.category.toLowerCase()],
+          status: 'ACTIVE' as const,
+          createdAt: p.createdAt.toISOString(),
+          updatedAt: p.updatedAt.toISOString()
+        };
       } catch (err) {
         console.warn('Prisma updateProduct fallback notice:', err);
       }
     }
 
-    // Always update or add in DEFAULT_PRODUCTS
     let finalUpdatedProduct: Product;
-    const defIndex = DEFAULT_PRODUCTS.findIndex(p => p.id === id);
-    if (defIndex !== -1) {
-      DEFAULT_PRODUCTS[defIndex] = {
-        ...DEFAULT_PRODUCTS[defIndex],
-        ...normalizedUpdates,
-        updatedAt: new Date().toISOString()
-      };
-      finalUpdatedProduct = DEFAULT_PRODUCTS[defIndex];
+    if (prismaUpdated) {
+      finalUpdatedProduct = prismaUpdated;
+      const defIndex = DEFAULT_PRODUCTS.findIndex(p => p.id === id || p.sku === id);
+      if (defIndex !== -1) {
+        DEFAULT_PRODUCTS[defIndex] = finalUpdatedProduct;
+      } else {
+        DEFAULT_PRODUCTS.unshift(finalUpdatedProduct);
+      }
     } else {
-      const updatedItem: Product = {
-        id,
-        sku: updates.sku || `VRG-${id.slice(-6).toUpperCase()}`,
-        name: updates.name || 'Plant',
-        englishName: updates.englishName || updates.name || 'Plant',
-        tamilName: updates.tamilName || updates.name || '',
-        scientificName: updates.scientificName || '',
-        categoryName: updates.categoryName || 'Roses',
-        categoryId: updates.categoryId || 'cat-roses',
-        description: updates.description || '',
-        mrp: Number(updates.mrp) || Number(updates.sellingPrice) || 199,
-        sellingPrice: Number(updates.sellingPrice) || 199,
-        discount: Number(updates.discount) || 0,
-        stock: Number(updates.stock) >= 0 ? Number(updates.stock) : 25,
-        rating: 5,
-        reviewCount: 0,
-        images: cleanImages || updates.images || [],
-        featured: Boolean(updates.featured),
-        bestSeller: Boolean(updates.bestSeller),
-        trending: Boolean(updates.trending),
-        tags: updates.tags || [],
-        status: updates.status || 'ACTIVE',
-        careInstructions: updates.careInstructions || {
-          watering: 'Water daily in the morning.',
-          sunlight: 'Requires 5 hours direct sunlight.',
-          fertilizer: 'Apply vermicompost every 15 days.',
-          soil: 'Red soil mixed with coco peat.'
-        },
-        plantHeight: updates.plantHeight || '1-2 Feet',
-        potSize: updates.potSize || '8 Inch Bag',
-        sunlight: updates.sunlight || 'Full Sun',
-        waterRequirement: updates.waterRequirement || 'Daily',
-        floweringSeason: updates.floweringSeason || 'All Year',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        ...normalizedUpdates
-      };
-      DEFAULT_PRODUCTS.unshift(updatedItem);
-      finalUpdatedProduct = updatedItem;
+      const defIndex = DEFAULT_PRODUCTS.findIndex(p => p.id === id || p.sku === id);
+      if (defIndex !== -1) {
+        DEFAULT_PRODUCTS[defIndex] = {
+          ...DEFAULT_PRODUCTS[defIndex],
+          ...normalizedUpdates,
+          updatedAt: new Date().toISOString()
+        };
+        finalUpdatedProduct = DEFAULT_PRODUCTS[defIndex];
+      } else {
+        const updatedItem: Product = {
+          id,
+          sku: updates.sku || `VRG-${id.slice(-6).toUpperCase()}`,
+          name: updates.name || 'Plant',
+          englishName: updates.englishName || updates.name || 'Plant',
+          tamilName: updates.tamilName || updates.name || '',
+          scientificName: updates.scientificName || '',
+          categoryName: updates.categoryName || 'Roses',
+          categoryId: updates.categoryId || 'cat-roses',
+          description: updates.description || '',
+          mrp: Number(updates.mrp) || Number(updates.sellingPrice) || 199,
+          sellingPrice: Number(updates.sellingPrice) || 199,
+          discount: Number(updates.discount) || 0,
+          stock: Number(updates.stock) >= 0 ? Number(updates.stock) : 25,
+          rating: 5,
+          reviewCount: 0,
+          images: cleanImages || updates.images || [],
+          featured: Boolean(updates.featured),
+          bestSeller: Boolean(updates.bestSeller),
+          trending: Boolean(updates.trending),
+          tags: updates.tags || [],
+          status: updates.status || 'ACTIVE',
+          careInstructions: updates.careInstructions || {
+            watering: 'Water daily in the morning.',
+            sunlight: 'Requires 5 hours direct sunlight.',
+            fertilizer: 'Apply vermicompost every 15 days.',
+            soil: 'Red soil mixed with coco peat.'
+          },
+          plantHeight: updates.plantHeight || '1-2 Feet',
+          potSize: updates.potSize || '8 Inch Bag',
+          sunlight: updates.sunlight || 'Full Sun',
+          waterRequirement: updates.waterRequirement || 'Daily',
+          floweringSeason: updates.floweringSeason || 'All Year',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          ...normalizedUpdates
+        };
+        DEFAULT_PRODUCTS.unshift(updatedItem);
+        finalUpdatedProduct = updatedItem;
+      }
     }
 
     // Sync in-memory productsCache so immediate reads return updated image without stale read
     if (this.productsCache && Array.isArray(this.productsCache.data)) {
-      const cIdx = this.productsCache.data.findIndex(p => p.id === id);
+      const cIdx = this.productsCache.data.findIndex(p => p.id === id || p.sku === id);
       if (cIdx !== -1) {
         this.productsCache.data[cIdx] = {
           ...this.productsCache.data[cIdx],
@@ -5786,15 +5832,6 @@ class Store {
     const prisma = getPrismaClient();
     if (prisma) {
       try {
-        // Parallel deletion of all dependent child records in 1 roundtrip cycle
-        await Promise.all([
-          prisma.inventory.deleteMany({ where: { productId: cleanId } }).catch(() => {}),
-          prisma.cartItem.deleteMany({ where: { productId: cleanId } }).catch(() => {}),
-          prisma.wishlistItem.deleteMany({ where: { productId: cleanId } }).catch(() => {}),
-          prisma.review.deleteMany({ where: { productId: cleanId } }).catch(() => {}),
-          prisma.image.deleteMany({ where: { productId: cleanId } }).catch(() => {}),
-          prisma.orderItem.deleteMany({ where: { productId: cleanId } }).catch(() => {})
-        ]);
         await prisma.product.deleteMany({
           where: {
             OR: [

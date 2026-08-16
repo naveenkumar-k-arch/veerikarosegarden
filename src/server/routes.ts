@@ -14,6 +14,7 @@ import { checkoutLimiter } from './middleware/security.js';
 import {
   createOrderSchema,
   productSchema,
+  updateProductSchema,
   reviewSchema,
   couponSchema,
   updateOrderStatusSchema
@@ -101,9 +102,11 @@ apiRouter.post('/products', requireAdmin, validateBody(productSchema), async (re
   }
 });
 
-apiRouter.put('/products/:id', requireAdmin, validateBody(productSchema.partial()), async (req: AuthenticatedRequest, res) => {
+const handleUpdateProductRoute = async (req: AuthenticatedRequest, res: express.Response) => {
   try {
-    const updated = await db.updateProduct(req.params.id, req.body);
+    const id = req.params?.id || req.body?.id || req.body?.productId;
+    if (!id) return res.status(400).json({ success: false, message: 'Product ID is required' });
+    const updated = await db.updateProduct(String(id), req.body);
     if (!updated) {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
@@ -112,7 +115,14 @@ apiRouter.put('/products/:id', requireAdmin, validateBody(productSchema.partial(
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
   }
-});
+};
+
+apiRouter.put('/products/:id', requireAdmin, validateBody(updateProductSchema), handleUpdateProductRoute);
+apiRouter.put('/admin/products/:id', requireAdmin, validateBody(updateProductSchema), handleUpdateProductRoute);
+apiRouter.patch('/products/:id', requireAdmin, validateBody(updateProductSchema), handleUpdateProductRoute);
+apiRouter.patch('/admin/products/:id', requireAdmin, validateBody(updateProductSchema), handleUpdateProductRoute);
+apiRouter.post('/products/:id/update', requireAdmin, validateBody(updateProductSchema), handleUpdateProductRoute);
+apiRouter.post('/admin/products/:id/update', requireAdmin, validateBody(updateProductSchema), handleUpdateProductRoute);
 
 apiRouter.delete('/products/all', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {

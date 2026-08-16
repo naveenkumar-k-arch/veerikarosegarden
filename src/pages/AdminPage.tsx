@@ -760,8 +760,12 @@ const silentRefresh = async (): Promise<boolean> => {
               }
             });
 
-            // Merge stock overrides for recently-edited products
+            // Merge edit and stock overrides for recently-edited products
             filtered = filtered.map((apiProd: Product) => {
+              const pendingEdit = pendingProductsRef.current.get(apiProd.id) || (apiProd.sku ? pendingProductsRef.current.get(apiProd.sku) : undefined);
+              if (pendingEdit && now - pendingEdit.savedAt < 30000) {
+                return { ...apiProd, ...pendingEdit.product };
+              }
               const editedAt = pendingStockRef.current.get(apiProd.id);
               if (editedAt && now - editedAt < 10000) {
                 const local = prev.find(p => p.id === apiProd.id);
@@ -1097,17 +1101,15 @@ const silentRefresh = async (): Promise<boolean> => {
 
     toast.success(`Product "${name}" deleted.`, 'Product Deleted');
 
-    // 3. Await backend deletion so server cache is evicted before triggering sync
-    try {
-      await authFetch(`/api/products/${id}`, { method: 'DELETE' });
-    } catch (err) {
-      console.error('Delete product backend error:', err);
-    }
-
-    // 4. Notify app listeners
+    // 3. Instantly notify app listeners (0ms)
     try {
       window.dispatchEvent(new CustomEvent('vrg_products_updated', { detail: nextList }));
     } catch {}
+
+    // 4. Background deletion on server
+    authFetch(`/api/products/${id}`, { method: 'DELETE' }).catch(err => {
+      console.warn('Delete product background notice:', err);
+    });
   };
 
   // Handle Delete All Products

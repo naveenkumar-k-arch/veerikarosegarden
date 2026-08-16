@@ -102,6 +102,43 @@ export const productSchema = z.object({
   status: z.enum(['ACTIVE', 'INACTIVE', 'ARCHIVED']).optional().default('ACTIVE')
 });
 
+export const updateProductSchema = z.object({
+  sku: z.string().optional(),
+  name: z.string().min(1, 'Product name cannot be empty').max(200).optional(),
+  englishName: z.string().max(200).optional(),
+  tamilName: z.string().max(200).optional(),
+  scientificName: z.string().max(200).optional(),
+  categoryId: z.string().optional(),
+  categoryName: z.string().optional(),
+  description: z.string().optional(),
+  mrp: z.coerce.number().min(0).optional(),
+  sellingPrice: z.coerce.number().min(0, 'Selling price must be >= 0').optional(),
+  discount: z.coerce.number().min(0).max(100).optional(),
+  stock: z.coerce.number().int().min(0).optional(),
+  plantHeight: z.string().optional(),
+  potSize: z.string().optional(),
+  sunlight: z.string().optional(),
+  waterRequirement: z.string().optional(),
+  floweringSeason: z.string().optional(),
+  careInstructions: z.union([
+    z.object({
+      watering: z.string().optional(),
+      sunlight: z.string().optional(),
+      fertilizer: z.string().optional(),
+      soil: z.string().optional()
+    }),
+    z.record(z.string(), z.any())
+  ]).optional(),
+  image: z.string().optional(),
+  imageUrl: z.string().optional(),
+  images: z.array(z.string()).optional(),
+  featured: z.boolean().optional(),
+  bestSeller: z.boolean().optional(),
+  trending: z.boolean().optional(),
+  tags: z.array(z.string()).optional(),
+  status: z.enum(['ACTIVE', 'INACTIVE', 'ARCHIVED']).optional()
+});
+
 export const reviewSchema = z.object({
   productId: z.string().min(1),
   productName: z.string().min(1),
