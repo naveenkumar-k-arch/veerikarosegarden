@@ -568,6 +568,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
     customerName: '',
     customerPhone: '',
     customerEmail: '',
+    fullAddress: '',
     houseNo: '',
     street: '',
     villageTown: '',
@@ -584,7 +585,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
     orderStatus: 'PENDING' as OrderStatus,
     notes: '',
     trackingNumber: '',
-    courierName: 'Professional Courier'
+    courierName: 'Professional Courier – Reduced Soil'
   });
 
   // Category Modal & Reassignment State
@@ -1666,6 +1667,7 @@ Your parcel dispatched today 🚚
       customerName: '',
       customerPhone: '',
       customerEmail: '',
+      fullAddress: '',
       houseNo: '',
       street: '',
       villageTown: '',
@@ -1682,7 +1684,7 @@ Your parcel dispatched today 🚚
       orderStatus: 'PENDING',
       notes: 'WhatsApp Order',
       trackingNumber: '',
-      courierName: 'Professional Courier'
+      courierName: 'Professional Courier – Reduced Soil'
     });
     setShowWhatsAppOrderModal(true);
   };
@@ -1698,10 +1700,17 @@ Your parcel dispatched today 🚚
       ? o.items.map(it => `${(it.quantity && it.quantity > 1) ? it.quantity + 'x ' : ''}${it.name || (it as any).productName || 'Plant'}`).join('\n')
       : '';
 
+    const reconstructedAddress = addr.fullAddress || (
+      typeof o.shippingAddress === 'string'
+        ? o.shippingAddress
+        : [addr.houseNo, addr.street, addr.villageTown, addr.district, addr.state, addr.pincode].filter(Boolean).join(', ')
+    );
+
     setWhatsAppOrderForm({
       customerName: o.customerName || addr.fullName || '',
       customerPhone: o.customerPhone || addr.phone || '',
       customerEmail: o.customerEmail || '',
+      fullAddress: reconstructedAddress,
       houseNo: addr.houseNo || '',
       street: addr.street || '',
       villageTown: addr.villageTown || '',
@@ -1718,7 +1727,7 @@ Your parcel dispatched today 🚚
       orderStatus: o.orderStatus || 'PENDING',
       notes: o.notes || '',
       trackingNumber: (o as any).trackingNumber || '',
-      courierName: (o as any).courierName || 'Professional Courier'
+      courierName: (o as any).courierName || 'Professional Courier – Reduced Soil'
     });
     setShowWhatsAppOrderModal(true);
   };
@@ -1768,6 +1777,9 @@ Your parcel dispatched today 🚚
     }
 
     const finalTotal = Number(whatsAppOrderForm.grandTotal || 0);
+    const rawAddress = (whatsAppOrderForm.fullAddress || '').trim();
+    const pinMatch = rawAddress.match(/\b\d{6}\b/);
+    const extractedPincode = pinMatch ? pinMatch[0] : (whatsAppOrderForm.pincode || '');
 
     const payload = {
       customerName: whatsAppOrderForm.customerName.trim(),
@@ -1776,12 +1788,13 @@ Your parcel dispatched today 🚚
       shippingAddress: {
         fullName: whatsAppOrderForm.customerName.trim(),
         phone: whatsAppOrderForm.customerPhone.trim(),
-        houseNo: whatsAppOrderForm.houseNo.trim(),
-        street: whatsAppOrderForm.street.trim(),
-        villageTown: whatsAppOrderForm.villageTown.trim(),
-        district: whatsAppOrderForm.district.trim(),
+        fullAddress: rawAddress,
+        houseNo: whatsAppOrderForm.houseNo || '',
+        street: whatsAppOrderForm.street || '',
+        villageTown: whatsAppOrderForm.villageTown || rawAddress.slice(0, 40),
+        district: whatsAppOrderForm.district || 'Tamil Nadu',
         state: whatsAppOrderForm.state.trim() || 'Tamil Nadu',
-        pincode: whatsAppOrderForm.pincode.trim(),
+        pincode: extractedPincode,
         addressType: 'Home'
       },
       items: parsedItems,
@@ -1794,7 +1807,7 @@ Your parcel dispatched today 🚚
       orderStatus: whatsAppOrderForm.orderStatus || 'PENDING',
       notes: whatsAppOrderForm.notes || '',
       trackingNumber: whatsAppOrderForm.trackingNumber || '',
-      courierName: whatsAppOrderForm.courierName || 'Professional Courier'
+      courierName: whatsAppOrderForm.courierName || 'Professional Courier – Reduced Soil'
     };
 
     setWhatsAppOrderSaving(true);
@@ -2001,66 +2014,36 @@ Your parcel dispatched today 🚚
               </div>
             </div>
 
-            {/* 2. Full Delivery Address */}
-            <div className="space-y-3 bg-amber-50/60 p-4 rounded-2xl border border-amber-200">
-              <h4 className="font-black text-amber-950 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-rose-600" />
-                <span>Delivery Address (for Shipping Label)</span>
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Door / House No</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 4/12B"
-                    value={whatsAppOrderForm.houseNo}
-                    onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, houseNo: e.target.value })}
-                    className="w-full px-3 py-2 bg-white border border-amber-200/90 rounded-xl font-medium text-slate-900"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="font-bold text-slate-700 block mb-1">Street / Area / Landmark</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Nursery Main Road, Near Temple"
-                    value={whatsAppOrderForm.street}
-                    onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, street: e.target.value })}
-                    className="w-full px-3 py-2 bg-white border border-amber-200/90 rounded-xl font-medium text-slate-900"
-                  />
-                </div>
+            {/* 2. Full Delivery Address (Single Box) */}
+            <div className="space-y-2.5 bg-amber-50/60 p-4 rounded-2xl border border-amber-200">
+              <div className="flex items-center justify-between">
+                <h4 className="font-black text-amber-950 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Delivery Address (for Shipping Label & Courier) *</span>
+                </h4>
+                <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md">
+                  Single Box (Paste from WhatsApp)
+                </span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Town / City</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Dharmapuri"
-                    value={whatsAppOrderForm.villageTown}
-                    onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, villageTown: e.target.value })}
-                    className="w-full px-3 py-2 bg-white border border-amber-200/90 rounded-xl font-bold text-slate-900"
-                  />
-                </div>
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">District</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Dharmapuri"
-                    value={whatsAppOrderForm.district}
-                    onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, district: e.target.value })}
-                    className="w-full px-3 py-2 bg-white border border-amber-200/90 rounded-xl font-bold text-slate-900"
-                  />
-                </div>
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Pincode</label>
-                  <input
-                    type="text"
-                    placeholder="636810"
-                    value={whatsAppOrderForm.pincode}
-                    onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) })}
-                    className="w-full px-3 py-2 bg-white border border-amber-200/90 rounded-xl font-bold text-slate-900"
-                  />
-                </div>
-              </div>
+              <textarea
+                required
+                rows={3}
+                placeholder={"Paste full customer delivery address here:\ne.g. 4/12B, Perumal Kovil Street, Pennagaram Post, Dharmapuri - 636810, Tamil Nadu"}
+                value={whatsAppOrderForm.fullAddress}
+                onChange={e => {
+                  const text = e.target.value;
+                  const pinMatch = text.match(/\b\d{6}\b/);
+                  setWhatsAppOrderForm({
+                    ...whatsAppOrderForm,
+                    fullAddress: text,
+                    pincode: pinMatch ? pinMatch[0] : whatsAppOrderForm.pincode
+                  });
+                }}
+                className="w-full p-3 bg-white border border-amber-300 rounded-xl font-semibold text-slate-900 focus:ring-2 focus:ring-amber-500 focus:outline-none leading-relaxed text-xs"
+              />
+              <p className="text-[10.5px] text-amber-900 font-medium">
+                💡 Paste the complete doorstep address here directly from WhatsApp. Pincode and town will be automatically formatted on the shipping label.
+              </p>
             </div>
 
             {/* 3. Plants (Pastable Format - No Dropdown Required) */}
@@ -2111,18 +2094,22 @@ Your parcel dispatched today 🚚
               <div className="bg-blue-50/70 p-3 rounded-xl border border-blue-200">
                 <label className="font-black text-blue-950 block mb-1 text-xs flex items-center gap-1">
                   <Truck className="w-3.5 h-3.5 text-blue-700" />
-                  <span>Courier Type *</span>
+                  <span>Courier Partner (Same 3 Step Options) *</span>
                 </label>
                 <select
                   value={whatsAppOrderForm.courierName}
                   onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, courierName: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-blue-300 rounded-xl font-bold text-slate-900 focus:outline-none"
+                  className="w-full px-3 py-2 bg-white border border-blue-300 rounded-xl font-bold text-slate-900 focus:outline-none text-xs"
                 >
-                  <option value="Professional Courier">🚚 Professional Courier (Default)</option>
-                  <option value="ST Courier">📦 ST Courier</option>
-                  <option value="India Post">📮 India Post (Speed Post)</option>
-                  <option value="DTDC">⚡ DTDC Courier</option>
-                  <option value="Farm Delivery">🌿 Farm Direct Delivery (Local)</option>
+                  <option value="Professional Courier – Reduced Soil">
+                    🚚 Professional Courier – Reduced Soil (Doorstep Delivery)
+                  </option>
+                  <option value="Professional Courier – Full Soil">
+                    🌱 Professional Courier – Full Soil (Tamil Nadu Only)
+                  </option>
+                  <option value="Mettur Parcel Service">
+                    📦 Mettur Parcel Service (Branch Pickup Depot)
+                  </option>
                 </select>
               </div>
             </div>
