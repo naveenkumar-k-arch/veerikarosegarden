@@ -327,7 +327,7 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
           <div className="flex justify-between items-center">
             <span className="font-medium">🚚 Courier Delivery:</span>
             <span className="font-bold text-slate-900">
-              {order.courierName || 'ST Courier'}
+              {order.courierName || 'Professional Courier'}
               {order.courierBranch ? ` (${order.courierBranch})` : ''}
               {order.shippingCharge === 0 ? ' — FREE' : ` — ₹${order.shippingCharge}`}
             </span>
@@ -346,6 +346,82 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
             <span>{isCod ? 'Total Payable via Cash on Delivery:' : order.paymentMethod === 'RAZORPAY' ? 'Total Paid via Razorpay:' : 'Total Paid Online:'}</span>
             <span className="text-emerald-800 text-base">₹{order.grandTotal}</span>
           </div>
+        </div>
+      </div>
+
+      {/* Courier & Reduce Soil Planting Care Instructions Guide */}
+      <div className="bg-amber-50/80 p-6 rounded-3xl border-2 border-amber-300 shadow-xs space-y-4 text-xs text-slate-800">
+        <div className="flex items-center justify-between border-b border-amber-200 pb-3">
+          <h3 className="font-extrabold text-sm sm:text-base text-amber-950 flex items-center gap-2">
+            <span>📦</span>
+            <span>Professional Courier & Reduce Soil Plant Care Instructions</span>
+          </h3>
+          <span className="bg-rose-600 text-white font-black text-[10px] px-2.5 py-1 rounded-full uppercase tracking-wider animate-pulse">
+            📹 UNBOXING VIDEO MUST
+          </span>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-amber-200 space-y-2">
+          <p className="font-bold text-amber-900 text-xs">
+            🚚 Your parcel dispatched today / In Transit
+          </p>
+          <p className="text-slate-700 leading-relaxed">
+            ⚠️ <strong>If parcel didn't receive in 2 days</strong> remind me once & check nearby courier office or check website:
+          </p>
+          <p className="font-semibold text-amber-950 bg-amber-100/60 p-2.5 rounded-xl border border-amber-200">
+            "உங்களுடைய கொரியர் 2 வேலை நாட்களில் வரவில்லை என்றால் அருகில் உள்ள கொரியர் ஆஃபீஸ் ஐ அணுகவும். அப்படி இல்லையென்றால் என்னிடம் தெரிவிக்கவும்."
+          </p>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-amber-200 space-y-3">
+          <h4 className="font-extrabold text-emerald-950 text-xs uppercase tracking-wider flex items-center gap-1.5">
+            <span>🌿</span>
+            <span>For Reduce Soil Plants 👇 (மண்ணை குறைத்து வாங்கும் முறையில் வாங்கினால்)</span>
+          </h4>
+
+          <ol className="space-y-2.5 text-slate-700 list-decimal list-inside font-medium leading-relaxed">
+            <li>
+              <strong>Professional Courier la chedi vanguringana:</strong> Plants receive pannathum oru bucket la thanni oothi athula covers ellam chinna holes potu vachirunga.
+            </li>
+            <li>
+              Oru <strong>4 to 5 hrs kalichu</strong> chediyai red soil la nadalam nga (chinna cover remove pannirunga).
+            </li>
+            <li>
+              <strong>Pot la vachingana:</strong> Half shade (oralavuku veyil padura mari) area ah va paathu oru 10 naaliku vainga. <strong>Nilathula vachingana:</strong> 10 days ku shade irukura mari edhachum erpaduthi vainga (Fulla nilal vendaam sunlight padura mari oralavuku).
+            </li>
+            <li>
+              <strong>20 days la irunthu 30 days varaikum:</strong> Entha uramum (DAP) kudukathinga. தொழு உரமும் use பண்ணாதீங்க.
+            </li>
+            <li>
+              <strong>Regular ah watering panunga:</strong> Iram ilamal kaaya vidathinga (Water thengi irukumpadi vaikathinga).
+            </li>
+            <li>
+              Chedi vaikkum thottiyai dry aagamal <strong>kaalai, maalai iru velaikalum</strong> iiramaga irukumpadi paarthu kollaum (Athey samayam thanner thengamaal paarthukollaum).
+            </li>
+          </ol>
+
+          <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-900 font-bold text-[11px] leading-relaxed">
+            🚫 Chediyai coco peat vaithu nadavu seiyya vendam. Chedi cut seithaal manjal thuul vaikka koodathu. Mukkiyamaga soil red soil dhan use panna vendum (Your garden soil literally same as red soil athu kooda use pannikalam).
+            <p className="mt-1 text-rose-950 font-black">
+              *IF NOT FOLLOW THIS INSTRUCTIONS AND PLANT DIE BACK AGAIN WE ARE NOT RESPONSIBLE FOR THAT*
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-amber-200 space-y-2.5">
+          <h4 className="font-extrabold text-indigo-950 text-xs flex items-center gap-1.5">
+            <span>⭐</span>
+            <span>Customer Review Procedure (intha method la unga kita ithu ellam iruntha use panunga illana mela solli iruka koodiya procedure use panunga)</span>
+          </h4>
+          <ul className="space-y-1.5 text-slate-700 list-disc list-inside font-medium leading-relaxed">
+            <li>Mudhalil chediyai oru bucket la 6 hrs cover (reduce soil plants) holes pottu kandipa vaikanum. Apo dhan chedi ku dullness koncham pogum.</li>
+            <li>Reduce soil vanguningana antha cover ah remove panitu 1 gm alavu <strong>EPSOM SALT</strong> one litre water la mix pani karaichitu, 1st chediyai fulla dip panirunga nanaikira maari. Then antha soil ah wash pani bare root ah eduthukonga.</li>
+            <li>Then 1 gm of <strong>SAAF</strong> one litre la mix pani, THEN plant ah fulla saaf water la dip pani edunga.</li>
+            <li>Aduthatha chediyai red soil konchama tholu uram irunthal mix panikonga athula plant pani sun light padura mari vaikalam.</li>
+          </ul>
+          <p className="text-[11px] text-slate-500 italic pt-1 border-t border-slate-100">
+            "Intha method customer enga kita reduce soil la vangi avanga epdi valarthanga apdindratha sonna method. Ungaluku pudichi panna mudium na intha method um try panalam. Ithu naana solala review sonathu ungalukum share paniruken."
+          </p>
         </div>
       </div>
 
