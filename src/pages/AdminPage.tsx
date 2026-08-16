@@ -6,7 +6,7 @@ import { INITIAL_PRODUCTS, INITIAL_CATEGORIES } from '../data/catalogData';
 import { INITIAL_REVIEWS } from '../data/reviewsData';
 import { MobileAdminWorkflow } from '../components/MobileAdminWorkflow';
 import { A4LabelSheetPrint } from '../components/A4LabelSheetPrint';
-import { processLocalImageFile } from '../utils/imageUpload';
+import { processLocalImageFile, processMultipleImageFiles } from '../utils/imageUpload';
 import { toast } from '../utils/toast';
 
 // ── Inline Coupon Creation Form ──────────────────────────────────────────────
@@ -161,7 +161,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch {}
-    return DEFAULT_PRODUCTS;
+    return INITIAL_PRODUCTS;
   });
   const [categories, setCategories] = useState<Category[]>(() => {
     if (Array.isArray(initialCache?.categories) && initialCache.categories.length > 0) return initialCache.categories;
@@ -172,7 +172,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch {}
-    return DEFAULT_CATEGORIES;
+    return INITIAL_CATEGORIES;
   });
   const [orders, setOrders] = useState<Order[]>(() => Array.isArray(initialCache?.orders) ? initialCache.orders : []);
   const [coupons, setCoupons] = useState<Coupon[]>(() => Array.isArray(initialCache?.coupons) ? initialCache.coupons : []);
@@ -571,21 +571,20 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
     if (!files || files.length === 0) return;
     setIsUploadingImage(true);
     try {
-      const newImages: string[] = [];
-      for (let i = 0; i < files.length; i++) {
-        const dataUrl = await processLocalImageFile(files[i]);
-        if (dataUrl) newImages.push(dataUrl);
+      const newImages = await processMultipleImageFiles(files);
+      if (newImages.length > 0) {
+        setProdForm(prev => {
+          const currentImgs = (prev.images || []).filter(Boolean);
+          const isDefaultOnly = currentImgs.length === 1 && currentImgs[0].includes('unsplash.com');
+          return {
+            ...prev,
+            images: isDefaultOnly ? newImages : [...currentImgs, ...newImages]
+          };
+        });
+        toast.success(`${newImages.length} image${newImages.length > 1 ? 's' : ''} added!`, 'Image Uploaded');
       }
-      setProdForm(prev => {
-        const currentImgs = prev.images || [];
-        const isDefaultOnly = currentImgs.length === 1 && currentImgs[0].includes('unsplash.com');
-        return {
-          ...prev,
-          images: isDefaultOnly ? newImages : [...currentImgs, ...newImages]
-        };
-      });
     } catch (err: any) {
-      alert(err?.message || 'Failed to process local image file');
+      toast.error(err?.message || 'Failed to process local image file');
     } finally {
       setIsUploadingImage(false);
       e.target.value = '';
@@ -790,7 +789,7 @@ const silentRefresh = async (): Promise<boolean> => {
     localStorage.removeItem('veerika_customer_orders');
     localStorage.removeItem('vrg_user_orders');
 
-    fetchData(false);
+    fetchData();
 
     // Security Re-validation: Verify session token server-side on mount with auto-refresh support
     const verifySession = async () => {
@@ -2571,7 +2570,14 @@ const silentRefresh = async (): Promise<boolean> => {
                               <button
                                 onClick={() => {
                                   setEditingProduct(p);
-                                  setProdForm(p);
+                                  const initialImgs = Array.isArray(p.images) && p.images.length > 0
+                                    ? p.images.filter(Boolean)
+                                    : (p as any).image ? [(p as any).image] : ['https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80'];
+                                  setProdForm({
+                                    ...p,
+                                    images: initialImgs
+                                  });
+                                  setProdUrlInput('');
                                   setShowProductModal(true);
                                 }}
                                 className="p-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 transition-colors"
@@ -4797,46 +4803,59 @@ const silentRefresh = async (): Promise<boolean> => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Selling Price (₹)</label>
+                  <label className="font-bold text-slate-700 block mb-1 text-[11px] sm:text-xs">Selling Price (₹) *</label>
                   <input
                     type="number"
+                    inputMode="numeric"
                     required
-                    value={prodForm.sellingPrice}
+                    value={prodForm.sellingPrice ?? ''}
                     onChange={(e) => setProdForm({ ...prodForm, sellingPrice: Number(e.target.value) })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                    className="w-full px-2.5 sm:px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-xs"
                   />
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">MRP Price (₹)</label>
+                  <label className="font-bold text-slate-700 block mb-1 text-[11px] sm:text-xs">MRP Price (₹)</label>
                   <input
                     type="number"
+                    inputMode="numeric"
                     required
-                    value={prodForm.mrp}
+                    value={prodForm.mrp ?? ''}
                     onChange={(e) => setProdForm({ ...prodForm, mrp: Number(e.target.value) })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                    className="w-full px-2.5 sm:px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-xs"
                   />
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Stock Count</label>
+                  <label className="font-bold text-slate-700 block mb-1 text-[11px] sm:text-xs">Stock Count *</label>
                   <input
                     type="number"
+                    inputMode="numeric"
                     required
-                    value={prodForm.stock}
+                    value={prodForm.stock ?? ''}
                     onChange={(e) => setProdForm({ ...prodForm, stock: Number(e.target.value) })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                    className="w-full px-2.5 sm:px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-xs"
                   />
                 </div>
               </div>
+
+              {/* Dynamic Discount Preview */}
+              {(prodForm.mrp || 0) > (prodForm.sellingPrice || 0) && (prodForm.sellingPrice || 0) > 0 && (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px] font-extrabold text-emerald-800">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>
+                    Save ₹{(prodForm.mrp || 0) - (prodForm.sellingPrice || 0)} ({Math.round((((prodForm.mrp || 0) - (prodForm.sellingPrice || 0)) / (prodForm.mrp || 1)) * 100)}% Discount)
+                  </span>
+                </div>
+              )}
 
               <div className="space-y-2.5 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
                 <div className="flex items-center justify-between">
                   <label className="font-extrabold text-slate-800 text-xs flex items-center gap-1.5">
                     <Camera className="w-4 h-4 text-emerald-700" />
-                    <span>Product Images *</span>
+                    <span>Product Images ({prodForm.images?.length || 0}) *</span>
                   </label>
                   <div className="flex bg-slate-200/80 p-0.5 rounded-lg text-[11px] font-bold">
                     <button
@@ -4864,10 +4883,10 @@ const silentRefresh = async (): Promise<boolean> => {
                     >
                       <Upload className="w-6 h-6 text-emerald-600 mb-1 group-hover:scale-110 transition-transform" />
                       <span className="font-bold text-slate-800 text-xs">
-                        {isUploadingImage ? 'Compressing & Loading Image...' : 'Click to Upload from Local Storage / Device'}
+                        {isUploadingImage ? 'Compressing & Loading Images...' : 'Click or Tap to Upload from Local Storage / Device'}
                       </span>
                       <span className="text-[10px] text-slate-500 mt-0.5">
-                        Select photo file(s) from your computer or phone (JPG, PNG, WEBP)
+                        Select one or multiple photo files (JPG, PNG, WEBP)
                       </span>
                       <input
                         id="admin-product-file-input"
@@ -4900,14 +4919,14 @@ const silentRefresh = async (): Promise<boolean> => {
                   </div>
                 )}
 
-                {/* Preview Thumbnails / Gallery */}
+                {/* Preview Thumbnails / Gallery with touch controls */}
                 {prodForm.images && prodForm.images.length > 0 ? (
                   <div className="space-y-1.5 pt-1">
                     <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                       <span>Product Gallery ({prodForm.images.length})</span>
-                      <span>Hover image to manage</span>
+                      <span className="text-emerald-800 font-extrabold">First image is Main Cover</span>
                     </div>
-                    <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                       {prodForm.images.map((imgUrl, idx) => (
                         <div key={idx} className="relative group aspect-square rounded-xl overflow-hidden border-2 border-slate-200 bg-white shadow-xs">
                           <img src={imgUrl} alt={`Product ${idx + 1}`} className="w-full h-full object-cover" />
@@ -4920,16 +4939,17 @@ const silentRefresh = async (): Promise<boolean> => {
                             <button
                               type="button"
                               onClick={() => handleSetPrimaryProdImage(idx)}
-                              className="absolute top-1 left-1 bg-slate-900/80 hover:bg-slate-900 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                              className="absolute top-1 left-1 bg-slate-900/80 hover:bg-slate-900 active:bg-emerald-700 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity cursor-pointer shadow-xs"
+                              title="Set as Main Cover"
                             >
-                              Main
+                              Set Main
                             </button>
                           )}
 
                           <button
                             type="button"
                             onClick={() => handleRemoveProdImage(idx)}
-                            className="absolute top-1 right-1 p-1 bg-rose-600/90 hover:bg-rose-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                            className="absolute top-1 right-1 p-1 bg-rose-600/90 hover:bg-rose-600 text-white rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity cursor-pointer shadow-xs"
                             title="Remove image"
                           >
                             <Trash2 className="w-3 h-3" />

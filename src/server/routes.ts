@@ -1067,17 +1067,11 @@ apiRouter.get('/orders', requireAuth, async (req: AuthenticatedRequest, res) => 
 // Lightweight serializers for admin bootstrap listing: preserves all unique image URLs and static paths
 function sanitizeBootstrapProducts(prods: any[]): any[] {
   return prods.map(p => {
-    const images = Array.isArray(p.images) && p.images.length > 0 ? p.images : (p.image ? [p.image] : []);
-    const sanitizedImages = images.map((img: string) => {
-      if (typeof img === 'string' && img.startsWith('data:image/') && img.length > 100000) {
-        return img.slice(0, 100);
-      }
-      return img;
-    });
+    const images = Array.isArray(p.images) && p.images.length > 0 ? p.images.filter(Boolean) : (p.image ? [p.image] : []);
     return {
       ...p,
-      images: sanitizedImages,
-      image: sanitizedImages[0] || p.image || '/products/double-delight.jpeg'
+      images: images.length > 0 ? images : ['https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80'],
+      image: images[0] || p.image || '/products/double-delight.jpeg'
     };
   });
 }

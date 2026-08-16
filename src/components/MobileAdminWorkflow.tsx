@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Order, Product, Category, Review, Coupon, Banner, Combo, FinancialEntry, SiteSettings } from '../types';
-import { processLocalImageFile } from '../utils/imageUpload';
+import { processLocalImageFile, processMultipleImageFiles } from '../utils/imageUpload';
 import { toast } from '../utils/toast';
 import {
   Sprout,
@@ -183,7 +183,20 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   const [isSavingProduct, setIsSavingProduct] = useState(false);
   const [productModalError, setProductModalError] = useState<string | null>(null);
   const [productSuccessToast, setProductSuccessToast] = useState<string | null>(null);
-  const [productForm, setProductForm] = useState({
+  const [productForm, setProductForm] = useState<{
+    name: string;
+    tamilName: string;
+    categoryId: string;
+    categoryName: string;
+    mrp: number;
+    sellingPrice: number;
+    stock: number;
+    plantHeight: string;
+    potSize: string;
+    sunlight: string;
+    images: string[];
+    description: string;
+  }>({
     name: '',
     tamilName: '',
     categoryId: 'cat-roses',
@@ -192,31 +205,75 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
     sellingPrice: 199,
     stock: 25,
     plantHeight: '1-2 Feet',
-    potSize: '8 Inch Polybag',
+    potSize: '8 Inch Bag',
     sunlight: 'Full Sun',
-    imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80',
+    images: ['https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80'],
     description: ''
   });
 
   // Mobile Product Image Upload State
   const [mobileProdImgTab, setMobileProdImgTab] = useState<'upload' | 'url'>('upload');
+  const [mobileProdUrlInput, setMobileProdUrlInput] = useState('');
   const [isUploadingMobileImage, setIsUploadingMobileImage] = useState(false);
+  const [uploadProgressText, setUploadProgressText] = useState('');
 
   const handleMobileProductLocalFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
     setIsUploadingMobileImage(true);
+    setUploadProgressText(`Compressing ${files.length} image${files.length > 1 ? 's' : ''}...`);
     try {
-      const dataUrl = await processLocalImageFile(file);
-      if (dataUrl) {
-        setProductForm(prev => ({ ...prev, imageUrl: dataUrl }));
+      const dataUrls = await processMultipleImageFiles(files);
+      if (dataUrls.length > 0) {
+        setProductForm(prev => {
+          const current = (prev.images || []).filter(Boolean);
+          const isDefaultOnly = current.length === 1 && current[0].includes('unsplash.com');
+          return {
+            ...prev,
+            images: isDefaultOnly ? dataUrls : [...current, ...dataUrls]
+          };
+        });
+        toast.success(`${dataUrls.length} image${dataUrls.length > 1 ? 's' : ''} added!`, 'Image Uploaded');
       }
     } catch (err: any) {
-      alert(err?.message || 'Failed to process image');
+      toast.error(err?.message || 'Failed to process image');
     } finally {
       setIsUploadingMobileImage(false);
+      setUploadProgressText('');
       e.target.value = '';
     }
+  };
+
+  const handleAddMobileProductUrl = () => {
+    const url = mobileProdUrlInput.trim();
+    if (!url) return;
+    setProductForm(prev => {
+      const current = (prev.images || []).filter(Boolean);
+      const isDefaultOnly = current.length === 1 && current[0].includes('unsplash.com');
+      return {
+        ...prev,
+        images: isDefaultOnly ? [url] : [...current, url]
+      };
+    });
+    setMobileProdUrlInput('');
+  };
+
+  const handleRemoveMobileProductImage = (index: number) => {
+    setProductForm(prev => ({
+      ...prev,
+      images: (prev.images || []).filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleSetPrimaryMobileProductImage = (index: number) => {
+    setProductForm(prev => {
+      const imgs = [...(prev.images || [])];
+      if (index > 0 && index < imgs.length) {
+        const [moved] = imgs.splice(index, 1);
+        imgs.unshift(moved);
+      }
+      return { ...prev, images: imgs };
+    });
   };
 
 
@@ -1993,6 +2050,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 onClick={() => {
                   setEditingProduct(null);
                   setProductModalError(null);
+                  setMobileProdUrlInput('');
                   const activeCat = (productCategoryFilter !== 'ALL' ? categories.find(c => c.id === productCategoryFilter || c.name === productCategoryFilter) : null) || categories[0];
                   setProductForm({
                     name: '',
@@ -2005,7 +2063,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                     plantHeight: '1-2 Feet',
                     potSize: '8 Inch Bag',
                     sunlight: 'Full Sun',
-                    imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80',
+                    images: ['https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80'],
                     description: ''
                   });
                   openAdminModal('product', { product: null });
@@ -2162,6 +2220,11 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                       onClick={() => {
                         setEditingProduct(p);
                         setProductModalError(null);
+                        setMobileProdUrlInput('');
+                        const plantImages = Array.isArray(p.images) && p.images.length > 0
+                          ? p.images.filter(Boolean)
+                          : ((p as any).imageUrl || (p as any).image ? [String((p as any).imageUrl || (p as any).image)] : ['https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80']);
+
                         setProductForm({
                           name: p.name || '',
                           tamilName: p.tamilName || '',
@@ -2173,7 +2236,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                           plantHeight: p.plantHeight || '1-2 Feet',
                           potSize: p.potSize || '8 Inch Bag',
                           sunlight: p.sunlight || 'Full Sun',
-                          imageUrl: p.images?.[0] || '',
+                          images: plantImages,
                           description: p.description || ''
                         });
                         openAdminModal('product', { product: p });
@@ -3484,6 +3547,15 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 const stock = Number(productForm.stock) >= 0 ? Number(productForm.stock) : 0;
                 const catObj = categories.find(c => c.id === productForm.categoryId);
 
+                let finalImages = (productForm.images || []).filter(Boolean);
+                if (mobileProdUrlInput.trim() && !finalImages.includes(mobileProdUrlInput.trim())) {
+                  const isDefaultOnly = finalImages.length === 1 && finalImages[0].includes('unsplash.com');
+                  finalImages = isDefaultOnly ? [mobileProdUrlInput.trim()] : [...finalImages, mobileProdUrlInput.trim()];
+                }
+                const validImages = finalImages.length > 0
+                  ? finalImages
+                  : ['https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80'];
+
                 // Instantly dismiss modal and show success feedback (0ms)
                 handleCloseModal(() => setShowProductModal(false));
                 const toastMsg = editingProduct ? `Plant "${trimmedName}" updated successfully!` : `Plant "${trimmedName}" added!`;
@@ -3495,6 +3567,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                   onSaveProduct({
                     id: editingProduct?.id,
                     name: trimmedName,
+                    englishName: trimmedName,
                     tamilName: productForm.tamilName.trim() || trimmedName,
                     categoryId: productForm.categoryId || categories[0]?.id || 'cat-roses',
                     categoryName: productForm.categoryName || catObj?.name || 'Roses',
@@ -3504,15 +3577,16 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                     plantHeight: productForm.plantHeight || '1-2 Feet',
                     potSize: productForm.potSize || '8 Inch Bag',
                     sunlight: productForm.sunlight || 'Full Sun',
-                    images: productForm.imageUrl ? [productForm.imageUrl] : [],
-                    imageUrl: productForm.imageUrl,
+                    images: validImages,
+                    image: validImages[0],
+                    imageUrl: validImages[0],
                     description: productForm.description.trim() || trimmedName
                   }).catch(err => {
                     console.error('Background error saving plant:', err);
                   });
                 }
               }}
-              className="p-4 overflow-y-auto space-y-3 text-xs"
+              className="p-4 overflow-y-auto space-y-3.5 text-xs flex-1"
             >
               {productModalError && (
                 <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-[11px] font-semibold text-rose-700 flex items-center gap-2">
@@ -3521,27 +3595,29 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 </div>
               )}
 
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700 block">Plant Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Red Rose"
-                  value={productForm.name}
-                  onChange={e => setProductForm({ ...productForm, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
-                />
-              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Plant English Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Dutch Hybrid Red Rose"
+                    value={productForm.name}
+                    onChange={e => setProductForm({ ...productForm, name: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-700 focus:outline-none"
+                  />
+                </div>
 
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700 block">Tamil Name (தமிழ்)</label>
-                <input
-                  type="text"
-                  placeholder="e.g. சிவப்பு ரோஜா"
-                  value={productForm.tamilName}
-                  onChange={e => setProductForm({ ...productForm, tamilName: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-emerald-800"
-                />
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Tamil Name (தமிழ்)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. சிவப்பு ரோஜா"
+                    value={productForm.tamilName}
+                    onChange={e => setProductForm({ ...productForm, tamilName: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-emerald-800 focus:bg-white focus:ring-2 focus:ring-emerald-700 focus:outline-none"
+                  />
+                </div>
               </div>
 
               <div className="space-y-1.5">
@@ -3553,7 +3629,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 </div>
 
                 {/* Touch-Friendly Category Selection Pills */}
-                <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1.5 bg-slate-50 border border-slate-200 rounded-xl">
+                <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-1.5 bg-slate-50 border border-slate-200 rounded-xl no-scrollbar">
                   {categories.map(c => {
                     const isSelected = productForm.categoryId === c.id || productForm.categoryName === c.name;
                     return (
@@ -3580,7 +3656,6 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                   })}
                 </div>
 
-                {/* Dropdown Alternative */}
                 <select
                   value={productForm.categoryId}
                   onChange={e => {
@@ -3601,70 +3676,84 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              {/* Pricing & Stock Grid */}
+              <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-700 block">Selling Price (₹) *</label>
+                  <label className="font-bold text-slate-700 block text-[11px]">Selling (₹) *</label>
                   <input
                     type="number"
+                    inputMode="numeric"
                     required
                     min={1}
-                    value={productForm.sellingPrice}
+                    value={productForm.sellingPrice || ''}
                     onChange={e => setProductForm({ ...productForm, sellingPrice: Number(e.target.value) })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                    className="w-full px-2.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-xs focus:bg-white focus:ring-2 focus:ring-emerald-700 focus:outline-none"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-700 block">MRP (₹)</label>
+                  <label className="font-bold text-slate-700 block text-[11px]">MRP (₹)</label>
                   <input
                     type="number"
+                    inputMode="numeric"
                     min={0}
-                    value={productForm.mrp}
+                    value={productForm.mrp || ''}
                     onChange={e => setProductForm({ ...productForm, mrp: Number(e.target.value) })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                    className="w-full px-2.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-xs focus:bg-white focus:ring-2 focus:ring-emerald-700 focus:outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block text-[11px]">Stock *</label>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    required
+                    min={0}
+                    value={productForm.stock ?? ''}
+                    onChange={e => setProductForm({ ...productForm, stock: Number(e.target.value) })}
+                    className="w-full px-2.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-xs focus:bg-white focus:ring-2 focus:ring-emerald-700 focus:outline-none"
                   />
                 </div>
               </div>
 
+              {/* Live Discount Indicator */}
+              {productForm.mrp > productForm.sellingPrice && productForm.sellingPrice > 0 && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px] font-extrabold text-emerald-800">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>
+                    Save ₹{productForm.mrp - productForm.sellingPrice} ({Math.round(((productForm.mrp - productForm.sellingPrice) / productForm.mrp) * 100)}% Discount)
+                  </span>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-700 block">Stock Quantity *</label>
-                  <input
-                    type="number"
-                    required
-                    min={0}
-                    value={productForm.stock}
-                    onChange={e => setProductForm({ ...productForm, stock: Number(e.target.value) })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-700 block">Plant Height</label>
+                  <label className="font-bold text-slate-700 block text-[11px]">Plant Height</label>
                   <input
                     type="text"
                     placeholder="e.g. 1-2 Feet"
                     value={productForm.plantHeight}
                     onChange={e => setProductForm({ ...productForm, plantHeight: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-semibold text-xs"
+                    className="w-full px-2.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-semibold text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block text-[11px]">Pot / Bag Size</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 8 Inch Bag"
+                    value={productForm.potSize}
+                    onChange={e => setProductForm({ ...productForm, potSize: e.target.value })}
+                    className="w-full px-2.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-semibold text-xs"
                   />
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700 block">Plant Description</label>
-                <textarea
-                  rows={2}
-                  placeholder="Describe the plant variety, blooming habits..."
-                  value={productForm.description}
-                  onChange={e => setProductForm({ ...productForm, description: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs resize-none"
-                />
-              </div>
-
-              <div className="space-y-2 bg-slate-50 p-3 rounded-2xl border border-slate-200">
+              {/* Enhanced Mobile Image Manager */}
+              <div className="space-y-2.5 bg-slate-50 p-3 rounded-2xl border border-slate-200">
                 <div className="flex items-center justify-between">
-                  <label className="font-bold text-slate-700 text-xs flex items-center gap-1">
+                  <label className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
                     <Camera className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>Plant Image *</span>
+                    <span>Product Photos ({productForm.images?.length || 0}) *</span>
                   </label>
                   <div className="flex bg-slate-200/80 p-0.5 rounded-lg text-[10px] font-bold">
                     <button
@@ -3672,68 +3761,120 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                       onClick={() => setMobileProdImgTab('upload')}
                       className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${mobileProdImgTab === 'upload' ? 'bg-white text-emerald-800 shadow-xs font-black' : 'text-slate-600'}`}
                     >
-                      📁 Local Storage
+                      📁 Device / Camera
                     </button>
                     <button
                       type="button"
                       onClick={() => setMobileProdImgTab('url')}
                       className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${mobileProdImgTab === 'url' ? 'bg-white text-emerald-800 shadow-xs font-black' : 'text-slate-600'}`}
                     >
-                      🔗 Web URL
+                      🔗 Paste URL
                     </button>
                   </div>
                 </div>
 
                 {mobileProdImgTab === 'upload' ? (
-                  <label className="cursor-pointer border-2 border-dashed border-emerald-300 hover:border-emerald-500 bg-white rounded-xl p-3 flex flex-col items-center justify-center text-center transition-all group">
+                  <label className="cursor-pointer border-2 border-dashed border-emerald-300 hover:border-emerald-500 bg-white active:bg-emerald-50/50 rounded-xl p-3 flex flex-col items-center justify-center text-center transition-all group">
                     <Upload className="w-5 h-5 text-emerald-600 mb-1 group-hover:scale-110 transition-transform" />
                     <span className="font-bold text-slate-800 text-[11px]">
-                      {isUploadingMobileImage ? 'Uploading & compressing image...' : 'Click to Upload from Local Storage / Camera'}
+                      {isUploadingMobileImage ? (uploadProgressText || 'Compressing & Loading Photos...') : 'Tap to Upload Photos from Device'}
                     </span>
-                    <span className="text-[9.5px] text-slate-500 mt-0.5">Select photo file from your device</span>
+                    <span className="text-[9.5px] text-slate-500 mt-0.5">
+                      Select one or multiple plant photos (JPG, PNG, WEBP)
+                    </span>
                     <input
                       type="file"
                       accept="image/*"
+                      multiple
                       onChange={handleMobileProductLocalFileUpload}
                       disabled={isUploadingMobileImage}
                       className="hidden"
                     />
                   </label>
                 ) : (
-                  <input
-                    type="text"
-                    placeholder="Paste Image URL (https://... or /products/rose.jpg)"
-                    value={productForm.imageUrl}
-                    onChange={e => setProductForm({ ...productForm, imageUrl: e.target.value })}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-[11px]"
-                  />
-                )}
-
-                {productForm.imageUrl && (
-                  <div className="relative mt-2 rounded-xl overflow-hidden border border-slate-200 bg-white p-1.5 flex items-center gap-3">
-                    <img src={productForm.imageUrl} alt="Plant preview" className="w-14 h-14 object-cover rounded-lg shrink-0 border" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-bold text-emerald-800 truncate">
-                        {productForm.imageUrl.startsWith('data:') ? '📁 Uploaded from Local Storage' : '🔗 Web Image URL'}
-                      </p>
-                      <p className="text-[9px] text-slate-400 truncate">{productForm.imageUrl}</p>
-                    </div>
+                  <div className="flex gap-1.5">
+                    <input
+                      type="text"
+                      placeholder="Paste Image URL (https://...)"
+                      value={mobileProdUrlInput}
+                      onChange={e => setMobileProdUrlInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddMobileProductUrl(); } }}
+                      className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-xl text-[11px] font-mono"
+                    />
                     <button
                       type="button"
-                      onClick={() => setProductForm({ ...productForm, imageUrl: '' })}
-                      className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg shrink-0 cursor-pointer"
-                      title="Remove image"
+                      onClick={handleAddMobileProductUrl}
+                      className="px-3 py-2 bg-emerald-700 text-white font-bold text-[11px] rounded-xl shrink-0 cursor-pointer active:scale-95"
                     >
-                      <X className="w-4 h-4" />
+                      Add
                     </button>
                   </div>
                 )}
+
+                {/* Multi-Image Gallery List with Touch Actions */}
+                {productForm.images && productForm.images.length > 0 ? (
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 uppercase">
+                      <span>Uploaded Gallery ({productForm.images.length})</span>
+                      <span className="text-emerald-800 font-extrabold">First image is Main</span>
+                    </div>
+
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      {productForm.images.map((imgUrl, idx) => (
+                        <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border-2 border-slate-200 bg-white shadow-xs group">
+                          <img src={imgUrl} alt={`Plant ${idx + 1}`} className="w-full h-full object-cover" />
+                          
+                          {/* Main Badge / Set Main Button */}
+                          {idx === 0 ? (
+                            <span className="absolute top-1 left-1 bg-emerald-700 text-white text-[8.5px] font-black px-1.5 py-0.5 rounded shadow-xs">
+                              Main
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleSetPrimaryMobileProductImage(idx)}
+                              className="absolute top-1 left-1 bg-slate-900/80 hover:bg-slate-900 active:bg-emerald-700 text-white text-[8.5px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition-colors"
+                              title="Make Cover Image"
+                            >
+                              Set Main
+                            </button>
+                          )}
+
+                          {/* Remove Image Button (Always tap-accessible) */}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveMobileProductImage(idx)}
+                            className="absolute top-1 right-1 p-1 bg-rose-600 text-white rounded-full cursor-pointer shadow-xs active:scale-90 transition-transform"
+                            title="Remove Photo"
+                          >
+                            <Trash2 className="w-2.5 h-2.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-rose-600 font-semibold text-[10.5px]">
+                    ⚠️ No photo added yet. Please upload a plant image above.
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Plant Description</label>
+                <textarea
+                  rows={2}
+                  placeholder="Describe the plant variety, blooming habits, fragrance..."
+                  value={productForm.description}
+                  onChange={e => setProductForm({ ...productForm, description: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs resize-none focus:bg-white focus:ring-2 focus:ring-emerald-700 focus:outline-none"
+                />
               </div>
 
               <button
                 type="submit"
-                disabled={isSavingProduct}
-                className="w-full py-3 bg-[#14532d] hover:bg-[#0f3d21] disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2"
+                disabled={isSavingProduct || isUploadingMobileImage}
+                className="w-full py-3 bg-[#14532d] hover:bg-[#0f3d21] active:scale-[0.98] disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2"
               >
                 {isSavingProduct ? (
                   <>

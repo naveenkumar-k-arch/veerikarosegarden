@@ -5632,7 +5632,6 @@ class Store {
           }).catch(() => {});
         }
 
-        prismaUpdated = (await this.getProductById(id)) || null;
       } catch (err) {
         console.warn('Prisma updateProduct fallback notice:', err);
       }
@@ -5703,7 +5702,7 @@ class Store {
       }
     }
     this.invalidateProductsCache();
-    return prismaUpdated || finalUpdatedProduct;
+    return finalUpdatedProduct;
   }
 
   async deleteProduct(id: string): Promise<boolean> {
@@ -7750,14 +7749,25 @@ class Store {
     return newLog;
   }
 
-  async getPaymentLogs(): Promise<PaymentLog[]> {
+  async getPaymentLogs(orderId?: string): Promise<PaymentLog[]> {
     const prisma = getPrismaClient();
-    if (!prisma) return this.inMemoryPaymentLogs;
+    if (!prisma) {
+      if (orderId) {
+        return this.inMemoryPaymentLogs.filter(p => p.orderId === orderId || p.merchantTransactionId === orderId);
+      }
+      return this.inMemoryPaymentLogs;
+    }
 
     try {
       const items = await prisma.paymentAttempt.findMany({
+        where: orderId ? {
+          OR: [
+            { orderId },
+            { merchantTransactionId: orderId }
+          ]
+        } : undefined,
         orderBy: { createdAt: 'desc' },
-        take: 100
+        take: orderId ? 50 : 100
       });
 
       if (items.length > 0) {
@@ -7772,9 +7782,15 @@ class Store {
           createdAt: p.createdAt.toISOString()
         }));
       }
+      if (orderId) {
+        return this.inMemoryPaymentLogs.filter(p => p.orderId === orderId || p.merchantTransactionId === orderId);
+      }
       return this.inMemoryPaymentLogs;
     } catch (err) {
       console.error('Prisma getPaymentLogs error:', err);
+      if (orderId) {
+        return this.inMemoryPaymentLogs.filter(p => p.orderId === orderId || p.merchantTransactionId === orderId);
+      }
       return this.inMemoryPaymentLogs;
     }
   }

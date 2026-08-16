@@ -449,8 +449,9 @@ export const App: React.FC = () => {
       if (e?.detail && Array.isArray(e.detail) && e.detail.length > 0) {
         setProducts(e.detail);
         try { localStorage.setItem('vrg_products', JSON.stringify(e.detail)); } catch {}
+      } else {
+        fetchCoreData();
       }
-      fetchCoreData();
     };
     const handleSyncReviews = (e: any) => {
       if (e.detail && Array.isArray(e.detail)) {
