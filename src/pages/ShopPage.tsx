@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { Product, Category } from '../types';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Product, Category, Combo } from '../types';
 import { ProductCard, CompactProductCard, HorizontalScrollRow } from '../components/ProductCard';
-import { Filter, SlidersHorizontal, Search, X, Check, ChevronRight } from 'lucide-react';
+import { comboToProduct, getCachedActiveCombos } from '../utils/comboUtils';
+import { Filter, SlidersHorizontal, Search, X, Check, ChevronRight, Sparkles } from 'lucide-react';
 
 interface ShopPageProps {
   products: Product[];
@@ -10,7 +11,7 @@ interface ShopPageProps {
   onSelectCategory: (catId: string | undefined) => void;
   searchQuery: string;
   onSearchChange: (q: string) => void;
-  onAddToCart: (product: Product) => void;
+  onAddToCart: (product: Product, quantity?: number, meta?: any) => void;
   onViewDetails: (product: Product) => void;
   onOpenCareGuide: (product: Product) => void;
 }
@@ -31,6 +32,44 @@ export const ShopPage: React.FC<ShopPageProps> = ({
   const [inStockOnly, setInStockOnly] = useState<boolean>(false);
   const [mobileFilterOpen, setMobileFilterOpen] = useState<boolean>(false);
 
+  // Live Combos State
+  const [combosList, setCombosList] = useState<Combo[]>(getCachedActiveCombos);
+
+  useEffect(() => {
+    const fetchCombos = async () => {
+      try {
+        const res = await fetch('/api/combos?_t=' + Date.now()).then(r => r.json()).catch(() => null);
+        if (res?.success && Array.isArray(res.combos)) {
+          const deletedSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_combos') || '[]'));
+          const activeCombos = res.combos.filter((c: Combo) => c.active !== false && !deletedSet.has(c.id));
+          setCombosList(activeCombos);
+          try {
+            localStorage.setItem('vrg_combos_cache', JSON.stringify(activeCombos));
+          } catch {}
+        }
+      } catch {}
+    };
+
+    fetchCombos();
+    const handleCombosSync = () => fetchCombos();
+    window.addEventListener('vrg_combos_updated', handleCombosSync);
+    window.addEventListener('storage', handleCombosSync);
+    return () => {
+      window.removeEventListener('vrg_combos_updated', handleCombosSync);
+      window.removeEventListener('storage', handleCombosSync);
+    };
+  }, []);
+
+  // Convert live combos to virtual products
+  const comboProducts = useMemo(() => combosList.map(comboToProduct), [combosList]);
+
+  // Combine regular catalog products and combo products
+  const allShopProducts = useMemo(() => {
+    const existingIds = new Set(products.map(p => p.id));
+    const uniqueCombos = comboProducts.filter(cp => !existingIds.has(cp.id));
+    return [...products, ...uniqueCombos];
+  }, [products, comboProducts]);
+
   // Robust Category Matching Helper
   const isProductInCat = (p: Product, catTarget?: string): boolean => {
     if (!catTarget || catTarget === 'all') return true;
@@ -47,14 +86,37 @@ export const ShopPage: React.FC<ShopPageProps> = ({
     const pCatName = (p.categoryName || '').toLowerCase();
     const pTags = Array.isArray(p.tags) ? p.tags.map(t => (t || '').toLowerCase()) : [];
     const pName = (p.name || '').toLowerCase();
+    const pId = (p.id || '').toLowerCase();
 
-    // 1. Direct ID or Slug match
+    // 1. Combos & Offers Category Matching
+    if (
+      targetId === 'cat-combos' ||
+      targetId === 'combos' ||
+      targetSlug === 'combos' ||
+      targetName.includes('combo') ||
+      targetName.includes('offer') ||
+      targetName.includes('சேர்க்கை')
+    ) {
+      return (
+        pCatId === 'cat-combos' ||
+        pCatId === 'combos' ||
+        pCatName.includes('combo') ||
+        pCatName.includes('offer') ||
+        pTags.includes('combo') ||
+        pTags.includes('offer') ||
+        pTags.includes('combos') ||
+        pTags.includes('bundle') ||
+        pId.startsWith('combo-')
+      );
+    }
+
+    // 2. Direct ID or Slug match
     if (pCatId && (pCatId === targetId || pCatId === targetSlug)) return true;
     if (pCatName && (pCatName === targetName || pCatName === targetSlug)) return true;
     if (pCatId && (pCatId.includes(targetId) || targetId.includes(pCatId))) return true;
     if (pCatName && (pCatName.includes(targetName) || targetName.includes(pCatName))) return true;
 
-    // 2. Specific Category Mappings
+    // 3. Specific Category Mappings
     if (targetId === 'cat-herbals' || targetSlug === 'herbals' || targetName.includes('herbal') || targetName.includes('மூலிகை')) {
       return pCatId === 'cat-herbals' || pCatName.includes('herbal') || pTags.includes('herbal') || pTags.includes('herbals') || pTags.includes('herbal plants') || pName.includes('panner leaf') || pName.includes('ranakalli') || pName.includes('rosemary') || pName.includes('miracle leaf');
     }
@@ -83,12 +145,12 @@ export const ShopPage: React.FC<ShopPageProps> = ({
       return pCatId === 'cat-rose' || pCatName.includes('rose') || pTags.includes('rose') || pTags.includes('roses') || pName.includes('rose');
     }
 
-    // 3. Fallback Substring match
+    // 4. Fallback Substring match
     return pCatId === targetId || pCatName.includes(targetName) || targetName.includes(pCatName) || pTags.includes(targetName);
   };
 
   // Filter products
-  let filtered = products.filter((p) => {
+  let filtered = allShopProducts.filter((p) => {
     if (p.status === 'DISABLED') return false;
     if (selectedCategory && !isProductInCat(p, selectedCategory)) return false;
     if (p.sellingPrice > maxPrice) return false;
@@ -115,6 +177,22 @@ export const ShopPage: React.FC<ShopPageProps> = ({
   } else if (sortBy === 'rating') {
     filtered.sort((a, b) => b.rating - a.rating);
   }
+
+  const handleProductAddToCart = (product: Product) => {
+    const matchedCombo = combosList.find(c => c.id === product.id);
+    if (matchedCombo) {
+      onAddToCart(product, 1, {
+        isCombo: true,
+        comboId: matchedCombo.id,
+        comboTitle: matchedCombo.title,
+        comboBadge: matchedCombo.badge || 'COMBO OFFER',
+        freeDelivery: matchedCombo.freeDelivery === true,
+        comboProducts: matchedCombo.products || []
+      });
+    } else {
+      onAddToCart(product);
+    }
+  };
 
   const currentCategoryObj = categories.find(
     (c) => c.id === selectedCategory || c.slug === selectedCategory || c.id.toLowerCase() === (selectedCategory || '').toLowerCase()
@@ -207,11 +285,11 @@ export const ShopPage: React.FC<ShopPageProps> = ({
                 }`}
               >
                 <span>All Categories</span>
-                <span>({products.filter(p => p.status === 'ACTIVE').length})</span>
+                <span>({allShopProducts.filter(p => p.status === 'ACTIVE').length})</span>
               </button>
 
               {categories.map((cat) => {
-                const count = products.filter((p) => p.status === 'ACTIVE' && isProductInCat(p, cat.id)).length;
+                const count = allShopProducts.filter((p) => p.status === 'ACTIVE' && isProductInCat(p, cat.id)).length;
                 const isSelected = selectedCategory === cat.id || selectedCategory === cat.slug;
                 return (
                   <button
@@ -330,7 +408,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
               {!selectedCategory && !searchQuery && (
                 <div className="block sm:hidden space-y-6 mb-6">
                   {categories.map((cat) => {
-                    const catProds = products.filter((p) => p.status === 'ACTIVE' && isProductInCat(p, cat.id));
+                    const catProds = allShopProducts.filter((p) => p.status === 'ACTIVE' && isProductInCat(p, cat.id));
                     if (catProds.length === 0) return null;
                     return (
                       <div key={cat.id} className="space-y-2">
@@ -350,7 +428,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
                             <CompactProductCard
                               key={product.id}
                               product={product}
-                              onAddToCart={onAddToCart}
+                              onAddToCart={handleProductAddToCart}
                               onViewDetails={onViewDetails}
                             />
                           ))}
@@ -367,7 +445,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
                   <ProductCard
                     key={product.id}
                     product={product}
-                    onAddToCart={onAddToCart}
+                    onAddToCart={handleProductAddToCart}
                     onViewDetails={onViewDetails}
                     onOpenCareGuide={onOpenCareGuide}
                   />

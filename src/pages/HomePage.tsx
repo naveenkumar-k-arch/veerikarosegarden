@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Product, Category, Banner, Review } from '../types';
+import { Product, Category, Banner, Review, Combo } from '../types';
 import { ProductCard, CompactProductCard, HorizontalScrollRow } from '../components/ProductCard';
 import { CombosSection } from '../components/CombosSection';
 import { Card3D } from '../components/Card3D';
 import { INITIAL_REVIEWS } from '../data/reviewsData';
+import { comboToProduct, getCachedActiveCombos } from '../utils/comboUtils';
 import {
   ShieldCheck, Truck, Sprout, HeartHandshake, Star, ArrowRight,
   MapPin, MessageSquare, Phone, Leaf, Sparkles, Package, ChevronRight, X, ZoomIn, Camera
@@ -14,7 +15,7 @@ interface HomePageProps {
   categories: Category[];
   banners: Banner[];
   reviews?: Review[];
-  onAddToCart: (product: Product) => void;
+  onAddToCart: (product: Product, quantity?: number, meta?: any) => void;
   onViewDetails: (product: Product) => void;
   onOpenCareGuide: (product: Product) => void;
   onNavigate: (page: string, params?: any) => void;
@@ -44,6 +45,32 @@ export const HomePage: React.FC<HomePageProps> = ({
 }) => {
   const [selectedReviewPhoto, setSelectedReviewPhoto] = useState<Review | null>(null);
   const [reviewsList, setReviewsList] = useState<Review[]>(reviews || []);
+  const [combosList, setCombosList] = useState<Combo[]>(getCachedActiveCombos);
+
+  useEffect(() => {
+    const fetchCombos = async () => {
+      try {
+        const res = await fetch('/api/combos?_t=' + Date.now()).then(r => r.json()).catch(() => null);
+        if (res?.success && Array.isArray(res.combos)) {
+          const deletedSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_combos') || '[]'));
+          const activeCombos = res.combos.filter((c: Combo) => c.active !== false && !deletedSet.has(c.id));
+          setCombosList(activeCombos);
+          try {
+            localStorage.setItem('vrg_combos_cache', JSON.stringify(activeCombos));
+          } catch {}
+        }
+      } catch {}
+    };
+
+    fetchCombos();
+    const handleCombosSync = () => fetchCombos();
+    window.addEventListener('vrg_combos_updated', handleCombosSync);
+    window.addEventListener('storage', handleCombosSync);
+    return () => {
+      window.removeEventListener('vrg_combos_updated', handleCombosSync);
+      window.removeEventListener('storage', handleCombosSync);
+    };
+  }, []);
 
   useEffect(() => {
     const handleReviewsUpdated = (e: CustomEvent) => {
@@ -70,18 +97,19 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   const approvedReviews = getLiveReviews().filter(r => r.status === 'APPROVED');
 
-  // Helper: exclude combo/offer products from regular grids — they belong only in CombosSection
+  // Helper: exclude combo/offer products from regular grids — they belong only in CombosSection / Combos category
   const isComboProduct = (p: Product) => {
     const catId = (p.categoryId || '').toLowerCase();
     const catName = (p.categoryName || '').toLowerCase();
     const id = (p.id || '').toLowerCase();
     return (
+      catId === 'cat-combos' ||
       catId === 'combos' ||
       catId === 'offers' ||
       catName.includes('combo') ||
       catName.includes('offer') ||
       id.startsWith('combo-') ||
-      (p.tags && p.tags.some(t => t === 'combo' || t === 'offer' || t === 'bundle'))
+      (p.tags && p.tags.some(t => t === 'combo' || t === 'offer' || t === 'bundle' || t === 'combos'))
     );
   };
 
@@ -90,6 +118,46 @@ export const HomePage: React.FC<HomePageProps> = ({
   const bestSellers = regularProducts.filter(p => p.bestSeller).slice(0, 8);
   const activeCategories = categories.filter(c => c.isActive !== false).sort((a, b) => (a.order ?? 1) - (b.order ?? 1));
   const displayCategories = (activeCategories.filter(c => c.isFeatured).length > 0 ? activeCategories.filter(c => c.isFeatured) : activeCategories).slice(0, 8);
+
+  const getCategoryProducts = (cat: Category) => {
+    const cName = (cat.name || '').toLowerCase();
+    const cSlug = (cat.slug || '').toLowerCase();
+    const cId = (cat.id || '').toLowerCase();
+    const isComboCat = cId === 'cat-combos' || cId === 'combos' || cSlug === 'combos' || cName.includes('combo') || cName.includes('offer');
+
+    if (isComboCat) {
+      if (combosList.length > 0) {
+        return combosList.map(comboToProduct);
+      }
+      return products.filter(isComboProduct);
+    }
+
+    return products.filter(p => {
+      if (p.status === 'DISABLED' || isComboProduct(p)) return false;
+      const pCatId = (p.categoryId || '').toLowerCase();
+      const pCatName = (p.categoryName || '').toLowerCase();
+      return (
+        (pCatId && (pCatId === cId || pCatId === cSlug)) ||
+        (pCatName && (pCatName === cName || cName.includes(pCatName) || pCatName.includes(cName)))
+      );
+    });
+  };
+
+  const handleProductAddToCart = (product: Product) => {
+    const matchedCombo = combosList.find(c => c.id === product.id);
+    if (matchedCombo) {
+      onAddToCart(product, 1, {
+        isCombo: true,
+        comboId: matchedCombo.id,
+        comboTitle: matchedCombo.title,
+        comboBadge: matchedCombo.badge || 'COMBO OFFER',
+        freeDelivery: matchedCombo.freeDelivery === true,
+        comboProducts: matchedCombo.products || []
+      });
+    } else {
+      onAddToCart(product);
+    }
+  };
 
   return (
     <div style={{ background: 'var(--bg-page)' }}>
@@ -119,17 +187,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         ) : (
           <div className="hp-cat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
             {displayCategories.map(cat => {
-              const cName = (cat.name || '').toLowerCase();
-              const cSlug = (cat.slug || '').toLowerCase();
-              const cId = (cat.id || '').toLowerCase();
-              const catProducts = products.filter(p => {
-                const pCatId = (p.categoryId || '').toLowerCase();
-                const pCatName = (p.categoryName || '').toLowerCase();
-                return (
-                  (pCatId && (pCatId === cId || pCatId === cSlug)) ||
-                  (pCatName && (pCatName === cName || cName.includes(pCatName) || pCatName.includes(cName)))
-                );
-              });
+              const catProducts = getCategoryProducts(cat);
               const plantCount = cat.productCount ?? (catProducts.length > 0 ? catProducts.length : 3);
               const discounts = catProducts.map(p => {
                 if (p.discount && p.discount > 0) return p.discount;
@@ -138,8 +196,8 @@ export const HomePage: React.FC<HomePageProps> = ({
               }).filter(d => d > 0);
               let maxDis = 20;
               if (discounts.length > 0) maxDis = Math.max(...discounts);
-              else if (cSlug.includes('jasmine') || cName.includes('jasmine')) maxDis = 40;
-              else if (cSlug.includes('rose') || cName.includes('rose')) maxDis = 20;
+              else if ((cat.slug || '').includes('jasmine') || (cat.name || '').includes('jasmine')) maxDis = 40;
+              else if ((cat.slug || '').includes('rose') || (cat.name || '').includes('rose')) maxDis = 20;
               const catPhoto = (cat.image && !cat.image.includes('photo-1518709268805-4e9042af9f23')) 
                 ? cat.image 
                 : (catProducts.find(p => p.images?.[0] && !p.images[0].includes('photo-1518709268805-4e9042af9f23'))?.images?.[0] || cat.image || '/products/double-delight.jpeg');
@@ -257,18 +315,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
         {/* Category-by-Category Horizontal Pull Sections */}
         {activeCategories.map(cat => {
-          const catProducts = products.filter(p => {
-            if (p.status === 'DISABLED') return false;
-            const cName = (cat.name || '').toLowerCase();
-            const cSlug = (cat.slug || '').toLowerCase();
-            const cId = (cat.id || '').toLowerCase();
-            const pCatId = (p.categoryId || '').toLowerCase();
-            const pCatName = (p.categoryName || '').toLowerCase();
-            return (
-              (pCatId && (pCatId === cId || pCatId === cSlug || pCatId.includes(cId) || cId.includes(pCatId))) ||
-              (pCatName && (pCatName === cName || cName.includes(pCatName) || pCatName.includes(cName)))
-            );
-          });
+          const catProducts = getCategoryProducts(cat);
 
           if (catProducts.length === 0) return null;
 
@@ -294,7 +341,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   <CompactProductCard
                     key={product.id}
                     product={product}
-                    onAddToCart={onAddToCart}
+                    onAddToCart={handleProductAddToCart}
                     onViewDetails={onViewDetails}
                   />
                 ))}
@@ -714,19 +761,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           ) : (
             <div className="hp-cat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
               {displayCategories.map(cat => {
-                const cName = (cat.name || '').toLowerCase();
-                const cSlug = (cat.slug || '').toLowerCase();
-                const cId = (cat.id || '').toLowerCase();
-
-                const catProducts = products.filter(p => {
-                  const pCatId = (p.categoryId || '').toLowerCase();
-                  const pCatName = (p.categoryName || '').toLowerCase();
-                  return (
-                    (pCatId && (pCatId === cId || pCatId === cSlug)) ||
-                    (pCatName && (pCatName === cName || cName.includes(pCatName) || pCatName.includes(cName)))
-                  );
-                });
-
+                const catProducts = getCategoryProducts(cat);
                 const plantCount = cat.productCount ?? (catProducts.length > 0 ? catProducts.length : 3);
 
                 const discounts = catProducts
@@ -736,6 +771,9 @@ export const HomePage: React.FC<HomePageProps> = ({
                     return 0;
                   })
                   .filter(d => d > 0);
+
+                const cSlug = (cat.slug || '').toLowerCase();
+                const cName = (cat.name || '').toLowerCase();
 
                 let maxDis = 20;
                 if (discounts.length > 0) {

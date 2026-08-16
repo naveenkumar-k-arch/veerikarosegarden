@@ -2,13 +2,25 @@ import { Product, Category } from '../types';
 
 export const INITIAL_CATEGORIES: Category[] = [
   {
+    "id": "cat-combos",
+    "name": "Combos & Offers",
+    "tamilName": "சேர்க்கை & சலுகைகள் (Combos)",
+    "slug": "combos",
+    "image": "/products/double-delight.jpeg",
+    "description": "Special discounted live plant combo bundles, multi-sapling packages, and seasonal offers.",
+    "order": 1,
+    "isActive": true,
+    "isFeatured": true,
+    "productCount": 8
+  },
+  {
     "id": "cat-rose",
     "name": "Rose Varieties",
     "tamilName": "ரோஜா வகைகள்",
     "slug": "rose-varieties",
     "image": "/categories/rose-varieties.jpg",
     "description": "Premium live hybrid rose plants, double delight & button rose varieties.",
-    "order": 1,
+    "order": 2,
     "isActive": true,
     "isFeatured": true,
     "productCount": 15
