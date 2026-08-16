@@ -92,11 +92,17 @@ export const App: React.FC = () => {
 
   // Page Navigation State — multi-page URL routing enabled
   const [currentPage, setCurrentPage] = useState<string>(() => {
-    if (initialUrlState.page) return initialUrlState.page;
+    if (initialUrlState.page && initialUrlState.page !== 'home') return initialUrlState.page;
     try {
       const saved = sessionStorage.getItem('vrg_current_page');
       if (saved && ['home', 'shop', 'product-detail', 'cart', 'checkout', 'order-status', 'account', 'policies', 'admin'].includes(saved)) {
         return saved;
+      }
+      // If user had an active checkout or pending UPI payment, restore checkout page
+      const pendingUpi = localStorage.getItem('vrg_pending_upi_payment');
+      const checkoutStep = sessionStorage.getItem('vrg_checkout_step') || localStorage.getItem('vrg_checkout_step');
+      if (pendingUpi || (checkoutStep && parseInt(checkoutStep, 10) > 1)) {
+        return 'checkout';
       }
     } catch {}
     return 'home';
@@ -901,6 +907,10 @@ export const App: React.FC = () => {
     try {
       const prev = JSON.parse(localStorage.getItem('vrg_my_orders') || '[]');
       localStorage.setItem('vrg_my_orders', JSON.stringify([confirmedOrder, ...prev.filter((o: any) => o.id !== confirmedOrder.id)]));
+      sessionStorage.removeItem('vrg_checkout_step');
+      localStorage.removeItem('vrg_checkout_step');
+      localStorage.removeItem('vrg_pending_upi_payment');
+      localStorage.removeItem('vrg_pending_razorpay_order');
     } catch {}
 
     window.dispatchEvent(new Event('orderStatusUpdated'));

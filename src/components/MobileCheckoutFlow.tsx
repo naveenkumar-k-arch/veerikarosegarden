@@ -138,11 +138,31 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
   onNavigateToAccount,
 }) => {
   // ── Step state ─────────────────────────────────────────────────────────────
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState<number>(() => {
+    try {
+      const saved = sessionStorage.getItem('vrg_checkout_step') || localStorage.getItem('vrg_checkout_step');
+      if (saved) {
+        const num = parseInt(saved, 10);
+        if (!isNaN(num) && num >= 1 && num <= 9) {
+          if (num >= 7) return num;
+          if (items.length > 0) return num;
+        }
+      }
+    } catch {}
+    return 1;
+  });
   const [direction, setDirection] = useState<'forward' | 'back'>('forward');
   const [animating, setAnimating] = useState(false);
   const isPaymentInProgressRef = useRef(false);
   const paymentCompletedRef = useRef(false);
+  const [hasReturnedFromUpi, setHasReturnedFromUpi] = useState(false);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('vrg_checkout_step', String(step));
+      localStorage.setItem('vrg_checkout_step', String(step));
+    } catch {}
+  }, [step]);
 
   // Eagerly pre-load Razorpay SDK in background as soon as checkout modal is opened
   useEffect(() => {
@@ -151,6 +171,30 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
     }
   }, [isOpen]);
 
+  // Check returning from UPI Lite / UPI app
+  useEffect(() => {
+    const checkUpiReturn = () => {
+      try {
+        const raw = localStorage.getItem('vrg_pending_upi_payment');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.timestamp && (Date.now() - parsed.timestamp < 3600000)) {
+            setHasReturnedFromUpi(true);
+            setPaymentMethod('QR_PAYMENT');
+          }
+        }
+      } catch {}
+    };
+
+    checkUpiReturn();
+    window.addEventListener('focus', checkUpiReturn);
+    document.addEventListener('visibilitychange', checkUpiReturn);
+    return () => {
+      window.removeEventListener('focus', checkUpiReturn);
+      document.removeEventListener('visibilitychange', checkUpiReturn);
+    };
+  }, []);
+
   // Go to step with browser history push
   const goTo = useCallback((next: number, replace = false) => {
     if (animating) return;
@@ -158,6 +202,11 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
     setDirection(isForward ? 'forward' : 'back');
     setAnimating(true);
     setStep(next);
+
+    try {
+      sessionStorage.setItem('vrg_checkout_step', String(next));
+      localStorage.setItem('vrg_checkout_step', String(next));
+    } catch {}
 
     const stateObj = {
       vrgCart: true,
@@ -178,6 +227,10 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
   // Handle close cart with clean history
   const handleClose = useCallback(() => {
     if (isPaymentInProgressRef.current || paymentCompletedRef.current) return;
+    try {
+      sessionStorage.removeItem('vrg_checkout_step');
+      localStorage.removeItem('vrg_checkout_step');
+    } catch {}
     if (window.history.state && window.history.state.vrgCart) {
       window.history.back();
     } else {
@@ -201,11 +254,11 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
   useEffect(() => {
     if (!isOpen) return;
 
-    // Push initial step 1 state if not already set
+    // Push initial step state if not already set
     if (!window.history.state || !window.history.state.vrgCart) {
       window.history.pushState({
         vrgCart: true,
-        cartStep: 1
+        cartStep: step
       }, '', window.location.pathname);
     }
 
@@ -236,28 +289,85 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
   const [couponMsg, setCouponMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // ── Address state ──────────────────────────────────────────────────────────
-  const [address, setAddress] = useState<ShippingAddress>({
-    fullName: '',
-    phone: '',
-    alternatePhone: '',
-    houseNo: '',
-    street: '',
-    villageTown: '',
-    district: '',
-    state: 'Tamil Nadu',
-    pincode: '',
-    landmark: '',
-    addressType: 'Home',
+  const [address, setAddress] = useState<ShippingAddress>(() => {
+    try {
+      const saved = localStorage.getItem('vrg_checkout_address');
+      if (saved) {
+        const p = JSON.parse(saved);
+        if (p && typeof p === 'object') {
+          return {
+            fullName: p.fullName || user?.name || '',
+            phone: p.phone || user?.phone || '',
+            alternatePhone: p.alternatePhone || '',
+            houseNo: p.houseNo || '',
+            street: p.street || '',
+            villageTown: p.villageTown || '',
+            district: p.district || '',
+            state: p.state || 'Tamil Nadu',
+            pincode: p.pincode || '',
+            landmark: p.landmark || '',
+            addressType: p.addressType || 'Home',
+          };
+        }
+      }
+    } catch {}
+    return {
+      fullName: user?.name || '',
+      phone: user?.phone || '',
+      alternatePhone: '',
+      houseNo: '',
+      street: '',
+      villageTown: '',
+      district: '',
+      state: 'Tamil Nadu',
+      pincode: '',
+      landmark: '',
+      addressType: 'Home',
+    };
   });
   const [addrError, setAddrError] = useState<string | null>(null);
 
+  useEffect(() => {
+    try {
+      if (address.fullName || address.phone || address.houseNo || address.pincode) {
+        localStorage.setItem('vrg_checkout_address', JSON.stringify(address));
+      }
+    } catch {}
+  }, [address]);
+
   // ── Delivery / Packing Selection ──────────────────────────────────────────
-  const [deliveryOption, setDeliveryOption] = useState<DeliveryOptionType>('REDUCED_SOIL');
-  const [courierPartner, setCourierPartner] = useState<CourierPartnerType>('PROFESSIONAL_COURIER');
+  const [deliveryOption, setDeliveryOption] = useState<DeliveryOptionType>(() => {
+    try {
+      const saved = sessionStorage.getItem('vrg_checkout_delivery_option');
+      if (saved === 'FULL_SOIL' || saved === 'REDUCED_SOIL') return saved;
+    } catch {}
+    return 'REDUCED_SOIL';
+  });
+  const [courierPartner, setCourierPartner] = useState<CourierPartnerType>(() => {
+    try {
+      const saved = sessionStorage.getItem('vrg_checkout_courier_partner');
+      if (saved === 'METTUR_PARCEL' || saved === 'PROFESSIONAL_COURIER') return saved;
+    } catch {}
+    return 'PROFESSIONAL_COURIER';
+  });
   const [metturState, setMetturState] = useState<string>('Tamil Nadu');
   const [metturDistrict, setMetturDistrict] = useState<string>('Salem');
   const [metturBranch, setMetturBranch] = useState<string>('Salem Main Hub (Shevapet)');
-  const [selectedPacking, setSelectedPacking] = useState<PackingOptionType>('STANDARD');
+  const [selectedPacking, setSelectedPacking] = useState<PackingOptionType>(() => {
+    try {
+      const saved = sessionStorage.getItem('vrg_checkout_packing');
+      if (saved === 'STANDARD' || saved === 'EXTRA_SECURE' || saved === 'MAX_PROTECTION') return saved;
+    } catch {}
+    return 'STANDARD';
+  });
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('vrg_checkout_delivery_option', deliveryOption);
+      sessionStorage.setItem('vrg_checkout_courier_partner', courierPartner);
+      sessionStorage.setItem('vrg_checkout_packing', selectedPacking);
+    } catch {}
+  }, [deliveryOption, courierPartner, selectedPacking]);
 
   // Total plant count (including plants bundled inside combos)
   const subtotal = items.reduce((sum, i) => sum + i.product.sellingPrice * i.quantity, 0);
@@ -307,10 +417,27 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
   const grandTotal = Math.max(0, subtotal + shippingCharge + packingCharge - discountAmount);
 
   // ── Terms ──────────────────────────────────────────────────────────────────
-  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('vrg_checkout_terms') === 'true';
+    } catch {}
+    return false;
+  });
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('vrg_checkout_terms', String(termsAccepted));
+    } catch {}
+  }, [termsAccepted]);
 
   // ── Payment ────────────────────────────────────────────────────────────────
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(() => {
+    try {
+      const saved = sessionStorage.getItem('vrg_checkout_payment_method');
+      if (saved) return saved as PaymentMethod;
+    } catch {}
+    return null;
+  });
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
   const [paymentProofUrl, setPaymentProofUrl] = useState('');
   const [proofPreview, setProofPreview] = useState<string | null>(null);
@@ -320,8 +447,21 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
   const [loading, setLoading] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (paymentMethod) {
+      try {
+        sessionStorage.setItem('vrg_checkout_payment_method', paymentMethod);
+      } catch {}
+    }
+  }, [paymentMethod]);
+
   // ── Order result ───────────────────────────────────────────────────────────
-  const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
+  const [placedOrderId, setPlacedOrderId] = useState<string | null>(() => {
+    try {
+      return sessionStorage.getItem('vrg_placed_order_id') || null;
+    } catch {}
+    return null;
+  });
   const [fetchedOrder, setFetchedOrder] = useState<any>(null);
   const [trackLoading, setTrackLoading] = useState(false);
 
@@ -357,9 +497,19 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
       .catch(() => {});
   }, []);
 
-  // reset step when opened
+  // restore step when opened if saved in storage
   useEffect(() => {
-    if (isOpen) setStep(1);
+    if (isOpen) {
+      try {
+        const saved = sessionStorage.getItem('vrg_checkout_step') || localStorage.getItem('vrg_checkout_step');
+        if (saved) {
+          const num = parseInt(saved, 10);
+          if (!isNaN(num) && num >= 1 && num <= 9) {
+            setStep(num);
+          }
+        }
+      } catch {}
+    }
   }, [isOpen]);
 
   // fetch order on step 7
@@ -667,11 +817,19 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
       });
       setLoading(false);
       if (res.success) {
+        try {
+          sessionStorage.removeItem('vrg_checkout_step');
+          localStorage.removeItem('vrg_checkout_step');
+          localStorage.removeItem('vrg_pending_upi_payment');
+        } catch {}
         if (effectivePM === 'RAZORPAY' && res.razorpayOrderId) {
           handleRazorpayPayment(res);
           return;
         }
         setPlacedOrderId(res.orderId || null);
+        try {
+          if (res.orderId) sessionStorage.setItem('vrg_placed_order_id', res.orderId);
+        } catch {}
         goTo(7);
       } else {
         setOrderError(res.message || 'Failed to place order. Please try again.');
@@ -1483,6 +1641,19 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                 )}
               </div>
 
+              {/* UPI Return Recovery Helper Banner */}
+              {hasReturnedFromUpi && (
+                <div className="p-3.5 bg-emerald-50 border-2 border-emerald-500 rounded-2xl space-y-1.5 shadow-xs">
+                  <div className="flex items-center gap-2 text-emerald-950 font-black text-xs">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>👋 Welcome back from UPI / UPI Lite!</span>
+                  </div>
+                  <p className="text-[11px] text-emerald-800 font-medium leading-relaxed">
+                    If payment of <strong>₹{grandTotal}</strong> was made, attach your <strong>screenshot</strong> below or enter <strong>12-digit UPI UTR</strong>, then tap the green button to confirm!
+                  </p>
+                </div>
+              )}
+
               {/* QR Payment Panel */}
               {paymentMethod === 'QR_PAYMENT' && isQrEnabled && (
                 <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl border border-indigo-200 p-4 space-y-4">
@@ -1492,8 +1663,25 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                       <img src={qrCodeUrl} alt="UPI QR Code" className="w-44 h-44 object-contain rounded-xl" />
                     </div>
                     <p className="text-[11px] font-extrabold text-indigo-900">📱 Scan to pay ₹{grandTotal}</p>
-                    <a href={upiDeepLink} className="px-4 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 cursor-pointer">
-                      ⚡ Pay ₹{grandTotal} via GPay/PhonePe
+                    <a
+                      href={upiDeepLink}
+                      onClick={() => {
+                        try {
+                          localStorage.setItem('vrg_pending_upi_payment', JSON.stringify({
+                            amount: grandTotal,
+                            timestamp: Date.now(),
+                            phone: address.phone || user?.phone || '',
+                            customerName: address.fullName || user?.name || ''
+                          }));
+                          sessionStorage.setItem('vrg_checkout_step', '6');
+                          localStorage.setItem('vrg_checkout_step', '6');
+                          sessionStorage.setItem('vrg_checkout_payment_method', 'QR_PAYMENT');
+                        } catch {}
+                        setHasReturnedFromUpi(true);
+                      }}
+                      className="px-4 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 cursor-pointer"
+                    >
+                      ⚡ Pay ₹{grandTotal} via GPay/PhonePe/UPI Lite
                     </a>
                   </div>
 
