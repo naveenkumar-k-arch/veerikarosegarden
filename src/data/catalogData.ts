@@ -113,6 +113,52 @@ export const INITIAL_CATEGORIES: Category[] = [
 
 export const INITIAL_PRODUCTS: Product[] = [
   {
+    "id": "vrg-orchid-rose",
+    "sku": "VRG-ROSE-120",
+    "name": "Orchid Rose (Free shipping)",
+    "englishName": "Orchid Rose (Free shipping)",
+    "tamilName": "ஆர்க்கிட் ரோஸ் (Orchid Rose)",
+    "scientificName": "Rosa 'Orchid Pink'",
+    "categoryId": "cat-rose",
+    "categoryName": "Rose Varieties",
+    "description": "Exquisite cluster blooming Orchid Rose featuring delicate multi-petal pink flower bunches that resemble miniature orchids with a delightful mild sweet fragrance.",
+    "mrp": 200,
+    "sellingPrice": 150,
+    "discount": 25,
+    "stock": 9,
+    "rating": 4.9,
+    "reviewCount": 12,
+    "images": [
+      "/products/vrg/orchid-rose.png"
+    ],
+    "image": "/products/vrg/orchid-rose.png",
+    "imageUrl": "/products/vrg/orchid-rose.png",
+    "plantHeight": "1.5 - 2 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Requires 4-6 hours direct sunlight.",
+    "waterRequirement": "Water daily in the morning, avoid over-soaking soil.",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "rose varieties",
+      "roses",
+      "orchid rose",
+      "free shipping",
+      "pink rose"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T15:43:00.000Z",
+    "updatedAt": "2026-08-16T15:43:00.000Z"
+  },
+  {
     "id": "vrg-creeper-jackie-rose",
     "sku": "VRG-CREE-001",
     "name": "Creeper Jackie Rose",
