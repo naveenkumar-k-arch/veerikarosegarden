@@ -4491,22 +4491,9 @@ const PRODUCTS = [
 ];
 
 async function main() {
-  console.log('Seeding 102 deduped products and 8 categories into database...');
+  console.log('Seeding 102 deduped products and 8 categories into database (preserving orders)...');
 
-  // 1. Delete dependent transactional records first to avoid foreign key violations
-  console.log('Clearing existing order items and cart items...');
-  await prisma.orderItem.deleteMany({});
-  await prisma.cartItem.deleteMany({});
-  await prisma.order.deleteMany({});
-  await prisma.cart.deleteMany({});
-  await prisma.inventory.deleteMany({});
-
-  // 2. Delete existing products and categories
-  console.log('Clearing existing products and categories...');
-  await prisma.product.deleteMany({});
-  await prisma.category.deleteMany({});
-
-  // 3. Insert categories
+  // 1. Insert / Upsert categories
   for (const cat of CATEGORIES) {
     await prisma.category.upsert({
       where: { id: cat.id },
@@ -4535,13 +4522,35 @@ async function main() {
   }
   console.log('Categories seeded successfully.');
 
-  // 4. Insert 102 products
+  // 2. Upsert 102 products
   for (const prod of PRODUCTS) {
     const primaryImage = prod.images && prod.images.length > 0 ? prod.images[0] : (prod.image || `/products/vrg/${prod.id.replace('vrg-', '')}.png`);
     const allImages = prod.images && prod.images.length > 0 ? prod.images : [primaryImage];
     
-    await prisma.product.create({
-      data: {
+    await prisma.product.upsert({
+      where: { id: prod.id },
+      update: {
+        sku: prod.sku,
+        name: prod.name,
+        nameTamil: prod.tamilName || prod.name,
+        scientificName: prod.scientificName || '',
+        category: prod.categoryName,
+        categoryId: prod.categoryId,
+        description: prod.description || '',
+        price: prod.sellingPrice,
+        originalPrice: prod.mrp,
+        image: primaryImage,
+        images: allImages,
+        isFeatured: Boolean(prod.featured),
+        isBestSeller: Boolean(prod.bestSeller),
+        potSize: prod.potSize || '8 Inch Bag',
+        inStock: (prod.stock ?? 25) > 0,
+        careWatering: prod.careInstructions?.watering || 'Daily',
+        careSunlight: prod.careInstructions?.sunlight || 'Full Sun',
+        careFertilizer: prod.careInstructions?.fertilizer || 'Organic compost',
+        careSoil: prod.careInstructions?.soil || 'Red soil'
+      },
+      create: {
         id: prod.id,
         sku: prod.sku,
         name: prod.name,
@@ -4570,7 +4579,7 @@ async function main() {
       }
     });
   }
-  console.log(`Successfully seeded ${PRODUCTS.length} products into PostgreSQL database!`);
+  console.log(`Successfully synced ${PRODUCTS.length} products into PostgreSQL database!`);
 }
 
 main()
