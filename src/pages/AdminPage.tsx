@@ -549,6 +549,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
   // Modals state
   const [showProductModal, setShowProductModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [productSaving, setProductSaving] = useState(false);
   const [dispatchOrder, setDispatchOrder] = useState<Order | null>(null);
   const [courierName, setCourierName] = useState('ST Courier');
   const [trackingNumber, setTrackingNumber] = useState('');
@@ -945,6 +946,7 @@ const silentRefresh = async (): Promise<boolean> => {
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     setProductSaveError(null);
+    setProductSaving(true);
 
     // Auto-generate SKU if not provided
     const autoSku = prodForm.sku ||
