@@ -7131,6 +7131,23 @@ class Store {
             parsedTracking = parts[1]?.trim();
           }
 
+          if (!parsedCourier) {
+            if (unpackedCourierBranch || unpackedCourierDistrict) {
+              parsedCourier = 'Mettur Parcel Service';
+            } else if (unpackedPotOption === 'FULL_SOIL' || o.deliveryFee >= 100) {
+              parsedCourier = 'Professional Courier (Full Soil)';
+            } else {
+              parsedCourier = 'Professional Courier (Reduced Soil)';
+            }
+          }
+          if (!unpackedPotOption || unpackedPotOption === 'NONE') {
+            if (parsedCourier.toLowerCase().includes('full soil') || o.deliveryFee >= 100) {
+              unpackedPotOption = 'FULL_SOIL';
+            } else {
+              unpackedPotOption = 'REDUCED_SOIL';
+            }
+          }
+
           const hasProof = Boolean(unpackedProofUrl);
           const stStr = String(o.status || '').toUpperCase();
           const dbOrderStatus: Order['orderStatus'] = (stStr === 'DELIVERED' || stStr === 'COMPLETED'
@@ -7174,8 +7191,8 @@ class Store {
             courierName: parsedCourier,
             potOption: unpackedPotOption,
             potCharge: unpackedPotCharge,
-            packingOption: unpackedPackingOption,
-            packingCharge: unpackedPackingCharge,
+            packingOption: unpackedPackingOption || 'STANDARD',
+            packingCharge: unpackedPackingCharge || 0,
             courierDistrict: unpackedCourierDistrict,
             courierBranch: unpackedCourierBranch,
             createdAt: o.createdAt.toISOString(),
