@@ -190,7 +190,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
 
   const [stats, setStats] = useState<any>(() => initialCache?.stats || null);
   const [products, setProducts] = useState<Product[]>(() => {
-    const pending = Array.from(getPendingSavedProducts().values()).map(x => x.product);
+    const deletedProdSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_products') || '[]'));
+    const pending = Array.from(getPendingSavedProducts().values()).map(x => x.product).filter(p => !deletedProdSet.has(p.id) && (!p.sku || !deletedProdSet.has(p.sku)));
     let baseList: Product[] = INITIAL_PRODUCTS;
     if (Array.isArray(initialCache?.products) && initialCache.products.length > 0) {
       baseList = initialCache.products;
@@ -203,6 +204,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
         }
       } catch {}
     }
+    baseList = baseList.filter(p => p && !deletedProdSet.has(p.id) && (!p.sku || !deletedProdSet.has(p.sku)));
     const baseIds = new Set(baseList.map(p => p.id));
     const toPrepend = pending.filter(p => !baseIds.has(p.id));
     return [...toPrepend, ...baseList];
@@ -774,21 +776,8 @@ const silentRefresh = async (): Promise<boolean> => {
               return apiProd;
             });
 
-            // Retain any locally present products from `prev` that the server hasn't returned yet
             const filteredIds = new Set(filtered.map((p: Product) => p.id));
             const filteredSkus = new Set(filtered.map((p: Product) => p.sku));
-            prev.forEach(localProd => {
-              if (
-                !filteredIds.has(localProd.id) &&
-                (!localProd.sku || !filteredSkus.has(localProd.sku)) &&
-                !deletedProdSet.has(localProd.id) &&
-                (!localProd.sku || !deletedProdSet.has(localProd.sku))
-              ) {
-                filtered.unshift(localProd);
-                filteredIds.add(localProd.id);
-                if (localProd.sku) filteredSkus.add(localProd.sku);
-              }
-            });
 
             // Merge any remaining pending products from sessionStorage
             pendingMap.forEach(({ product, savedAt }, id) => {

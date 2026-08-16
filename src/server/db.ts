@@ -128,6 +128,31 @@ function saveDiskDeletedCombos(ids: Set<string>) {
   }
 }
 
+const DELETED_PRODUCTS_STORE_FILE = path.resolve(process.cwd(), 'src/data/deleted_products.json');
+
+function loadDiskDeletedProducts(): Set<string> {
+  try {
+    if (fs.existsSync(DELETED_PRODUCTS_STORE_FILE)) {
+      const data = fs.readFileSync(DELETED_PRODUCTS_STORE_FILE, 'utf-8');
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed)) return new Set(parsed);
+    }
+  } catch (err) {
+    console.error('Error reading deleted_products.json:', err);
+  }
+  return new Set();
+}
+
+function saveDiskDeletedProducts(ids: Set<string>) {
+  try {
+    const dir = path.dirname(DELETED_PRODUCTS_STORE_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(DELETED_PRODUCTS_STORE_FILE, JSON.stringify(Array.from(ids), null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error writing deleted_products.json:', err);
+  }
+}
+
 function loadDiskCombos(): Combo[] {
   try {
     if (fs.existsSync(COMBOS_STORE_FILE)) {
@@ -5138,7 +5163,7 @@ const DEFAULT_ORDERS: Order[] = loadDiskOrders();
 const DEFAULT_FINANCES: FinancialEntry[] = [];
 
 // Persistent deletion tracking across serverless requests
-const deletedProductIds = (globalThis as any)._deletedProductIds || ((globalThis as any)._deletedProductIds = new Set<string>());
+const deletedProductIds: Set<string> = (globalThis as any)._deletedProductIds || ((globalThis as any)._deletedProductIds = loadDiskDeletedProducts());
 const deletedCategoryIds = (globalThis as any)._deletedCategoryIds || ((globalThis as any)._deletedCategoryIds = new Set<string>());
 const deletedCouponIds = (globalThis as any)._deletedCouponIds || ((globalThis as any)._deletedCouponIds = new Set<string>());
 const deletedFinanceIds = (globalThis as any)._deletedFinanceIds || ((globalThis as any)._deletedFinanceIds = new Set<string>());
@@ -5458,6 +5483,7 @@ class Store {
     const sku = product.sku || `VRG-${id.slice(-6).toUpperCase()}`;
     deletedProductIds.delete(id);
     deletedProductIds.delete(sku);
+    saveDiskDeletedProducts(deletedProductIds);
 
     // Fast verify categoryId from in-memory categories cache to avoid 400ms Neon network query
     let validCategoryId: string | null = null;
@@ -5587,6 +5613,7 @@ class Store {
   async updateProduct(id: string, updates: Partial<Product>): Promise<Product | null> {
     deletedProductIds.delete(id);
     if (updates.sku) deletedProductIds.delete(updates.sku);
+    saveDiskDeletedProducts(deletedProductIds);
     const cleanImages = Array.isArray(updates.images) && updates.images.filter(Boolean).length > 0
       ? updates.images.filter(Boolean)
       : (updates as any).imageUrl ? [String((updates as any).imageUrl).trim()]
@@ -5799,6 +5826,7 @@ class Store {
 
     deletedProductIds.add(cleanId);
     deletedProductIds.add(cleanId.toLowerCase());
+    saveDiskDeletedProducts(deletedProductIds);
 
     // Also remove from in-memory DEFAULT_PRODUCTS
     const defIdx = DEFAULT_PRODUCTS.findIndex(p => 
@@ -5832,6 +5860,10 @@ class Store {
     const prisma = getPrismaClient();
     if (prisma) {
       try {
+        await Promise.all([
+          prisma.orderItem.deleteMany({ where: { productId: cleanId } }).catch(() => {}),
+          prisma.combo.deleteMany({ where: { OR: [{ id: cleanId }, { id: cleanId.toLowerCase() }] } }).catch(() => {})
+        ]);
         await prisma.product.deleteMany({
           where: {
             OR: [
@@ -5850,10 +5882,17 @@ class Store {
   }
 
   async deleteAllProducts(): Promise<boolean> {
-    DEFAULT_PRODUCTS.forEach(p => deletedProductIds.add(p.id));
+    DEFAULT_PRODUCTS.forEach(p => {
+      deletedProductIds.add(p.id);
+      if (p.sku) deletedProductIds.add(p.sku);
+    });
+    saveDiskDeletedProducts(deletedProductIds);
+    this.productsCache.data = [];
+    this.invalidateProductsCache();
     const prisma = getPrismaClient();
     if (prisma) {
       try {
+        await prisma.orderItem.deleteMany().catch(() => {});
         await prisma.inventory.deleteMany().catch(() => {});
         await prisma.product.deleteMany().catch(() => {});
       } catch (err) {
@@ -6926,14 +6965,24 @@ class Store {
     const prisma = getPrismaClient();
     if (prisma) {
       try {
-        await prisma.combo.deleteMany({
-          where: {
-            OR: [
-              { id: cleanId },
-              { id: cleanId.toLowerCase() }
-            ]
-          }
-        });
+        await Promise.all([
+          prisma.combo.deleteMany({
+            where: {
+              OR: [
+                { id: cleanId },
+                { id: cleanId.toLowerCase() }
+              ]
+            }
+          }),
+          prisma.product.deleteMany({
+            where: {
+              OR: [
+                { id: cleanId },
+                { id: cleanId.toLowerCase() }
+              ]
+            }
+          })
+        ]);
       } catch (err) {
         console.error('Prisma deleteCombo error:', err);
       }

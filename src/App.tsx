@@ -156,10 +156,13 @@ export const App: React.FC = () => {
   // Data Collections State — Fast LocalStorage cache hydrate with background SWR sync
   const [products, setProducts] = useState<Product[]>(() => {
     try {
+      const deletedSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_products') || '[]'));
       const saved = localStorage.getItem('vrg_products');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.filter((p: Product) => p && !deletedSet.has(p.id) && (!p.sku || !deletedSet.has(p.sku)));
+        }
       }
     } catch {}
     return [];
@@ -339,47 +342,38 @@ export const App: React.FC = () => {
         fetch(`/api/reviews?t=${ts}`).then((r) => r.json()).catch(() => null)
       ]);
 
-      if (pRes?.success && Array.isArray(pRes.products) && pRes.products.length > 0) {
-        const serverProds: Product[] = pRes.products;
-        setProducts(prev => {
-          const serverIds = new Set(serverProds.map(p => p.id));
-          const serverSkus = new Set(serverProds.map(p => p.sku));
-          let merged = [...serverProds];
+      if (pRes?.success && Array.isArray(pRes.products)) {
+        const deletedSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_products') || '[]'));
+        let cleanProds: Product[] = pRes.products.filter((p: Product) => p && !deletedSet.has(p.id) && (!p.sku || !deletedSet.has(p.sku)));
 
-          // Retain any locally present products from prev that server hasn't returned yet
-          prev.forEach(localProd => {
-            if (!serverIds.has(localProd.id) && (!localProd.sku || !serverSkus.has(localProd.sku))) {
-              merged.unshift(localProd);
-              serverIds.add(localProd.id);
-              if (localProd.sku) serverSkus.add(localProd.sku);
-            }
-          });
-
-          // Retain pending saved products from sessionStorage
-          try {
-            const rawPending = sessionStorage.getItem('vrg_pending_saved_products');
-            if (rawPending) {
-              const arr = JSON.parse(rawPending);
-              if (Array.isArray(arr)) {
-                const now = Date.now();
-                arr.forEach((item: any) => {
-                  if (item && item.product && item.savedAt && (now - item.savedAt < 90000)) {
+        // Retain only recently saved in-flight pending products from sessionStorage (<90s)
+        try {
+          const rawPending = sessionStorage.getItem('vrg_pending_saved_products');
+          if (rawPending) {
+            const arr = JSON.parse(rawPending);
+            if (Array.isArray(arr)) {
+              const now = Date.now();
+              const serverIds = new Set(cleanProds.map(p => p.id));
+              const serverSkus = new Set(cleanProds.map(p => p.sku));
+              arr.forEach((item: any) => {
+                if (item && item.product && item.savedAt && (now - item.savedAt < 90000)) {
+                  if (!deletedSet.has(item.product.id) && (!item.product.sku || !deletedSet.has(item.product.sku))) {
                     if (!serverIds.has(item.product.id) && (!item.product.sku || !serverSkus.has(item.product.sku))) {
-                      merged.unshift(item.product);
+                      cleanProds.unshift(item.product);
                       serverIds.add(item.product.id);
                       if (item.product.sku) serverSkus.add(item.product.sku);
                     }
                   }
-                });
-              }
+                }
+              });
             }
-          } catch {}
+          }
+        } catch {}
 
-          try {
-            localStorage.setItem('vrg_products', JSON.stringify(merged));
-          } catch {}
-          return merged;
-        });
+        setProducts(cleanProds);
+        try {
+          localStorage.setItem('vrg_products', JSON.stringify(cleanProds));
+        } catch {}
       }
       if (cRes?.success && Array.isArray(cRes.categories) && cRes.categories.length > 0) {
         setCategories(cRes.categories);
@@ -482,9 +476,11 @@ export const App: React.FC = () => {
 
     const handleSync = () => fetchUserOrders();
     const handleProductSync = (e?: any) => {
-      if (e?.detail && Array.isArray(e.detail) && e.detail.length > 0) {
-        setProducts(e.detail);
-        try { localStorage.setItem('vrg_products', JSON.stringify(e.detail)); } catch {}
+      const deletedSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_products') || '[]'));
+      if (e?.detail && Array.isArray(e.detail)) {
+        const clean = e.detail.filter((p: Product) => p && !deletedSet.has(p.id) && (!p.sku || !deletedSet.has(p.sku)));
+        setProducts(clean);
+        try { localStorage.setItem('vrg_products', JSON.stringify(clean)); } catch {}
       } else {
         fetchCoreData();
       }
