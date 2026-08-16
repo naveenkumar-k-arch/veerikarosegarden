@@ -127,15 +127,23 @@ apiRouter.delete('/products/all', requireAdmin, async (req: AuthenticatedRequest
   }
 });
 
-apiRouter.delete('/products/:id', requireAdmin, async (req: AuthenticatedRequest, res) => {
+const handleDeleteProductRoute = async (req: AuthenticatedRequest, res: express.Response) => {
   try {
-    await db.deleteProduct(req.params.id);
+    const id = req.params?.id || req.body?.id || req.body?.productId;
+    if (!id) return res.status(400).json({ success: false, message: 'Product ID is required' });
+    await db.deleteProduct(String(id));
     invalidateBootstrapCache();
     res.json({ success: true, message: 'Product deleted' });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
-});
+};
+
+apiRouter.delete('/products/:id', requireAdmin, handleDeleteProductRoute);
+apiRouter.delete('/admin/products/:id', requireAdmin, handleDeleteProductRoute);
+apiRouter.post('/products/:id/delete', requireAdmin, handleDeleteProductRoute);
+apiRouter.post('/admin/products/:id/delete', requireAdmin, handleDeleteProductRoute);
+apiRouter.post('/products/delete', requireAdmin, handleDeleteProductRoute);
 
 // ================= CATEGORY ROUTES =================
 apiRouter.get('/categories', async (req, res) => {

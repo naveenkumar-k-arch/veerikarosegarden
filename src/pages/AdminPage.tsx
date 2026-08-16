@@ -700,8 +700,10 @@ const silentRefresh = async (): Promise<boolean> => {
         }
         if (Array.isArray(bRes.products) && bRes.products.length > 0) {
           const now = Date.now();
+          const deletedProdSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_products') || '[]'));
           setProducts(prev => {
-            return bRes.products.map((apiProd: Product) => {
+            const filtered = bRes.products.filter((p: Product) => !deletedProdSet.has(p.id) && !deletedProdSet.has(p.sku));
+            return filtered.map((apiProd: Product) => {
               const editedAt = pendingStockRef.current.get(apiProd.id);
               if (editedAt && now - editedAt < 10000) {
                 const local = prev.find(p => p.id === apiProd.id);
@@ -764,7 +766,10 @@ const silentRefresh = async (): Promise<boolean> => {
             return merged;
           });
         }
-        if (pRes?.success && Array.isArray(pRes.products)) setProducts(pRes.products);
+        if (pRes?.success && Array.isArray(pRes.products)) {
+          const deletedProdSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_products') || '[]'));
+          setProducts(pRes.products.filter((p: Product) => !deletedProdSet.has(p.id) && !deletedProdSet.has(p.sku)));
+        }
         if (cRes?.success && Array.isArray(cRes.categories)) setCategories(cRes.categories);
         if (cpRes?.success && Array.isArray(cpRes.coupons)) setCoupons(cpRes.coupons);
         if (bResLeg?.success) setBanners(bResLeg.banners);
@@ -779,9 +784,8 @@ const silentRefresh = async (): Promise<boolean> => {
   };
 
   useEffect(() => {
-    // Purge legacy local storage blacklists
+    // Purge legacy local storage blacklists (retain vrg_deleted_products)
     localStorage.removeItem('vrg_deleted_orders');
-    localStorage.removeItem('vrg_deleted_products');
     localStorage.removeItem('vrg_deleted_categories');
     localStorage.removeItem('vrg_deleted_coupons');
     localStorage.removeItem('veerika_admin_orders');
@@ -925,6 +929,10 @@ const silentRefresh = async (): Promise<boolean> => {
         persistAdminCache(c => ({ ...c, products: next }));
         try {
           localStorage.setItem('vrg_products', JSON.stringify(next));
+          const deletedSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_products') || '[]'));
+          if (savedProd.id) deletedSet.delete(savedProd.id);
+          if (savedProd.sku) deletedSet.delete(savedProd.sku);
+          localStorage.setItem('vrg_deleted_products', JSON.stringify(Array.from(deletedSet)));
         } catch {}
         return next;
       });
@@ -948,33 +956,59 @@ const silentRefresh = async (): Promise<boolean> => {
   // Handle Delete Single Product
   const handleDeleteProduct = async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to delete product "${name}"?`)) return;
+    
+    // 1. Immediately record in persistent deleted products set
+    try {
+      const deletedSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_products') || '[]'));
+      deletedSet.add(id);
+      localStorage.setItem('vrg_deleted_products', JSON.stringify(Array.from(deletedSet)));
+    } catch {}
+
+    // 2. Optimistically remove from state & persistent caches
     let nextList: Product[] = [];
     setProducts(prev => {
-      nextList = prev.filter(p => p.id !== id);
+      nextList = prev.filter(p => p.id !== id && p.sku !== id);
       persistAdminCache(c => ({ ...c, products: nextList }));
+      try {
+        localStorage.setItem('vrg_products', JSON.stringify(nextList));
+      } catch {}
       return nextList;
     });
+
     toast.success(`Product "${name}" deleted.`, 'Product Deleted');
+
+    // 3. Await backend deletion so server cache is evicted before triggering sync
+    try {
+      await authFetch(`/api/products/${id}`, { method: 'DELETE' });
+    } catch (err) {
+      console.error('Delete product backend error:', err);
+    }
+
+    // 4. Notify app listeners
     try {
       window.dispatchEvent(new CustomEvent('vrg_products_updated', { detail: nextList }));
     } catch {}
-    try {
-      await authFetch(`/api/products/${id}`, { method: 'DELETE' }).catch(() => null);
-    } catch (err) {
-      console.error(err);
-    }
   };
 
   // Handle Delete All Products
   const handleDeleteAllProducts = async () => {
     if (!confirm('⚠️ WARNING: Are you sure you want to delete ALL products from the catalog? This action cannot be undone.')) return;
+    try {
+      const allIds = products.map(p => p.id);
+      localStorage.setItem('vrg_deleted_products', JSON.stringify(allIds));
+    } catch {}
     setProducts([]);
+    persistAdminCache(c => ({ ...c, products: [] }));
+    try { localStorage.setItem('vrg_products', JSON.stringify([])); } catch {}
     toast.success('All products removed.', 'Catalog Cleared');
     try {
-      await authFetch('/api/products/all?confirm=CONFIRM_DELETE_ALL', { method: 'DELETE' }).catch(() => null);
+      await authFetch('/api/products/all?confirm=CONFIRM_DELETE_ALL', { method: 'DELETE' });
     } catch (err) {
       console.error(err);
     }
+    try {
+      window.dispatchEvent(new CustomEvent('vrg_products_updated', { detail: [] }));
+    } catch {}
   };
 
   // Handle Save Category

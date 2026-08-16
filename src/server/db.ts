@@ -5706,9 +5706,39 @@ class Store {
   }
 
   async deleteProduct(id: string): Promise<boolean> {
-    deletedProductIds.add(id);
+    const cleanId = (id || '').trim();
+    if (!cleanId) return false;
+
+    deletedProductIds.add(cleanId);
+    deletedProductIds.add(cleanId.toLowerCase());
+
+    // Also remove from in-memory DEFAULT_PRODUCTS
+    const defIdx = DEFAULT_PRODUCTS.findIndex(p => 
+      p.id === cleanId || 
+      p.sku === cleanId || 
+      p.id.toLowerCase() === cleanId.toLowerCase() ||
+      (p.sku && p.sku.toLowerCase() === cleanId.toLowerCase())
+    );
+    if (defIdx !== -1) {
+      const match = DEFAULT_PRODUCTS[defIdx];
+      if (match.id) {
+        deletedProductIds.add(match.id);
+        deletedProductIds.add(match.id.toLowerCase());
+      }
+      if (match.sku) {
+        deletedProductIds.add(match.sku);
+        deletedProductIds.add(match.sku.toLowerCase());
+      }
+      DEFAULT_PRODUCTS.splice(defIdx, 1);
+    }
+
     if (this.productsCache && Array.isArray(this.productsCache.data)) {
-      this.productsCache.data = this.productsCache.data.filter(p => p.id !== id && p.sku !== id);
+      this.productsCache.data = this.productsCache.data.filter(p => 
+        p.id !== cleanId && 
+        p.sku !== cleanId &&
+        p.id.toLowerCase() !== cleanId.toLowerCase() &&
+        (p.sku ? p.sku.toLowerCase() !== cleanId.toLowerCase() : true)
+      );
     }
     this.invalidateProductsCache();
     const prisma = getPrismaClient();
@@ -5716,14 +5746,23 @@ class Store {
       try {
         // Parallel deletion of all dependent child records in 1 roundtrip cycle
         await Promise.all([
-          prisma.inventory.deleteMany({ where: { productId: id } }).catch(() => {}),
-          prisma.cartItem.deleteMany({ where: { productId: id } }).catch(() => {}),
-          prisma.wishlistItem.deleteMany({ where: { productId: id } }).catch(() => {}),
-          prisma.review.deleteMany({ where: { productId: id } }).catch(() => {}),
-          prisma.image.deleteMany({ where: { productId: id } }).catch(() => {}),
-          prisma.orderItem.deleteMany({ where: { productId: id } }).catch(() => {})
+          prisma.inventory.deleteMany({ where: { productId: cleanId } }).catch(() => {}),
+          prisma.cartItem.deleteMany({ where: { productId: cleanId } }).catch(() => {}),
+          prisma.wishlistItem.deleteMany({ where: { productId: cleanId } }).catch(() => {}),
+          prisma.review.deleteMany({ where: { productId: cleanId } }).catch(() => {}),
+          prisma.image.deleteMany({ where: { productId: cleanId } }).catch(() => {}),
+          prisma.orderItem.deleteMany({ where: { productId: cleanId } }).catch(() => {})
         ]);
-        await prisma.product.deleteMany({ where: { OR: [{ id }, { sku: id }] } }).catch(() => {});
+        await prisma.product.deleteMany({
+          where: {
+            OR: [
+              { id: cleanId },
+              { sku: cleanId },
+              { id: { equals: cleanId, mode: 'insensitive' } },
+              { sku: { equals: cleanId, mode: 'insensitive' } }
+            ]
+          }
+        }).catch(() => {});
       } catch (err) {
         console.error('Prisma deleteProduct error:', err);
       }
