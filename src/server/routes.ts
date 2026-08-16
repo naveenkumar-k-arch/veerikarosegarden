@@ -1603,6 +1603,7 @@ const handleVerifyRazorpayPayment = async (req: AuthenticatedRequest, res: any) 
 
 apiRouter.post('/verify-payment', checkoutLimiter, handleVerifyRazorpayPayment);
 apiRouter.post('/razorpay/verify', checkoutLimiter, handleVerifyRazorpayPayment);
+apiRouter.post('/razorpay/verify-payment', checkoutLimiter, handleVerifyRazorpayPayment);
 
 // ================= RAZORPAY MOBILE CALLBACK / REDIRECT HANDLER =================
 apiRouter.all('/razorpay/callback', async (req: express.Request, res: express.Response) => {
