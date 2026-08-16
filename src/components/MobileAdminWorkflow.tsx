@@ -67,6 +67,9 @@ export interface MobileAdminWorkflowProps {
   adminUser?: any;
   onUpdateOrderStatus: (orderId: string, status: string, paymentStatus?: string) => Promise<void>;
   onSaveTracking: (orderId: string, data: { courierName: string; trackingNumber: string; trackingLink?: string }) => Promise<void>;
+  onOpenAddWhatsAppOrder?: () => void;
+  onOpenEditOrder?: (o: Order) => void;
+  onDeleteOrder?: (id: string) => Promise<void>;
   onSaveProduct?: (prod: any) => Promise<void>;
   onDeleteProduct?: (id: string, name: string) => Promise<void>;
   onSaveCategory?: (cat: any) => Promise<void>;
@@ -119,6 +122,9 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   adminUser,
   onUpdateOrderStatus,
   onSaveTracking,
+  onOpenAddWhatsAppOrder,
+  onOpenEditOrder,
+  onDeleteOrder,
   onSaveProduct,
   onDeleteProduct,
   onSaveCategory,
@@ -915,14 +921,26 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
           </div>
         </div>
 
-        <button
-          onClick={() => navigateScreen('menu_drawer')}
-          className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-700 hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
-          aria-label="Open mobile navigation menu"
-          title="Open Menu"
-        >
-          <Menu className="w-5 h-5 text-slate-800" />
-        </button>
+        <div className="flex items-center gap-2">
+          {onOpenAddWhatsAppOrder && (
+            <button
+              type="button"
+              onClick={onOpenAddWhatsAppOrder}
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
+            >
+              <span>💬</span>
+              <span>+ Add Order</span>
+            </button>
+          )}
+          <button
+            onClick={() => navigateScreen('menu_drawer')}
+            className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-700 hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
+            aria-label="Open mobile navigation menu"
+            title="Open Menu"
+          >
+            <Menu className="w-5 h-5 text-slate-800" />
+          </button>
+        </div>
       </header>
 
       {/* Main Mobile App Container */}
@@ -954,6 +972,18 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 <span>🌿 Total Plants: <strong>{products.length}</strong></span>
               </div>
             </div>
+
+            {/* Prominent WhatsApp / Offline Order Creator Button */}
+            {onOpenAddWhatsAppOrder && (
+              <button
+                type="button"
+                onClick={onOpenAddWhatsAppOrder}
+                className="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 active:scale-98 text-white font-extrabold text-xs rounded-2xl shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer"
+              >
+                <span className="text-base">💬</span>
+                <span>+ Add WhatsApp / Offline Order</span>
+              </button>
+            )}
 
             {/* 4 Status KPI Metric Cards (2x2 Grid) */}
             <div className="grid grid-cols-2 gap-3">
@@ -1184,14 +1214,26 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 </button>
                 <h2 className="text-base font-extrabold text-slate-900">Orders List</h2>
               </div>
-              <button
-                onClick={() => navigateScreen('menu_drawer')}
-                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
-                aria-label="Open menu"
-                title="Open Menu"
-              >
-                <Menu className="w-5 h-5 text-slate-800" />
-              </button>
+              <div className="flex items-center gap-2">
+                {onOpenAddWhatsAppOrder && (
+                  <button
+                    type="button"
+                    onClick={onOpenAddWhatsAppOrder}
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-xs flex items-center gap-1 cursor-pointer active:scale-95 transition-all"
+                  >
+                    <span>💬</span>
+                    <span>+ Add Order</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => navigateScreen('menu_drawer')}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
+                  aria-label="Open menu"
+                  title="Open Menu"
+                >
+                  <Menu className="w-5 h-5 text-slate-800" />
+                </button>
+              </div>
             </div>
 
             {/* Search Bar */}
@@ -1727,6 +1769,34 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 <Clock className="w-3.5 h-3.5 text-slate-600" />
                 <span>View Order Timeline</span>
               </button>
+
+              {/* Edit & Delete Order Actions */}
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+                {onOpenEditOrder && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenEditOrder(selectedOrder)}
+                    className="py-2.5 bg-slate-800 hover:bg-slate-900 active:scale-95 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                  >
+                    <Edit className="w-3.5 h-3.5" />
+                    <span>Edit Order</span>
+                  </button>
+                )}
+                {onDeleteOrder && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!confirm(`Are you sure you want to permanently delete Order #${selectedOrder.id}?`)) return;
+                      await onDeleteOrder(selectedOrder.id);
+                      navigateScreen('orders_list');
+                    }}
+                    className="py-2.5 bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all border border-rose-200 cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete Order</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -3452,6 +3522,19 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               <div className="px-3 pt-3 pb-1.5 text-[10px] uppercase tracking-wider text-slate-400 font-extrabold">
                 Nursery Catalog & Management
               </div>
+
+              {onOpenAddWhatsAppOrder && (
+                <button
+                  onClick={() => {
+                    navigateScreen('dashboard');
+                    onOpenAddWhatsAppOrder();
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-emerald-50 text-emerald-950 border border-emerald-300 hover:bg-emerald-100 transition-colors cursor-pointer font-extrabold text-xs text-left shadow-2xs"
+                >
+                  <span className="text-base">💬</span>
+                  <span>+ Add WhatsApp / Offline Order</span>
+                </button>
+              )}
 
               {[
                 { screen: 'products', label: `🌿 Products Catalog (${products.length})`, icon: <Package className="w-4 h-4 text-emerald-700" /> },

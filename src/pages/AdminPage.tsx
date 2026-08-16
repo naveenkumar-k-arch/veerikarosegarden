@@ -1872,6 +1872,515 @@ const silentRefresh = async (): Promise<boolean> => {
     }
   };
 
+  const renderWhatsAppOrderModal = () => {
+    if (!showWhatsAppOrderModal) return null;
+    return (
+      <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fade-in">
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-3xl w-full max-h-[92vh] flex flex-col overflow-hidden my-auto">
+          {/* Modal Header */}
+          <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-emerald-800 to-teal-900 text-white">
+            <div className="flex items-center gap-3">
+              <span className="p-2.5 bg-white/10 rounded-2xl text-xl backdrop-blur-md">💬</span>
+              <div>
+                <h3 className="font-extrabold text-base sm:text-lg flex items-center gap-2">
+                  <span>{editingOrder ? `Edit Order #${editingOrder.id}` : 'Create WhatsApp / Offline Order'}</span>
+                </h3>
+                <p className="text-xs text-emerald-100/90 font-medium">
+                  {editingOrder ? 'Update customer address, ordered plant items, or payment amount' : 'Add custom orders received via WhatsApp, phone calls, or farm nursery visits'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => { setShowWhatsAppOrderModal(false); setEditingOrder(null); }}
+              className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
+              title="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Modal Form Content */}
+          <form onSubmit={handleSaveWhatsAppOrder} className="overflow-y-auto p-5 sm:p-6 space-y-6 flex-1 text-xs">
+            {/* Section 1: Customer Contact Info */}
+            <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
+              <h4 className="font-black text-slate-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-emerald-600" />
+                <span>1. Customer Details</span>
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Customer Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Nantha Kumar"
+                    value={whatsAppOrderForm.customerName}
+                    onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, customerName: e.target.value })}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Customer Phone Number *</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2 font-bold text-slate-400">+91</span>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="9344392517"
+                      value={whatsAppOrderForm.customerPhone}
+                      onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, customerPhone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                      className="w-full pl-11 pr-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Email Address (Optional)</label>
+                  <input
+                    type="email"
+                    placeholder="customer@gmail.com"
+                    value={whatsAppOrderForm.customerEmail}
+                    onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, customerEmail: e.target.value })}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-medium text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Section 2: Delivery Address */}
+            <div className="space-y-3 bg-amber-50/60 p-4 rounded-2xl border border-amber-200">
+              <h4 className="font-black text-amber-950 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-rose-600" />
+                <span>2. Full Delivery / Shipping Address</span>
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">House / Door / Flat No.</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 4/12B, Green Villa"
+                    value={whatsAppOrderForm.houseNo}
+                    onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, houseNo: e.target.value })}
+                    className="w-full px-3 py-2 bg-white border border-amber-200/90 rounded-xl font-medium text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="font-bold text-slate-700 block mb-1">Street / Area / Landmark</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Nursery Main Road, Near Temple"
+                    value={whatsAppOrderForm.street}
+                    onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, street: e.target.value })}
+                    className="w-full px-3 py-2 bg-white border border-amber-200/90 rounded-xl font-medium text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Village / Town / City *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Pennagaram / Salem"
+                    value={whatsAppOrderForm.villageTown}
+                    onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, villageTown: e.target.value })}
+                    className="w-full px-3 py-2 bg-white border border-amber-200/90 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">District *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Dharmapuri / Chennai"
+                    value={whatsAppOrderForm.district}
+                    onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, district: e.target.value })}
+                    className="w-full px-3 py-2 bg-white border border-amber-200/90 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">6-Digit Pincode *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="636810"
+                    value={whatsAppOrderForm.pincode}
+                    onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) })}
+                    className="w-full px-3 py-2 bg-white border border-amber-200/90 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Section 3: Ordered Plant Items */}
+            <div className="space-y-3 bg-emerald-50/60 p-4 rounded-2xl border border-emerald-200">
+              <div className="flex justify-between items-center">
+                <h4 className="font-black text-emerald-950 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                  <Sprout className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>3. Ordered Plant Varieties ({whatsAppOrderForm.items.length})</span>
+                </h4>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const firstProd = products[0];
+                    setWhatsAppOrderForm({
+                      ...whatsAppOrderForm,
+                      items: [
+                        ...whatsAppOrderForm.items,
+                        { productId: firstProd?.id || '', name: firstProd?.name || '', price: firstProd?.sellingPrice || 140, quantity: 1, customName: '' }
+                      ]
+                    });
+                  }}
+                  className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>+ Add Another Plant</span>
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {whatsAppOrderForm.items.map((item, index) => {
+                  const itemTotal = (Number(item.price) || 0) * (Number(item.quantity) || 1);
+                  return (
+                    <div key={index} className="bg-white p-3.5 rounded-xl border border-emerald-200 shadow-2xs space-y-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center">
+                        {/* Plant Selector Dropdown or Custom Name */}
+                        <div className="sm:col-span-5">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Select Catalog Plant</label>
+                          <select
+                            value={item.productId || ''}
+                            onChange={e => {
+                              const selId = e.target.value;
+                              const matched = products.find(p => p.id === selId);
+                              const nextItems = [...whatsAppOrderForm.items];
+                              nextItems[index] = {
+                                ...nextItems[index],
+                                productId: selId,
+                                name: matched ? matched.name : nextItems[index].name,
+                                price: matched ? matched.sellingPrice : nextItems[index].price
+                              };
+                              const newSub = nextItems.reduce((s, it) => s + ((Number(it.price) || 0) * (Number(it.quantity) || 1)), 0);
+                              setWhatsAppOrderForm({
+                                ...whatsAppOrderForm,
+                                items: nextItems,
+                                grandTotal: newSub + Number(whatsAppOrderForm.deliveryFee || 0) - Number(whatsAppOrderForm.discount || 0)
+                              });
+                            }}
+                            className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-900"
+                          >
+                            <option value="">-- Choose from 102 Live Plants --</option>
+                            {products.map(p => (
+                              <option key={p.id} value={p.id}>
+                                {p.name} (₹{p.sellingPrice})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Custom Plant Name (if not in catalog) */}
+                        <div className="sm:col-span-3">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Or Custom Plant Name</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Yellow Rose"
+                            value={item.customName || (item.productId ? '' : item.name)}
+                            onChange={e => {
+                              const nextItems = [...whatsAppOrderForm.items];
+                              nextItems[index].customName = e.target.value;
+                              if (e.target.value) nextItems[index].name = e.target.value;
+                              setWhatsAppOrderForm({ ...whatsAppOrderForm, items: nextItems });
+                            }}
+                            className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-900"
+                          />
+                        </div>
+
+                        {/* Unit Price */}
+                        <div className="sm:col-span-2">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Price (₹)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={item.price}
+                            onChange={e => {
+                              const nextItems = [...whatsAppOrderForm.items];
+                              nextItems[index].price = Number(e.target.value) || 0;
+                              const newSub = nextItems.reduce((s, it) => s + ((Number(it.price) || 0) * (Number(it.quantity) || 1)), 0);
+                              setWhatsAppOrderForm({
+                                ...whatsAppOrderForm,
+                                items: nextItems,
+                                grandTotal: newSub + Number(whatsAppOrderForm.deliveryFee || 0) - Number(whatsAppOrderForm.discount || 0)
+                              });
+                            }}
+                            className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-900"
+                          />
+                        </div>
+
+                        {/* Quantity */}
+                        <div className="sm:col-span-2 flex items-center gap-1">
+                          <div className="w-full">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Qty</label>
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const nextItems = [...whatsAppOrderForm.items];
+                                  nextItems[index].quantity = Math.max(1, (Number(nextItems[index].quantity) || 1) - 1);
+                                  const newSub = nextItems.reduce((s, it) => s + ((Number(it.price) || 0) * (Number(it.quantity) || 1)), 0);
+                                  setWhatsAppOrderForm({
+                                    ...whatsAppOrderForm,
+                                    items: nextItems,
+                                    grandTotal: newSub + Number(whatsAppOrderForm.deliveryFee || 0) - Number(whatsAppOrderForm.discount || 0)
+                                  });
+                                }}
+                                className="w-6 h-6 bg-slate-200 hover:bg-slate-300 rounded-md font-bold text-slate-800 flex items-center justify-center cursor-pointer"
+                              >
+                                -
+                              </button>
+                              <input
+                                type="number"
+                                min="1"
+                                value={item.quantity}
+                                onChange={e => {
+                                  const nextItems = [...whatsAppOrderForm.items];
+                                  nextItems[index].quantity = Math.max(1, Number(e.target.value) || 1);
+                                  const newSub = nextItems.reduce((s, it) => s + ((Number(it.price) || 0) * (Number(it.quantity) || 1)), 0);
+                                  setWhatsAppOrderForm({
+                                    ...whatsAppOrderForm,
+                                    items: nextItems,
+                                    grandTotal: newSub + Number(whatsAppOrderForm.deliveryFee || 0) - Number(whatsAppOrderForm.discount || 0)
+                                  });
+                                }}
+                                className="w-12 text-center py-1 bg-slate-50 border border-slate-300 rounded-md font-black text-slate-900 text-xs"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const nextItems = [...whatsAppOrderForm.items];
+                                  nextItems[index].quantity = (Number(nextItems[index].quantity) || 1) + 1;
+                                  const newSub = nextItems.reduce((s, it) => s + ((Number(it.price) || 0) * (Number(it.quantity) || 1)), 0);
+                                  setWhatsAppOrderForm({
+                                    ...whatsAppOrderForm,
+                                    items: nextItems,
+                                    grandTotal: newSub + Number(whatsAppOrderForm.deliveryFee || 0) - Number(whatsAppOrderForm.discount || 0)
+                                  });
+                                }}
+                                className="w-6 h-6 bg-slate-200 hover:bg-slate-300 rounded-md font-bold text-slate-800 flex items-center justify-center cursor-pointer"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Item Subtotal & Delete */}
+                        <div className="sm:col-span-2 flex items-center justify-between sm:justify-end gap-2 pt-1 sm:pt-0">
+                          <span className="font-extrabold text-emerald-800 text-xs">₹{itemTotal}</span>
+                          {whatsAppOrderForm.items.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const nextItems = whatsAppOrderForm.items.filter((_, i) => i !== index);
+                                const newSub = nextItems.reduce((s, it) => s + ((Number(it.price) || 0) * (Number(it.quantity) || 1)), 0);
+                                setWhatsAppOrderForm({
+                                  ...whatsAppOrderForm,
+                                  items: nextItems,
+                                  grandTotal: newSub + Number(whatsAppOrderForm.deliveryFee || 0) - Number(whatsAppOrderForm.discount || 0)
+                                });
+                              }}
+                              className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg cursor-pointer transition-colors"
+                              title="Remove plant item"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Section 4: Pricing, Delivery Fee, & Grand Total */}
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+              <h4 className="font-black text-slate-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
+                <span>4. Pricing & Amount Received</span>
+              </h4>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div>
+                  <label className="font-bold text-slate-600 block mb-1">Plants Subtotal</label>
+                  <div className="px-3 py-2 bg-white border border-slate-200 rounded-xl font-black text-slate-800">
+                    ₹{whatsAppOrderForm.items.reduce((s, it) => s + ((Number(it.price) || 0) * (Number(it.quantity) || 1)), 0)}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-600 block mb-1">Delivery Fee (₹)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={whatsAppOrderForm.deliveryFee}
+                    onChange={e => {
+                      const fee = Number(e.target.value) || 0;
+                      const sub = whatsAppOrderForm.items.reduce((s, it) => s + ((Number(it.price) || 0) * (Number(it.quantity) || 1)), 0);
+                      setWhatsAppOrderForm({
+                        ...whatsAppOrderForm,
+                        deliveryFee: fee,
+                        grandTotal: sub + fee - Number(whatsAppOrderForm.discount || 0)
+                      });
+                    }}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-600 block mb-1">Discount (₹)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={whatsAppOrderForm.discount}
+                    onChange={e => {
+                      const disc = Number(e.target.value) || 0;
+                      const sub = whatsAppOrderForm.items.reduce((s, it) => s + ((Number(it.price) || 0) * (Number(it.quantity) || 1)), 0);
+                      setWhatsAppOrderForm({
+                        ...whatsAppOrderForm,
+                        discount: disc,
+                        grandTotal: sub + Number(whatsAppOrderForm.deliveryFee || 0) - disc
+                      });
+                    }}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900"
+                  />
+                </div>
+
+                <div className="bg-emerald-100/70 p-2.5 rounded-xl border border-emerald-300">
+                  <label className="font-black text-emerald-950 block mb-1">Amount Received (Grand Total) *</label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-2 font-black text-emerald-900">₹</span>
+                    <input
+                      type="number"
+                      required
+                      min="0"
+                      value={whatsAppOrderForm.grandTotal}
+                      onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, grandTotal: Number(e.target.value) || 0 })}
+                      className="w-full pl-7 pr-3 py-1.5 bg-white border-2 border-emerald-500 rounded-lg font-black text-base text-emerald-900 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 5: Payment Method & Stage */}
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+              <h4 className="font-black text-slate-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
+                <span>5. Payment Method & Pipeline Stage</span>
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Payment Method</label>
+                  <select
+                    value={whatsAppOrderForm.paymentMethod}
+                    onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, paymentMethod: e.target.value })}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900"
+                  >
+                    <option value="WHATSAPP">💬 WhatsApp UPI (Direct / GPay)</option>
+                    <option value="UPI_DIRECT">⚡ Direct UPI / QR Code</option>
+                    <option value="PHONEPE">📱 PhonePe Payment Gateway</option>
+                    <option value="COD">💵 Cash on Delivery (COD)</option>
+                    <option value="BANK_TRANSFER">🏦 Bank Transfer / NEFT</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Payment Status</label>
+                  <select
+                    value={whatsAppOrderForm.paymentStatus}
+                    onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, paymentStatus: e.target.value })}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900"
+                  >
+                    <option value="SUCCESS">✅ PAID (Amount Received)</option>
+                    <option value="PENDING">⏳ PENDING (Awaiting Payment)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Nursery Pipeline Stage</label>
+                  <select
+                    value={whatsAppOrderForm.orderStatus}
+                    onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, orderStatus: e.target.value })}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900"
+                  >
+                    <option value="PENDING">1. Confirmed (Ready to Pack)</option>
+                    <option value="PROCESSING">2. Nursery Packing (Coir Pith)</option>
+                    <option value="DISPATCHED">3. Courier Dispatched (In Transit)</option>
+                    <option value="DELIVERED">4. Delivered (Delivered to Customer)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Courier Partner (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. ST Courier / Farm Delivery"
+                    value={whatsAppOrderForm.courierName}
+                    onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, courierName: e.target.value })}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-medium text-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Tracking / AWB Number (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. ST123456789"
+                    value={whatsAppOrderForm.trackingNumber}
+                    onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, trackingNumber: e.target.value })}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-medium text-slate-900"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">WhatsApp Order Notes / Special Instructions</label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Customer requested budded red rose, payment received via GPay"
+                  value={whatsAppOrderForm.notes}
+                  onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, notes: e.target.value })}
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-medium text-slate-900"
+                />
+              </div>
+            </div>
+
+            {/* Modal Submit Actions */}
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => { setShowWhatsAppOrderModal(false); setEditingOrder(null); }}
+                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={whatsAppOrderSaving}
+                className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-extrabold text-xs rounded-xl shadow-md cursor-pointer transition-all hover:scale-102 active:scale-98 disabled:opacity-50"
+              >
+                {whatsAppOrderSaving
+                  ? 'Saving Order...'
+                  : editingOrder
+                  ? '💾 Update Order Details'
+                  : '➕ Save Order & Add to Nursery Pipeline'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
 
   if (adminLayoutMode === 'mobile_workflow') {
     return (
@@ -1911,6 +2420,9 @@ const silentRefresh = async (): Promise<boolean> => {
           finances={finances}
           adminUser={adminUser}
           onUpdateOrderStatus={handleUpdateOrderStatus}
+          onOpenAddWhatsAppOrder={handleOpenAddWhatsAppOrder}
+          onOpenEditOrder={handleOpenEditOrder}
+          onDeleteOrder={handleDeleteOrder}
           onSaveTracking={async (orderId, data) => {
             setOrders(prev => {
               const updated = prev.map(o => o.id === orderId ? {
@@ -2446,12 +2958,12 @@ const silentRefresh = async (): Promise<boolean> => {
             onBackToStore();
           }}
         />
+        {renderWhatsAppOrderModal()}
       </div>
     );
   }
 
   return (
-
     <div className="min-h-screen bg-slate-100 text-slate-800 pb-12">
       {/* Clean Minimal Top Admin Header */}
       <header className="bg-white border-b border-slate-200/90 px-4 py-3 sticky top-0 z-30 flex items-center justify-between shadow-2xs">
@@ -2472,6 +2984,15 @@ const silentRefresh = async (): Promise<boolean> => {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleOpenAddWhatsAppOrder}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all cursor-pointer active:scale-95"
+            title="Create new order from WhatsApp or Phone"
+          >
+            <span>💬</span>
+            <span>+ Add WhatsApp / Offline Order</span>
+          </button>
+
           <button
             onClick={() => setAdminLayoutMode('mobile_workflow')}
             className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs rounded-xl border border-emerald-200 transition-colors cursor-pointer"
@@ -6663,502 +7184,7 @@ const silentRefresh = async (): Promise<boolean> => {
       )}
 
       {/* WhatsApp / Offline Order Creation & Editing Modal */}
-      {showWhatsAppOrderModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fade-in">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-3xl w-full max-h-[92vh] flex flex-col overflow-hidden my-auto">
-            {/* Modal Header */}
-            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-emerald-800 to-teal-900 text-white">
-              <div className="flex items-center gap-3">
-                <span className="p-2.5 bg-white/10 rounded-2xl text-xl backdrop-blur-md">💬</span>
-                <div>
-                  <h3 className="font-extrabold text-base sm:text-lg flex items-center gap-2">
-                    <span>{editingOrder ? `Edit Order #${editingOrder.id}` : 'Create WhatsApp / Offline Order'}</span>
-                  </h3>
-                  <p className="text-xs text-emerald-100/90 font-medium">
-                    {editingOrder ? 'Update customer address, ordered plant items, or payment amount' : 'Add custom orders received via WhatsApp, phone calls, or farm nursery visits'}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => { setShowWhatsAppOrderModal(false); setEditingOrder(null); }}
-                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
-                title="Close"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Modal Form Content */}
-            <form onSubmit={handleSaveWhatsAppOrder} className="overflow-y-auto p-5 sm:p-6 space-y-6 flex-1 text-xs">
-              {/* Section 1: Customer Contact Info */}
-              <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
-                <h4 className="font-black text-slate-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>1. Customer Details</span>
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="font-bold text-slate-700 block mb-1">Customer Full Name *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Nantha Kumar"
-                      value={whatsAppOrderForm.customerName}
-                      onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, customerName: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="font-bold text-slate-700 block mb-1">Customer Phone Number *</label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-2 font-bold text-slate-400">+91</span>
-                      <input
-                        type="tel"
-                        required
-                        placeholder="9344392517"
-                        value={whatsAppOrderForm.customerPhone}
-                        onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, customerPhone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
-                        className="w-full pl-11 pr-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="font-bold text-slate-700 block mb-1">Email Address (Optional)</label>
-                    <input
-                      type="email"
-                      placeholder="customer@gmail.com"
-                      value={whatsAppOrderForm.customerEmail}
-                      onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, customerEmail: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-medium text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Section 2: Delivery Address */}
-              <div className="space-y-3 bg-amber-50/60 p-4 rounded-2xl border border-amber-200">
-                <h4 className="font-black text-amber-950 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-rose-600" />
-                  <span>2. Full Delivery / Shipping Address</span>
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="font-bold text-slate-700 block mb-1">House / Door / Flat No.</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 4/12B, Green Villa"
-                      value={whatsAppOrderForm.houseNo}
-                      onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, houseNo: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-amber-200/90 rounded-xl font-medium text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="font-bold text-slate-700 block mb-1">Street / Area / Landmark</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Nursery Main Road, Near Temple"
-                      value={whatsAppOrderForm.street}
-                      onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, street: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-amber-200/90 rounded-xl font-medium text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="font-bold text-slate-700 block mb-1">Village / Town / City *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Pennagaram / Salem"
-                      value={whatsAppOrderForm.villageTown}
-                      onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, villageTown: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-amber-200/90 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="font-bold text-slate-700 block mb-1">District *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Dharmapuri / Chennai"
-                      value={whatsAppOrderForm.district}
-                      onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, district: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-amber-200/90 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="font-bold text-slate-700 block mb-1">6-Digit Pincode *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="636810"
-                      value={whatsAppOrderForm.pincode}
-                      onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) })}
-                      className="w-full px-3 py-2 bg-white border border-amber-200/90 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Section 3: Ordered Plant Items */}
-              <div className="space-y-3 bg-emerald-50/60 p-4 rounded-2xl border border-emerald-200">
-                <div className="flex justify-between items-center">
-                  <h4 className="font-black text-emerald-950 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                    <Sprout className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>3. Ordered Plant Varieties ({whatsAppOrderForm.items.length})</span>
-                  </h4>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const firstProd = products[0];
-                      setWhatsAppOrderForm({
-                        ...whatsAppOrderForm,
-                        items: [
-                          ...whatsAppOrderForm.items,
-                          { productId: firstProd?.id || '', name: firstProd?.name || '', price: firstProd?.sellingPrice || 140, quantity: 1, customName: '' }
-                        ]
-                      });
-                    }}
-                    className="text-[11px] font-bold bg-emerald-700 hover:bg-emerald-800 text-white px-2.5 py-1 rounded-xl flex items-center gap-1 shadow-xs cursor-pointer transition-colors"
-                  >
-                    <Plus className="w-3 h-3" />
-                    <span>Add Another Plant</span>
-                  </button>
-                </div>
-
-                <div className="space-y-3">
-                  {whatsAppOrderForm.items.map((item, index) => {
-                    const itemTotal = (Number(item.price) || 0) * (Number(item.quantity) || 1);
-                    return (
-                      <div key={index} className="p-3 bg-white rounded-xl border border-emerald-200/90 shadow-2xs space-y-2">
-                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
-                          {/* Plant Selector or Custom Entry */}
-                          <div className="sm:col-span-6">
-                            <label className="font-bold text-slate-600 block text-[10px] mb-0.5">Select Plant from Nursery Catalog</label>
-                            <select
-                              value={item.productId}
-                              onChange={e => {
-                                const selectedId = e.target.value;
-                                const matched = products.find(p => p.id === selectedId);
-                                const nextItems = [...whatsAppOrderForm.items];
-                                nextItems[index] = {
-                                  ...nextItems[index],
-                                  productId: selectedId,
-                                  name: matched?.name || nextItems[index].name,
-                                  price: matched?.sellingPrice || nextItems[index].price,
-                                  customName: ''
-                                };
-                                const newSub = nextItems.reduce((s, it) => s + ((Number(it.price) || 0) * (Number(it.quantity) || 1)), 0);
-                                setWhatsAppOrderForm({
-                                  ...whatsAppOrderForm,
-                                  items: nextItems,
-                                  grandTotal: newSub + Number(whatsAppOrderForm.deliveryFee || 0) - Number(whatsAppOrderForm.discount || 0)
-                                });
-                              }}
-                              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900 text-xs focus:ring-1 focus:ring-emerald-500"
-                            >
-                              <option value="">-- Custom Plant / Other Variety --</option>
-                              {products.map(p => (
-                                <option key={p.id} value={p.id}>{p.name} {p.tamilName ? `(${p.tamilName})` : ''} - ₹{p.sellingPrice}</option>
-                              ))}
-                            </select>
-                            {!item.productId && (
-                              <input
-                                type="text"
-                                placeholder="Enter custom plant name (e.g. Custom Hybrid Rose)"
-                                value={item.customName || item.name}
-                                onChange={e => {
-                                  const nextItems = [...whatsAppOrderForm.items];
-                                  nextItems[index].customName = e.target.value;
-                                  nextItems[index].name = e.target.value;
-                                  setWhatsAppOrderForm({ ...whatsAppOrderForm, items: nextItems });
-                                }}
-                                className="w-full mt-1.5 px-2.5 py-1 bg-amber-50 border border-amber-300 rounded-lg text-xs font-bold text-slate-900"
-                              />
-                            )}
-                          </div>
-
-                          {/* Unit Price */}
-                          <div className="sm:col-span-2">
-                            <label className="font-bold text-slate-600 block text-[10px] mb-0.5">Price (₹)</label>
-                            <input
-                              type="number"
-                              min="0"
-                              value={item.price}
-                              onChange={e => {
-                                const nextItems = [...whatsAppOrderForm.items];
-                                nextItems[index].price = Number(e.target.value);
-                                const newSub = nextItems.reduce((s, it) => s + ((Number(it.price) || 0) * (Number(it.quantity) || 1)), 0);
-                                setWhatsAppOrderForm({
-                                  ...whatsAppOrderForm,
-                                  items: nextItems,
-                                  grandTotal: newSub + Number(whatsAppOrderForm.deliveryFee || 0) - Number(whatsAppOrderForm.discount || 0)
-                                });
-                              }}
-                              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900 text-xs"
-                            />
-                          </div>
-
-                          {/* Quantity */}
-                          <div className="sm:col-span-2">
-                            <label className="font-bold text-slate-600 block text-[10px] mb-0.5">Quantity</label>
-                            <div className="flex items-center gap-1">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const nextItems = [...whatsAppOrderForm.items];
-                                  nextItems[index].quantity = Math.max(1, (Number(nextItems[index].quantity) || 1) - 1);
-                                  const newSub = nextItems.reduce((s, it) => s + ((Number(it.price) || 0) * (Number(it.quantity) || 1)), 0);
-                                  setWhatsAppOrderForm({
-                                    ...whatsAppOrderForm,
-                                    items: nextItems,
-                                    grandTotal: newSub + Number(whatsAppOrderForm.deliveryFee || 0) - Number(whatsAppOrderForm.discount || 0)
-                                  });
-                                }}
-                                className="w-6 h-6 bg-slate-200 hover:bg-slate-300 rounded-md font-bold text-slate-800 flex items-center justify-center cursor-pointer"
-                              >
-                                -
-                              </button>
-                              <input
-                                type="number"
-                                min="1"
-                                value={item.quantity}
-                                onChange={e => {
-                                  const nextItems = [...whatsAppOrderForm.items];
-                                  nextItems[index].quantity = Math.max(1, Number(e.target.value) || 1);
-                                  const newSub = nextItems.reduce((s, it) => s + ((Number(it.price) || 0) * (Number(it.quantity) || 1)), 0);
-                                  setWhatsAppOrderForm({
-                                    ...whatsAppOrderForm,
-                                    items: nextItems,
-                                    grandTotal: newSub + Number(whatsAppOrderForm.deliveryFee || 0) - Number(whatsAppOrderForm.discount || 0)
-                                  });
-                                }}
-                                className="w-12 text-center py-1 bg-slate-50 border border-slate-300 rounded-md font-black text-slate-900 text-xs"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const nextItems = [...whatsAppOrderForm.items];
-                                  nextItems[index].quantity = (Number(nextItems[index].quantity) || 1) + 1;
-                                  const newSub = nextItems.reduce((s, it) => s + ((Number(it.price) || 0) * (Number(it.quantity) || 1)), 0);
-                                  setWhatsAppOrderForm({
-                                    ...whatsAppOrderForm,
-                                    items: nextItems,
-                                    grandTotal: newSub + Number(whatsAppOrderForm.deliveryFee || 0) - Number(whatsAppOrderForm.discount || 0)
-                                  });
-                                }}
-                                className="w-6 h-6 bg-slate-200 hover:bg-slate-300 rounded-md font-bold text-slate-800 flex items-center justify-center cursor-pointer"
-                              >
-                                +
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Item Subtotal & Delete */}
-                          <div className="sm:col-span-2 flex items-center justify-between sm:justify-end gap-2 pt-1 sm:pt-0">
-                            <span className="font-extrabold text-emerald-800 text-xs">₹{itemTotal}</span>
-                            {whatsAppOrderForm.items.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const nextItems = whatsAppOrderForm.items.filter((_, i) => i !== index);
-                                  const newSub = nextItems.reduce((s, it) => s + ((Number(it.price) || 0) * (Number(it.quantity) || 1)), 0);
-                                  setWhatsAppOrderForm({
-                                    ...whatsAppOrderForm,
-                                    items: nextItems,
-                                    grandTotal: newSub + Number(whatsAppOrderForm.deliveryFee || 0) - Number(whatsAppOrderForm.discount || 0)
-                                  });
-                                }}
-                                className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg cursor-pointer transition-colors"
-                                title="Remove plant item"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Section 4: Pricing, Delivery Fee, & Grand Total */}
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-                <h4 className="font-black text-slate-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                  <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>4. Pricing & Amount Received</span>
-                </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div>
-                    <label className="font-bold text-slate-600 block mb-1">Plants Subtotal</label>
-                    <div className="px-3 py-2 bg-white border border-slate-200 rounded-xl font-black text-slate-800">
-                      ₹{whatsAppOrderForm.items.reduce((s, it) => s + ((Number(it.price) || 0) * (Number(it.quantity) || 1)), 0)}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="font-bold text-slate-600 block mb-1">Delivery Fee (₹)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={whatsAppOrderForm.deliveryFee}
-                      onChange={e => {
-                        const fee = Number(e.target.value) || 0;
-                        const sub = whatsAppOrderForm.items.reduce((s, it) => s + ((Number(it.price) || 0) * (Number(it.quantity) || 1)), 0);
-                        setWhatsAppOrderForm({
-                          ...whatsAppOrderForm,
-                          deliveryFee: fee,
-                          grandTotal: sub + fee - Number(whatsAppOrderForm.discount || 0)
-                        });
-                      }}
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="font-bold text-slate-600 block mb-1">Discount (₹)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={whatsAppOrderForm.discount}
-                      onChange={e => {
-                        const disc = Number(e.target.value) || 0;
-                        const sub = whatsAppOrderForm.items.reduce((s, it) => s + ((Number(it.price) || 0) * (Number(it.quantity) || 1)), 0);
-                        setWhatsAppOrderForm({
-                          ...whatsAppOrderForm,
-                          discount: disc,
-                          grandTotal: sub + Number(whatsAppOrderForm.deliveryFee || 0) - disc
-                        });
-                      }}
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="font-bold text-emerald-800 block mb-1">Amount Received / Total (₹) *</label>
-                    <input
-                      type="number"
-                      required
-                      min="0"
-                      value={whatsAppOrderForm.grandTotal}
-                      onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, grandTotal: Number(e.target.value) })}
-                      className="w-full px-3 py-2 bg-emerald-50 border-2 border-emerald-500 rounded-xl font-black text-emerald-900 text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Section 5: Payment Method & Pipeline Stage */}
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-                <h4 className="font-black text-slate-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                  <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>5. Payment Details & Nursery Pipeline Stage</span>
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="font-bold text-slate-700 block mb-1">Payment Method</label>
-                    <select
-                      value={whatsAppOrderForm.paymentMethod}
-                      onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, paymentMethod: e.target.value as any })}
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900"
-                    >
-                      <option value="WHATSAPP">💬 WhatsApp UPI Transfer</option>
-                      <option value="UPI">📱 Direct UPI / GPay</option>
-                      <option value="PHONEPE">📱 PhonePe UPI</option>
-                      <option value="COD">💵 Cash on Delivery (COD)</option>
-                      <option value="BANK_TRANSFER">🏦 Direct Bank Transfer (IMPS/NEFT)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="font-bold text-slate-700 block mb-1">Payment Status</label>
-                    <select
-                      value={whatsAppOrderForm.paymentStatus}
-                      onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, paymentStatus: e.target.value as any })}
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900"
-                    >
-                      <option value="SUCCESS">✅ PAID / SUCCESS (Amount Received)</option>
-                      <option value="PENDING">⏳ PENDING (Payment Yet to Receive)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="font-bold text-slate-700 block mb-1">Nursery Pipeline Stage</label>
-                    <select
-                      value={whatsAppOrderForm.orderStatus}
-                      onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, orderStatus: e.target.value as any })}
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900"
-                    >
-                      <option value="PENDING">🌸 1. Order Confirmed</option>
-                      <option value="PROCESSING">🌿 2. Nursery Packed (Moisture Sealed)</option>
-                      <option value="DISPATCHED">🚚 3. Dispatched & In Transit</option>
-                      <option value="DELIVERED">✅ 4. Delivered to Customer</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="font-bold text-slate-700 block mb-1">Courier Partner (Optional)</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. ST Courier / Farm Delivery"
-                      value={whatsAppOrderForm.courierName}
-                      onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, courierName: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-medium text-slate-900"
-                    />
-                  </div>
-                  <div>
-                    <label className="font-bold text-slate-700 block mb-1">Tracking / AWB Number (Optional)</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. ST123456789"
-                      value={whatsAppOrderForm.trackingNumber}
-                      onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, trackingNumber: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-medium text-slate-900"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">WhatsApp Order Notes / Special Instructions</label>
-                  <textarea
-                    rows={2}
-                    placeholder="e.g. Customer requested budded red rose, payment received via GPay"
-                    value={whatsAppOrderForm.notes}
-                    onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, notes: e.target.value })}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-medium text-slate-900"
-                  />
-                </div>
-              </div>
-
-              {/* Modal Submit Actions */}
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => { setShowWhatsAppOrderModal(false); setEditingOrder(null); }}
-                  className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={whatsAppOrderSaving}
-                  className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-extrabold text-xs rounded-xl shadow-md cursor-pointer transition-all hover:scale-102 active:scale-98 disabled:opacity-50"
-                >
-                  {whatsAppOrderSaving
-                    ? 'Saving Order...'
-                    : editingOrder
-                    ? '💾 Update Order Details'
-                    : '➕ Save Order & Add to Nursery Pipeline'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {renderWhatsAppOrderModal()}
 
       {/* Desktop A4 Label Sheet Preview Modal */}
       {desktopLabelOrders && (
