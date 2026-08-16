@@ -496,10 +496,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
   });
 
 
-  // Track recently-edited stock so auto-poll doesn't overwrite user changes
   const pendingStockRef = React.useRef<Map<string, number>>(new Map());
   // Track recently-edited order status so auto-poll doesn't overwrite user changes
   const pendingOrderStatusRef = React.useRef<Map<string, { status: string; paymentStatus?: string; courierName?: string; trackingNumber?: string; time: number }>>(new Map());
+  // Track recently-saved products so polling doesn't overwrite optimistic state with stale server data
+  const pendingProductsRef = React.useRef<Map<string, { product: Product; savedAt: number }>>(new Map());
 
   // Modals state
   const [showProductModal, setShowProductModal] = useState(false);
@@ -702,8 +703,10 @@ const silentRefresh = async (): Promise<boolean> => {
           const now = Date.now();
           const deletedProdSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_products') || '[]'));
           setProducts(prev => {
-            const filtered = bRes.products.filter((p: Product) => !deletedProdSet.has(p.id) && !deletedProdSet.has(p.sku));
-            return filtered.map((apiProd: Product) => {
+            let filtered = bRes.products.filter((p: Product) => !deletedProdSet.has(p.id) && !deletedProdSet.has(p.sku));
+            
+            // Merge stock overrides for recently-edited products
+            filtered = filtered.map((apiProd: Product) => {
               const editedAt = pendingStockRef.current.get(apiProd.id);
               if (editedAt && now - editedAt < 10000) {
                 const local = prev.find(p => p.id === apiProd.id);
@@ -711,6 +714,20 @@ const silentRefresh = async (): Promise<boolean> => {
               }
               return apiProd;
             });
+
+            // Merge recently-saved products that the server hasn't returned yet
+            const filteredIds = new Set(filtered.map((p: Product) => p.id));
+            pendingProductsRef.current.forEach(({ product, savedAt }, id) => {
+              if (now - savedAt > 60000) {
+                pendingProductsRef.current.delete(id);
+                return;
+              }
+              if (!filteredIds.has(id) && !deletedProdSet.has(id)) {
+                filtered.unshift(product);
+              }
+            });
+
+            return filtered;
           });
         }
         if (Array.isArray(bRes.categories) && bRes.categories.length > 0) setCategories(bRes.categories);
@@ -942,6 +959,10 @@ const silentRefresh = async (): Promise<boolean> => {
       setProductSaveError(null);
       setProductSaving(false);
       toast.success(`Plant "${payload.name}" saved successfully!`, 'Product Saved');
+
+      // Register saved product so polling doesn't overwrite it with stale server data
+      pendingProductsRef.current.set(savedProd.id, { product: savedProd, savedAt: Date.now() });
+      setTimeout(() => pendingProductsRef.current.delete(savedProd.id), 60000);
 
       try {
         window.dispatchEvent(new CustomEvent('vrg_products_updated', { detail: updatedProductsList }));

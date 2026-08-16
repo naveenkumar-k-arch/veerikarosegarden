@@ -5376,13 +5376,11 @@ class Store {
       return results.filter(p => !deletedProductIds.has(p.id));
     };
 
-    // If cache is expired or cold start, fetch directly so newly added DB plants show immediately!
+    // Always await the DB refresh when cache is stale — never return stale data from expired cache.
+    // This eliminates the 'ghost period' where a newly-added product is missing because
+    // the old fire-and-forget pattern returned the stale cache while the DB query ran in background.
     if (this.productsCache.expiresAt === 0 || Date.now() >= this.productsCache.expiresAt) {
-      if (this.productsCache.expiresAt === 0) {
-        await this.refreshProductsCache();
-      } else {
-        this.refreshProductsCache().catch(() => {});
-      }
+      await this.refreshProductsCache();
     }
 
     const currentList = this.productsCache.data;
@@ -5861,11 +5859,7 @@ class Store {
 
   async getCategories(options?: { onlyActive?: boolean; onlyFeatured?: boolean }): Promise<Category[]> {
     if (this.categoriesCache.expiresAt === 0 || Date.now() >= this.categoriesCache.expiresAt) {
-      if (this.categoriesCache.expiresAt === 0) {
-        await this.refreshCategoriesCache();
-      } else {
-        this.refreshCategoriesCache().catch(() => {});
-      }
+      await this.refreshCategoriesCache();
     }
 
     let results = this.categoriesCache.data;
