@@ -769,11 +769,33 @@ const silentRefresh = async (): Promise<boolean> => {
               return apiProd;
             });
 
-            // Merge any remaining pending products from sessionStorage
+            // Retain any locally present products from `prev` that the server hasn't returned yet
             const filteredIds = new Set(filtered.map((p: Product) => p.id));
+            const filteredSkus = new Set(filtered.map((p: Product) => p.sku));
+            prev.forEach(localProd => {
+              if (
+                !filteredIds.has(localProd.id) &&
+                (!localProd.sku || !filteredSkus.has(localProd.sku)) &&
+                !deletedProdSet.has(localProd.id) &&
+                (!localProd.sku || !deletedProdSet.has(localProd.sku))
+              ) {
+                filtered.unshift(localProd);
+                filteredIds.add(localProd.id);
+                if (localProd.sku) filteredSkus.add(localProd.sku);
+              }
+            });
+
+            // Merge any remaining pending products from sessionStorage
             pendingMap.forEach(({ product, savedAt }, id) => {
-              if (now - savedAt < 90000 && !filteredIds.has(id) && !deletedProdSet.has(id)) {
+              if (
+                now - savedAt < 90000 &&
+                !filteredIds.has(id) &&
+                (!product.sku || !filteredSkus.has(product.sku)) &&
+                !deletedProdSet.has(id)
+              ) {
                 filtered.unshift(product);
+                filteredIds.add(id);
+                if (product.sku) filteredSkus.add(product.sku);
               }
             });
 
@@ -895,19 +917,26 @@ const silentRefresh = async (): Promise<boolean> => {
     }, 30000);
 
     const handleSync = () => fetchData();
+    const handleProductSync = (e: any) => {
+      if (e?.detail && Array.isArray(e.detail) && e.detail.length > 0) {
+        setProducts(e.detail);
+      } else {
+        fetchData();
+      }
+    };
     window.addEventListener('orderStatusUpdated', handleSync);
-    window.addEventListener('vrg_products_updated', handleSync);
+    window.addEventListener('vrg_products_updated', handleProductSync);
     window.addEventListener('vrg_categories_updated', handleSync);
     window.addEventListener('vrg_combos_updated', handleSync);
-    window.addEventListener('storage', handleSync);
+    window.addEventListener('storage', handleProductSync);
 
     return () => {
       clearInterval(interval);
       window.removeEventListener('orderStatusUpdated', handleSync);
-      window.removeEventListener('vrg_products_updated', handleSync);
+      window.removeEventListener('vrg_products_updated', handleProductSync);
       window.removeEventListener('vrg_categories_updated', handleSync);
       window.removeEventListener('vrg_combos_updated', handleSync);
-      window.removeEventListener('storage', handleSync);
+      window.removeEventListener('storage', handleProductSync);
     };
   }, []);
 

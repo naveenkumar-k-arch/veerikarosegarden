@@ -340,33 +340,46 @@ export const App: React.FC = () => {
       ]);
 
       if (pRes?.success && Array.isArray(pRes.products) && pRes.products.length > 0) {
-        let serverProds: Product[] = pRes.products;
-        try {
-          const rawPending = sessionStorage.getItem('vrg_pending_saved_products');
-          if (rawPending) {
-            const arr = JSON.parse(rawPending);
-            if (Array.isArray(arr)) {
-              const now = Date.now();
-              const serverIds = new Set(serverProds.map(p => p.id));
-              const serverSkus = new Set(serverProds.map(p => p.sku));
-              const toPrepend: Product[] = [];
-              arr.forEach((item: any) => {
-                if (item && item.product && item.savedAt && (now - item.savedAt < 90000)) {
-                  if (!serverIds.has(item.product.id) && (!item.product.sku || !serverSkus.has(item.product.sku))) {
-                    toPrepend.push(item.product);
+        const serverProds: Product[] = pRes.products;
+        setProducts(prev => {
+          const serverIds = new Set(serverProds.map(p => p.id));
+          const serverSkus = new Set(serverProds.map(p => p.sku));
+          let merged = [...serverProds];
+
+          // Retain any locally present products from prev that server hasn't returned yet
+          prev.forEach(localProd => {
+            if (!serverIds.has(localProd.id) && (!localProd.sku || !serverSkus.has(localProd.sku))) {
+              merged.unshift(localProd);
+              serverIds.add(localProd.id);
+              if (localProd.sku) serverSkus.add(localProd.sku);
+            }
+          });
+
+          // Retain pending saved products from sessionStorage
+          try {
+            const rawPending = sessionStorage.getItem('vrg_pending_saved_products');
+            if (rawPending) {
+              const arr = JSON.parse(rawPending);
+              if (Array.isArray(arr)) {
+                const now = Date.now();
+                arr.forEach((item: any) => {
+                  if (item && item.product && item.savedAt && (now - item.savedAt < 90000)) {
+                    if (!serverIds.has(item.product.id) && (!item.product.sku || !serverSkus.has(item.product.sku))) {
+                      merged.unshift(item.product);
+                      serverIds.add(item.product.id);
+                      if (item.product.sku) serverSkus.add(item.product.sku);
+                    }
                   }
-                }
-              });
-              if (toPrepend.length > 0) {
-                serverProds = [...toPrepend, ...serverProds];
+                });
               }
             }
-          }
-        } catch {}
-        setProducts(serverProds);
-        try {
-          localStorage.setItem('vrg_products', JSON.stringify(serverProds));
-        } catch {}
+          } catch {}
+
+          try {
+            localStorage.setItem('vrg_products', JSON.stringify(merged));
+          } catch {}
+          return merged;
+        });
       }
       if (cRes?.success && Array.isArray(cRes.categories) && cRes.categories.length > 0) {
         setCategories(cRes.categories);

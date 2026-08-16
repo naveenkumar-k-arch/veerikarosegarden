@@ -5293,7 +5293,7 @@ class Store {
         englishName: p.name,
         tamilName: p.nameTamil || p.name,
         scientificName: p.scientificName || '',
-        categoryId: p.categoryId || (p.category ? `cat-${p.category.toLowerCase().replace(/\s+/g, '-')}` : 'cat-roses'),
+        categoryId: p.categoryId || (p.category ? (p.category.toLowerCase().includes('rose') && !p.category.toLowerCase().includes('creeper') && !p.category.toLowerCase().includes('miniature') && !p.category.toLowerCase().includes('rare') ? 'cat-rose' : `cat-${p.category.toLowerCase().replace(/\s+/g, '-')}`) : 'cat-rose'),
         categoryName: p.category,
         description: p.description || '',
         mrp: p.originalPrice || p.price,
