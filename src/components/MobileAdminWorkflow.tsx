@@ -205,7 +205,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   }>({
     name: '',
     tamilName: '',
-    categoryId: 'cat-roses',
+    categoryId: 'cat-rose',
     categoryName: 'Roses',
     mrp: 299,
     sellingPrice: 199,
@@ -343,7 +343,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   const [showFinanceModal, setShowFinanceModal] = useState(false);
   const [editingFinance, setEditingFinance] = useState<FinancialEntry | null>(null);
   const [financeForm, setFinanceForm] = useState({
-    type: 'EXPENSE' as 'EXPENSE' | 'SALE',
+    type: 'EXPENSE' as FinancialEntry['type'],
     title: '',
     category: 'Fertilizer' as FinancialEntry['category'],
     costAmount: 0,
@@ -2153,7 +2153,7 @@ Your parcel dispatched today 🚚
                   setProductForm({
                     name: '',
                     tamilName: '',
-                    categoryId: activeCat?.id || 'cat-roses',
+                    categoryId: activeCat?.id || 'cat-rose',
                     categoryName: activeCat?.name || 'Roses',
                     mrp: 299,
                     sellingPrice: 199,
@@ -2326,7 +2326,7 @@ Your parcel dispatched today 🚚
                         setProductForm({
                           name: p.name || '',
                           tamilName: p.tamilName || '',
-                          categoryId: p.categoryId || categories[0]?.id || 'cat-roses',
+                          categoryId: p.categoryId || categories[0]?.id || 'cat-rose',
                           categoryName: p.categoryName || categories.find(c => c.id === p.categoryId)?.name || 'Roses',
                           mrp: p.mrp || p.sellingPrice || 299,
                           sellingPrice: p.sellingPrice || 199,
@@ -3687,7 +3687,7 @@ Your parcel dispatched today 🚚
                     englishName: trimmedName,
                     tamilName: productForm.tamilName.trim() || trimmedName,
                     scientificName: currentEditing?.scientificName || '',
-                    categoryId: productForm.categoryId || categories[0]?.id || 'cat-roses',
+                    categoryId: productForm.categoryId || categories[0]?.id || 'cat-rose',
                     categoryName: productForm.categoryName || catObj?.name || 'Roses',
                     mrp,
                     sellingPrice,

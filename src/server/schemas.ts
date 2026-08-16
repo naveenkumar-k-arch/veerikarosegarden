@@ -64,7 +64,7 @@ export const productSchema = z.object({
   englishName: z.string().max(200).optional().default(''),
   tamilName: z.string().max(200).optional().default(''),
   scientificName: z.string().max(200).optional().default(''),
-  categoryId: z.string().optional().default('cat-roses'),
+  categoryId: z.string().optional().default('cat-rose'),
   categoryName: z.string().optional().default('Roses'),
   // Description is optional — admin can leave blank, defaults to plant name
   description: z.string().optional().default(''),

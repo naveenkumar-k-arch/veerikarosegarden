@@ -32,6 +32,7 @@ export const PlantProtectivePackingSection: React.FC<PlantProtectivePackingSecti
 
   // Check if order contains delicate or flowering plants
   const hasFloweringOrRare = items.some(i =>
+    i.product.categoryId === 'cat-rose' ||
     i.product.categoryId === 'cat-roses' ||
     i.product.categoryId === 'cat-rare' ||
     i.product.categoryId === 'cat-flowering' ||

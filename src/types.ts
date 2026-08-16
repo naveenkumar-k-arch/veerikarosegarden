@@ -1,6 +1,6 @@
 export type PaymentStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'REFUNDED' | 'CANCELLED';
 export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PROCESSING' | 'PACKED' | 'DISPATCHED' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED' | 'RETURNED';
-export type PaymentMethod = 'PHONEPE' | 'COD' | 'UPI_DIRECT' | 'QR_PAYMENT' | 'RAZORPAY';
+export type PaymentMethod = 'PHONEPE' | 'COD' | 'UPI_DIRECT' | 'QR_PAYMENT' | 'RAZORPAY' | 'WHATSAPP' | 'UPI' | 'MANUAL';
 
 export interface Product {
   id: string;
@@ -18,8 +18,8 @@ export interface Product {
   stock: number;
   plantHeight: string;
   potSize: string;
-  sunlight: 'Full Sun' | 'Partial Shade' | 'Indirect Sunlight' | 'Low Light';
-  waterRequirement: 'Daily' | 'Twice a week' | 'When dry' | 'Low Water';
+  sunlight: 'Full Sun' | 'Partial Shade' | 'Indirect Sunlight' | 'Low Light' | string;
+  waterRequirement: 'Daily' | 'Twice a week' | 'When dry' | 'Low Water' | 'Alternate Days' | 'Moderate' | string;
   floweringSeason: string;
   careInstructions: {
     watering: string;
@@ -28,6 +28,8 @@ export interface Product {
     soil: string;
   };
   images: string[];
+  image?: string;
+  imageUrl?: string;
   featured: boolean;
   bestSeller: boolean;
   trending: boolean;
@@ -97,6 +99,7 @@ export interface OrderItemSnapshot {
 
 export interface Order {
   id: string;
+  orderNumber?: string;
   merchantTransactionId: string;
   userId?: string;
   customerName: string;
@@ -119,6 +122,7 @@ export interface Order {
   courierName?: string;
   trackingNumber?: string;
   deliveryNotes?: string;
+  notes?: string;
   potCharge?: number;
   potOption?: string;
   packingCharge?: number;
@@ -229,12 +233,13 @@ export interface SiteSettings {
 
 export interface FinancialEntry {
   id: string;
-  type: 'EXPENSE' | 'SALE';
+  type: 'EXPENSE' | 'SALE' | 'REVENUE' | 'INCOME';
   title: string;
-  category: 'Fertilizer' | 'Pots & Bags' | 'Soil & Manure' | 'Labor & Workers' | 'Transport & Freight' | 'Plant Wholesale' | 'Direct Nursery Sale' | 'Other';
+  category: 'Fertilizer' | 'Pots & Bags' | 'Soil & Manure' | 'Labor & Workers' | 'Transport & Freight' | 'Plant Wholesale' | 'Direct Nursery Sale' | 'Other' | string;
   costAmount: number;
   sellAmount: number;
   quantity: number;
+  amount?: number;
   notes?: string;
   date: string;
   createdAt: string;

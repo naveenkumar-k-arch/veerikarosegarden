@@ -153,6 +153,31 @@ function saveDiskDeletedProducts(ids: Set<string>) {
   }
 }
 
+const PRODUCTS_STORE_FILE = path.resolve(process.cwd(), 'src/data/products_store.json');
+
+function loadDiskProducts(): Product[] {
+  try {
+    if (fs.existsSync(PRODUCTS_STORE_FILE)) {
+      const data = fs.readFileSync(PRODUCTS_STORE_FILE, 'utf-8');
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (err) {
+    console.error('Error reading products_store.json:', err);
+  }
+  return [];
+}
+
+function saveDiskProducts(products: Product[]) {
+  try {
+    const dir = path.dirname(PRODUCTS_STORE_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(PRODUCTS_STORE_FILE, JSON.stringify(products, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error writing products_store.json:', err);
+  }
+}
+
 function loadDiskCombos(): Combo[] {
   try {
     if (fs.existsSync(COMBOS_STORE_FILE)) {
@@ -4847,8 +4872,10 @@ class Store {
     try {
       const prisma = getPrismaClient();
       if (!prisma) {
+        const diskList = loadDiskProducts();
+        const fallbackList = diskList.length > 0 ? diskList : DEFAULT_PRODUCTS;
         this.productsCache = {
-          data: DEFAULT_PRODUCTS.filter(p => !deletedProductIds.has(p.id)),
+          data: fallbackList.filter(p => !deletedProductIds.has(p.id) && (!p.sku || !deletedProductIds.has(p.sku))),
           expiresAt: Date.now() + 300000
         };
         return this.productsCache.data;
@@ -4902,14 +4929,32 @@ class Store {
         };
       });
 
-      // Only fallback to DEFAULT_PRODUCTS if database returned 0 products on cold start
-      let finalProducts = results;
-      if (finalProducts.length === 0 && deletedProductIds.size === 0) {
-        finalProducts = DEFAULT_PRODUCTS.filter(p => !deletedProductIds.has(p.id));
+      // Filter out explicitly deleted products
+      let finalProducts = results.filter(p => !deletedProductIds.has(p.id) && (!p.sku || !deletedProductIds.has(p.sku)));
+
+      // If database returned 0 products (cold start / DB empty), fallback to DEFAULT_PRODUCTS / disk
+      if (finalProducts.length === 0) {
+        const diskList = loadDiskProducts();
+        const baseList = diskList.length > 0 ? diskList : DEFAULT_PRODUCTS;
+        finalProducts = baseList.filter(p => !deletedProductIds.has(p.id) && (!p.sku || !deletedProductIds.has(p.sku)));
       } else {
-        finalProducts = finalProducts.filter(p => !deletedProductIds.has(p.id));
+        // Also merge any products that exist in disk store or DEFAULT_PRODUCTS but not in Prisma
+        const dbIdSet = new Set(finalProducts.map(p => p.id));
+        const dbSkuSet = new Set(finalProducts.map(p => p.sku).filter(Boolean));
+        const diskList = loadDiskProducts();
+        const fallbackList = diskList.length > 0 ? diskList : DEFAULT_PRODUCTS;
+        for (const extra of fallbackList) {
+          if (!deletedProductIds.has(extra.id) && (!extra.sku || !deletedProductIds.has(extra.sku))) {
+            if (!dbIdSet.has(extra.id) && (!extra.sku || !dbSkuSet.has(extra.sku))) {
+              finalProducts.push(extra);
+              dbIdSet.add(extra.id);
+              if (extra.sku) dbSkuSet.add(extra.sku);
+            }
+          }
+        }
       }
 
+      saveDiskProducts(finalProducts);
       this.productsCache = { data: finalProducts, expiresAt: Date.now() + 300000 };
       return finalProducts;
     } catch (err) {
@@ -5045,18 +5090,20 @@ class Store {
 
     // Fast verify categoryId from in-memory categories cache to avoid 400ms Neon network query
     let validCategoryId: string | null = null;
-    if (product.categoryId) {
-      if (this.categoriesCache?.data?.some(c => c.id === product.categoryId)) {
-        validCategoryId = product.categoryId;
-      } else if (prisma) {
-        try {
-          const cat = await prisma.category.findUnique({ where: { id: product.categoryId } });
-          if (cat) validCategoryId = product.categoryId;
-        } catch {
-          validCategoryId = null;
-        }
+    const normCat = product.categoryId === 'cat-roses' ? 'cat-rose' : (product.categoryId || 'cat-rose');
+    if (this.categoriesCache?.data?.some(c => c.id === normCat)) {
+      validCategoryId = normCat;
+    } else if (prisma) {
+      try {
+        const cat = await prisma.category.findFirst({
+          where: { OR: [{ id: normCat }, { slug: normCat }, { name: { equals: product.categoryName || '', mode: 'insensitive' } }] }
+        });
+        if (cat) validCategoryId = cat.id;
+      } catch {
+        validCategoryId = 'cat-rose';
       }
     }
+    if (!validCategoryId) validCategoryId = 'cat-rose';
 
     const cleanImages = Array.isArray(product.images) && product.images.filter(Boolean).length > 0
       ? product.images.filter(Boolean)
@@ -5068,6 +5115,7 @@ class Store {
       ...product,
       id,
       sku,
+      categoryId: validCategoryId,
       mrp: Number(product.mrp) || Number(product.sellingPrice) || 0,
       sellingPrice: Number(product.sellingPrice) || 0,
       discount: Number(product.discount) || 0,
@@ -5165,13 +5213,22 @@ class Store {
       this.productsCache.data = [newProd, ...this.productsCache.data.filter(p => p.id !== newProd.id && p.sku !== newProd.sku)];
       this.productsCache.expiresAt = Date.now() + 300000;
     }
+    saveDiskProducts(this.productsCache?.data || DEFAULT_PRODUCTS);
     return newProd;
   }
 
   async updateProduct(id: string, updates: Partial<Product>): Promise<Product | null> {
-    deletedProductIds.delete(id);
-    if (updates.sku) deletedProductIds.delete(updates.sku);
+    const cleanId = (id || '').trim();
+    if (!cleanId) return null;
+
+    deletedProductIds.delete(cleanId);
+    deletedProductIds.delete(cleanId.toLowerCase());
+    if (updates.sku) {
+      deletedProductIds.delete(updates.sku);
+      deletedProductIds.delete(updates.sku.toLowerCase());
+    }
     saveDiskDeletedProducts(deletedProductIds);
+
     const cleanImages = Array.isArray(updates.images) && updates.images.filter(Boolean).length > 0
       ? updates.images.filter(Boolean)
       : (updates as any).imageUrl ? [String((updates as any).imageUrl).trim()]
@@ -5189,28 +5246,47 @@ class Store {
 
     const prisma = getPrismaClient();
     let prismaUpdated: Product | null = null;
-
-    let validCategoryId: string | null | undefined = undefined;
-    if (updates.categoryId !== undefined) {
-      if (prisma && updates.categoryId) {
-        try {
-          const cat = await prisma.category.findUnique({ where: { id: updates.categoryId } });
-          validCategoryId = cat ? updates.categoryId : null;
-        } catch {
-          validCategoryId = null;
-        }
-      } else {
-        validCategoryId = null;
-      }
-    }
+    let targetDbId = cleanId;
 
     if (prisma) {
       try {
+        const existingDbProd = await prisma.product.findFirst({
+          where: { OR: [{ id: cleanId }, { sku: cleanId }, ...(updates.sku ? [{ sku: updates.sku }] : [])] },
+          include: { categoryRel: true, inventory: true }
+        });
+        if (existingDbProd) {
+          targetDbId = existingDbProd.id;
+        }
+
+        let validCategoryId: string | null = null;
+        const requestedCatId = updates.categoryId || existingDbProd?.categoryId;
+        const requestedCatName = updates.categoryName || existingDbProd?.category;
+        if (requestedCatId) {
+          const normCatId = requestedCatId === 'cat-roses' ? 'cat-rose' : requestedCatId;
+          if (this.categoriesCache?.data?.some(c => c.id === normCatId)) {
+            validCategoryId = normCatId;
+          } else {
+            const cat = await prisma.category.findFirst({
+              where: { OR: [{ id: normCatId }, { slug: normCatId }, { name: { equals: requestedCatName || '', mode: 'insensitive' } }] }
+            });
+            if (cat) validCategoryId = cat.id;
+          }
+        }
+        if (!validCategoryId && requestedCatName) {
+          const cat = await prisma.category.findFirst({
+            where: { name: { equals: requestedCatName, mode: 'insensitive' } }
+          });
+          if (cat) validCategoryId = cat.id;
+        }
+        if (!validCategoryId) {
+          validCategoryId = existingDbProd?.categoryId || 'cat-rose';
+        }
+
         const p = await prisma.product.upsert({
-          where: { id },
+          where: { id: targetDbId },
           update: {
             ...(updates.name ? { name: updates.name } : {}),
-            ...(updates.tamilName !== undefined ? { nameTamil: updates.tamilName } : {}),
+            ...(updates.tamilName !== undefined ? { nameTamil: updates.tamilName } : (updates.name ? { nameTamil: updates.name } : {})),
             ...(updates.scientificName !== undefined ? { scientificName: updates.scientificName } : {}),
             ...(updates.sellingPrice !== undefined ? { price: Number(updates.sellingPrice) } : {}),
             ...(updates.mrp !== undefined ? { originalPrice: Number(updates.mrp) } : {}),
@@ -5218,7 +5294,7 @@ class Store {
             ...(cleanImages ? { images: cleanImages, image: cleanImages[0] } : {}),
             ...(updates.featured !== undefined ? { isFeatured: Boolean(updates.featured) } : {}),
             ...(updates.bestSeller !== undefined ? { isBestSeller: Boolean(updates.bestSeller) } : {}),
-            ...(validCategoryId !== undefined ? { categoryId: validCategoryId } : {}),
+            ...(validCategoryId ? { categoryId: validCategoryId } : {}),
             ...(updates.categoryName ? { category: updates.categoryName } : {}),
             ...(updates.potSize ? { potSize: updates.potSize } : {}),
             ...(updates.stock !== undefined ? { inStock: Number(updates.stock) > 0 } : {}),
@@ -5228,16 +5304,16 @@ class Store {
             ...(updates.careInstructions?.soil ? { careSoil: updates.careInstructions.soil } : {})
           },
           create: {
-            id,
-            sku: updates.sku || `VRG-${id.slice(-6).toUpperCase()}`,
+            id: targetDbId,
+            sku: updates.sku || existingDbProd?.sku || `VRG-${targetDbId.slice(-6).toUpperCase()}`,
             name: updates.name || 'Rose Plant',
             nameTamil: updates.tamilName || updates.name || 'ரோஜா செடி',
             scientificName: updates.scientificName || '',
-            category: updates.categoryName || 'Roses',
-            categoryId: validCategoryId || null,
+            category: updates.categoryName || 'Rose Varieties',
+            categoryId: validCategoryId || 'cat-rose',
             description: updates.description || '',
             price: Number(updates.sellingPrice) || 199,
-            originalPrice: Number(updates.mrp) || 249,
+            originalPrice: Number(updates.mrp) || Number(updates.sellingPrice) || 249,
             image: cleanImages?.[0] || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80',
             images: cleanImages || [],
             isFeatured: Boolean(updates.featured),
@@ -5249,14 +5325,14 @@ class Store {
             careFertilizer: updates.careInstructions?.fertilizer || 'Apply vermicompost every 15 days.',
             careSoil: updates.careInstructions?.soil || 'Red soil mixed with coco peat.'
           },
-          include: { inventory: true }
+          include: { categoryRel: true, inventory: true }
         });
 
         if (updates.stock !== undefined) {
           await prisma.inventory.upsert({
-            where: { productId: id },
+            where: { productId: targetDbId },
             update: { quantity: Number(updates.stock) },
-            create: { productId: id, quantity: Number(updates.stock) }
+            create: { productId: targetDbId, quantity: Number(updates.stock) }
           }).catch(() => {});
         }
 
@@ -5267,7 +5343,7 @@ class Store {
           englishName: p.name,
           tamilName: p.nameTamil || p.name,
           scientificName: p.scientificName || '',
-          categoryId: p.categoryId || (p.category ? (p.category.toLowerCase().includes('rose') && !p.category.toLowerCase().includes('creeper') && !p.category.toLowerCase().includes('miniature') && !p.category.toLowerCase().includes('rare') ? 'cat-rose' : `cat-${p.category.toLowerCase().replace(/\s+/g, '-')}`) : 'cat-rose'),
+          categoryId: p.categoryId || 'cat-rose',
           categoryName: p.category,
           description: p.description || '',
           mrp: p.originalPrice || p.price,
@@ -5304,14 +5380,14 @@ class Store {
     let finalUpdatedProduct: Product;
     if (prismaUpdated) {
       finalUpdatedProduct = prismaUpdated;
-      const defIndex = DEFAULT_PRODUCTS.findIndex(p => p.id === id || p.sku === id);
+      const defIndex = DEFAULT_PRODUCTS.findIndex(p => p.id === cleanId || p.sku === cleanId || p.id === targetDbId);
       if (defIndex !== -1) {
         DEFAULT_PRODUCTS[defIndex] = finalUpdatedProduct;
       } else {
         DEFAULT_PRODUCTS.unshift(finalUpdatedProduct);
       }
     } else {
-      const defIndex = DEFAULT_PRODUCTS.findIndex(p => p.id === id || p.sku === id);
+      const defIndex = DEFAULT_PRODUCTS.findIndex(p => p.id === cleanId || p.sku === cleanId || p.id === targetDbId);
       if (defIndex !== -1) {
         DEFAULT_PRODUCTS[defIndex] = {
           ...DEFAULT_PRODUCTS[defIndex],
@@ -5321,14 +5397,14 @@ class Store {
         finalUpdatedProduct = DEFAULT_PRODUCTS[defIndex];
       } else {
         const updatedItem: Product = {
-          id,
-          sku: updates.sku || `VRG-${id.slice(-6).toUpperCase()}`,
+          id: cleanId,
+          sku: updates.sku || `VRG-${cleanId.slice(-6).toUpperCase()}`,
           name: updates.name || 'Plant',
           englishName: updates.englishName || updates.name || 'Plant',
           tamilName: updates.tamilName || updates.name || '',
           scientificName: updates.scientificName || '',
           categoryName: updates.categoryName || 'Roses',
-          categoryId: updates.categoryId || 'cat-roses',
+          categoryId: updates.categoryId === 'cat-roses' ? 'cat-rose' : (updates.categoryId || 'cat-rose'),
           description: updates.description || '',
           mrp: Number(updates.mrp) || Number(updates.sellingPrice) || 199,
           sellingPrice: Number(updates.sellingPrice) || 199,
@@ -5362,9 +5438,9 @@ class Store {
       }
     }
 
-    // Sync in-memory productsCache so immediate reads return updated image without stale read
+    // Sync in-memory productsCache so immediate reads return updated product
     if (this.productsCache && Array.isArray(this.productsCache.data)) {
-      const cIdx = this.productsCache.data.findIndex(p => p.id === id || p.sku === id);
+      const cIdx = this.productsCache.data.findIndex(p => p.id === cleanId || p.sku === cleanId || p.id === targetDbId);
       if (cIdx !== -1) {
         this.productsCache.data[cIdx] = {
           ...this.productsCache.data[cIdx],
@@ -5374,6 +5450,7 @@ class Store {
         this.productsCache.data.unshift(finalUpdatedProduct);
       }
     }
+    saveDiskProducts(this.productsCache?.data || DEFAULT_PRODUCTS);
     this.invalidateProductsCache();
     return finalUpdatedProduct;
   }
@@ -5414,6 +5491,7 @@ class Store {
         (p.sku ? p.sku.toLowerCase() !== cleanId.toLowerCase() : true)
       );
     }
+    saveDiskProducts(this.productsCache?.data || DEFAULT_PRODUCTS);
     this.invalidateProductsCache();
     const prisma = getPrismaClient();
     if (prisma) {
