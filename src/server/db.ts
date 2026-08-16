@@ -5459,14 +5459,18 @@ class Store {
     deletedProductIds.delete(id);
     deletedProductIds.delete(sku);
 
-    // Verify categoryId exists in Prisma to avoid FK constraint failure
+    // Fast verify categoryId from in-memory categories cache to avoid 400ms Neon network query
     let validCategoryId: string | null = null;
-    if (prisma && product.categoryId) {
-      try {
-        const cat = await prisma.category.findUnique({ where: { id: product.categoryId } });
-        if (cat) validCategoryId = product.categoryId;
-      } catch {
-        validCategoryId = null;
+    if (product.categoryId) {
+      if (this.categoriesCache?.data?.some(c => c.id === product.categoryId)) {
+        validCategoryId = product.categoryId;
+      } else if (prisma) {
+        try {
+          const cat = await prisma.category.findUnique({ where: { id: product.categoryId } });
+          if (cat) validCategoryId = product.categoryId;
+        } catch {
+          validCategoryId = null;
+        }
       }
     }
 
