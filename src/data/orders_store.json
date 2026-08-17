@@ -1,1 +1,52 @@
-[]
+[
+  {
+    "id": "ORD-1021",
+    "customerName": "RAJEEV G",
+    "customerPhone": "8825482411",
+    "customerEmail": "gptravels1976@gmail.com",
+    "shippingAddress": {
+      "fullName": "RAJEEV G",
+      "phone": "8825482411",
+      "houseNo": "No 10 A Thillainagar first Street dharapuram road",
+      "street": "Thillainagar first Street",
+      "villageTown": "Tirupur",
+      "district": "Tirupur ",
+      "state": "Tamil Nadu",
+      "pincode": "641604",
+      "landmark": "Near Padma Kidney center ",
+      "addressType": "Home"
+    },
+    "items": [
+      {
+        "productId": "combo-1786878791522",
+        "sku": "CMB-791522",
+        "name": "Mysore malli or madars malli",
+        "tamilName": "Premium Jasmine Plant - Full Soil",
+        "price": 120,
+        "mrp": 160,
+        "quantity": 1,
+        "image": "/products/vrg/mysuru-malli-madras-malli.png"
+      }
+    ],
+    "subtotal": 120,
+    "discount": 0,
+    "shippingCharge": 0,
+    "grandTotal": 120,
+    "orderStatus": "DISPATCHED",
+    "paymentStatus": "SUCCESS",
+    "paymentMethod": "QR_PAYMENT",
+    "transactionId": "MT178697420602189",
+    "merchantTransactionId": "MT178697420602189",
+    "trackingNumber": "tpc1021",
+    "courierName": "Professional Courier (8\" Full Soil)",
+    "potOption": "NONE",
+    "potCharge": 0,
+    "packingOption": "STANDARD",
+    "packingCharge": 0,
+    "createdAt": "2026-08-17T13:43:27.888Z",
+    "updatedAt": "2026-08-17T14:52:17.816Z",
+    "isLabelPrinted": false,
+    "labelPrintedAt": null,
+    "orderNumber": "ORD-1021"
+  }
+]

@@ -50,7 +50,10 @@ import {
   QrCode,
   TrendingUp,
   TrendingDown,
-  CheckSquare
+  CheckSquare,
+  ArrowDown,
+  CheckCheck,
+  Filter
 } from 'lucide-react';
 import { A4LabelSheetPrint } from './A4LabelSheetPrint';
 
@@ -66,6 +69,7 @@ export interface MobileAdminWorkflowProps {
   finances?: FinancialEntry[];
   adminUser?: any;
   onUpdateOrderStatus: (orderId: string, status: string, paymentStatus?: string) => Promise<void>;
+  onToggleOrderPrinted?: (orderId: string, isPrinted?: boolean) => Promise<void>;
   onSaveTracking: (orderId: string, data: { courierName: string; trackingNumber: string; trackingLink?: string }) => Promise<void>;
   onOpenAddWhatsAppOrder?: () => void;
   onOpenEditOrder?: (o: Order) => void;
@@ -121,6 +125,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   finances = [],
   adminUser,
   onUpdateOrderStatus,
+  onToggleOrderPrinted,
   onSaveTracking,
   onOpenAddWhatsAppOrder,
   onOpenEditOrder,
@@ -162,6 +167,110 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   // Label Generation State
   const [selectedLabelOrderIds, setSelectedLabelOrderIds] = useState<string[]>([]);
   const [showLabelPrintPreview, setShowLabelPrintPreview] = useState(false);
+  const [labelFilterTab, setLabelFilterTab] = useState<'all' | 'not_printed' | 'printed'>('all');
+  const [labelSearchQuery, setLabelSearchQuery] = useState('');
+  const [printedOrderIds, setPrintedOrderIds] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem('vrg_printed_label_order_ids');
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch {}
+    return orders.filter(o => o.isLabelPrinted).map(o => o.id);
+  });
+
+  // Keep printedOrderIds synced with order objects
+  useEffect(() => {
+    const ordersWithPrintedFlag = orders.filter(o => o.isLabelPrinted).map(o => o.id);
+    if (ordersWithPrintedFlag.length > 0) {
+      setPrintedOrderIds(prev => {
+        const union = Array.from(new Set([...prev, ...ordersWithPrintedFlag]));
+        if (union.length !== prev.length) {
+          try {
+            localStorage.setItem('vrg_printed_label_order_ids', JSON.stringify(union));
+          } catch {}
+          return union;
+        }
+        return prev;
+      });
+    }
+  }, [orders]);
+
+  const isOrderPrinted = useCallback((orderId: string) => {
+    const order = orders.find(o => o.id === orderId);
+    if (order && order.isLabelPrinted !== undefined) {
+      return Boolean(order.isLabelPrinted);
+    }
+    return printedOrderIds.includes(orderId);
+  }, [orders, printedOrderIds]);
+
+  const handleToggleOrderPrinted = async (orderId: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const currentStatus = isOrderPrinted(orderId);
+    const nextStatus = !currentStatus;
+
+    setPrintedOrderIds(prev => {
+      const next = nextStatus ? Array.from(new Set([...prev, orderId])) : prev.filter(id => id !== orderId);
+      try {
+        localStorage.setItem('vrg_printed_label_order_ids', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    if (nextStatus) {
+      toast.success(`Order #${orderId} marked as Printed & moved down`, 'Label Printed');
+    } else {
+      toast.info(`Order #${orderId} marked as Not Printed & moved up`, 'Label Pending');
+    }
+
+    if (onToggleOrderPrinted) {
+      onToggleOrderPrinted(orderId, nextStatus).catch(() => {});
+    } else {
+      try {
+        const keysToSave = ['veerika_admin_orders', 'vrg_user_orders', 'veerika_customer_orders', 'vrg_orders', 'vrg_my_orders'];
+        keysToSave.forEach(key => {
+          const raw = localStorage.getItem(key);
+          if (raw) {
+            const list = JSON.parse(raw);
+            if (Array.isArray(list)) {
+              const updated = list.map((o: any) => o.id === orderId ? { ...o, isLabelPrinted: nextStatus, labelPrintedAt: nextStatus ? new Date().toISOString() : undefined } : o);
+              localStorage.setItem(key, JSON.stringify(updated));
+            }
+          }
+        });
+      } catch {}
+    }
+  };
+
+  const handleMarkOrdersPrintedBatch = (orderIds: string[], markPrinted = true) => {
+    if (orderIds.length === 0) return;
+    setPrintedOrderIds(prev => {
+      const set = new Set(prev);
+      orderIds.forEach(id => {
+        if (markPrinted) set.add(id);
+        else set.delete(id);
+      });
+      const next = Array.from(set);
+      try {
+        localStorage.setItem('vrg_printed_label_order_ids', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    orderIds.forEach(id => {
+      if (onToggleOrderPrinted) {
+        onToggleOrderPrinted(id, markPrinted).catch(() => {});
+      }
+    });
+
+    toast.success(
+      `${orderIds.length} order(s) marked as ${markPrinted ? 'Printed & moved down' : 'Not Printed & moved up'}!`,
+      markPrinted ? 'Labels Printed' : 'Labels Reset'
+    );
+  };
 
   // WhatsApp Modal State
   const [whatsAppModal, setWhatsAppModal] = useState<{
@@ -932,6 +1041,40 @@ Your parcel dispatched today 🚚
     return list;
   }, [products, productCategoryFilter, productSearch]);
 
+  const { notPrintedOrders, printedOrders, displayedLabelOrders } = useMemo(() => {
+    let list = [...orders];
+
+    if (labelSearchQuery.trim()) {
+      const q = labelSearchQuery.toLowerCase().trim();
+      list = list.filter(o =>
+        o.id.toLowerCase().includes(q) ||
+        (o.customerName && o.customerName.toLowerCase().includes(q)) ||
+        (o.shippingAddress?.fullName && o.shippingAddress.fullName.toLowerCase().includes(q)) ||
+        (o.customerPhone && o.customerPhone.includes(q)) ||
+        (o.shippingAddress?.phone && o.shippingAddress.phone.includes(q))
+      );
+    }
+
+    const unprinted = list.filter(o => !isOrderPrinted(o.id));
+    const printed = list.filter(o => isOrderPrinted(o.id));
+
+    let displayed: Order[] = [];
+    if (labelFilterTab === 'not_printed') {
+      displayed = unprinted;
+    } else if (labelFilterTab === 'printed') {
+      displayed = printed;
+    } else {
+      // 'all': Not printed orders on top, printed orders moved down to bottom!
+      displayed = [...unprinted, ...printed];
+    }
+
+    return {
+      notPrintedOrders: unprinted,
+      printedOrders: printed,
+      displayedLabelOrders: displayed
+    };
+  }, [orders, isOrderPrinted, labelFilterTab, labelSearchQuery]);
+
   const selectedLabelOrders = useMemo(() => {
     return orders.filter(o => selectedLabelOrderIds.includes(o.id));
   }, [orders, selectedLabelOrderIds]);
@@ -1378,6 +1521,18 @@ Your parcel dispatched today 🚚
                         {(order.paymentProofUrl || order.paymentMethod === 'QR_PAYMENT' || order.paymentMethod === 'UPI_DIRECT') && (
                           <span className="text-[9px] font-bold bg-indigo-50 text-indigo-900 px-1.5 py-0.5 rounded border border-indigo-200">
                             📸 QR
+                          </span>
+                        )}
+
+                        {isOrderPrinted(order.id) ? (
+                          <span className="text-[9px] font-bold bg-emerald-50 text-emerald-800 px-1.5 py-0.5 rounded border border-emerald-200 flex items-center gap-0.5">
+                            <Printer className="w-2.5 h-2.5 text-emerald-700" />
+                            <span>Printed</span>
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 flex items-center gap-0.5">
+                            <Clock className="w-2.5 h-2.5 text-amber-600" />
+                            <span>Unprinted</span>
                           </span>
                         )}
                       </div>
@@ -1930,14 +2085,70 @@ Your parcel dispatched today 🚚
                 </div>
               </div>
 
-              {/* View Timeline Button */}
-              <button
-                onClick={() => navigateScreen('order_timeline', selectedOrder)}
-                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 active:scale-98 text-slate-800 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-              >
-                <Clock className="w-3.5 h-3.5 text-slate-600" />
-                <span>View Order Timeline</span>
-              </button>
+              {/* Print Label & Timeline Actions */}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => {
+                    setSelectedLabelOrderIds([selectedOrder.id]);
+                    openAdminModal('label_preview');
+                  }}
+                  className="py-2.5 bg-emerald-50 hover:bg-emerald-100 active:scale-98 text-emerald-900 border border-emerald-300 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                >
+                  <Printer className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>Print Label</span>
+                </button>
+
+                <button
+                  onClick={() => navigateScreen('order_timeline', selectedOrder)}
+                  className="py-2.5 bg-slate-100 hover:bg-slate-200 active:scale-98 text-slate-800 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <Clock className="w-3.5 h-3.5 text-slate-600" />
+                  <span>Timeline</span>
+                </button>
+              </div>
+
+              {/* Label Printed Status Card */}
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] text-slate-500 font-bold block">Label Sheet Status:</span>
+                  <span className="text-xs font-black text-slate-900 flex items-center gap-1 mt-0.5">
+                    {isOrderPrinted(selectedOrder.id) ? (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span className="text-emerald-800 font-bold">Printed</span>
+                      </>
+                    ) : (
+                      <>
+                        <Clock className="w-3.5 h-3.5 text-amber-600" />
+                        <span className="text-amber-800 font-bold">Not Printed</span>
+                      </>
+                    )}
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={(e) => handleToggleOrderPrinted(selectedOrder.id, e)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs border ${
+                    isOrderPrinted(selectedOrder.id)
+                      ? 'bg-emerald-100/90 hover:bg-emerald-200 text-emerald-900 border-emerald-300 active:scale-95'
+                      : 'bg-amber-100/90 hover:bg-amber-200 text-amber-900 border-amber-300 active:scale-95'
+                  }`}
+                  title={isOrderPrinted(selectedOrder.id) ? "Mark as Not Printed (moves up in list)" : "Mark as Printed (moves down in list)"}
+                >
+                  {isOrderPrinted(selectedOrder.id) ? (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>Printed (Toggle)</span>
+                    </>
+                  ) : (
+                    <>
+                      <Clock className="w-3.5 h-3.5 text-amber-700" />
+                      <span>Not Printed (Toggle)</span>
+                    </>
+                  )}
+                </button>
+              </div>
 
               {/* Edit & Delete Order Actions */}
               <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
@@ -2092,6 +2303,7 @@ Your parcel dispatched today 🚚
         {/* ========================================================= */}
         {currentScreen === 'generate_labels' && (
           <div className="space-y-4 animate-in fade-in duration-150">
+            {/* Header */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <button
@@ -2100,7 +2312,10 @@ Your parcel dispatched today 🚚
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </button>
-                <h2 className="text-base font-extrabold text-slate-900">Generate Labels</h2>
+                <div>
+                  <h2 className="text-base font-extrabold text-slate-900 leading-tight">Generate Labels</h2>
+                  <p className="text-[10px] text-slate-500 font-medium">A4 Dispatch Sheets & Print Management</p>
+                </div>
               </div>
               <button
                 onClick={() => navigateScreen('menu_drawer')}
@@ -2112,65 +2327,326 @@ Your parcel dispatched today 🚚
               </button>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-extrabold text-slate-900">
-                  Select Orders (Max 4 per sheet)
-                </h3>
-                <button
-                  onClick={() => {
-                    if (selectedLabelOrderIds.length === orders.length) {
-                      setSelectedLabelOrderIds([]);
-                    } else {
-                      setSelectedLabelOrderIds(orders.slice(0, 4).map(o => o.id));
-                    }
-                  }}
-                  className="text-[11px] font-bold text-emerald-800 hover:underline cursor-pointer"
-                >
-                  {selectedLabelOrderIds.length > 0 ? 'Clear All' : 'Select First 4'}
-                </button>
-              </div>
+            {/* Filter Tabs: All, Not Printed (Top), Printed (Moved Down) */}
+            <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-200/90 rounded-2xl">
+              <button
+                onClick={() => setLabelFilterTab('all')}
+                className={`py-2 px-1 rounded-xl text-center transition-all cursor-pointer ${
+                  labelFilterTab === 'all'
+                    ? 'bg-white text-slate-900 font-extrabold shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900 font-bold'
+                }`}
+              >
+                <span className="block text-[11px] leading-tight truncate">All Orders</span>
+                <span className={`block text-xs font-black mt-0.5 ${labelFilterTab === 'all' ? 'text-slate-900' : 'text-slate-500'}`}>
+                  {orders.length}
+                </span>
+              </button>
 
-              <div className="space-y-2">
-                {orders.map(order => {
-                  const isChecked = selectedLabelOrderIds.includes(order.id);
-                  return (
-                    <label
-                      key={order.id}
-                      className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer select-none border border-slate-100"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => {
-                          if (isChecked) {
-                            setSelectedLabelOrderIds(prev => prev.filter(id => id !== order.id));
-                          } else {
-                            setSelectedLabelOrderIds(prev => [...prev, order.id]);
-                          }
-                        }}
-                        className="w-4 h-4 rounded text-emerald-700 focus:ring-emerald-700 border-slate-300 accent-[#14532d]"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <span className="text-xs font-bold text-slate-900 block font-mono">
-                          {order.id}
-                        </span>
-                        <span className="text-[11px] text-slate-500 truncate block">
-                          {order.customerName || order.shippingAddress?.fullName || 'Customer'} • ₹{order.grandTotal}
-                        </span>
-                      </div>
-                    </label>
-                  );
-                })}
+              <button
+                onClick={() => setLabelFilterTab('not_printed')}
+                className={`py-2 px-1 rounded-xl text-center transition-all cursor-pointer ${
+                  labelFilterTab === 'not_printed'
+                    ? 'bg-white text-amber-900 font-extrabold shadow-sm'
+                    : 'text-slate-600 hover:text-amber-800 font-bold'
+                }`}
+              >
+                <span className="block text-[11px] leading-tight truncate">⏳ Not Printed</span>
+                <span className={`block text-xs font-black mt-0.5 ${labelFilterTab === 'not_printed' ? 'text-amber-700' : 'text-slate-500'}`}>
+                  {notPrintedOrders.length}
+                </span>
+              </button>
 
-                {orders.length === 0 && (
-                  <p className="text-xs text-slate-500 italic text-center py-4">No orders currently available to generate labels.</p>
-                )}
-              </div>
+              <button
+                onClick={() => setLabelFilterTab('printed')}
+                className={`py-2 px-1 rounded-xl text-center transition-all cursor-pointer ${
+                  labelFilterTab === 'printed'
+                    ? 'bg-white text-emerald-900 font-extrabold shadow-sm'
+                    : 'text-slate-600 hover:text-emerald-800 font-bold'
+                }`}
+              >
+                <span className="block text-[11px] leading-tight truncate">✓ Printed</span>
+                <span className={`block text-xs font-black mt-0.5 ${labelFilterTab === 'printed' ? 'text-emerald-700' : 'text-slate-500'}`}>
+                  {printedOrders.length}
+                </span>
+              </button>
             </div>
 
-            <div className="text-xs font-extrabold text-slate-900 px-1">
-              Selected Orders: {selectedLabelOrderIds.length}
+            {/* Quick Search in Labels */}
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search orders for labels by ID, Name, Phone..."
+                value={labelSearchQuery}
+                onChange={e => setLabelSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-8 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700"
+              />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+              {labelSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setLabelSearchQuery('')}
+                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 p-0.5 rounded-full"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Main Selection Card */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <h3 className="text-xs font-extrabold text-slate-900">
+                    Select Orders (Max 4 per sheet)
+                  </h3>
+                  <p className="text-[10px] text-slate-500">
+                    {notPrintedOrders.length} unprinted ready • {printedOrders.length} printed moved down
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    onClick={() => {
+                      const pool = notPrintedOrders.length > 0 ? notPrintedOrders : displayedLabelOrders;
+                      const targetIds = pool.slice(0, 4).map(o => o.id);
+                      setSelectedLabelOrderIds(targetIds);
+                    }}
+                    className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-[11px] font-extrabold cursor-pointer transition-colors"
+                  >
+                    Select First 4
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const pool = notPrintedOrders.length > 0 ? notPrintedOrders : displayedLabelOrders;
+                      const targetIds = pool.slice(0, 8).map(o => o.id);
+                      setSelectedLabelOrderIds(targetIds);
+                    }}
+                    className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-[11px] font-bold cursor-pointer transition-colors"
+                  >
+                    Select 8 (2 Sheets)
+                  </button>
+
+                  {selectedLabelOrderIds.length > 0 && (
+                    <button
+                      onClick={() => setSelectedLabelOrderIds([])}
+                      className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-bold cursor-pointer transition-colors"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Bulk Actions Banner if orders selected */}
+              {selectedLabelOrderIds.length > 0 && (
+                <div className="p-2.5 bg-emerald-50/80 rounded-xl border border-emerald-200 flex items-center justify-between flex-wrap gap-2">
+                  <span className="text-[11px] font-extrabold text-emerald-950">
+                    🏷️ {selectedLabelOrderIds.length} order(s) selected
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleMarkOrdersPrintedBatch(selectedLabelOrderIds, true)}
+                      className="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white text-[10px] font-extrabold rounded-lg flex items-center gap-1 cursor-pointer transition-all shadow-2xs"
+                      title="Mark selected orders as Printed (moves them down)"
+                    >
+                      <CheckCircle2 className="w-3 h-3" />
+                      <span>Mark Printed</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleMarkOrdersPrintedBatch(selectedLabelOrderIds, false)}
+                      className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 text-[10px] font-bold rounded-lg flex items-center gap-1 cursor-pointer transition-all"
+                      title="Mark selected orders as Not Printed (moves them up)"
+                    >
+                      <Clock className="w-3 h-3 text-amber-600" />
+                      <span>Not Printed</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Helper rendering function for single order card */}
+              {(() => {
+                const renderOrderCard = (order: Order, isPrinted: boolean) => {
+                  const isChecked = selectedLabelOrderIds.includes(order.id);
+                  const customerName = order.customerName || order.shippingAddress?.fullName || 'Customer';
+                  const phone = order.customerPhone || order.shippingAddress?.phone || '';
+                  const city = order.shippingAddress?.villageTown || order.shippingAddress?.district || '';
+                  const state = order.shippingAddress?.state || '';
+                  const pincode = order.shippingAddress?.pincode || '';
+
+                  return (
+                    <div
+                      key={order.id}
+                      className={`p-3 rounded-xl border transition-all ${
+                        isChecked
+                          ? 'bg-emerald-50/80 border-emerald-300 shadow-xs'
+                          : isPrinted
+                          ? 'bg-slate-50/90 border-slate-200'
+                          : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-2xs'
+                      }`}
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            if (isChecked) {
+                              setSelectedLabelOrderIds(prev => prev.filter(id => id !== order.id));
+                            } else {
+                              setSelectedLabelOrderIds(prev => [...prev, order.id]);
+                            }
+                          }}
+                          className="mt-1 w-4 h-4 rounded text-emerald-700 focus:ring-emerald-700 border-slate-300 accent-[#14532d] cursor-pointer shrink-0"
+                        />
+                        <div className="min-w-0 flex-1 space-y-1.5">
+                          {/* Row 1: Order ID, Status, Amount */}
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                              <span className="text-xs font-black text-slate-900 font-mono">
+                                #{order.id}
+                              </span>
+                              {order.orderStatus && (
+                                <span className={`text-[9px] px-1.5 py-0.2 rounded-md font-bold uppercase ${
+                                  order.orderStatus === 'CONFIRMED' ? 'bg-emerald-100 text-emerald-800' :
+                                  order.orderStatus === 'PACKED' || order.orderStatus === 'PROCESSING' ? 'bg-amber-100 text-amber-800' :
+                                  order.orderStatus === 'DISPATCHED' ? 'bg-blue-100 text-blue-800' :
+                                  'bg-slate-100 text-slate-700'
+                                }`}>
+                                  {order.orderStatus}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-xs font-extrabold text-emerald-900 shrink-0">
+                              ₹{order.grandTotal}
+                            </span>
+                          </div>
+
+                          {/* Row 2: Customer details & Location */}
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-slate-800 truncate">
+                              {customerName} {phone ? `• ${phone}` : ''}
+                            </p>
+                            <p className="text-[11px] text-slate-500 truncate">
+                              {city ? `${city}, ` : ''}{state} {pincode ? `- ${pincode}` : ''} • {order.items?.length || 1} plant(s)
+                            </p>
+                          </div>
+
+                          {/* Row 3: Toggle Button & Status */}
+                          <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                            <span className="text-[10px] text-slate-400 font-medium">
+                              {isPrinted ? '✓ Label generated / printed' : '⏳ Pending label print'}
+                            </span>
+
+                            {/* TOGGLE BUTTON: Printed / Not Printed */}
+                            <button
+                              type="button"
+                              onClick={(e) => handleToggleOrderPrinted(order.id, e)}
+                              className={`px-3 py-1 rounded-lg text-[11px] font-extrabold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs border ${
+                                isPrinted
+                                  ? 'bg-emerald-100/90 hover:bg-emerald-200 text-emerald-900 border-emerald-300 active:scale-95'
+                                  : 'bg-amber-100/90 hover:bg-amber-200 text-amber-900 border-amber-300 active:scale-95'
+                              }`}
+                              title={isPrinted ? "Click to toggle: Mark as Not Printed (moves up)" : "Click to toggle: Mark as Printed (moves down)"}
+                            >
+                              {isPrinted ? (
+                                <>
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+                                  <span>Printed</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Clock className="w-3.5 h-3.5 text-amber-700" />
+                                  <span>Not Printed</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                };
+
+                // Sectioned View when labelFilterTab === 'all'
+                if (labelFilterTab === 'all') {
+                  return (
+                    <div className="space-y-4">
+                      {/* Section 1: Not Printed (Top Priority) */}
+                      {notPrintedOrders.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between px-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-amber-500" />
+                              <span className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                                Not Printed Orders ({notPrintedOrders.length})
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-amber-800 font-bold bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">
+                              Top Priority
+                            </span>
+                          </div>
+                          <div className="space-y-2">
+                            {notPrintedOrders.map(order => renderOrderCard(order, false))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Section 2: Printed Orders (Moved to Bottom) */}
+                      {printedOrders.length > 0 && (
+                        <div className="space-y-2 pt-2">
+                          <div className="flex items-center justify-between px-1 pt-2 border-t border-slate-200">
+                            <div className="flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                              <span className="text-xs font-black text-slate-700 uppercase tracking-wider">
+                                Printed Orders ({printedOrders.length})
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-emerald-800 font-bold bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+                              <ArrowDown className="w-3 h-3 text-emerald-700" />
+                              <span>Moved Down</span>
+                            </span>
+                          </div>
+                          <div className="space-y-2">
+                            {printedOrders.map(order => renderOrderCard(order, true))}
+                          </div>
+                        </div>
+                      )}
+
+                      {displayedLabelOrders.length === 0 && (
+                        <p className="text-xs text-slate-500 italic text-center py-6">
+                          {labelSearchQuery ? 'No orders match your search query.' : 'No orders currently available.'}
+                        </p>
+                      )}
+                    </div>
+                  );
+                }
+
+                // Tabbed View: Filtered either only Not Printed or only Printed
+                return (
+                  <div className="space-y-2">
+                    {displayedLabelOrders.map(order => renderOrderCard(order, isOrderPrinted(order.id)))}
+                    {displayedLabelOrders.length === 0 && (
+                      <p className="text-xs text-slate-500 italic text-center py-6">
+                        {labelFilterTab === 'not_printed'
+                          ? '🎉 All orders have been printed! No pending labels.'
+                          : 'No printed orders found.'}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Selected Count & Generate Action Button */}
+            <div className="flex items-center justify-between px-1 text-xs font-extrabold text-slate-900">
+              <span>Selected for A4 Sheet:</span>
+              <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-900 rounded-full font-black">
+                {selectedLabelOrderIds.length} Order{selectedLabelOrderIds.length === 1 ? '' : 's'}
+              </span>
             </div>
 
             <button
@@ -2182,9 +2658,10 @@ Your parcel dispatched today 🚚
               <span>Generate Label Sheet (A4 PDF)</span>
             </button>
 
+            {/* A4 Sheet Guide Banner */}
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs text-center text-xs font-semibold text-slate-700 space-y-1">
               <p>📄 4 Orders = 1 A4 Sheet (2x2 Grid)</p>
-              <p>📄 8 Orders = 2 A4 Sheets</p>
+              <p>📄 8 Orders = 2 A4 Sheets (2x2 Grid per sheet)</p>
             </div>
           </div>
         )}
@@ -5256,6 +5733,7 @@ Your parcel dispatched today 🚚
       {showLabelPrintPreview && (
         <A4LabelSheetPrint
           orders={selectedLabelOrders}
+          onMarkAsPrinted={(orderIds) => handleMarkOrdersPrintedBatch(orderIds, true)}
           onClose={() => handleCloseModal(() => setShowLabelPrintPreview(false))}
         />
       )}

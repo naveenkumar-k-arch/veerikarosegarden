@@ -135,7 +135,19 @@ Sitemap: ${req.protocol}://${req.get('host')}/sitemap.xml`);
   // Vite Dev Server or Production Static Serving
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        watch: {
+          ignored: [
+            '**/src/data/**',
+            '**/src/data/*.json',
+            '**/data/**',
+            '**/scratch/**',
+            '**/*.json',
+            '**/.git/**'
+          ]
+        }
+      },
       appType: 'spa'
     });
     app.use(vite.middlewares);

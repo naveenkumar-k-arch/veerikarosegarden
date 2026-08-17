@@ -14,7 +14,16 @@ export default defineConfig(() => {
     server: {
       port: 5173,
       hmr: process.env.DISABLE_HMR !== 'true',
-      watch: process.env.DISABLE_HMR === 'true' ? null : {},
+      watch: {
+        ignored: [
+          '**/src/data/**',
+          '**/src/data/*.json',
+          '**/data/**',
+          '**/scratch/**',
+          '**/*.json',
+          '**/.git/**'
+        ]
+      },
       // Local Dev Server Proxy — Only used during 'npm run dev' on your local computer.
       // In production / Vercel, this server block is ignored and Vercel handles /api via api/index.ts.
       proxy: {

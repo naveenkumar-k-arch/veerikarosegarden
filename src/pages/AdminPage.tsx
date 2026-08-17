@@ -1509,6 +1509,60 @@ const silentRefresh = async (): Promise<boolean> => {
     } catch {}
   };
 
+  // Handle Order Label Printed Status Toggle
+  const handleToggleOrderPrinted = async (orderId: string, isPrinted?: boolean) => {
+    let nextState = isPrinted;
+    setOrders(prev => {
+      const target = prev.find(o => o.id === orderId || o.merchantTransactionId === orderId);
+      const computedNext = nextState !== undefined ? nextState : !(target?.isLabelPrinted);
+      nextState = computedNext;
+      const updatedOrdersList = prev.map(o => {
+        if (o.id === orderId || o.merchantTransactionId === orderId) {
+          return {
+            ...o,
+            isLabelPrinted: computedNext,
+            labelPrintedAt: computedNext ? new Date().toISOString() : undefined,
+            updatedAt: new Date().toISOString()
+          };
+        }
+        return o;
+      });
+
+      const keysToSave = ['veerika_admin_orders', 'vrg_user_orders', 'veerika_customer_orders', 'vrg_orders', 'vrg_my_orders'];
+      keysToSave.forEach(key => {
+        try { localStorage.setItem(key, JSON.stringify(updatedOrdersList)); } catch {}
+      });
+      try {
+        const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
+        cached.orders = updatedOrdersList;
+        localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+      } catch {}
+
+      try {
+        const currentPrinted = JSON.parse(localStorage.getItem('vrg_printed_label_order_ids') || '[]');
+        let nextPrinted = Array.isArray(currentPrinted) ? [...currentPrinted] : [];
+        if (computedNext) {
+          if (!nextPrinted.includes(orderId)) nextPrinted.push(orderId);
+        } else {
+          nextPrinted = nextPrinted.filter((id: string) => id !== orderId);
+        }
+        localStorage.setItem('vrg_printed_label_order_ids', JSON.stringify(nextPrinted));
+      } catch {}
+
+      return updatedOrdersList;
+    });
+
+    try {
+      await authFetch(`/api/admin/orders/${orderId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          isLabelPrinted: nextState,
+          labelPrintedAt: nextState ? new Date().toISOString() : null
+        })
+      });
+    } catch {}
+  };
+
   // Send WhatsApp Customer Alert
   const handleSendWhatsAppUpdate = (o: Order) => {
     const phoneClean = (o.customerPhone || '').replace(/[^0-9]/g, '');
@@ -2180,6 +2234,7 @@ Your parcel dispatched today 🚚
           finances={finances}
           adminUser={adminUser}
           onUpdateOrderStatus={handleUpdateOrderStatus}
+          onToggleOrderPrinted={handleToggleOrderPrinted}
           onOpenAddWhatsAppOrder={handleOpenAddWhatsAppOrder}
           onOpenEditOrder={handleOpenEditOrder}
           onDeleteOrder={handleDeleteOrder}

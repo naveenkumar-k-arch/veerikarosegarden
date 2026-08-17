@@ -1,45 +1,45 @@
 [
   {
-    "id": "prod-1786884888842",
-    "sku": "VRG-HELLO-MSVT4K5D",
-    "name": "hello",
-    "englishName": "hello",
-    "tamilName": "hello",
+    "id": "combo-1786878791522",
+    "sku": "CMB-791522",
+    "name": "Mysore malli or madars malli",
+    "englishName": "Mysore malli or madars malli",
+    "tamilName": "Premium Jasmine Plant - Full Soil",
     "scientificName": "",
-    "categoryId": "cat-herbals",
-    "categoryName": "Herbal Plants",
-    "description": "hello",
-    "mrp": 299,
-    "sellingPrice": 25,
-    "discount": 92,
-    "image": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80",
-    "imageUrl": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80",
+    "categoryId": "cat-rose",
+    "categoryName": "Roses",
+    "description": "Mysore malli or madars malli",
+    "mrp": 160,
+    "sellingPrice": 120,
+    "discount": 25,
+    "image": "/products/vrg/mysuru-malli-madras-malli.png",
+    "imageUrl": "/products/vrg/mysuru-malli-madras-malli.png",
     "images": [
-      "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80"
+      "/products/vrg/mysuru-malli-madras-malli.png"
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 25,
+    "stock": 95,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
-    "sunlight": "Requires 5 hours direct sunlight.",
-    "waterRequirement": "Water daily in the morning.",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
     "floweringSeason": "All Year",
     "careInstructions": {
-      "watering": "Water daily in the morning.",
-      "sunlight": "Requires 5 hours direct sunlight.",
-      "fertilizer": "Apply vermicompost every 15 days.",
-      "soil": "Red soil mixed with coco peat."
+      "watering": "Daily",
+      "sunlight": "Full Sun",
+      "fertilizer": "Organic compost",
+      "soil": "Red soil"
     },
     "featured": false,
     "bestSeller": false,
     "trending": true,
     "tags": [
-      "herbal plants"
+      "roses"
     ],
     "status": "ACTIVE",
-    "createdAt": "2026-08-16T12:54:48.907Z",
-    "updatedAt": "2026-08-16T12:55:57.519Z"
+    "createdAt": "2026-08-16T18:53:36.379Z",
+    "updatedAt": "2026-08-16T18:53:36.379Z"
   },
   {
     "id": "vrg-orchid-rose",
@@ -47,10 +47,10 @@
     "name": "Orchid Rose (Free shipping)",
     "englishName": "Orchid Rose (Free shipping)",
     "tamilName": "ஆர்க்கிட் ரோஸ் (Orchid Rose)",
-    "scientificName": "Rosa 'Orchid Pink'",
+    "scientificName": "",
     "categoryId": "cat-rose",
-    "categoryName": "Rose Varieties",
-    "description": "Exquisite cluster blooming Orchid Rose featuring delicate multi-petal pink flower bunches that resemble miniature orchids with a delightful mild sweet fragrance.",
+    "categoryName": "Roses",
+    "description": "Orchid Rose (Free shipping)",
     "mrp": 200,
     "sellingPrice": 150,
     "discount": 25,
@@ -58,52 +58,6 @@
     "imageUrl": "/products/vrg/orchid-rose.png",
     "images": [
       "/products/vrg/orchid-rose.png"
-    ],
-    "rating": 4.9,
-    "reviewCount": 12,
-    "stock": 9,
-    "plantHeight": "1.5 - 2 Feet",
-    "potSize": "8 Inch Bag",
-    "sunlight": "Requires 4-6 hours direct sunlight.",
-    "waterRequirement": "Water daily in the morning, avoid over-soaking soil.",
-    "floweringSeason": "All Year",
-    "careInstructions": {
-      "watering": "Water daily in the morning, avoid over-soaking soil.",
-      "sunlight": "Requires 4-6 hours direct sunlight.",
-      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
-      "soil": "Well-draining red soil mixed with 30% coco peat."
-    },
-    "featured": true,
-    "bestSeller": true,
-    "trending": true,
-    "tags": [
-      "rose varieties",
-      "roses",
-      "orchid rose",
-      "free shipping",
-      "pink rose"
-    ],
-    "status": "ACTIVE",
-    "createdAt": "2026-08-16T15:43:00.000Z",
-    "updatedAt": "2026-08-16T15:43:00.000Z"
-  },
-  {
-    "id": "combo-1786876625168",
-    "sku": "CMB-625168",
-    "name": "Birthday Party Rose",
-    "englishName": "Birthday Party Rose",
-    "tamilName": "Birthday Party Rose",
-    "scientificName": "",
-    "categoryId": "cat-rose",
-    "categoryName": "Roses",
-    "description": "Birthday Party Rose",
-    "mrp": 120,
-    "sellingPrice": 80,
-    "discount": 33,
-    "image": "/products/vrg/birthday-party-bush-rose.png",
-    "imageUrl": "/products/vrg/birthday-party-bush-rose.png",
-    "images": [
-      "/products/vrg/birthday-party-bush-rose.png"
     ],
     "rating": 4.8,
     "reviewCount": 0,
@@ -126,8 +80,50 @@
       "roses"
     ],
     "status": "ACTIVE",
+    "createdAt": "2026-08-16T15:51:43.700Z",
+    "updatedAt": "2026-08-16T17:55:32.292Z"
+  },
+  {
+    "id": "combo-1786876625168",
+    "sku": "CMB-625168",
+    "name": "Birthday Party Rose",
+    "englishName": "Birthday Party Rose",
+    "tamilName": "Birthday Party Rose",
+    "scientificName": "",
+    "categoryId": "cat-rose",
+    "categoryName": "Roses",
+    "description": "Birthday Party Rose",
+    "mrp": 120,
+    "sellingPrice": 80,
+    "discount": 33,
+    "image": "/products/vrg/birthday-party-bush-rose.png",
+    "imageUrl": "/products/vrg/birthday-party-bush-rose.png",
+    "images": [
+      "/products/vrg/birthday-party-bush-rose.png"
+    ],
+    "rating": 4.8,
+    "reviewCount": 0,
+    "stock": 104,
+    "plantHeight": "1.5 - 2 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Daily",
+      "sunlight": "Full Sun",
+      "fertilizer": "Organic compost",
+      "soil": "Red soil"
+    },
+    "featured": false,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "roses"
+    ],
+    "status": "ACTIVE",
     "createdAt": "2026-08-16T12:16:43.655Z",
-    "updatedAt": "2026-08-16T12:52:05.491Z"
+    "updatedAt": "2026-08-16T17:55:34.047Z"
   },
   {
     "id": "vrg-british-queen-rose",
@@ -149,7 +145,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 3,
+    "stock": 13,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -169,7 +165,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-16T11:06:16.299Z",
-    "updatedAt": "2026-08-16T11:06:16.299Z"
+    "updatedAt": "2026-08-16T17:55:35.052Z"
   },
   {
     "id": "vrg-7-days-red-rose",
@@ -233,7 +229,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 6,
+    "stock": 16,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -253,7 +249,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-16T11:06:15.798Z",
-    "updatedAt": "2026-08-16T11:06:15.798Z"
+    "updatedAt": "2026-08-16T17:55:37.612Z"
   },
   {
     "id": "vrg-naatu-paneer-rose",
@@ -275,7 +271,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 17,
+    "stock": 16,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -317,7 +313,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 2,
+    "stock": 12,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -337,7 +333,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-16T11:06:15.286Z",
-    "updatedAt": "2026-08-16T11:58:48.833Z"
+    "updatedAt": "2026-08-16T17:55:37.972Z"
   },
   {
     "id": "vrg-7-days-yellow-rose",
@@ -359,7 +355,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 4,
+    "stock": 14,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -379,7 +375,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-16T11:06:14.789Z",
-    "updatedAt": "2026-08-16T12:00:01.304Z"
+    "updatedAt": "2026-08-16T17:55:38.834Z"
   },
   {
     "id": "vrg-skintone-blush-rose",
@@ -401,7 +397,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 6,
+    "stock": 16,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -421,7 +417,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-16T11:06:14.539Z",
-    "updatedAt": "2026-08-16T12:00:13.921Z"
+    "updatedAt": "2026-08-16T17:55:39.937Z"
   },
   {
     "id": "vrg-apricot-tea-rose",
@@ -443,7 +439,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 5,
+    "stock": 15,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -463,7 +459,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-16T11:06:14.117Z",
-    "updatedAt": "2026-08-16T12:00:32.716Z"
+    "updatedAt": "2026-08-16T17:55:41.682Z"
   },
   {
     "id": "vrg-summer-snow-pink-rose",
@@ -485,7 +481,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 2,
+    "stock": 12,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -505,7 +501,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-16T11:06:13.875Z",
-    "updatedAt": "2026-08-16T11:06:13.875Z"
+    "updatedAt": "2026-08-16T17:55:42.345Z"
   },
   {
     "id": "vrg-apple-red-rose",
@@ -527,7 +523,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 10,
+    "stock": 19,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -547,7 +543,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-16T11:06:13.638Z",
-    "updatedAt": "2026-08-16T11:06:13.638Z"
+    "updatedAt": "2026-08-16T17:55:43.346Z"
   },
   {
     "id": "vrg-orange-jadiga-rose",
@@ -569,7 +565,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 3,
+    "stock": 12,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -589,7 +585,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-16T11:06:13.402Z",
-    "updatedAt": "2026-08-16T12:00:58.844Z"
+    "updatedAt": "2026-08-16T17:55:43.660Z"
   },
   {
     "id": "vrg-sentimental-balloon-rose",
@@ -611,7 +607,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 4,
+    "stock": 14,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -631,7 +627,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-16T11:06:13.154Z",
-    "updatedAt": "2026-08-16T11:06:13.154Z"
+    "updatedAt": "2026-08-16T17:55:45.600Z"
   },
   {
     "id": "vrg-button-pink-rose",
@@ -653,7 +649,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 7,
+    "stock": 16,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -673,7 +669,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-16T11:06:12.904Z",
-    "updatedAt": "2026-08-16T11:06:12.904Z"
+    "updatedAt": "2026-08-16T17:55:46.148Z"
   },
   {
     "id": "vrg-anny-duperey-golden-rose",
@@ -737,7 +733,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 5,
+    "stock": 15,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -757,7 +753,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-16T11:06:12.420Z",
-    "updatedAt": "2026-08-16T12:09:12.469Z"
+    "updatedAt": "2026-08-16T17:55:47.734Z"
   },
   {
     "id": "vrg-fireworks-ruffle-crimson",
@@ -779,7 +775,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 25,
+    "stock": 30,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -799,7 +795,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-16T11:06:12.181Z",
-    "updatedAt": "2026-08-16T12:09:00.756Z"
+    "updatedAt": "2026-08-16T17:55:48.298Z"
   },
   {
     "id": "vrg-abracadabra-tiger-rose",
@@ -821,7 +817,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 25,
+    "stock": 10,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -841,7 +837,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-16T11:06:11.937Z",
-    "updatedAt": "2026-08-16T12:08:51.728Z"
+    "updatedAt": "2026-08-16T22:13:05.967Z"
   },
   {
     "id": "vrg-black-magic-exotic-rose",
@@ -863,7 +859,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 25,
+    "stock": 30,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -883,7 +879,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-16T11:06:11.695Z",
-    "updatedAt": "2026-08-16T12:08:38.097Z"
+    "updatedAt": "2026-08-16T17:55:49.374Z"
   },
   {
     "id": "vrg-chocolate-rose-terracotta",
@@ -905,7 +901,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 5,
+    "stock": 15,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -925,7 +921,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-16T11:06:11.450Z",
-    "updatedAt": "2026-08-16T11:06:11.450Z"
+    "updatedAt": "2026-08-16T17:55:51.081Z"
   },
   {
     "id": "vrg-honey-dijon-mustard-rose",
@@ -947,7 +943,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 25,
+    "stock": 0,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -967,7 +963,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-16T11:06:11.207Z",
-    "updatedAt": "2026-08-16T11:06:11.207Z"
+    "updatedAt": "2026-08-16T22:10:05.838Z"
   },
   {
     "id": "vrg-margo-koster-pink-rose",
@@ -989,7 +985,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 4,
+    "stock": 0,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -1009,7 +1005,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-16T11:06:10.963Z",
-    "updatedAt": "2026-08-16T11:06:10.963Z"
+    "updatedAt": "2026-08-16T22:11:59.969Z"
   },
   {
     "id": "vrg-paper-moon-exotic-rose",
@@ -1031,7 +1027,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 2,
+    "stock": 22,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -1051,7 +1047,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-16T11:06:10.723Z",
-    "updatedAt": "2026-08-16T12:08:21.133Z"
+    "updatedAt": "2026-08-16T17:55:55.190Z"
   },
   {
     "id": "vrg-lavender-simplicity-rose",
@@ -1073,7 +1069,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 4,
+    "stock": 19,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -1093,7 +1089,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-16T11:06:10.485Z",
-    "updatedAt": "2026-08-16T11:06:10.485Z"
+    "updatedAt": "2026-08-16T17:55:56.073Z"
   },
   {
     "id": "vrg-kordes-jubilee-rose",
@@ -1157,7 +1153,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 7,
+    "stock": 32,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -1177,7 +1173,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-16T11:06:10.008Z",
-    "updatedAt": "2026-08-16T11:06:10.008Z"
+    "updatedAt": "2026-08-16T17:55:59.092Z"
   },
   {
     "id": "vrg-stars-n-stripes-rose",
@@ -1199,7 +1195,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 5,
+    "stock": 10,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -1219,7 +1215,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-16T11:06:09.763Z",
-    "updatedAt": "2026-08-16T12:08:06.538Z"
+    "updatedAt": "2026-08-16T17:56:00.405Z"
   },
   {
     "id": "vrg-blue-for-you-rose",
@@ -1283,7 +1279,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 7,
+    "stock": 22,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -1303,7 +1299,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-16T11:06:09.291Z",
-    "updatedAt": "2026-08-16T12:07:54.123Z"
+    "updatedAt": "2026-08-16T17:56:02.995Z"
   },
   {
     "id": "vrg-mini-eden-climbing-rose",
@@ -1325,7 +1321,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 3,
+    "stock": 32,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -1345,7 +1341,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-16T11:06:09.052Z",
-    "updatedAt": "2026-08-16T12:07:47.752Z"
+    "updatedAt": "2026-08-16T17:56:06.147Z"
   },
   {
     "id": "vrg-black-jade-micro-mini-rose",
@@ -1367,7 +1363,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 3,
+    "stock": 0,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "6 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -1387,7 +1383,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-16T11:06:08.816Z",
-    "updatedAt": "2026-08-16T12:07:38.836Z"
+    "updatedAt": "2026-08-16T22:10:56.793Z"
   },
   {
     "id": "vrg-teddy-bear-terracotta-rose",
@@ -1409,7 +1405,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 1,
+    "stock": 0,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -1429,7 +1425,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-16T11:06:08.575Z",
-    "updatedAt": "2026-08-16T11:06:08.575Z"
+    "updatedAt": "2026-08-16T22:07:32.893Z"
   },
   {
     "id": "vrg-pink-fairy-polyantha-rose",
@@ -1451,7 +1447,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 6,
+    "stock": 5,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -1745,7 +1741,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 12,
+    "stock": 10,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -1955,7 +1951,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 14,
+    "stock": 13,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -2039,7 +2035,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 44,
+    "stock": 42,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -2753,7 +2749,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 48,
+    "stock": 47,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -2963,7 +2959,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 10,
+    "stock": 9,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -3215,7 +3211,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 9,
+    "stock": 8,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -4139,7 +4135,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 25,
+    "stock": 24,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -4349,7 +4345,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 0,
-    "stock": 14,
+    "stock": 13,
     "plantHeight": "1.5 - 2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -4370,6 +4366,48 @@
     "status": "ACTIVE",
     "createdAt": "2026-08-16T11:05:49.824Z",
     "updatedAt": "2026-08-16T12:05:52.415Z"
+  },
+  {
+    "id": "prod-1786884888842",
+    "sku": "VRG-HELLO-MSVT4K5D",
+    "name": "hello",
+    "englishName": "hello",
+    "tamilName": "hello",
+    "scientificName": "",
+    "categoryId": "cat-herbals",
+    "categoryName": "Herbal Plants",
+    "description": "hello",
+    "mrp": 299,
+    "sellingPrice": 25,
+    "discount": 92,
+    "image": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80",
+    "imageUrl": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80",
+    "images": [
+      "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80"
+    ],
+    "rating": 4.8,
+    "reviewCount": 0,
+    "stock": 25,
+    "plantHeight": "1.5 - 2 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Requires 5 hours direct sunlight.",
+    "waterRequirement": "Water daily in the morning.",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning.",
+      "sunlight": "Requires 5 hours direct sunlight.",
+      "fertilizer": "Apply vermicompost every 15 days.",
+      "soil": "Red soil mixed with coco peat."
+    },
+    "featured": false,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "herbal plants"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:54:48.907Z",
+    "updatedAt": "2026-08-16T12:55:57.519Z"
   },
   {
     "id": "vrg-white-panneer-rose",

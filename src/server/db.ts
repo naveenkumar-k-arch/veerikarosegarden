@@ -7793,6 +7793,8 @@ class Store {
       potCharge: updates.potCharge !== undefined ? updates.potCharge : existing.potCharge,
       packingOption: updates.packingOption !== undefined ? updates.packingOption : existing.packingOption,
       packingCharge: updates.packingCharge !== undefined ? updates.packingCharge : existing.packingCharge,
+      isLabelPrinted: updates.isLabelPrinted !== undefined ? Boolean(updates.isLabelPrinted) : existing.isLabelPrinted,
+      labelPrintedAt: updates.labelPrintedAt !== undefined ? updates.labelPrintedAt : existing.labelPrintedAt,
       updatedAt: new Date().toISOString()
     };
 

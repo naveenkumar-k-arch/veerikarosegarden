@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Order } from '../types';
-import { Sprout, Printer, ArrowLeft, Download, Loader2 } from 'lucide-react';
+import { Sprout, Printer, ArrowLeft, Download, Loader2, CheckCircle2 } from 'lucide-react';
 import * as jspdfPkg from 'jspdf';
 
 const jsPDFClass: any = (jspdfPkg as any).jsPDF || (jspdfPkg as any).default || jspdfPkg;
@@ -8,6 +8,7 @@ const jsPDFClass: any = (jspdfPkg as any).jsPDF || (jspdfPkg as any).default || 
 interface A4LabelSheetPrintProps {
   orders: Order[];
   onClose: () => void;
+  onMarkAsPrinted?: (orderIds: string[]) => void;
   batchNumber?: string;
   sheetNumber?: string;
 }
@@ -15,10 +16,12 @@ interface A4LabelSheetPrintProps {
 export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
   orders,
   onClose,
+  onMarkAsPrinted,
   batchNumber = '#005',
   sheetNumber = '#11106'
 }) => {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [markedPrintedSuccess, setMarkedPrintedSuccess] = useState(false);
 
   // Split orders into chunks of 4 for A4 pages
   const chunkSize = 4;
@@ -27,12 +30,26 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
     pages.push(orders.slice(i, i + chunkSize));
   }
 
+  const handleMarkAllPrinted = () => {
+    if (onMarkAsPrinted && orders.length > 0) {
+      onMarkAsPrinted(orders.map(o => o.id));
+      setMarkedPrintedSuccess(true);
+      setTimeout(() => setMarkedPrintedSuccess(false), 3000);
+    }
+  };
+
   const handlePrint = () => {
+    if (onMarkAsPrinted && orders.length > 0) {
+      onMarkAsPrinted(orders.map(o => o.id));
+    }
     window.print();
   };
 
   const handleDownloadPdf = async () => {
     if (isGeneratingPdf) return;
+    if (onMarkAsPrinted && orders.length > 0) {
+      onMarkAsPrinted(orders.map(o => o.id));
+    }
     setIsGeneratingPdf(true);
 
     try {
@@ -426,8 +443,23 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
           <p className="text-[11px] text-slate-500">{orders.length} Selected Orders • {pages.length} Sheet(s)</p>
         </div>
 
-        {/* 2 Distinct Action Buttons: Print & Download PDF */}
-        <div className="flex items-center gap-2">
+        {/* Action Buttons: Mark Printed, Print & Download PDF */}
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-end">
+          {onMarkAsPrinted && (
+            <button
+              onClick={handleMarkAllPrinted}
+              className={`px-3.5 py-2 text-xs font-extrabold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs ${
+                markedPrintedSuccess
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300'
+              }`}
+              title="Mark all selected orders as Printed and move them down in list"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>{markedPrintedSuccess ? '✓ Marked Printed & Moved Down!' : 'Mark as Printed'}</span>
+            </button>
+          )}
+
           <button
             onClick={handlePrint}
             className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors border border-slate-300 cursor-pointer shadow-2xs"

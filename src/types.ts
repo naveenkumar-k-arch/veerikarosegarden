@@ -129,6 +129,8 @@ export interface Order {
   packingOption?: string;
   courierDistrict?: string;
   courierBranch?: string;
+  isLabelPrinted?: boolean;
+  labelPrintedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
