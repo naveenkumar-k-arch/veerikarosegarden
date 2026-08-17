@@ -2595,19 +2595,34 @@ Your parcel dispatched today 🚚
                         </div>
                       )}
 
-                      {/* Section 2: Printed Orders (Moved to Bottom) */}
+                      {/* Section 2: Printed Orders (Moved to Bottom with Border Line) */}
                       {printedOrders.length > 0 && (
                         <div className="space-y-2 pt-2">
-                          <div className="flex items-center justify-between px-1 pt-2 border-t border-slate-200">
+                          {/* Prominent Border Line Divider in between Not Printed and Printed */}
+                          {notPrintedOrders.length > 0 && (
+                            <div className="relative py-3 my-2">
+                              <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                                <div className="w-full border-t-2 border-slate-300 border-dashed" />
+                              </div>
+                              <div className="relative flex justify-center">
+                                <span className="bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-700 rounded-full border border-slate-300 shadow-2xs flex items-center gap-1.5 uppercase tracking-wider">
+                                  <ArrowDown className="w-3.5 h-3.5 text-emerald-700 stroke-[2.5]" />
+                                  <span>Printed Orders Below</span>
+                                </span>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="flex items-center justify-between px-1 pt-1">
                             <div className="flex items-center gap-1.5">
-                              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                              <span className="text-xs font-black text-slate-700 uppercase tracking-wider">
+                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                              <span className="text-xs font-black text-slate-800 uppercase tracking-wider">
                                 Printed Orders ({printedOrders.length})
                               </span>
                             </div>
-                            <span className="text-[10px] text-emerald-800 font-bold bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+                            <span className="text-[10px] text-emerald-800 font-bold bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
                               <ArrowDown className="w-3 h-3 text-emerald-700" />
-                              <span>Moved Down</span>
+                              <span>Moved to bottom</span>
                             </span>
                           </div>
                           <div className="space-y-2">
