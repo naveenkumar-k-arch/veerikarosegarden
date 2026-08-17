@@ -25,15 +25,15 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
       sessionStorage.setItem('vrg_splash_shown', 'true');
     } catch {}
 
-    // Phase 1: title animates in (0ms → 200ms)
-    const t1 = setTimeout(() => setPhase('hold'), 200);
-    // Phase 2: hold (200ms → 450ms)
-    const t2 = setTimeout(() => setPhase('open'), 450);
-    // Phase 3: curtains open smoothly (450ms → 800ms)
+    // Phase 1: title animates in (0ms → 600ms)
+    const t1 = setTimeout(() => setPhase('hold'), 600);
+    // Phase 2: hold & showcase branding (600ms → 3200ms)
+    const t2 = setTimeout(() => setPhase('open'), 3200);
+    // Phase 3: curtains open smoothly (3200ms → 4000ms = 4.0s total)
     const t3 = setTimeout(() => {
       setPhase('done');
       onComplete();
-    }, 800);
+    }, 4000);
 
     return () => {
       clearTimeout(t1);
@@ -67,7 +67,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
           height: '100%',
           background: 'linear-gradient(135deg, #0f1a0e 0%, #1a2e1a 40%, #0d2218 100%)',
           transform: phase === 'open' ? 'translateX(-100%)' : 'translateX(0)',
-          transition: phase === 'open' ? 'transform 0.4s cubic-bezier(0.76, 0, 0.24, 1)' : 'none',
+          transition: phase === 'open' ? 'transform 0.8s cubic-bezier(0.76, 0, 0.24, 1)' : 'none',
           zIndex: 2,
         }}
       />
@@ -81,7 +81,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
           height: '100%',
           background: 'linear-gradient(225deg, #0f1a0e 0%, #1a2e1a 40%, #0d2218 100%)',
           transform: phase === 'open' ? 'translateX(100%)' : 'translateX(0)',
-          transition: phase === 'open' ? 'transform 0.4s cubic-bezier(0.76, 0, 0.24, 1)' : 'none',
+          transition: phase === 'open' ? 'transform 0.8s cubic-bezier(0.76, 0, 0.24, 1)' : 'none',
           zIndex: 2,
         }}
       />
@@ -97,7 +97,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
           justifyContent: 'center',
           zIndex: 3,
           opacity: phase === 'open' ? 0 : 1,
-          transition: phase === 'open' ? 'opacity 0.4s ease' : 'none',
+          transition: phase === 'open' ? 'opacity 0.6s ease' : 'none',
         }}
       >
         {/* Rose SVG icon */}
