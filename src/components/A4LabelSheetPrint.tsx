@@ -131,24 +131,19 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
         pdf.text('|', 133, 22.5);
 
         drawPhoneIcon(pdf, 140, 21.8, 0.9);
-        pdf.text('7904020206', 144, 22.5);
+        pdf.text('7200826129', 144, 22.5);
 
         // Right Metadata Box
         pdf.setTextColor(15, 23, 42);
         pdf.setFont('helvetica', 'bold');
         pdf.setFontSize(7.5);
         pdf.text('Order Sheet Date', 214, 12);
-        pdf.setFont('helvetica', 'normal');
         pdf.text(`: ${currentDateStr}`, 240, 12);
 
-        pdf.setFont('helvetica', 'bold');
         pdf.text('Total Orders', 214, 17);
-        pdf.setFont('helvetica', 'normal');
         pdf.text(`: ${pageOrders.length}`, 240, 17);
 
-        pdf.setFont('helvetica', 'bold');
         pdf.text('Prepared By', 214, 22);
-        pdf.setFont('helvetica', 'normal');
         pdf.text(': Admin', 240, 22);
 
         // ================= 2x2 GRID OF 4 LABELS =================
@@ -184,28 +179,28 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
           pdf.text(String(labelNumber), pos.x + 6.25, pos.y + 7.8, { align: 'center' });
 
           // "From :"
-          pdf.setTextColor(71, 85, 105);
-          pdf.setFont('helvetica', 'normal');
-          pdf.setFontSize(7.5);
+          pdf.setTextColor(30, 41, 59);
+          pdf.setFont('helvetica', 'bold');
+          pdf.setFontSize(8);
           pdf.text('From :', pos.x + 2.5, pos.y + 15);
 
           // "VRG NURSERY"
           pdf.setTextColor(20, 83, 45);
           pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(9);
+          pdf.setFontSize(9.5);
           pdf.text('VRG NURSERY', pos.x + 2.5, pos.y + 21);
 
           // "Dharmapuri - 636813"
-          pdf.setTextColor(51, 65, 85);
-          pdf.setFont('helvetica', 'normal');
-          pdf.setFontSize(7.2);
+          pdf.setTextColor(30, 41, 59);
+          pdf.setFont('helvetica', 'bold');
+          pdf.setFontSize(8);
           pdf.text('Dharmapuri - 636813', pos.x + 2.5, pos.y + 27);
 
-          // Nursery Phone "7904020206"
-          pdf.setTextColor(30, 41, 59);
-          pdf.setFont('helvetica', 'normal');
-          pdf.setFontSize(7.8);
-          pdf.text('7904020206', pos.x + 2.5, pos.y + 33);
+          // Nursery Phone "7200826129"
+          pdf.setTextColor(15, 23, 42);
+          pdf.setFont('helvetica', 'bold');
+          pdf.setFontSize(8.5);
+          pdf.text('7200826129', pos.x + 2.5, pos.y + 33);
 
           // Courier Partner Tag
           const courierPartnerTag = order.courierName || 'Professional Courier';
@@ -216,9 +211,9 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
           pdf.roundedRect(pos.x + 2, pos.y + 38, 32, 10, 1, 1, 'S');
           pdf.setTextColor(20, 83, 45);
           pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(5.8);
+          pdf.setFontSize(6.5);
           const cLines = pdf.splitTextToSize(courierPartnerTag + (order.courierBranch ? ` (${order.courierBranch})` : ''), 30);
-          pdf.text(cLines.slice(0, 3), pos.x + 3, pos.y + 41.5);
+          pdf.text(cLines.slice(0, 3), pos.x + 3, pos.y + 42);
 
           // Vertical Divider 1
           pdf.setDrawColor(226, 232, 240);
@@ -239,22 +234,24 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
           const nameLines = pdf.splitTextToSize(customerName, 52);
           pdf.text(nameLines, pos.x + 39, pos.y + 12.5);
 
-          // Customer Address
-          const addrStartY = pos.y + 12.5 + (nameLines.length * 3.5) + 1;
-          pdf.setTextColor(51, 65, 85);
-          pdf.setFont('helvetica', 'normal');
-          pdf.setFontSize(6.8);
-          const addrLines = pdf.splitTextToSize(fullAddress.startsWith('Address') || fullAddress.startsWith('No') ? fullAddress : `Address ${fullAddress}`, 52);
-          const displayAddrLines = addrLines.slice(0, 7);
+          // Customer Address (Bolder, matched size, crisp contrast)
+          const cleanAddr = fullAddress.replace(/^(full\s*)?address\s*[:\-]?\s*/i, '').replace(/^name\s*:\s*[^,]+,\s*(address\s*:\s*)?/i, '').trim();
+          const addrStartY = pos.y + 12.5 + (nameLines.length * 3.6) + 1;
+          pdf.setTextColor(15, 23, 42);
+          pdf.setFont('helvetica', 'bold');
+          pdf.setFontSize(8.2);
+          const addrLines = pdf.splitTextToSize(cleanAddr.startsWith('No') || cleanAddr.startsWith('Door') || cleanAddr.startsWith('Address') ? cleanAddr : `Address: ${cleanAddr}`, 52);
+          const displayAddrLines = addrLines.slice(0, 6);
           pdf.text(displayAddrLines, pos.x + 39, addrStartY);
 
-          // Customer Phone Number (Positioned above, immediately below address)
+          // Customer Phone Number (Bolded, matched size)
           if (customerPhone) {
-            const phoneY = addrStartY + (displayAddrLines.length * 3.4) + 2.5;
+            const phoneY = addrStartY + (displayAddrLines.length * 3.6) + 2.5;
             pdf.setTextColor(15, 23, 42);
             pdf.setFont('helvetica', 'bold');
             pdf.setFontSize(8.5);
-            pdf.text(customerPhone, pos.x + 39, Math.min(phoneY, pos.y + cardHeight - 5));
+            const formattedPhone = customerPhone.toLowerCase().startsWith('ph') ? customerPhone : `Ph: ${customerPhone}`;
+            pdf.text(formattedPhone, pos.x + 39, Math.min(phoneY, pos.y + cardHeight - 4));
           }
 
           // Vertical Divider 2
@@ -269,25 +266,25 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
           pdf.setFontSize(8.5);
           pdf.text('Ordered Plants', pos.x + 97, pos.y + 7);
 
-          // Plant Items List
+          // Plant Items List (Bolded, clear matched size)
           let itemY = pos.y + 12.5;
           if (order.items && order.items.length > 0) {
             order.items.forEach((item, idx) => {
-              if (itemY <= pos.y + cardHeight - 6) {
+              if (itemY <= pos.y + cardHeight - 5) {
                 const itemText = `${idx + 1}. ${item.name}${item.quantity > 1 ? ` (${item.quantity})` : ''}`;
                 const splitItem = pdf.splitTextToSize(itemText, 38);
                 const displayItemLines = splitItem.slice(0, 2);
-                pdf.setTextColor(30, 41, 59);
-                pdf.setFontSize(6.8);
-                pdf.setFont('helvetica', 'normal');
+                pdf.setTextColor(15, 23, 42);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(8);
                 pdf.text(displayItemLines, pos.x + 97, itemY);
-                itemY += (displayItemLines.length * 3.2) + 1.2;
+                itemY += (displayItemLines.length * 3.5) + 1.2;
               }
             });
           } else {
-            pdf.setTextColor(100, 116, 139);
-            pdf.setFontSize(6.8);
-            pdf.setFont('helvetica', 'normal');
+            pdf.setTextColor(15, 23, 42);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(8);
             pdf.text('1. Nursery Plant Sapling', pos.x + 97, itemY);
           }
         });
@@ -336,8 +333,19 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
 
   const formatAddress = (address: any) => {
     if (!address) return 'Address not available';
-    if (typeof address === 'string') return address;
-    const parts = [
+    if (typeof address === 'string') {
+      try {
+        const parsed = JSON.parse(address);
+        if (parsed && typeof parsed === 'object') {
+          address = parsed;
+        } else {
+          return address.trim();
+        }
+      } catch {
+        return address.trim();
+      }
+    }
+    const rawParts = [
       address.houseNo ? `${address.houseNo}` : '',
       address.street,
       address.villageTown,
@@ -345,7 +353,15 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
       address.state,
       address.pincode
     ].filter(Boolean);
-    return parts.join(', ');
+
+    const uniqueParts: string[] = [];
+    for (const p of rawParts) {
+      const trimmed = String(p).trim();
+      if (trimmed && (!uniqueParts.length || uniqueParts[uniqueParts.length - 1].toLowerCase() !== trimmed.toLowerCase())) {
+        uniqueParts.push(trimmed);
+      }
+    }
+    return uniqueParts.join(', ');
   };
 
   const currentDateStr = new Intl.DateTimeFormat('en-GB', {
@@ -451,11 +467,11 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
                 </h1>
                 <p className="text-xs font-bold text-[#14532d] mt-1.5 flex items-center justify-center gap-4">
                   <span>📍 Dharmapuri – 636813</span>
-                  <span>📞 7904020206</span>
+                  <span>📞 7200826129</span>
                 </p>
               </div>
 
-              <div className="text-right text-[11px] font-medium text-slate-800 space-y-0.5 border-l border-slate-200 pl-3">
+              <div className="text-right text-[11px] font-bold text-slate-800 space-y-0.5 border-l border-slate-200 pl-3">
                 <p><span className="font-bold text-slate-900">Order Sheet Date</span> : {currentDateStr}</p>
                 <p><span className="font-bold text-slate-900">Total Orders</span> : {pageOrders.length}</p>
                 <p><span className="font-bold text-slate-900">Prepared By</span> : Admin</p>
@@ -487,18 +503,18 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
                           <div className="w-6 h-6 rounded-md bg-[#14532d] text-white font-black text-xs flex items-center justify-center mb-1.5 shadow-2xs">
                             {labelNumber}
                           </div>
-                          <div className="space-y-0.5 text-xs text-slate-800">
-                            <p className="text-slate-600 text-[11px]">From :</p>
+                          <div className="space-y-0.5 text-xs text-slate-900 font-bold">
+                            <p className="text-slate-700 text-xs font-bold">From :</p>
                             <h4 className="font-black text-[#14532d] text-xs leading-tight">
                               VRG NURSERY
                             </h4>
-                            <p className="text-[11px] text-slate-700 leading-tight">
+                            <p className="text-xs text-slate-800 font-bold leading-tight">
                               Dharmapuri – 636813
                             </p>
-                            <p className="text-[11px] text-slate-800 pt-0.5">
-                              7904020206
+                            <p className="text-xs text-slate-900 font-extrabold pt-0.5">
+                              7200826129
                             </p>
-                            <div className="mt-2 p-1 bg-emerald-50 rounded border border-emerald-200 text-[9px] text-emerald-900 font-bold leading-tight">
+                            <div className="mt-2 p-1 bg-emerald-50 rounded border border-emerald-200 text-[10px] text-emerald-900 font-bold leading-tight">
                               🚚 {order.courierName || 'Professional Courier'}
                               {order.courierBranch ? ` (${order.courierBranch})` : ''}
                             </div>
@@ -509,16 +525,22 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
                       {/* Column 2: To */}
                       <div className="col-span-5 px-2 border-r border-slate-200 flex flex-col justify-start h-full space-y-1">
                         <div>
-                          <p className="font-bold text-[#14532d] text-xs leading-none">To,</p>
-                          <p className="font-extrabold text-slate-900 text-xs sm:text-sm leading-tight mt-0.5">
+                          <p className="font-extrabold text-[#14532d] text-xs leading-none">To,</p>
+                          <p className="font-black text-slate-900 text-xs sm:text-sm leading-tight mt-1">
                             {customerName}
                           </p>
-                          <p className="text-[11px] text-slate-700 font-medium leading-snug line-clamp-4 mt-1">
-                            {fullAddress.startsWith('Address') || fullAddress.startsWith('No') ? fullAddress : `Address ${fullAddress}`}
-                          </p>
+                          {(() => {
+                            const cleanAddr = fullAddress.replace(/^(full\s*)?address\s*[:\-]?\s*/i, '').replace(/^name\s*:\s*[^,]+,\s*(address\s*:\s*)?/i, '').trim();
+                            const addrDisplay = cleanAddr.startsWith('No') || cleanAddr.startsWith('Door') || cleanAddr.startsWith('Address') ? cleanAddr : `Address: ${cleanAddr}`;
+                            return (
+                              <p className="text-xs text-slate-900 font-bold leading-snug line-clamp-4 mt-1">
+                                {addrDisplay}
+                              </p>
+                            );
+                          })()}
                           {customerPhone && (
                             <p className="font-black text-slate-900 text-xs sm:text-sm pt-1.5">
-                              {customerPhone}
+                              {customerPhone.toLowerCase().startsWith('ph') ? customerPhone : `Ph: ${customerPhone}`}
                             </p>
                           )}
                         </div>
@@ -527,8 +549,8 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
                       {/* Column 3: Ordered Plants */}
                       <div className="col-span-4 pl-1.5 flex flex-col justify-between h-full space-y-1">
                         <div>
-                          <p className="font-bold text-[#14532d] text-xs leading-none">Ordered Plants</p>
-                          <div className="space-y-0.5 text-[11px] text-slate-800 font-medium mt-1">
+                          <p className="font-extrabold text-[#14532d] text-xs leading-none">Ordered Plants</p>
+                          <div className="space-y-1 text-xs text-slate-900 font-bold mt-1">
                             {order.items && order.items.length > 0 ? (
                               order.items.map((item, idx) => (
                                 <p key={idx} className="leading-snug line-clamp-2">
