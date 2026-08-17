@@ -338,8 +338,8 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
   // ── Delivery / Packing Selection ──────────────────────────────────────────
   const [deliveryOption, setDeliveryOption] = useState<DeliveryOptionType>(() => {
     try {
-      const saved = sessionStorage.getItem('vrg_checkout_delivery_option');
-      if (saved === 'FULL_SOIL' || saved === 'REDUCED_SOIL') return saved;
+      const saved = sessionStorage.getItem('vrg_checkout_delivery_option') as any;
+      if (saved === 'FULL_SOIL_6INCH' || saved === 'FULL_SOIL_8INCH' || saved === 'FULL_SOIL' || saved === 'REDUCED_SOIL') return saved;
     } catch {}
     return 'REDUCED_SOIL';
   });
@@ -394,7 +394,8 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
   // Auto fallback if option becomes unavailable due to state or plant count changes
   useEffect(() => {
     const inTN = isTamilNadu(address.state);
-    if (deliveryOption === 'FULL_SOIL' && (!inTN || totalPlantCount > 5)) {
+    const isFullSoil = deliveryOption === 'FULL_SOIL_6INCH' || deliveryOption === 'FULL_SOIL_8INCH' || deliveryOption === 'FULL_SOIL';
+    if (isFullSoil && (!inTN || totalPlantCount > 5)) {
       setDeliveryOption('REDUCED_SOIL');
     }
     if (courierPartner === 'METTUR_PARCEL' && totalPlantCount < 3) {
@@ -796,7 +797,13 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
       const cleanEmail = (user?.email?.includes('@')) ? user.email : `cust${cleanPhone}@veerikanursery.com`;
       const courierLabel = courierPartner === 'METTUR_PARCEL'
         ? 'Mettur Parcel Service'
-        : (deliveryOption === 'FULL_SOIL' ? 'Professional Courier (Full Soil)' : 'Professional Courier (Reduced Soil)');
+        : deliveryOption === 'FULL_SOIL_6INCH'
+          ? 'Professional Courier (6" Full Soil)'
+          : deliveryOption === 'FULL_SOIL_8INCH'
+            ? 'Professional Courier (8" Full Soil)'
+            : deliveryOption === 'FULL_SOIL'
+              ? 'Professional Courier (6" Full Soil)'
+              : 'Professional Courier (Reduced Soil)';
 
       const res = await onPlaceOrder({
         customerName: address.fullName || user?.name || 'Customer',
@@ -1477,7 +1484,13 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                         ? '100% Free Doorstep Delivery Included'
                         : courierPartner === 'METTUR_PARCEL'
                           ? `Mettur Parcel (${metturDistrict || 'Tamil Nadu'})`
-                          : `Professional Courier (${deliveryOption === 'FULL_SOIL' ? 'Full Soil' : 'Reduced Soil'})`}
+                          : deliveryOption === 'FULL_SOIL_6INCH'
+                            ? 'Professional Courier (6" Full Soil - ₹140/plant)'
+                            : deliveryOption === 'FULL_SOIL_8INCH'
+                              ? 'Professional Courier (8" Full Soil - ₹190/plant)'
+                              : deliveryOption === 'FULL_SOIL'
+                                ? 'Professional Courier (6" Full Soil - ₹140/plant)'
+                                : 'Professional Courier (Reduced Soil)'}
                     </span>
                   </div>
                   <span className="font-bold text-slate-900">

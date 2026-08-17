@@ -20,7 +20,7 @@ import {
   updateOrderStatusSchema
 } from './schemas.js';
 import { isPrismaConnected } from './prisma.js';
-import { calculateDeliveryFee } from '../utils/delivery.js';
+import { calculateDeliveryFee, getDeliveryChargeForOption, DeliveryOptionType } from '../utils/delivery.js';
 import { generateDispatchLabelsPdf } from './utils/labelPdf.js';
 
 export const apiRouter = express.Router();
@@ -901,7 +901,17 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
     } else if (allItemsHaveFreeDelivery) {
       shippingCharge = 0;
     } else {
-      shippingCharge = calculateDeliveryFee(verifiedItems, targetState);
+      const explicitOpt = (req.body.deliveryOption || req.body.potOption || '').toString();
+      const courierStr = (req.body.courierName || '').toString().toLowerCase();
+      const inferredOption: DeliveryOptionType =
+        explicitOpt === 'FULL_SOIL_8INCH' || courierStr.includes('8" full soil') || courierStr.includes('8 inch')
+          ? 'FULL_SOIL_8INCH'
+          : explicitOpt === 'FULL_SOIL_6INCH' || explicitOpt === 'FULL_SOIL' || courierStr.includes('6" full soil') || courierStr.includes('6 inch') || courierStr.includes('full soil')
+          ? 'FULL_SOIL_6INCH'
+          : courierStr.includes('mettur')
+          ? 'METTUR_PARCEL'
+          : 'REDUCED_SOIL';
+      shippingCharge = getDeliveryChargeForOption(inferredOption, totalPlantCount, targetState);
     }
 
     // Final Grand Total calculated strictly on server

@@ -21,8 +21,8 @@ export interface CourierSelectionSectionProps {
   metturBranch: string;
   onChangeMetturBranch: (branch: string) => void;
   totalPlantCount: number;
-  deliveryOption?: 'REDUCED_SOIL' | 'FULL_SOIL' | 'METTUR_PARCEL';
-  onChangeDeliveryOption?: (opt: 'REDUCED_SOIL' | 'FULL_SOIL' | 'METTUR_PARCEL') => void;
+  deliveryOption?: 'REDUCED_SOIL' | 'FULL_SOIL_6INCH' | 'FULL_SOIL_8INCH' | 'FULL_SOIL' | 'METTUR_PARCEL';
+  onChangeDeliveryOption?: (opt: 'REDUCED_SOIL' | 'FULL_SOIL_6INCH' | 'FULL_SOIL_8INCH' | 'FULL_SOIL' | 'METTUR_PARCEL') => void;
   hasFreeDelivery?: boolean;
   className?: string;
 }
@@ -70,12 +70,14 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
   const isMetturAllowed = totalPlantCount >= 3;
 
   const reducedSoilCharge = (inTN ? 60 : 100) + Math.max(0, totalPlantCount - 1) * 20;
-  const fullSoilCharge = totalPlantCount * 100;
+  const fullSoil6InchCharge = totalPlantCount * 140;
+  const fullSoil8InchCharge = totalPlantCount * 190;
   const metturParcelCharge = Math.ceil(Math.max(1, totalPlantCount) / 6) * 60;
 
   // Auto fallback if Full Soil or Mettur become invalid
   useEffect(() => {
-    if (deliveryOption === 'FULL_SOIL' && (!isFullSoilAllowed || totalPlantCount > 5)) {
+    const isFullSoil = deliveryOption === 'FULL_SOIL_6INCH' || deliveryOption === 'FULL_SOIL_8INCH' || deliveryOption === 'FULL_SOIL';
+    if (isFullSoil && (!isFullSoilAllowed || totalPlantCount > 5)) {
       if (onChangeDeliveryOption) onChangeDeliveryOption('REDUCED_SOIL');
     }
     if (selectedCourier === 'METTUR_PARCEL' && !isMetturAllowed) {
@@ -143,7 +145,7 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
               <div className="space-y-0.5 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <h4 className="text-xs sm:text-sm font-black text-slate-900">
-                    📦 Professional Courier (All India Delivery)
+                    📦 Professional Courier (Doorstep Delivery)
                   </h4>
                   <span className="text-[9px] font-black bg-blue-100 text-blue-900 px-2 py-0.5 rounded-md">
                     All India Coverage
@@ -153,13 +155,13 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
                   Reliable nationwide doorstep delivery covering metro cities and regional hubs across all states.
                 </p>
 
-                {/* Sub-options: Reduced Soil vs Full Soil — shown when selected */}
+                {/* Sub-options: Reduced Soil vs 6 Inch Full Soil vs 8 Inch Full Soil */}
                 {selectedCourier === 'PROFESSIONAL_COURIER' && (
                   <div
                     className="mt-3 space-y-2"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {/* Reduced Soil Option */}
+                    {/* Option A: Reduced Soil Option */}
                     <div
                       onClick={() => onChangeDeliveryOption && onChangeDeliveryOption('REDUCED_SOIL')}
                       className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-all ${
@@ -191,19 +193,19 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
                       </div>
                     </div>
 
-                    {/* Full Soil Option */}
+                    {/* Option B: 6 Inch Full Soil Option (₹140/plant) */}
                     <div
                       onClick={() => {
                         if (!isFullSoilAllowed) return;
                         if (totalPlantCount > 5) return;
-                        onChangeDeliveryOption && onChangeDeliveryOption('FULL_SOIL');
+                        onChangeDeliveryOption && onChangeDeliveryOption('FULL_SOIL_6INCH');
                       }}
                       className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all ${
                         !isFullSoilAllowed
                           ? 'border-slate-200 bg-slate-100/80 opacity-60 cursor-not-allowed'
                           : totalPlantCount > 5
                           ? 'border-slate-200 bg-slate-100 opacity-60 cursor-not-allowed'
-                          : deliveryOption === 'FULL_SOIL'
+                          : deliveryOption === 'FULL_SOIL_6INCH' || deliveryOption === 'FULL_SOIL'
                             ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-400/30 cursor-pointer'
                             : 'border-slate-200 bg-white hover:bg-slate-50 cursor-pointer'
                       }`}
@@ -212,34 +214,86 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
                         <input
                           type="radio"
                           name="profCourierOption"
-                          checked={deliveryOption === 'FULL_SOIL'}
+                          checked={deliveryOption === 'FULL_SOIL_6INCH' || deliveryOption === 'FULL_SOIL'}
                           disabled={!isFullSoilAllowed || totalPlantCount > 5}
                           onChange={() => {
-                            if (isFullSoilAllowed && totalPlantCount <= 5) onChangeDeliveryOption && onChangeDeliveryOption('FULL_SOIL');
+                            if (isFullSoilAllowed && totalPlantCount <= 5) onChangeDeliveryOption && onChangeDeliveryOption('FULL_SOIL_6INCH');
                           }}
                           className="accent-emerald-700 cursor-pointer disabled:cursor-not-allowed"
                         />
                         <div>
                           <p className="text-[11px] font-black text-slate-900 flex items-center gap-1.5">
-                            <span>🌱 Professional Courier – Full Soil</span>
+                            <span>🌱 Professional courier(6inch)-full soil: 140</span>
                             {!isFullSoilAllowed && (
                               <span className="text-[8px] bg-rose-100 text-rose-800 font-bold px-1.5 py-0.5 rounded">Tamil Nadu Only</span>
                             )}
                           </p>
-                          <p className="text-[10px] font-bold text-amber-700">
+                          <p className="text-[10px] font-bold text-emerald-800">
                             {!isFullSoilAllowed
                               ? '🚫 Full Soil is available only within Tamil Nadu due to transit weight limits.'
                               : totalPlantCount > 5
                               ? `⚠️ Maximum 5 plants for Full Soil (you have ${totalPlantCount})`
-                              : 'Available for Tamil Nadu (Max 5 plants)'}
+                              : `Rate: ₹140 × ${totalPlantCount} plant${totalPlantCount > 1 ? 's' : ''} = ₹${fullSoil6InchCharge}`}
                           </p>
                         </div>
                       </div>
                       <div className="text-right shrink-0">
                         <span className="text-xs font-black text-emerald-900 block">
-                          {!isFullSoilAllowed ? 'N/A' : hasFreeDelivery ? '₹0' : `₹${fullSoilCharge}`}
+                          {!isFullSoilAllowed ? 'N/A' : hasFreeDelivery ? '₹0' : `₹${fullSoil6InchCharge}`}
                         </span>
-                        <span className="text-[9px] text-slate-400 font-medium">{isFullSoilAllowed ? '₹100/plant' : 'Not Available'}</span>
+                        <span className="text-[9px] text-slate-400 font-medium">{isFullSoilAllowed ? '₹140/plant' : 'Not Available'}</span>
+                      </div>
+                    </div>
+
+                    {/* Option C: 8 Inch Full Soil Option (₹190/plant) */}
+                    <div
+                      onClick={() => {
+                        if (!isFullSoilAllowed) return;
+                        if (totalPlantCount > 5) return;
+                        onChangeDeliveryOption && onChangeDeliveryOption('FULL_SOIL_8INCH');
+                      }}
+                      className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all ${
+                        !isFullSoilAllowed
+                          ? 'border-slate-200 bg-slate-100/80 opacity-60 cursor-not-allowed'
+                          : totalPlantCount > 5
+                          ? 'border-slate-200 bg-slate-100 opacity-60 cursor-not-allowed'
+                          : deliveryOption === 'FULL_SOIL_8INCH'
+                            ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-400/30 cursor-pointer'
+                            : 'border-slate-200 bg-white hover:bg-slate-50 cursor-pointer'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <input
+                          type="radio"
+                          name="profCourierOption"
+                          checked={deliveryOption === 'FULL_SOIL_8INCH'}
+                          disabled={!isFullSoilAllowed || totalPlantCount > 5}
+                          onChange={() => {
+                            if (isFullSoilAllowed && totalPlantCount <= 5) onChangeDeliveryOption && onChangeDeliveryOption('FULL_SOIL_8INCH');
+                          }}
+                          className="accent-emerald-700 cursor-pointer disabled:cursor-not-allowed"
+                        />
+                        <div>
+                          <p className="text-[11px] font-black text-slate-900 flex items-center gap-1.5">
+                            <span>🪴 Professional courier (8inch) -full soil: 190</span>
+                            {!isFullSoilAllowed && (
+                              <span className="text-[8px] bg-rose-100 text-rose-800 font-bold px-1.5 py-0.5 rounded">Tamil Nadu Only</span>
+                            )}
+                          </p>
+                          <p className="text-[10px] font-bold text-amber-800">
+                            {!isFullSoilAllowed
+                              ? '🚫 Full Soil is available only within Tamil Nadu due to transit weight limits.'
+                              : totalPlantCount > 5
+                              ? `⚠️ Maximum 5 plants for Full Soil (you have ${totalPlantCount})`
+                              : `Rate: ₹190 × ${totalPlantCount} plant${totalPlantCount > 1 ? 's' : ''} = ₹${fullSoil8InchCharge}`}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-xs font-black text-emerald-900 block">
+                          {!isFullSoilAllowed ? 'N/A' : hasFreeDelivery ? '₹0' : `₹${fullSoil8InchCharge}`}
+                        </span>
+                        <span className="text-[9px] text-slate-400 font-medium">{isFullSoilAllowed ? '₹190/plant' : 'Not Available'}</span>
                       </div>
                     </div>
                   </div>

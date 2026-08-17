@@ -7134,15 +7134,20 @@ class Store {
           if (!parsedCourier) {
             if (unpackedCourierBranch || unpackedCourierDistrict) {
               parsedCourier = 'Mettur Parcel Service';
-            } else if (unpackedPotOption === 'FULL_SOIL' || o.deliveryFee >= 100) {
-              parsedCourier = 'Professional Courier (Full Soil)';
+            } else if (unpackedPotOption === 'FULL_SOIL_8INCH') {
+              parsedCourier = 'Professional Courier (8" Full Soil)';
+            } else if (unpackedPotOption === 'FULL_SOIL_6INCH' || unpackedPotOption === 'FULL_SOIL') {
+              parsedCourier = 'Professional Courier (6" Full Soil)';
             } else {
               parsedCourier = 'Professional Courier (Reduced Soil)';
             }
           }
           if (!unpackedPotOption || unpackedPotOption === 'NONE') {
-            if (parsedCourier.toLowerCase().includes('full soil') || o.deliveryFee >= 100) {
-              unpackedPotOption = 'FULL_SOIL';
+            const cLower = parsedCourier.toLowerCase();
+            if (cLower.includes('8" full soil') || cLower.includes('8 inch')) {
+              unpackedPotOption = 'FULL_SOIL_8INCH';
+            } else if (cLower.includes('6" full soil') || cLower.includes('6 inch') || cLower.includes('full soil')) {
+              unpackedPotOption = 'FULL_SOIL_6INCH';
             } else {
               unpackedPotOption = 'REDUCED_SOIL';
             }

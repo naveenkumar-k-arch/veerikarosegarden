@@ -91,24 +91,43 @@ export const INDIAN_STATES = [
   'Puducherry'
 ];
 
-export type DeliveryOptionType = 'REDUCED_SOIL' | 'FULL_SOIL' | 'METTUR_PARCEL';
+export type DeliveryOptionType =
+  | 'REDUCED_SOIL'
+  | 'FULL_SOIL_6INCH'
+  | 'FULL_SOIL_8INCH'
+  | 'FULL_SOIL'
+  | 'METTUR_PARCEL';
+
+/**
+ * Helper to check if delivery option is any Full Soil variant
+ */
+export function isFullSoilDeliveryOption(opt?: string): boolean {
+  if (!opt) return false;
+  const clean = opt.toUpperCase();
+  return clean === 'FULL_SOIL_6INCH' || clean === 'FULL_SOIL_8INCH' || clean === 'FULL_SOIL' || clean.includes('FULL SOIL') || clean.includes('FULL_SOIL');
+}
 
 /**
  * Calculates delivery charge based on soil/courier option, plant count, and destination state:
  * 1. REDUCED_SOIL:
- *    - Tamil Nadu: ₹60 for 1st plant, +₹20 for 2nd plant, +₹20 for 3rd plant, etc. (60 + (N - 1) * 20)
+ *    - Tamil Nadu: ₹60 for 1st plant, +₹20 for each additional plant (60 + (N - 1) * 20)
  *    - Other States (Karnataka, Kerala, AP, Puducherry): ₹100 for 1st plant, +₹20 for each additional plant (100 + (N - 1) * 20)
- * 2. FULL_SOIL:
- *    - Available ONLY in Tamil Nadu: ₹100 per plant (N * 100) (Max 5 plants)
+ * 2. FULL_SOIL_6INCH (or legacy FULL_SOIL):
+ *    - Available ONLY in Tamil Nadu (Max 5 plants): ₹140 per plant continuous (140 * N)
+ *    - (1 plant: ₹140, 2 plants: ₹280, 3 plants: ₹420, 4 plants: ₹560, 5 plants: ₹700)
  *    - Other states: Disabled / fallback to Reduced Soil
- * 3. METTUR_PARCEL:
+ * 3. FULL_SOIL_8INCH:
+ *    - Available ONLY in Tamil Nadu (Max 5 plants): ₹190 per plant continuous (190 * N)
+ *    - (1 plant: ₹190, 2 plants: ₹380, 3 plants: ₹570, 4 plants: ₹760, 5 plants: ₹950)
+ *    - Other states: Disabled / fallback to Reduced Soil
+ * 4. METTUR_PARCEL:
  *    - Minimum 3 plants required
  *    - 1 to 6 plants (or 3 to 6): ₹60
  *    - 7 to 12 plants: ₹120 (+₹60 continuous for every 6 plants: ceil(N / 6) * 60)
  */
 export function getDeliveryChargeForOption(
-  opt: DeliveryOptionType,
-  count: number,
+  opt: DeliveryOptionType | string = 'REDUCED_SOIL',
+  count: number = 1,
   stateName: string = 'Tamil Nadu'
 ): number {
   if (count <= 0) return 0;
@@ -119,11 +138,18 @@ export function getDeliveryChargeForOption(
     return base + (count - 1) * 20;
   }
 
-  if (opt === 'FULL_SOIL') {
+  if (opt === 'FULL_SOIL_6INCH' || opt === 'FULL_SOIL') {
     if (!inTN) {
       return 100 + (count - 1) * 20;
     }
-    return count * 100;
+    return count * 140;
+  }
+
+  if (opt === 'FULL_SOIL_8INCH') {
+    if (!inTN) {
+      return 100 + (count - 1) * 20;
+    }
+    return count * 190;
   }
 
   if (opt === 'METTUR_PARCEL') {
