@@ -428,9 +428,14 @@ export const HomePage: React.FC<HomePageProps> = ({
               <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>No customer photo reviews yet. Add photos in Admin Panel!</p>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: approvedReviews.length === 1 ? 'minmax(280px, 420px)' : 'repeat(auto-fit, minmax(280px, 380px))',
+              justifyContent: 'center',
+              gap: 24
+            }}>
               {approvedReviews.map(review => (
-                <Card3D key={review.id} maxDegree={10} scale={1.02}>
+                <Card3D key={review.id} maxDegree={8} scale={1.02}>
                   <div style={{
                     background: 'white',
                     borderRadius: 24,
@@ -443,12 +448,31 @@ export const HomePage: React.FC<HomePageProps> = ({
                   }}>
                     {/* Photo Header with Zoom Lightbox trigger */}
                     {review.imageUrl ? (
-                      <div style={{ height: 260, background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', cursor: 'pointer' }} onClick={() => setSelectedReviewPhoto(review)}>
+                      <div
+                        style={{
+                          background: '#f8fafc',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          position: 'relative',
+                          overflow: 'hidden',
+                          cursor: 'pointer',
+                          borderBottom: '1px solid #f1f5f9'
+                        }}
+                        onClick={() => setSelectedReviewPhoto(review)}
+                      >
                         <img
                           src={review.imageUrl}
                           alt={review.userName}
                           loading="lazy"
-                          style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', objectFit: 'contain', transition: 'transform 0.5s ease' }}
+                          style={{
+                            width: '100%',
+                            height: 'auto',
+                            maxHeight: 460,
+                            objectFit: 'contain',
+                            display: 'block',
+                            transition: 'transform 0.4s ease'
+                          }}
                           className="group-hover-scale"
                           onError={e => {
                             (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80';
@@ -456,25 +480,25 @@ export const HomePage: React.FC<HomePageProps> = ({
                         />
                         {/* 3D Glass overlay tag */}
                         <div style={{
-                          position: 'absolute', top: 10, left: 10,
-                          background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(8px)',
-                          padding: '4px 10px', borderRadius: 999,
-                          display: 'flex', alignItems: 'center', gap: 4,
-                          fontSize: 10, fontWeight: 800, color: 'var(--color-green-dark)',
-                          border: '1px solid rgba(255,255,255,0.8)',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                          position: 'absolute', top: 12, left: 12,
+                          background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)',
+                          padding: '5px 12px', borderRadius: 999,
+                          display: 'flex', alignItems: 'center', gap: 5,
+                          fontSize: 11, fontWeight: 800, color: 'var(--color-green-dark)',
+                          border: '1px solid rgba(255,255,255,0.9)',
+                          boxShadow: '0 4px 14px rgba(0,0,0,0.1)'
                         }}>
-                          <Sparkles style={{ width: 11, height: 11, color: '#f59e0b' }} /> Customer Photo
+                          <Sparkles style={{ width: 12, height: 12, color: '#f59e0b' }} /> Customer Photo
                         </div>
 
                         <div style={{
-                          position: 'absolute', bottom: 10, right: 10,
-                          background: 'rgba(0,0,0,0.65)', color: 'white',
-                          padding: '5px 10px', borderRadius: 999,
-                          fontSize: 10, fontWeight: 700,
-                          display: 'flex', alignItems: 'center', gap: 4
+                          position: 'absolute', bottom: 12, right: 12,
+                          background: 'rgba(15,23,42,0.8)', color: 'white', backdropFilter: 'blur(6px)',
+                          padding: '6px 12px', borderRadius: 999,
+                          fontSize: 11, fontWeight: 700,
+                          display: 'flex', alignItems: 'center', gap: 5
                         }}>
-                          <ZoomIn style={{ width: 12, height: 12 }} /> View Photo
+                          <ZoomIn style={{ width: 13, height: 13 }} /> Click to Zoom
                         </div>
                       </div>
                     ) : (
@@ -1004,11 +1028,26 @@ export const HomePage: React.FC<HomePageProps> = ({
               </button>
             </div>
 
-            <div style={{ background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12, maxHeight: '55vh', overflow: 'hidden' }}>
+            <div style={{
+              background: '#f8fafc',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 16,
+              maxHeight: '65vh',
+              overflow: 'hidden',
+              borderBottom: '1px solid #e2e8f0'
+            }}>
               <img
                 src={selectedReviewPhoto.imageUrl}
                 alt={selectedReviewPhoto.userName}
-                style={{ maxWidth: '100%', maxHeight: '50vh', objectFit: 'contain', borderRadius: 16, boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '60vh',
+                  objectFit: 'contain',
+                  borderRadius: 12,
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.1)'
+                }}
               />
             </div>
 
