@@ -1518,7 +1518,25 @@ Your parcel dispatched today 🚚
                           {order.paymentStatus === 'SUCCESS' ? '✓ Paid' : order.paymentStatus === 'FAILED' ? '✗ Failed' : '⏳ Pending'}
                         </span>
 
-                        {(order.paymentProofUrl || order.paymentMethod === 'QR_PAYMENT' || order.paymentMethod === 'UPI_DIRECT') && (
+                        {order.paymentMethod === 'RAZORPAY' && (
+                          <span className="text-[9px] font-bold bg-blue-50 text-blue-900 px-1.5 py-0.5 rounded border border-blue-200">
+                            ⚡ Razorpay
+                          </span>
+                        )}
+
+                        {order.paymentMethod === 'PHONEPE' && (
+                          <span className="text-[9px] font-bold bg-purple-50 text-purple-900 px-1.5 py-0.5 rounded border border-purple-200">
+                            ⚡ PhonePe
+                          </span>
+                        )}
+
+                        {order.paymentMethod === 'COD' && (
+                          <span className="text-[9px] font-bold bg-amber-50 text-amber-900 px-1.5 py-0.5 rounded border border-amber-200">
+                            💵 COD
+                          </span>
+                        )}
+
+                        {(order.paymentProofUrl || (order.paymentMethod === 'QR_PAYMENT' && !order.transactionId?.startsWith('MT'))) && (
                           <span className="text-[9px] font-bold bg-indigo-50 text-indigo-900 px-1.5 py-0.5 rounded border border-indigo-200">
                             📸 QR
                           </span>
