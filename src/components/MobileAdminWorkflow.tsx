@@ -3357,8 +3357,8 @@ Your parcel dispatched today 🚚
                   <p className="text-xs text-slate-700 font-medium italic">"{r.comment}"</p>
 
                   {r.imageUrl && (
-                    <div className="w-full h-36 rounded-xl overflow-hidden border border-slate-200">
-                      <img src={r.imageUrl} alt="Customer plant review" className="w-full h-full object-cover" />
+                    <div className="w-full h-48 rounded-xl overflow-hidden border border-slate-200 bg-slate-900 flex items-center justify-center">
+                      <img src={r.imageUrl} alt="Customer plant review" className="w-full h-full object-contain" />
                     </div>
                   )}
 

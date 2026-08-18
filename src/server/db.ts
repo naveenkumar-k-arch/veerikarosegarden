@@ -22,9 +22,11 @@ function parseShippingAddress(val: any): any {
   return {};
 }
 
+import bundledReviewsSeed from '../data/reviews_store.json' with { type: 'json' };
+
 const REVIEWS_STORE_FILE = path.resolve(process.cwd(), 'src/data/reviews_store.json');
 
-const DEFAULT_REVIEWS_SEED: Review[] = [];
+const DEFAULT_REVIEWS_SEED: Review[] = Array.isArray(bundledReviewsSeed) ? (bundledReviewsSeed as Review[]) : [];
 
 function loadDiskReviews(): Review[] {
   try {
