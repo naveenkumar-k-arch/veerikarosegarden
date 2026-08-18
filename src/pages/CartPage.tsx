@@ -191,9 +191,6 @@ export const CartPage: React.FC<CartPageProps> = ({
                                 <p className="font-bold text-slate-900 text-xs truncate">{p.name}</p>
                                 {p.tamilName && <p className="text-[10px] text-slate-400 truncate">{p.tamilName}</p>}
                               </div>
-                              <span className="text-xs font-mono font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 shrink-0">
-                                ₹{p.sellingPrice}
-                              </span>
                             </div>
                           ))}
                         </div>

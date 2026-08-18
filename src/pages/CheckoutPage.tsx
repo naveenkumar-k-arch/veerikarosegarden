@@ -918,7 +918,6 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                                 <div key={p.id || idx} className="flex items-center gap-1.5 text-[10px] text-slate-700 bg-slate-50 px-2 py-1 rounded-md border border-slate-200/60">
                                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
                                   <span className="truncate flex-1 font-medium">{p.name}</span>
-                                  <span className="font-mono text-emerald-800 font-bold shrink-0">₹{p.sellingPrice}</span>
                                 </div>
                               ))}
                             </div>

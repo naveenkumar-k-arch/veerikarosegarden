@@ -1165,7 +1165,6 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                                     <span className="text-xs shrink-0">🌿</span>
                                   )}
                                   <span className="truncate flex-1 font-semibold text-slate-800">{p.name}</span>
-                                  <span className="text-[9px] font-mono text-emerald-800 font-bold shrink-0">₹{p.sellingPrice}</span>
                                 </div>
                               ))}
                             </div>

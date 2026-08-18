@@ -259,42 +259,38 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                       </div>
                     </div>
 
-                    {/* Included Plants Section */}
-                    <div className="p-3.5 sm:p-5 space-y-3 sm:space-y-4">
-                      {aggregated.length > 0 && (
-                        <div className="bg-amber-50/80 border border-amber-200/60 rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 space-y-1.5 sm:space-y-2">
-                          <p className="text-[10px] sm:text-[11px] font-bold text-amber-900 uppercase tracking-wider flex items-center justify-between gap-1.5">
-                            <span>🌿 Includes {combo.products?.length || 0} Farm Plants:</span>
-                            <span className="text-[9px] sm:text-[10px] text-amber-700 font-bold underline">Details</span>
-                          </p>
-                          <div className="space-y-1">
-                            {aggregated.map(({ product: p, count }) => (
-                              <div
-                                key={p.id}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (onSelectProduct) onSelectProduct(p);
-                                }}
-                                className="flex items-center justify-between text-[11px] sm:text-xs font-semibold text-slate-800 hover:text-emerald-800 cursor-pointer group/item py-0.5"
-                              >
-                                <span className="flex items-center gap-1.5 truncate">
-                                  {count > 1 ? (
-                                    <span className="bg-gradient-to-r from-emerald-700 to-amber-700 text-white font-black text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded shadow-2xs shrink-0 font-mono">
-                                      {count}×
-                                    </span>
-                                  ) : (
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 group-hover/item:scale-125 transition-transform shrink-0" />
-                                  )}
-                                  <span className="truncate">{p.name}</span>
-                                </span>
-                                <span className="text-[10px] sm:text-[11px] text-slate-500 font-bold bg-white px-1.5 sm:px-2 py-0.5 rounded border border-slate-200 ml-2 shrink-0">
-                                  {count > 1 ? `₹${p.sellingPrice * count}` : `₹${p.sellingPrice}`}
-                                </span>
-                              </div>
-                            ))}
+                      {/* Included Plants Section */}
+                      <div className="p-3.5 sm:p-5 space-y-3 sm:space-y-4">
+                        {aggregated.length > 0 && (
+                          <div className="bg-amber-50/80 border border-amber-200/60 rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 space-y-1.5 sm:space-y-2">
+                            <p className="text-[10px] sm:text-[11px] font-bold text-amber-900 uppercase tracking-wider flex items-center justify-between gap-1.5">
+                              <span>🌿 Includes {combo.products?.length || 0} Farm Plants:</span>
+                            </p>
+                            <div className="space-y-1">
+                              {aggregated.map(({ product: p, count }) => (
+                                <div
+                                  key={p.id}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (onSelectProduct) onSelectProduct(p);
+                                  }}
+                                  className="flex items-center justify-between text-[11px] sm:text-xs font-semibold text-slate-800 hover:text-emerald-800 cursor-pointer group/item py-0.5"
+                                >
+                                  <span className="flex items-center gap-1.5 truncate">
+                                    {count > 1 ? (
+                                      <span className="bg-gradient-to-r from-emerald-700 to-amber-700 text-white font-black text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded shadow-2xs shrink-0 font-mono">
+                                        {count}×
+                                      </span>
+                                    ) : (
+                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 group-hover/item:scale-125 transition-transform shrink-0" />
+                                    )}
+                                    <span className="truncate">{p.name}</span>
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
                       {/* Pricing Block */}
                       <div className="flex items-baseline justify-between pt-1">
@@ -469,9 +465,6 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                           <div className="flex items-center justify-between mt-1">
                             <span className="text-[10px] text-emerald-700 font-bold bg-white px-2 py-0.5 rounded border border-slate-200">
                               {p.potSize || 'Bag Plant'}
-                            </span>
-                            <span className="font-mono font-bold text-slate-900 text-xs">
-                              {count > 1 ? `${count} × ₹${p.sellingPrice} = ₹${p.sellingPrice * count}` : `₹${p.sellingPrice}`}
                             </span>
                           </div>
                         </div>
