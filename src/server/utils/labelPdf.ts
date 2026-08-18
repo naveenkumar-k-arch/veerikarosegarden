@@ -8,15 +8,16 @@ export function generateDispatchLabelsPdf(
   batchNumber = '#005',
   sheetNumber = '#11106'
 ): Buffer {
-  // A4 Landscape: 297mm width × 210mm height
+  // A4 Portrait: 210mm width × 297mm height
   const pdf = new jsPDFClass({
-    orientation: 'landscape',
+    orientation: 'portrait',
     unit: 'mm',
     format: 'a4',
     compress: true
   });
 
-  const chunkSize = 4;
+  // 3 labels per A4 Portrait page
+  const chunkSize = 3;
   const pages: Order[][] = [];
   for (let i = 0; i < orders.length; i += chunkSize) {
     pages.push(orders.slice(i, i + chunkSize));
@@ -59,169 +60,158 @@ export function generateDispatchLabelsPdf(
     return uniqueParts.join(', ');
   };
 
-
-
   pages.forEach((pageOrders, pageIndex) => {
     if (pageIndex > 0) {
-      pdf.addPage('a4', 'landscape');
+      pdf.addPage('a4', 'portrait');
     }
 
-    // ================= 2x2 GRID OF 4 LABELS (EXPANDED TO FULL SHEET) =================
-    const cardPositions = [
-      { x: 6, y: 6 },
-      { x: 153, y: 6 },
-      { x: 6, y: 108 },
-      { x: 153, y: 108 }
-    ];
-
-    const cardWidth = 138;
-    const cardHeight = 96;
+    // 3 Labels stacked vertically on A4 Portrait
+    const labelYPositions = [12, 104, 196];
+    const labelWidth = 184;
+    const labelX = 13;
 
     pageOrders.forEach((order, orderIdx) => {
-      const pos = cardPositions[orderIdx] || cardPositions[0];
-      const labelNumber = pageIndex * chunkSize + orderIdx + 1;
+      const ly = labelYPositions[orderIdx];
       const customerName = order.customerName || (order.shippingAddress as any)?.fullName || 'Valued Customer';
       const customerPhone = order.customerPhone || (order.shippingAddress as any)?.phone || '';
       const fullAddress = formatAddress(order.shippingAddress);
 
-      // Outer Card Box
-      pdf.setDrawColor(180, 190, 205);
-      pdf.setLineWidth(0.4);
-      pdf.roundedRect(pos.x, pos.y, cardWidth, cardHeight, 3, 3, 'S');
-
-      // ---------------- COLUMN 1: FROM (pos.x to pos.x + 36, width = 36mm) ----------------
-      // Green Number Badge
-      pdf.setFillColor(20, 83, 45); // #14532d
-      pdf.roundedRect(pos.x + 2.5, pos.y + 2.5, 9, 9, 2, 2, 'F');
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(22); // between 20-25
-      pdf.text(String(labelNumber), pos.x + 7, pos.y + 9.5, { align: 'center' });
-
-      // "From :"
-      pdf.setTextColor(15, 23, 42);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(20);
-      pdf.text('From :', pos.x + 2.5, pos.y + 18.5);
-
-      // "VRG NURSERY"
-      pdf.setTextColor(20, 83, 45);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(24);
-      const vrgLines = pdf.splitTextToSize('VRG NURSERY', 32);
-      pdf.text(vrgLines, pos.x + 2.5, pos.y + 26.5);
-
-      // "Dharmapuri - 636813"
-      const locStartY = pos.y + 26.5 + (vrgLines.length * 8.5);
-      pdf.setTextColor(15, 23, 42);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(20);
-      const locLines = pdf.splitTextToSize('Dharmapuri - 636813', 32);
-      pdf.text(locLines, pos.x + 2.5, locStartY);
-
-      // Nursery Phone "7200826129"
-      const nurseryPhoneY = locStartY + (locLines.length * 7.5);
-      pdf.setTextColor(15, 23, 42);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(22);
-      pdf.text('7200826129', pos.x + 2.5, nurseryPhoneY);
-
-      // Courier Partner Tag
-      const courierPartnerTag = order.courierName || 'Professional Courier';
-      const courierY = nurseryPhoneY + 5;
-      pdf.setFillColor(240, 253, 244);
-      pdf.roundedRect(pos.x + 2, courierY, 32, 14, 1.5, 1.5, 'F');
-      pdf.setDrawColor(187, 247, 208);
-      pdf.setLineWidth(0.2);
-      pdf.roundedRect(pos.x + 2, courierY, 32, 14, 1.5, 1.5, 'S');
-      pdf.setTextColor(20, 83, 45);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(20);
-      const cLines = pdf.splitTextToSize(courierPartnerTag + (order.courierBranch ? ` (${order.courierBranch})` : ''), 30);
-      pdf.text(cLines.slice(0, 2), pos.x + 3, courierY + 6.5);
-
-      // Vertical Divider 1
-      pdf.setDrawColor(226, 232, 240);
+      // ================= 1. HEADER BOX: "LIVE PLANTS INSIDE" =================
+      const headerBoxW = labelWidth;
+      const headerBoxH = 14;
+      
+      // Outer border of header box
+      pdf.setDrawColor(0, 0, 0);
       pdf.setLineWidth(0.3);
-      pdf.line(pos.x + 36, pos.y + 2, pos.x + 36, pos.y + cardHeight - 2);
+      pdf.rect(labelX, ly, headerBoxW, headerBoxH, 'S');
 
-      // ---------------- COLUMN 2: TO (pos.x + 38 to pos.x + 94, width = 56mm) ----------------
-      // "To,"
-      pdf.setTextColor(20, 83, 45);
+      // Inner Neon Green Banner
+      const greenW = 144;
+      const greenH = 10.5;
+      const greenX = labelX + (headerBoxW - greenW) / 2;
+      const greenY = ly + (headerBoxH - greenH) / 2;
+
+      pdf.setFillColor(0, 255, 0); // Bright Neon Green
+      pdf.rect(greenX, greenY, greenW, greenH, 'F');
+
+      // "LIVE  PLANTS  INSIDE" text
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFont('times', 'bold');
+      pdf.setFontSize(22);
+      pdf.text('LIVE   PLANTS   INSIDE', labelX + headerBoxW / 2, greenY + 7.5, { align: 'center' });
+
+      // ================= 2. SUBHEADER ROW: "From :" & "To," =================
+      const subheaderY = ly + 18.5;
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(10.5);
+      pdf.text('From :', labelX, subheaderY);
+      pdf.text('To,', labelX + 58, subheaderY);
+
+      // ================= 3. COLUMN 1: "From :" DETAILS (Yellow Highlights) =================
+      const fromContentY = ly + 22.5;
+
+      // Line 1: MSV GARDEN,
+      pdf.setFillColor(255, 255, 0); // Bright Yellow
+      pdf.rect(labelX, fromContentY, 53, 7.5, 'F');
+      pdf.setTextColor(0, 0, 0);
       pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(25); // Max 25
-      pdf.text('To,', pos.x + 38, pos.y + 9.5);
+      pdf.setFontSize(14.5);
+      pdf.text('MSV GARDEN,', labelX + 1, fromContentY + 5.8);
+
+      // Line 2: Dharmapuri – 636813
+      const line2Y = fromContentY + 10;
+      pdf.setFillColor(255, 255, 0); // Bright Yellow
+      pdf.rect(labelX, line2Y, 49, 6.2, 'F');
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(11);
+      pdf.text('Dharmapuri – 636813', labelX + 1, line2Y + 4.6);
+
+      // Line 3: 7904020206
+      const line3Y = line2Y + 8.5;
+      pdf.setFillColor(255, 255, 0); // Bright Yellow
+      pdf.rect(labelX, line3Y, 28, 6.2, 'F');
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(11);
+      pdf.text('7904020206', labelX + 1, line3Y + 4.6);
+
+      // ================= 4. COLUMN 2: "To," CUSTOMER BOX =================
+      const toBoxX = labelX + 58;
+      const toBoxY = ly + 22;
+      const toBoxW = 68;
+      const toBoxH = 54;
+
+      pdf.setDrawColor(0, 0, 0);
+      pdf.setLineWidth(0.3);
+      pdf.rect(toBoxX, toBoxY, toBoxW, toBoxH, 'S');
 
       // Customer Name
-      pdf.setTextColor(15, 23, 42);
+      pdf.setTextColor(0, 0, 0);
       pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(25); // Max 25
-      const nameLines = pdf.splitTextToSize(customerName, 54);
-      pdf.text(nameLines, pos.x + 38, pos.y + 19);
+      pdf.setFontSize(9.5);
+      const nameLines = pdf.splitTextToSize(customerName, toBoxW - 4);
+      pdf.text(nameLines, toBoxX + 2.5, toBoxY + 5);
 
-      // Customer Address (Bolder, matched size, crisp contrast)
-      const cleanAddr = fullAddress.replace(/^(full\s*)?address\s*[:\-]?\s*/i, '').replace(/^name\s*:\s*[^,]+,\s*(address\s*:\s*)?/i, '').trim();
-      const addrStartY = pos.y + 19 + (nameLines.length * 8.8) + 1;
-      pdf.setTextColor(15, 23, 42);
+      // Customer Address
+      const cleanAddr = fullAddress
+        .replace(/^(full\s*)?address\s*[:\-]?\s*/i, '')
+        .replace(/^name\s*:\s*[^,]+,\s*(address\s*:\s*)?/i, '')
+        .trim();
+      const addrDisplay = cleanAddr.startsWith('No') || cleanAddr.startsWith('Door') || cleanAddr.startsWith('Address')
+        ? cleanAddr
+        : `Address ${cleanAddr}`;
+
+      const addrStartY = toBoxY + 5 + (nameLines.length * 4.2) + 1.5;
+      pdf.setTextColor(0, 0, 0);
       pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(20);
-      const addrLines = pdf.splitTextToSize(cleanAddr.startsWith('No') || cleanAddr.startsWith('Door') || cleanAddr.startsWith('Address') ? cleanAddr : `Address: ${cleanAddr}`, 54);
-      const displayAddrLines = addrLines.slice(0, 4);
-      pdf.text(displayAddrLines, pos.x + 38, addrStartY);
+      pdf.setFontSize(8);
+      const addrLines = pdf.splitTextToSize(addrDisplay, toBoxW - 4);
+      const displayAddrLines = addrLines.slice(0, 6);
+      pdf.text(displayAddrLines, toBoxX + 2.5, addrStartY);
 
-      // Customer Phone Number (Bolded, matched size)
+      // Customer Phone Number
       if (customerPhone) {
-        const phoneY = addrStartY + (displayAddrLines.length * 7.2) + 3;
-        pdf.setTextColor(15, 23, 42);
+        pdf.setTextColor(0, 0, 0);
         pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(25); // Max 25
-        const formattedPhone = customerPhone.toLowerCase().startsWith('ph') ? customerPhone : `Ph: ${customerPhone}`;
-        pdf.text(formattedPhone, pos.x + 38, Math.min(phoneY, pos.y + cardHeight - 4));
+        pdf.setFontSize(9);
+        const phoneFormatted = customerPhone.toLowerCase().includes('whatsapp') || customerPhone.toLowerCase().includes('phone')
+          ? customerPhone
+          : customerPhone;
+        pdf.text(phoneFormatted, toBoxX + 2.5, toBoxY + toBoxH - 3.5);
       }
 
-      // Vertical Divider 2
-      pdf.setDrawColor(226, 232, 240);
+      // ================= 5. COLUMN 3: ORDERED PLANTS BOX =================
+      const itemBoxX = toBoxX + toBoxW + 6;
+      const itemBoxY = ly + 22;
+      const itemBoxW = 52;
+      const itemBoxH = 54;
+
+      pdf.setDrawColor(0, 0, 0);
       pdf.setLineWidth(0.3);
-      pdf.line(pos.x + 95, pos.y + 2, pos.x + 95, pos.y + cardHeight - 2);
+      pdf.rect(itemBoxX, itemBoxY, itemBoxW, itemBoxH, 'S');
 
-      // ---------------- COLUMN 3: ORDERED PLANTS (pos.x + 97 to pos.x + 136, width = 39mm) ----------------
-      // "Ordered Plants"
-      pdf.setTextColor(20, 83, 45);
+      // Plants List
+      let itemY = itemBoxY + 5;
+      pdf.setTextColor(0, 0, 0);
       pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(24);
-      const plantsHead = pdf.splitTextToSize('Ordered Plants', 38);
-      pdf.text(plantsHead, pos.x + 97, pos.y + 9.5);
+      pdf.setFontSize(8.5);
 
-      // Plant Items List (Bolded, clear matched size)
-      let itemY = pos.y + 9.5 + (plantsHead.length * 8.5) + 1;
       if (order.items && order.items.length > 0) {
-        order.items.forEach((item, idx) => {
-          if (itemY <= pos.y + cardHeight - 6) {
-            const itemText = `${idx + 1}. ${item.name}${item.quantity > 1 ? ` (${item.quantity})` : ''}`;
-            const splitItem = pdf.splitTextToSize(itemText, 38);
-            const displayItemLines = splitItem.slice(0, 2);
-            pdf.setTextColor(15, 23, 42);
-            pdf.setFont('helvetica', 'bold');
-            pdf.setFontSize(20);
-            pdf.text(displayItemLines, pos.x + 97, itemY);
-            itemY += (displayItemLines.length * 7) + 1.5;
+        order.items.forEach((item) => {
+          if (itemY <= itemBoxY + itemBoxH - 4) {
+            const itemText = `${item.name}${item.quantity > 1 ? ` (${item.quantity})` : ''}`;
+            const splitItem = pdf.splitTextToSize(itemText, itemBoxW - 4);
+            const linesToPrint = splitItem.slice(0, 2);
+            pdf.text(linesToPrint, itemBoxX + 2.5, itemY);
+            itemY += (linesToPrint.length * 3.8) + 1.5;
           }
         });
       } else {
-        pdf.setTextColor(15, 23, 42);
-        pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(20);
-        pdf.text('1. Nursery Plant Sapling', pos.x + 97, itemY);
+        pdf.text('Nursery Plant Sapling', itemBoxX + 2.5, itemY);
       }
     });
-
-    // ================= MIDDLE CUT LINES =================
-    pdf.setDrawColor(180, 190, 205);
-    pdf.setLineWidth(0.2);
-    pdf.setLineDashPattern([2, 2], 0);
-    pdf.line(4, 105, 293, 105);
-    pdf.line(148.5, 4, 148.5, 206);
-    pdf.setLineDashPattern([], 0);
   });
 
   const arrayBuffer = pdf.output('arraybuffer');
