@@ -7037,6 +7037,24 @@ class Store {
     this.memoryOrders.unshift(order);
     if (!(globalThis as any).globalMemoryOrdersBuffer) (globalThis as any).globalMemoryOrdersBuffer = [];
     (globalThis as any).globalMemoryOrdersBuffer.unshift(order);
+
+    // Sync to persistent disk store
+    try {
+      const diskOrders = loadDiskOrders();
+      const existingIdx = diskOrders.findIndex(o => o.id === order.id || (order.merchantTransactionId && o.merchantTransactionId === order.merchantTransactionId));
+      if (existingIdx >= 0) {
+        diskOrders[existingIdx] = order;
+      } else {
+        diskOrders.unshift(order);
+      }
+      saveDiskOrders(diskOrders);
+    } catch (e) {
+      console.warn('saveDiskOrders warning on createOrder:', e);
+    }
+
+    // Non-blocking Firestore sync in background
+    firestoreSaveOrder(order).catch(() => {});
+
     this.invalidateOrdersCache();
     return order;
   }
@@ -7601,6 +7619,18 @@ class Store {
         }
       }).catch(err => console.warn('Prisma background updateOrderStatus notice:', err?.message));
     }
+
+    // Sync to persistent disk store
+    try {
+      const diskOrders = loadDiskOrders();
+      const existingIdx = diskOrders.findIndex(o => (o.id && o.id.toLowerCase() === cleanId) || (o.merchantTransactionId && o.merchantTransactionId.toLowerCase() === cleanId));
+      if (existingIdx >= 0) {
+        diskOrders[existingIdx] = { ...diskOrders[existingIdx], ...memOrder };
+      } else {
+        diskOrders.unshift(memOrder);
+      }
+      saveDiskOrders(diskOrders);
+    } catch {}
 
     // Non-blocking Firestore sync in background
     firestoreUpdateOrder(orderId, {
