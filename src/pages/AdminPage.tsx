@@ -944,12 +944,15 @@ const silentRefresh = async (): Promise<boolean> => {
     };
     verifySession();
 
-    // Poll every 30 seconds
+    // Poll every 10 seconds for live order feed
     const interval = setInterval(() => {
       fetchData();
-    }, 30000);
+    }, 10000);
 
     const handleSync = () => fetchData();
+    const handleVisibilitySync = () => {
+      if (!document.hidden) fetchData();
+    };
     const handleProductSync = (e: any) => {
       if (e?.detail && Array.isArray(e.detail) && e.detail.length > 0) {
         setProducts(e.detail);
@@ -957,6 +960,8 @@ const silentRefresh = async (): Promise<boolean> => {
         fetchData();
       }
     };
+    window.addEventListener('focus', handleSync);
+    window.addEventListener('visibilitychange', handleVisibilitySync);
     window.addEventListener('orderStatusUpdated', handleSync);
     window.addEventListener('vrg_products_updated', handleProductSync);
     window.addEventListener('vrg_categories_updated', handleSync);
@@ -965,6 +970,8 @@ const silentRefresh = async (): Promise<boolean> => {
 
     return () => {
       clearInterval(interval);
+      window.removeEventListener('focus', handleSync);
+      window.removeEventListener('visibilitychange', handleVisibilitySync);
       window.removeEventListener('orderStatusUpdated', handleSync);
       window.removeEventListener('vrg_products_updated', handleProductSync);
       window.removeEventListener('vrg_categories_updated', handleSync);
