@@ -859,14 +859,15 @@ const silentRefresh = async (): Promise<boolean> => {
         } catch {}
       } else {
         // Fast fallback: fetch public endpoints without 401 retry overhead
-        const [pRes, cRes, cpRes, bResLeg, rRes, stRes, cbRes] = await Promise.all([
+        const [pRes, cRes, cpRes, bResLeg, rRes, stRes, cbRes, ordRes] = await Promise.all([
           fetch('/api/products').then((r) => r.json()).catch(() => null),
           fetch('/api/categories').then((r) => r.json()).catch(() => null),
           fetch('/api/coupons').then((r) => r.json()).catch(() => null),
           fetch('/api/banners').then((r) => r.json()).catch(() => null),
           fetch('/api/reviews').then((r) => r.json()).catch(() => null),
           fetch('/api/settings').then((r) => r.json()).catch(() => null),
-          fetch('/api/combos').then((r) => r.json()).catch(() => null)
+          fetch('/api/combos').then((r) => r.json()).catch(() => null),
+          authFetch('/api/admin/orders').then((r) => r.json()).catch(() => null)
         ]);
 
         if (cbRes?.success && Array.isArray(cbRes.combos)) {
@@ -882,7 +883,18 @@ const silentRefresh = async (): Promise<boolean> => {
         if (bResLeg?.success) setBanners(bResLeg.banners);
         if (rRes?.success) setReviews(rRes.reviews);
         if (stRes?.success) setSettings(stRes.settings);
+        if (ordRes?.success && Array.isArray(ordRes.orders) && ordRes.orders.length > 0) {
+          setOrders(ordRes.orders);
+        }
       }
+
+      // Final safety check: if orders is still empty, load orders directly
+      try {
+        const directOrdersRes = await authFetch('/api/admin/orders').then(r => r.json()).catch(() => null);
+        if (directOrdersRes?.success && Array.isArray(directOrdersRes.orders) && directOrdersRes.orders.length > 0) {
+          setOrders(directOrdersRes.orders);
+        }
+      } catch {}
     } catch (err) {
       console.error(err);
     } finally {
@@ -899,6 +911,9 @@ const silentRefresh = async (): Promise<boolean> => {
     localStorage.removeItem('vrg_orders');
     localStorage.removeItem('veerika_customer_orders');
     localStorage.removeItem('vrg_user_orders');
+    sessionStorage.removeItem('vrg_admin_session_cache');
+    localStorage.removeItem('vrg_admin_persisted_cache');
+    localStorage.removeItem('vrg_admin_bootstrap_cache');
 
     fetchData();
 
