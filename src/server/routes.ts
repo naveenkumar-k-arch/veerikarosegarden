@@ -911,7 +911,7 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
           : 'REDUCED_SOIL';
 
       if (inferredOption === 'REDUCED_SOIL') {
-        shippingCharge = allItemsHaveFreeDelivery ? 0 : calculateDeliveryFee(itemsList, targetState);
+        shippingCharge = allItemsHaveFreeDelivery ? 0 : calculateDeliveryFee(verifiedItems, targetState);
       } else {
         shippingCharge = getDeliveryChargeForOption(inferredOption, totalPlantCount, targetState);
       }
