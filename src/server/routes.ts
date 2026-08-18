@@ -898,8 +898,6 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
     let shippingCharge = 0;
     if (req.body.shippingCharge !== undefined && !isNaN(Number(req.body.shippingCharge))) {
       shippingCharge = Math.max(0, Number(req.body.shippingCharge));
-    } else if (allItemsHaveFreeDelivery) {
-      shippingCharge = 0;
     } else {
       const explicitOpt = (req.body.deliveryOption || req.body.potOption || '').toString();
       const courierStr = (req.body.courierName || '').toString().toLowerCase();
@@ -911,7 +909,12 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
           : courierStr.includes('mettur')
           ? 'METTUR_PARCEL'
           : 'REDUCED_SOIL';
-      shippingCharge = getDeliveryChargeForOption(inferredOption, totalPlantCount, targetState);
+
+      if (inferredOption === 'REDUCED_SOIL') {
+        shippingCharge = allItemsHaveFreeDelivery ? 0 : calculateDeliveryFee(itemsList, targetState);
+      } else {
+        shippingCharge = getDeliveryChargeForOption(inferredOption, totalPlantCount, targetState);
+      }
     }
 
     // Final Grand Total calculated strictly on server

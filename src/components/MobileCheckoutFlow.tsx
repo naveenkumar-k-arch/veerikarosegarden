@@ -404,12 +404,15 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
     }
   }, [totalPlantCount, deliveryOption, courierPartner, address.state]);
 
+  const isReducedSoil = (courierPartner === 'PROFESSIONAL_COURIER' || !courierPartner) && (deliveryOption === 'REDUCED_SOIL' || !deliveryOption);
   const baseShipping = getDeliveryChargeForOption(
     courierPartner === 'METTUR_PARCEL' ? 'METTUR_PARCEL' : deliveryOption,
-    chargeablePlantCount,
+    isReducedSoil ? chargeablePlantCount : totalPlantCount,
     address.state
   );
-  const shippingCharge = hasAllFreeDelivery ? 0 : (chargeablePlantCount === 0 ? 0 : baseShipping);
+  const shippingCharge = isReducedSoil
+    ? (hasAllFreeDelivery ? 0 : (chargeablePlantCount === 0 ? 0 : baseShipping))
+    : baseShipping;
   const packingCharge = courierPartner === 'METTUR_PARCEL'
     ? (selectedPacking === 'EXTRA_SECURE' ? 10 : selectedPacking === 'MAX_PROTECTION' ? 15 : 0)
     : 0;

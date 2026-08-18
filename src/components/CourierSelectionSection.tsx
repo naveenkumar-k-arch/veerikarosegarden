@@ -239,7 +239,7 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
                       </div>
                       <div className="text-right shrink-0">
                         <span className="text-xs font-black text-emerald-900 block">
-                          {!isFullSoilAllowed ? 'N/A' : hasFreeDelivery ? '₹0' : `₹${fullSoil6InchCharge}`}
+                          {!isFullSoilAllowed ? 'N/A' : `₹${fullSoil6InchCharge}`}
                         </span>
                         <span className="text-[9px] text-slate-400 font-medium">{isFullSoilAllowed ? '₹140/plant' : 'Not Available'}</span>
                       </div>
@@ -291,7 +291,7 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
                       </div>
                       <div className="text-right shrink-0">
                         <span className="text-xs font-black text-emerald-900 block">
-                          {!isFullSoilAllowed ? 'N/A' : hasFreeDelivery ? '₹0' : `₹${fullSoil8InchCharge}`}
+                          {!isFullSoilAllowed ? 'N/A' : `₹${fullSoil8InchCharge}`}
                         </span>
                         <span className="text-[9px] text-slate-400 font-medium">{isFullSoilAllowed ? '₹190/plant' : 'Not Available'}</span>
                       </div>
@@ -329,7 +329,7 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
           }`}
         >
           <div className="flex items-start justify-between gap-3">
-            <div className="flex items-start gap-2.5">
+            <div className="flex items-start gap-2.5 flex-1">
               <input
                 type="radio"
                 name="courierPartner"
@@ -369,7 +369,7 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
             </div>
             <div className="text-right shrink-0">
               <span className="text-xs sm:text-sm font-black text-emerald-900 block">
-                {!isMetturAllowed ? 'Min 3 Qty' : hasFreeDelivery ? '₹0' : `₹${metturParcelCharge}`}
+                {!isMetturAllowed ? 'Min 3 Qty' : `₹${metturParcelCharge}`}
               </span>
               <span className="text-[9px] text-slate-400 font-medium">Delivery Charge</span>
             </div>
