@@ -49,6 +49,8 @@ function saveDiskReviews(reviews: Review[]) {
   }
 }
 
+import bundledOrdersSeed from '../data/orders_store.json' with { type: 'json' };
+
 const ORDERS_STORE_FILE = path.resolve(process.cwd(), 'src/data/orders_store.json');
 
 function loadDiskOrders(): Order[] {
@@ -61,7 +63,7 @@ function loadDiskOrders(): Order[] {
   } catch (err) {
     console.error('Error reading orders_store.json:', err);
   }
-  return [];
+  return (Array.isArray(bundledOrdersSeed) && bundledOrdersSeed.length > 0) ? (bundledOrdersSeed as unknown as Order[]) : [];
 }
 
 function saveDiskOrders(orders: Order[]) {
@@ -7248,8 +7250,8 @@ class Store {
       }).catch(() => {});
     }
 
-    // Priority order: in-memory updated orders first, then global buffer, db, firestore, disk, defaults
-    const allCombined = [...this.memoryOrders, ...gBuffer, ...dbOrders, ...fsOrders, ...diskOrders, ...defOrders];
+    // Priority order: in-memory updated orders first, then global buffer, disk/bundled, db, firestore, defaults
+    const allCombined = [...this.memoryOrders, ...gBuffer, ...diskOrders, ...dbOrders, ...fsOrders, ...defOrders];
     const uniqueMap = new Map<string, Order>();
     allCombined.forEach(o => {
       if (o && o.id && !deletedOrderIds.has(o.id) && !deletedOrderIds.has(o.merchantTransactionId)) {
@@ -7260,14 +7262,15 @@ class Store {
           // Compare updatedAt timestamps to pick the fresher status
           const existingTime = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
           const incomingTime = o.updatedAt ? new Date(o.updatedAt).getTime() : 0;
-          const fresher = incomingTime >= existingTime ? o : existing;
-          const older = incomingTime >= existingTime ? existing : o;
+          const fresher = incomingTime > existingTime ? o : existing;
+          const older = incomingTime > existingTime ? existing : o;
 
           uniqueMap.set(o.id, {
             ...older,
             ...fresher,
             orderStatus: fresher.orderStatus || older.orderStatus,
-            paymentStatus: fresher.paymentStatus || older.paymentStatus,
+            paymentStatus: (fresher.paymentStatus === 'SUCCESS' || older.paymentStatus === 'SUCCESS') ? 'SUCCESS' : (fresher.paymentStatus || older.paymentStatus),
+            paymentMethod: (fresher.paymentMethod === 'RAZORPAY' || older.paymentMethod === 'RAZORPAY') ? 'RAZORPAY' : (fresher.paymentMethod || older.paymentMethod),
             trackingNumber: fresher.trackingNumber || older.trackingNumber,
             courierName: fresher.courierName || older.courierName,
             paymentProofUrl: fresher.paymentProofUrl || older.paymentProofUrl,

@@ -45,6 +45,8 @@ app.use(cookieParser(AUTH_CONFIG.cookieSecret));
 // Allowed origins — covers all known deployment domains
 const ALLOWED_ORIGINS = new Set([
   // Production custom domain
+  'https://vrgnursery.in',
+  'https://www.vrgnursery.in',
   'https://veerikarosegarden.com',
   'https://www.veerikarosegarden.com',
   // Vercel deployments (main + previews handled by endsWith below)
