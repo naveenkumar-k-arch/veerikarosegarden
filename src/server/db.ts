@@ -7302,6 +7302,92 @@ class Store {
     return result;
   }
 
+  async syncAllVerifiedOrdersToDatabase(): Promise<Order[]> {
+    const prisma = getPrismaClient();
+    const diskOrders = loadDiskOrders();
+    if (!prisma) return diskOrders;
+
+    for (const order of diskOrders) {
+      try {
+        const orderId = order.id;
+        const subtotal = Number(order.subtotal || order.grandTotal || 0);
+        const grandTotal = Number(order.grandTotal || subtotal);
+        const shippingFee = Number(order.shippingCharge || 0);
+        const discount = Number(order.discount || 0);
+
+        const statusMap: Record<string, string> = {
+          'CONFIRMED': 'PAID',
+          'PROCESSING': 'PACKING',
+          'PACKED': 'PACKING',
+          'DISPATCHED': 'DISPATCHED',
+          'DELIVERED': 'DELIVERED',
+          'CANCELLED': 'CANCELLED',
+          'PENDING': 'PAYMENT_PENDING'
+        };
+        const dbStatus = (statusMap[order.orderStatus] || 'PAID') as any;
+        const dbPayStatus = (order.paymentStatus === 'SUCCESS' ? 'SUCCESS' : 'PENDING') as any;
+
+        const addressJson = JSON.stringify(order.shippingAddress || {});
+        const notesObj = {
+          courierName: order.courierName || 'Professional Courier (Reduced Soil)',
+          potOption: order.potOption || 'REDUCED_SOIL',
+          potCharge: order.potCharge || 0,
+          packingOption: order.packingOption || 'STANDARD',
+          packingCharge: order.packingCharge || 0,
+          courierDistrict: order.courierDistrict,
+          courierBranch: order.courierBranch,
+          txnId: order.transactionId || order.merchantTransactionId || '',
+          proof: order.paymentProofUrl
+        };
+
+        await prisma.order.upsert({
+          where: { id: orderId },
+          update: {
+            customerName: order.customerName,
+            customerPhone: order.customerPhone,
+            customerEmail: order.customerEmail || '',
+            shippingAddress: addressJson,
+            subtotal,
+            deliveryFee: shippingFee,
+            discount,
+            totalAmount: grandTotal,
+            status: dbStatus,
+            paymentStatus: dbPayStatus,
+            paymentMethod: 'RAZORPAY',
+            merchantTransactionId: order.merchantTransactionId || `MT_${orderId}`,
+            trackingNumber: order.trackingNumber || '',
+            notes: JSON.stringify(notesObj),
+            updatedAt: new Date()
+          },
+          create: {
+            id: orderId,
+            orderNumber: orderId,
+            customerName: order.customerName,
+            customerPhone: order.customerPhone,
+            customerEmail: order.customerEmail || '',
+            shippingAddress: addressJson,
+            subtotal,
+            deliveryFee: shippingFee,
+            discount,
+            totalAmount: grandTotal,
+            status: dbStatus,
+            paymentStatus: dbPayStatus,
+            paymentMethod: 'RAZORPAY',
+            merchantTransactionId: order.merchantTransactionId || `MT_${orderId}`,
+            trackingNumber: order.trackingNumber || '',
+            notes: JSON.stringify(notesObj),
+            createdAt: order.createdAt ? new Date(order.createdAt) : new Date(),
+            updatedAt: new Date()
+          }
+        });
+      } catch (err) {
+        console.warn(`[Sync Order DB] Could not upsert order ${order.id}:`, err);
+      }
+    }
+    this.invalidateOrdersCache();
+    return this.getOrders();
+  }
+
   async deleteOrder(id: string): Promise<boolean> {
     this.invalidateOrdersCache();
     const clean = (id || '').trim();

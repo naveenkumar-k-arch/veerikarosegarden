@@ -1211,14 +1211,19 @@ apiRouter.get('/admin/bootstrap', requireAdmin, async (req: AuthenticatedRequest
       db.getCombos().catch(() => [])
     ]);
 
-    const stats = await db.getDashboardStats(orders, products);
+    let finalOrders = orders;
+    if (finalOrders.length < 12) {
+      finalOrders = await db.syncAllVerifiedOrdersToDatabase().catch(() => orders);
+    }
+
+    const stats = await db.getDashboardStats(finalOrders, products);
 
     const responsePayload = {
       success: true,
       stats,
       products: sanitizeBootstrapProducts(products),
       categories,
-      orders: sanitizeBootstrapOrders(orders),
+      orders: sanitizeBootstrapOrders(finalOrders),
       coupons,
       banners,
       reviews,
@@ -1372,10 +1377,24 @@ apiRouter.get('/orders/:id', async (req: AuthenticatedRequest, res) => {
 // Admin GET all orders - no user filtering, always returns every order from every customer
 apiRouter.get('/admin/orders', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
-    const orders = await db.getOrders();
+    let orders = await db.getOrders();
+    if (orders.length < 12) {
+      orders = await db.syncAllVerifiedOrdersToDatabase().catch(() => orders);
+    }
     res.json({ success: true, count: orders.length, orders });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
+  }
+});
+
+// Admin manual sync all verified orders to database
+apiRouter.all('/admin/sync-orders', requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const orders = await db.syncAllVerifiedOrdersToDatabase();
+    invalidateBootstrapCache();
+    res.json({ success: true, count: orders.length, orders, message: `Synced ${orders.length} orders to database successfully` });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message || 'Sync failed' });
   }
 });
 

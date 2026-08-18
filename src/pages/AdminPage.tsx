@@ -887,13 +887,15 @@ const silentRefresh = async (): Promise<boolean> => {
         }
       }
 
-      // Final safety check: if orders is still empty, load orders directly
-      try {
-        const directOrdersRes = await authFetch('/api/admin/orders').then(r => r.json()).catch(() => null);
-        if (directOrdersRes?.success && Array.isArray(directOrdersRes.orders) && directOrdersRes.orders.length > 0) {
-          setOrders(directOrdersRes.orders);
-        }
-      } catch {}
+      // Final safety check: if orders count is less than 12 or empty, trigger auto sync
+      if (!bRes?.orders || bRes.orders.length < 12) {
+        try {
+          const syncRes = await authFetch('/api/admin/sync-orders').then(r => r.json()).catch(() => null);
+          if (syncRes?.success && Array.isArray(syncRes.orders) && syncRes.orders.length > 0) {
+            setOrders(syncRes.orders);
+          }
+        } catch {}
+      }
     } catch (err) {
       console.error(err);
     } finally {
