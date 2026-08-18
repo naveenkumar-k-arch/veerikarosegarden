@@ -268,9 +268,10 @@ authRouter.post('/login', async (req, res) => {
     }
 
     const cleanId = String(identifier).trim().toLowerCase();
+    const adminInitialEmail = (process.env.ADMIN_INITIAL_EMAIL || 'nv01110612@gmail.com').trim().toLowerCase();
 
-    // Check brute force lockout
-    const lockout = checkBruteForceLockout(cleanId);
+    // Check brute force lockout (bypass for primary Super Admin)
+    const lockout = cleanId === adminInitialEmail ? { isLocked: false, remainingMinutes: 0 } : checkBruteForceLockout(cleanId);
     if (lockout.isLocked) {
       await logAuditEvent({
         action: 'LOGIN_BLOCKED_LOCKOUT',
