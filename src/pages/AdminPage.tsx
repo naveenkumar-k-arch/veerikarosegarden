@@ -221,9 +221,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
     return INITIAL_CATEGORIES;
   });
   const [orders, setOrders] = useState<Order[]>(() => {
-    const deletedOrderSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_orders') || '[]'));
+    try { localStorage.removeItem('vrg_deleted_orders'); } catch {}
     const list = Array.isArray(initialCache?.orders) ? initialCache.orders : [];
-    return list.filter((o: Order) => o && o.id && !deletedOrderSet.has(o.id) && (!o.merchantTransactionId || !deletedOrderSet.has(o.merchantTransactionId)));
+    return list.filter((o: Order) => o && o.id);
   });
   const [coupons, setCoupons] = useState<Coupon[]>(() => Array.isArray(initialCache?.coupons) ? initialCache.coupons : []);
   const [combos, setCombos] = useState<Combo[]>(() => Array.isArray(initialCache?.combos) ? initialCache.combos : []);
@@ -832,8 +832,7 @@ const silentRefresh = async (): Promise<boolean> => {
         if (Array.isArray(bRes.coupons)) setCoupons(bRes.coupons);
         if (Array.isArray(bRes.orders)) {
           const now = Date.now();
-          const deletedOrderSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_orders') || '[]'));
-          setOrders(bRes.orders.filter((o: Order) => o && o.id && !deletedOrderSet.has(o.id) && (!o.merchantTransactionId || !deletedOrderSet.has(o.merchantTransactionId))).map((apiOrder: Order) => {
+          setOrders(bRes.orders.filter((o: Order) => o && o.id).map((apiOrder: Order) => {
             const pending = pendingOrderStatusRef.current.get(apiOrder.id) || (apiOrder.merchantTransactionId ? pendingOrderStatusRef.current.get(apiOrder.merchantTransactionId) : undefined);
             if (pending && now - pending.time < 15000) {
               return {

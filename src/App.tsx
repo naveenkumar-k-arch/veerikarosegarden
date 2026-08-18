@@ -234,7 +234,6 @@ export const App: React.FC = () => {
   const getInitialUserOrders = (): Order[] => {
     let localOrders: Order[] = [];
     const keysToRead = ['vrg_my_orders', 'vrg_user_orders', 'veerika_customer_orders'];
-    const deletedOrderSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_orders') || '[]'));
 
     keysToRead.forEach(key => {
       try {
@@ -250,7 +249,7 @@ export const App: React.FC = () => {
 
     const uniqueMap = new Map<string, Order>();
     localOrders.forEach(o => {
-      if (o && o.id && !deletedOrderSet.has(o.id) && (!o.merchantTransactionId || !deletedOrderSet.has(o.merchantTransactionId))) {
+      if (o && o.id) {
         uniqueMap.set(o.id, o);
       }
     });
@@ -469,8 +468,7 @@ export const App: React.FC = () => {
       }).catch(() => null);
       const data = res ? await res.json().catch(() => null) : null;
       if (data?.success && Array.isArray(data.orders)) {
-        const deletedOrderSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_orders') || '[]'));
-        const apiOrders = data.orders.filter((o: Order) => o && o.id && !deletedOrderSet.has(o.id) && (!o.merchantTransactionId || !deletedOrderSet.has(o.merchantTransactionId)));
+        const apiOrders = data.orders.filter((o: Order) => o && o.id);
         setUserOrders(apiOrders);
         try {
           localStorage.setItem('vrg_my_orders', JSON.stringify(apiOrders));
@@ -479,13 +477,11 @@ export const App: React.FC = () => {
         } catch {}
       } else if (!res) {
         // Fallback to local cache only if completely offline/unreachable
-        const deletedOrderSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_orders') || '[]'));
-        setUserOrders(localOrders.filter(o => o && o.id && !deletedOrderSet.has(o.id) && (!o.merchantTransactionId || !deletedOrderSet.has(o.merchantTransactionId))));
+        setUserOrders(localOrders.filter(o => o && o.id));
       }
     } catch (err) {
       console.error('Error fetching user orders:', err);
-      const deletedOrderSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_orders') || '[]'));
-      setUserOrders(localOrders.filter(o => o && o.id && !deletedOrderSet.has(o.id) && (!o.merchantTransactionId || !deletedOrderSet.has(o.merchantTransactionId))));
+      setUserOrders(localOrders.filter(o => o && o.id));
     }
   };
 
