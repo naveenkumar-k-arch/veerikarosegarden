@@ -301,7 +301,6 @@ authRouter.post('/login', async (req, res) => {
     }
 
     // Auto-ensure Super Admin — strictly nv01110612@gmail.com
-    const adminInitialEmail = (process.env.ADMIN_INITIAL_EMAIL || 'nv01110612@gmail.com').trim().toLowerCase();
     const adminInitialPassword = (process.env.ADMIN_INITIAL_PASSWORD || 'nv01110612@gmail.com').trim();
     const isAdminIdentifier = cleanId === adminInitialEmail;
     const isAdminPasswordMatch = password === adminInitialPassword;
