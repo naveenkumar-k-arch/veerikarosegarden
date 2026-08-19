@@ -5,6 +5,97 @@ import * as jspdfPkg from 'jspdf';
 
 const jsPDFClass: any = (jspdfPkg as any).jsPDF || (jspdfPkg as any).default || jspdfPkg;
 
+const parseLabelCustomerInfo = (order: Order) => {
+  let rawAddr: any = order.shippingAddress;
+  let name = order.customerName || (order.shippingAddress as any)?.fullName || 'Valued Customer';
+  let phone = order.customerPhone || (order.shippingAddress as any)?.phone || '';
+  let pincode = '';
+
+  if (typeof rawAddr === 'string') {
+    try {
+      const parsed = JSON.parse(rawAddr);
+      if (parsed && typeof parsed === 'object') {
+        rawAddr = parsed;
+      }
+    } catch {
+      // keep string
+    }
+  }
+
+  if (rawAddr && typeof rawAddr === 'object') {
+    name = rawAddr.fullName || order.customerName || name;
+    phone = rawAddr.phone || order.customerPhone || phone;
+    pincode = rawAddr.pincode ? String(rawAddr.pincode).trim() : '';
+
+    const rawParts = [
+      rawAddr.houseNo ? `${rawAddr.houseNo}` : '',
+      rawAddr.street,
+      rawAddr.villageTown,
+      rawAddr.district,
+      rawAddr.state
+    ].filter(Boolean);
+
+    const uniqueParts: string[] = [];
+    for (const p of rawParts) {
+      const trimmed = String(p).trim();
+      if (trimmed && (!uniqueParts.length || uniqueParts[uniqueParts.length - 1].toLowerCase() !== trimmed.toLowerCase())) {
+        const cleanPart = pincode ? trimmed.replace(new RegExp(`[\\-\\s,]*${pincode}\\b`, 'ig'), '').trim() : trimmed;
+        if (cleanPart && (!uniqueParts.length || uniqueParts[uniqueParts.length - 1].toLowerCase() !== cleanPart.toLowerCase())) {
+          uniqueParts.push(cleanPart);
+        }
+      }
+    }
+
+    let cleanAddress = uniqueParts.join(', ');
+    if (!pincode) {
+      const pinMatch = cleanAddress.match(/\b([1-9][0-9]{5})\b/);
+      if (pinMatch) {
+        pincode = pinMatch[1];
+        cleanAddress = cleanAddress.replace(new RegExp(`[\\-\\s,]*${pincode}\\b`, 'ig'), '').trim();
+      }
+    }
+
+    if (!cleanAddress) {
+      cleanAddress = 'Address details on order';
+    }
+
+    return {
+      name: name.trim(),
+      cleanAddress: cleanAddress.startsWith('No') || cleanAddress.startsWith('Door') || cleanAddress.startsWith('Address')
+        ? cleanAddress
+        : `Address ${cleanAddress}`,
+      pincode: pincode.trim(),
+      phone: phone.trim()
+    };
+  }
+
+  // If string address
+  let strAddr = String(rawAddr || '').trim();
+  const pinMatch = strAddr.match(/\b([1-9][0-9]{5})\b/);
+  if (pinMatch) {
+    pincode = pinMatch[1];
+    strAddr = strAddr.replace(new RegExp(`[\\-\\s,]*${pincode}\\b`, 'ig'), ' ');
+  }
+
+  const cleanStr = strAddr
+    .replace(/^(full\s*)?address\s*[:\-]?\s*/i, '')
+    .replace(/^name\s*:\s*[^,]+,\s*(address\s*:\s*)?/i, '')
+    .replace(/(phone|mobile|mob|contact)\s*[:\-]?\s*\+?[0-9\s\-]+/gi, '')
+    .replace(/\s+,/g, ',')
+    .replace(/,\s*,/g, ',')
+    .trim()
+    .replace(/^,+\s*|,+\s*$/g, '');
+
+  return {
+    name: name.trim(),
+    cleanAddress: cleanStr.startsWith('No') || cleanStr.startsWith('Door') || cleanStr.startsWith('Address')
+      ? cleanStr
+      : `Address ${cleanStr || 'Address details on order'}`,
+    pincode: pincode.trim(),
+    phone: phone.trim()
+  };
+};
+
 interface A4LabelSheetPrintProps {
   orders: Order[];
   onClose: () => void;
@@ -73,9 +164,7 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
 
         pageOrders.forEach((order, orderIdx) => {
           const ly = labelYPositions[orderIdx];
-          const customerName = order.customerName || (order.shippingAddress as any)?.fullName || 'Valued Customer';
-          const customerPhone = order.customerPhone || (order.shippingAddress as any)?.phone || '';
-          const fullAddress = formatAddress(order.shippingAddress);
+          const info = parseLabelCustomerInfo(order);
 
           // ================= 1. HEADER BOX: "LIVE PLANTS INSIDE" =================
           const headerBoxW = labelWidth;
@@ -112,31 +201,31 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
           // ================= 3. COLUMN 1: "From :" DETAILS (Yellow Highlights) =================
           const fromContentY = ly + 22.5;
 
-          // Line 1: MSV GARDEN,
+          // Line 1: VEERIKA ROSE GARDEN
           pdf.setFillColor(255, 255, 0); // Bright Yellow
           pdf.rect(labelX, fromContentY, 53, 7.5, 'F');
           pdf.setTextColor(0, 0, 0);
           pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(14.5);
-          pdf.text('MSV GARDEN,', labelX + 1, fromContentY + 5.8);
+          pdf.setFontSize(11.5);
+          pdf.text('VEERIKA ROSE GARDEN', labelX + 1, fromContentY + 5.5);
 
-          // Line 2: Dharmapuri – 636813
-          const line2Y = fromContentY + 10;
+          // Line 2: Dharmapuri
+          const line2Y = fromContentY + 9.5;
           pdf.setFillColor(255, 255, 0); // Bright Yellow
-          pdf.rect(labelX, line2Y, 49, 6.2, 'F');
+          pdf.rect(labelX, line2Y, 32, 6.2, 'F');
           pdf.setTextColor(0, 0, 0);
           pdf.setFont('helvetica', 'bold');
           pdf.setFontSize(11);
-          pdf.text('Dharmapuri – 636813', labelX + 1, line2Y + 4.6);
+          pdf.text('Dharmapuri', labelX + 1, line2Y + 4.6);
 
-          // Line 3: 7904020206
-          const line3Y = line2Y + 8.5;
+          // Line 3: +91 72008 26129
+          const line3Y = line2Y + 8;
           pdf.setFillColor(255, 255, 0); // Bright Yellow
-          pdf.rect(labelX, line3Y, 28, 6.2, 'F');
+          pdf.rect(labelX, line3Y, 38, 6.2, 'F');
           pdf.setTextColor(0, 0, 0);
           pdf.setFont('helvetica', 'bold');
           pdf.setFontSize(11);
-          pdf.text('7904020206', labelX + 1, line3Y + 4.6);
+          pdf.text('+91 72008 26129', labelX + 1, line3Y + 4.6);
 
           // ================= 4. COLUMN 2: "To," CUSTOMER BOX =================
           const toBoxX = labelX + 58;
@@ -148,38 +237,38 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
           pdf.setLineWidth(0.3);
           pdf.rect(toBoxX, toBoxY, toBoxW, toBoxH, 'S');
 
-          // Customer Name
+          // 1) Customer Name (BOLD)
           pdf.setTextColor(0, 0, 0);
           pdf.setFont('helvetica', 'bold');
           pdf.setFontSize(9.5);
-          const nameLines = pdf.splitTextToSize(customerName, toBoxW - 4);
+          const nameLines = pdf.splitTextToSize(info.name, toBoxW - 4);
           pdf.text(nameLines, toBoxX + 2.5, toBoxY + 5);
 
-          // Customer Address
-          const cleanAddr = fullAddress
-            .replace(/^(full\s*)?address\s*[:\-]?\s*/i, '')
-            .replace(/^name\s*:\s*[^,]+,\s*(address\s*:\s*)?/i, '')
-            .trim();
-          const addrDisplay = cleanAddr.startsWith('No') || cleanAddr.startsWith('Door') || cleanAddr.startsWith('Address')
-            ? cleanAddr
-            : `Address ${cleanAddr}`;
-
-          const addrStartY = toBoxY + 5 + (nameLines.length * 4.2) + 1.5;
+          // 2) Customer Address (Regular font)
+          const addrStartY = toBoxY + 5 + (nameLines.length * 4.2) + 1.2;
           pdf.setTextColor(0, 0, 0);
-          pdf.setFont('helvetica', 'bold');
+          pdf.setFont('helvetica', 'normal');
           pdf.setFontSize(8);
-          const addrLines = pdf.splitTextToSize(addrDisplay, toBoxW - 4);
-          const displayAddrLines = addrLines.slice(0, 6);
+          const addrLines = pdf.splitTextToSize(info.cleanAddress, toBoxW - 4);
+          const displayAddrLines = addrLines.slice(0, info.pincode ? 4 : 5);
           pdf.text(displayAddrLines, toBoxX + 2.5, addrStartY);
 
-          // Customer Phone Number
-          if (customerPhone) {
+          // 3) PINCODE (BOLD)
+          if (info.pincode) {
             pdf.setTextColor(0, 0, 0);
             pdf.setFont('helvetica', 'bold');
-            pdf.setFontSize(9);
-            const phoneFormatted = customerPhone.toLowerCase().includes('whatsapp') || customerPhone.toLowerCase().includes('phone')
-              ? customerPhone
-              : customerPhone;
+            pdf.setFontSize(9.5);
+            pdf.text(`PINCODE: ${info.pincode}`, toBoxX + 2.5, toBoxY + toBoxH - 8);
+          }
+
+          // 4) Customer Phone Number (BOLD)
+          if (info.phone) {
+            pdf.setTextColor(0, 0, 0);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(9.5);
+            const phoneFormatted = info.phone.toLowerCase().startsWith('ph') || info.phone.toLowerCase().startsWith('mob')
+              ? info.phone
+              : `Mob: ${info.phone}`;
             pdf.text(phoneFormatted, toBoxX + 2.5, toBoxY + toBoxH - 3.5);
           }
 
@@ -223,39 +312,6 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
     } finally {
       setIsGeneratingPdf(false);
     }
-  };
-
-  const formatAddress = (address: any) => {
-    if (!address) return 'Address not available';
-    if (typeof address === 'string') {
-      try {
-        const parsed = JSON.parse(address);
-        if (parsed && typeof parsed === 'object') {
-          address = parsed;
-        } else {
-          return address.trim();
-        }
-      } catch {
-        return address.trim();
-      }
-    }
-    const rawParts = [
-      address.houseNo ? `${address.houseNo}` : '',
-      address.street,
-      address.villageTown,
-      address.district,
-      address.state,
-      address.pincode
-    ].filter(Boolean);
-
-    const uniqueParts: string[] = [];
-    for (const p of rawParts) {
-      const trimmed = String(p).trim();
-      if (trimmed && (!uniqueParts.length || uniqueParts[uniqueParts.length - 1].toLowerCase() !== trimmed.toLowerCase())) {
-        uniqueParts.push(trimmed);
-      }
-    }
-    return uniqueParts.join(', ');
   };
 
   return (
@@ -359,16 +415,7 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
             style={{ boxSizing: 'border-box' }}
           >
             {pageOrders.map((order, orderIdx) => {
-              const customerName = order.customerName || order.shippingAddress?.fullName || 'Valued Customer';
-              const customerPhone = order.customerPhone || order.shippingAddress?.phone || '';
-              const fullAddress = formatAddress(order.shippingAddress);
-              const cleanAddr = fullAddress
-                .replace(/^(full\s*)?address\s*[:\-]?\s*/i, '')
-                .replace(/^name\s*:\s*[^,]+,\s*(address\s*:\s*)?/i, '')
-                .trim();
-              const addrDisplay = cleanAddr.startsWith('No') || cleanAddr.startsWith('Door') || cleanAddr.startsWith('Address')
-                ? cleanAddr
-                : `Address ${cleanAddr}`;
+              const info = parseLabelCustomerInfo(order);
 
               return (
                 <div
@@ -401,18 +448,18 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
                     {/* Left Column: From Details with Yellow Highlights */}
                     <div className="col-span-4 space-y-1.5 pr-1">
                       <div>
-                        <span className="bg-[#FFFF00] font-black text-black text-lg sm:text-xl px-1 inline-block leading-tight">
-                          MSV GARDEN,
+                        <span className="bg-[#FFFF00] font-black text-black text-sm sm:text-base px-1 inline-block leading-tight uppercase tracking-tight">
+                          VEERIKA ROSE GARDEN
                         </span>
                       </div>
                       <div>
                         <span className="bg-[#FFFF00] font-black text-black text-xs sm:text-sm px-1 inline-block leading-tight">
-                          Dharmapuri – 636813
+                          Dharmapuri
                         </span>
                       </div>
                       <div>
                         <span className="bg-[#FFFF00] font-black text-black text-xs sm:text-sm px-1 inline-block leading-tight">
-                          7904020206
+                          +91 72008 26129
                         </span>
                       </div>
                     </div>
@@ -420,18 +467,31 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
                     {/* Middle Column: To Customer Box */}
                     <div className="col-span-5 border border-black p-2 rounded-xs min-h-[140px] flex flex-col justify-between text-black">
                       <div className="space-y-1">
+                        {/* 1) Customer Name (BOLD) */}
                         <p className="font-black text-xs sm:text-sm text-black leading-tight">
-                          {customerName}
+                          {info.name}
                         </p>
-                        <p className="font-bold text-[11px] text-black leading-tight">
-                          {addrDisplay}
+                        {/* 2) Customer Address (Regular font) */}
+                        <p className="font-normal text-[11px] text-black leading-tight">
+                          {info.cleanAddress}
                         </p>
                       </div>
-                      {customerPhone && (
-                        <p className="font-black text-xs sm:text-sm text-black pt-2 leading-tight">
-                          {customerPhone}
-                        </p>
-                      )}
+                      <div className="pt-2 space-y-0.5">
+                        {/* 3) PINCODE (BOLD) */}
+                        {info.pincode && (
+                          <p className="font-black text-xs sm:text-sm text-black leading-tight">
+                            PINCODE: {info.pincode}
+                          </p>
+                        )}
+                        {/* 4) Customer Phone Number (BOLD) */}
+                        {info.phone && (
+                          <p className="font-black text-xs sm:text-sm text-black leading-tight">
+                            {info.phone.toLowerCase().startsWith('ph') || info.phone.toLowerCase().startsWith('mob')
+                              ? info.phone
+                              : `Mob: ${info.phone}`}
+                          </p>
+                        )}
+                      </div>
                     </div>
 
                     {/* Right Column: Ordered Plants Box */}
