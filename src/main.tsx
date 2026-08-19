@@ -10,7 +10,8 @@ window.addEventListener('error', (event) => {
   if (
     msg.includes('dynamically imported module') ||
     msg.includes('Loading chunk') ||
-    msg.includes('Importing a module script failed')
+    msg.includes('Importing a module script failed') ||
+    msg.includes('error loading dynamically imported module')
   ) {
     const reloadKey = 'vrg_chunk_auto_reload_ts';
     const lastReload = Number(sessionStorage.getItem(reloadKey) || 0);
@@ -18,6 +19,25 @@ window.addEventListener('error', (event) => {
     if (now - lastReload > 30000) {
       sessionStorage.setItem(reloadKey, String(now));
       console.warn('[Global] Stale chunk error caught. Reloading page...');
+      window.location.reload();
+    }
+  }
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  const reason = String(event?.reason?.message || event?.reason || '');
+  if (
+    reason.includes('dynamically imported module') ||
+    reason.includes('Loading chunk') ||
+    reason.includes('Importing a module script failed') ||
+    reason.includes('Failed to fetch dynamically imported module')
+  ) {
+    const reloadKey = 'vrg_chunk_auto_reload_ts';
+    const lastReload = Number(sessionStorage.getItem(reloadKey) || 0);
+    const now = Date.now();
+    if (now - lastReload > 30000) {
+      sessionStorage.setItem(reloadKey, String(now));
+      console.warn('[Global] Dynamic import rejection caught. Reloading page...');
       window.location.reload();
     }
   }

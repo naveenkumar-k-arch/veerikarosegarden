@@ -50,9 +50,15 @@ export const App: React.FC = () => {
     setShowSplash(false);
   }, []);
 
-  // Helper to parse URL path into page name & param ID for multi-page routing
+  // Helper to parse URL path or hash into page name & param ID for multi-page routing
   const getPageFromUrl = (pathname: string): { page: string; paramId?: string } => {
-    const path = pathname.trim().replace(/\/+$/, '') || '/';
+    let path = pathname.trim().replace(/\/+$/, '') || '/';
+    if (typeof window !== 'undefined' && window.location.hash) {
+      const hashClean = window.location.hash.replace(/^#\/?/, '/').trim().replace(/\/+$/, '');
+      if (hashClean && hashClean !== '/') {
+        path = hashClean;
+      }
+    }
     if (path.startsWith('/product/')) {
       return { page: 'product-detail', paramId: decodeURIComponent(path.replace('/product/', '')) };
     }
@@ -722,15 +728,32 @@ export const App: React.FC = () => {
     } catch {}
   }, [selectedOrderId]);
 
-  // Fallback: if restored page requires state that is missing, redirect to home
+  // Fallback & Deep-link Resolver: if page requires state, resolve from products/orders or redirect safely
   useEffect(() => {
     if (currentPage === 'product-detail' && !selectedProduct) {
-      setCurrentPage('home');
+      const urlState = getPageFromUrl(window.location.pathname);
+      const targetId = urlState.paramId;
+      if (targetId) {
+        const found = products.find(p => p.id === targetId || p.sku === targetId) ||
+                      INITIAL_PRODUCTS.find(p => p.id === targetId || p.sku === targetId);
+        if (found) {
+          setSelectedProduct(found);
+          return;
+        }
+      }
+      if (products.length > 0) {
+        setCurrentPage('shop');
+      }
     }
     if (currentPage === 'order-status' && !selectedOrderId) {
-      setCurrentPage('home');
+      const urlState = getPageFromUrl(window.location.pathname);
+      if (urlState.paramId) {
+        setSelectedOrderId(urlState.paramId);
+      } else {
+        setCurrentPage('home');
+      }
     }
-  }, []);
+  }, [currentPage, selectedProduct, selectedOrderId, products]);
 
   useEffect(() => {
     if (user) {

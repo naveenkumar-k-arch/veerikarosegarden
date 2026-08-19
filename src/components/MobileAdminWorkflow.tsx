@@ -1032,7 +1032,7 @@ Your parcel dispatched today 🚚
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       list = list.filter(o => 
-        o.id.toLowerCase().includes(q) ||
+        (o && o.id && o.id.toLowerCase().includes(q)) ||
         (o.customerName && o.customerName.toLowerCase().includes(q)) ||
         (o.shippingAddress?.fullName && o.shippingAddress.fullName.toLowerCase().includes(q)) ||
         (o.customerPhone && o.customerPhone.includes(q)) ||
