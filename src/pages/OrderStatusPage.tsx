@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Order } from '../types';
 import { InvoicePrint } from '../components/InvoicePrint';
 import { ShieldCheck, CheckCircle2, Truck, Package, Clock, Printer, ArrowLeft, MessageSquare, ExternalLink, RefreshCw } from 'lucide-react';
+import { getOrderStage, STAGE_CONFIG } from '../utils/orderStages';
 
 interface OrderStatusPageProps {
   orderId: string;
@@ -147,10 +148,10 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
   const isCod = order.paymentMethod === 'COD';
   const isSuccess = order.paymentStatus === 'SUCCESS' || isCod;
 
-  const s = (order.orderStatus || '').toUpperCase();
-  const isDelivered = s === 'DELIVERED' || s === 'COMPLETED';
-  const isDispatched = isDelivered || s === 'DISPATCHED' || s === 'SHIPPED' || s === 'COURIER' || s === 'OUT_FOR_DELIVERY';
-  const isPacking = isDispatched || s === 'PROCESSING' || s === 'PACKING' || s === 'PACKED';
+  const currentStage = getOrderStage(order.orderStatus);
+  const isDelivered = currentStage === 'delivered';
+  const isDispatched = currentStage === 'dispatched' || isDelivered;
+  const isPacking = currentStage === 'packing' || isDispatched;
   const isConfirmed = true;
 
   return (
@@ -240,20 +241,20 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
           {/* Stage 2 */}
           <div className={`p-3.5 rounded-2xl border-2 space-y-1 transition-all shadow-2xs ${
             isPacking
-              ? (s === 'PROCESSING' || s === 'PACKING' || s === 'PACKED')
+              ? (currentStage === 'packing')
                 ? 'bg-purple-50 border-purple-400 text-purple-950 font-bold ring-2 ring-purple-300'
                 : 'bg-emerald-50 border-emerald-300 text-emerald-950'
               : 'bg-slate-50 border-slate-200 text-slate-400'
           }`}>
             <div className="flex items-center justify-between">
-              <Package className={`w-5 h-5 ${isPacking ? ((s === 'PROCESSING' || s === 'PACKING' || s === 'PACKED') ? 'text-purple-700' : 'text-emerald-700') : 'text-slate-400'}`} />
+              <Package className={`w-5 h-5 ${isPacking ? (currentStage === 'packing' ? 'text-purple-700' : 'text-emerald-700') : 'text-slate-400'}`} />
               {isPacking && (
                 <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md ${
-                  (s === 'PROCESSING' || s === 'PACKING' || s === 'PACKED')
+                  currentStage === 'packing'
                     ? 'text-purple-900 bg-purple-100 animate-pulse'
                     : 'text-emerald-800 bg-emerald-100'
                 }`}>
-                  {(s === 'PROCESSING' || s === 'PACKING' || s === 'PACKED') ? '⚡ IN PROGRESS' : '✓ DONE'}
+                  {currentStage === 'packing' ? '⚡ IN PROGRESS' : '✓ DONE'}
                 </span>
               )}
             </div>
@@ -266,18 +267,18 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
           {/* Stage 3 */}
           <div className={`p-3.5 rounded-2xl border-2 space-y-1 transition-all shadow-2xs ${
             isDispatched
-              ? (!isDelivered)
+              ? (currentStage === 'dispatched')
                 ? 'bg-blue-50 border-blue-400 text-blue-950 font-bold ring-2 ring-blue-300'
                 : 'bg-emerald-50 border-emerald-300 text-emerald-950'
               : 'bg-slate-50 border-slate-200 text-slate-400'
           }`}>
             <div className="flex items-center justify-between">
-              <Truck className={`w-5 h-5 ${isDispatched ? (!isDelivered ? 'text-blue-700' : 'text-emerald-700') : 'text-slate-400'}`} />
+              <Truck className={`w-5 h-5 ${isDispatched ? (currentStage === 'dispatched' ? 'text-blue-700' : 'text-emerald-700') : 'text-slate-400'}`} />
               {isDispatched && (
                 <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md ${
-                  !isDelivered ? 'text-blue-900 bg-blue-100 animate-pulse' : 'text-emerald-800 bg-emerald-100'
+                  currentStage === 'dispatched' ? 'text-blue-900 bg-blue-100 animate-pulse' : 'text-emerald-800 bg-emerald-100'
                 }`}>
-                  {!isDelivered ? '🚚 IN TRANSIT' : '✓ DONE'}
+                  {currentStage === 'dispatched' ? '🚚 IN TRANSIT' : '✓ DONE'}
                 </span>
               )}
             </div>

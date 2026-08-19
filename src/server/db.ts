@@ -7153,13 +7153,13 @@ class Store {
           }
 
           const hasProof = Boolean(unpackedProofUrl);
-          const stStr = String(o.status || '').toUpperCase();
+          const stStr = String(o.status || '').toUpperCase().trim();
           const dbOrderStatus: Order['orderStatus'] = (stStr === 'DELIVERED' || stStr === 'COMPLETED'
             ? 'DELIVERED' 
-            : stStr === 'DISPATCHED' || stStr === 'OUT_FOR_DELIVERY' || stStr === 'SHIPPED'
+            : stStr === 'DISPATCHED' || stStr === 'OUT_FOR_DELIVERY' || stStr === 'SHIPPED' || stStr === 'COURIER' || stStr === 'IN_TRANSIT'
             ? 'DISPATCHED' 
             : stStr === 'PACKING' || stStr === 'PACKED' || stStr === 'PROCESSING'
-            ? 'PROCESSING' 
+            ? 'PACKING' 
             : stStr === 'PAID' || stStr === 'CONFIRMED'
             ? 'CONFIRMED' 
             : stStr === 'CANCELLED' 
@@ -7515,13 +7515,13 @@ class Store {
       }
 
       const hasProof = Boolean(unpackedProofUrl);
-      const stStr = String(o.status || '').toUpperCase();
+      const stStr = String(o.status || '').toUpperCase().trim();
       const dbStatus: Order['orderStatus'] = (stStr === 'DELIVERED' || stStr === 'COMPLETED'
         ? 'DELIVERED' 
-        : stStr === 'DISPATCHED' || stStr === 'OUT_FOR_DELIVERY' || stStr === 'SHIPPED'
+        : stStr === 'DISPATCHED' || stStr === 'OUT_FOR_DELIVERY' || stStr === 'SHIPPED' || stStr === 'COURIER' || stStr === 'IN_TRANSIT'
         ? 'DISPATCHED' 
         : stStr === 'PACKING' || stStr === 'PACKED' || stStr === 'PROCESSING'
-        ? 'PROCESSING' 
+        ? 'PACKING' 
         : stStr === 'PAID' || stStr === 'CONFIRMED'
         ? 'CONFIRMED' 
         : stStr === 'CANCELLED' 
@@ -7658,15 +7658,18 @@ class Store {
 
     const prisma = getPrismaClient();
     if (prisma) {
-      const dbStatus = status === 'DELIVERED' 
+      const stUpper = String(status || '').toUpperCase().trim();
+      const dbStatus = (stUpper === 'DELIVERED' || stUpper === 'COMPLETED')
         ? 'DELIVERED' 
-        : (status === 'PACKED' || status === 'PROCESSING') 
+        : (stUpper === 'PACKED' || stUpper === 'PROCESSING' || stUpper === 'PACKING') 
         ? 'PACKING' 
-        : status === 'CANCELLED' 
-        ? 'CANCELLED' 
-        : status === 'DISPATCHED' 
+        : (stUpper === 'DISPATCHED' || stUpper === 'OUT_FOR_DELIVERY' || stUpper === 'SHIPPED' || stUpper === 'COURIER' || stUpper === 'IN_TRANSIT') 
         ? 'DISPATCHED' 
-        : (status === 'CONFIRMED' ? 'PAID' : 'PENDING');
+        : stUpper === 'CANCELLED' 
+        ? 'CANCELLED' 
+        : (stUpper === 'CONFIRMED' || stUpper === 'PAID') 
+        ? 'PAID' 
+        : 'PAYMENT_PENDING';
 
       const dbPayment = paymentStatus === 'SUCCESS' ? 'SUCCESS' : paymentStatus === 'FAILED' ? 'FAILED' : undefined;
       const finalTracking = trackingNumber ? `${courierName ? courierName + ' | ' : ''}${trackingNumber}` : undefined;
@@ -7944,7 +7947,15 @@ class Store {
             discount: updatedOrder.discount,
             deliveryFee: updatedOrder.shippingCharge,
             totalAmount: updatedOrder.grandTotal,
-            status: (updatedOrder.orderStatus === 'DELIVERED' ? 'DELIVERED' : updatedOrder.orderStatus === 'PROCESSING' ? 'PACKING' : updatedOrder.orderStatus === 'DISPATCHED' ? 'DISPATCHED' : 'PENDING') as any,
+            status: (() => {
+              const s = String(updatedOrder.orderStatus || '').toUpperCase().trim();
+              if (s === 'DELIVERED' || s === 'COMPLETED') return 'DELIVERED';
+              if (s === 'DISPATCHED' || s === 'OUT_FOR_DELIVERY' || s === 'SHIPPED' || s === 'COURIER' || s === 'IN_TRANSIT') return 'DISPATCHED';
+              if (s === 'PACKING' || s === 'PACKED' || s === 'PROCESSING') return 'PACKING';
+              if (s === 'CONFIRMED' || s === 'PAID') return 'PAID';
+              if (s === 'CANCELLED') return 'CANCELLED';
+              return 'PAYMENT_PENDING';
+            })() as any,
             paymentStatus: updatedOrder.paymentStatus === 'SUCCESS' ? 'SUCCESS' : 'PENDING',
             paymentMethod: (updatedOrder.paymentMethod === 'COD' ? 'COD' : updatedOrder.paymentMethod === 'PHONEPE' ? 'PHONEPE' : 'UPI') as any,
             notes: notesPayload,

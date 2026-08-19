@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { User, Order, Product } from '../types';
 import { User as UserIcon, Package, Heart, LogOut, Phone, Mail, Lock, KeyRound, Sparkles, ChevronRight, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { GoogleAuthButton } from '../components/GoogleAuthButton';
+import { getOrderStage, STAGE_CONFIG } from '../utils/orderStages';
 
 interface AccountPageProps {
   user: User | null;
@@ -699,24 +700,22 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                         <span className="text-emerald-800 text-sm block font-black">₹{o.grandTotal}</span>
                         {(() => {
                           const s = (o.orderStatus || '').toUpperCase();
-                          const isDelivered = s === 'DELIVERED' || s === 'COMPLETED';
-                          const isDispatched = s === 'DISPATCHED' || s === 'SHIPPED' || s === 'COURIER' || s === 'OUT_FOR_DELIVERY';
-                          const isPacking = s === 'PROCESSING' || s === 'PACKING' || s === 'PACKED';
-                          const isCancelled = s === 'CANCELLED';
-
+                          if (s === 'CANCELLED') {
+                            return (
+                              <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full inline-block bg-rose-700 text-white shadow-2xs">
+                                ❌ Cancelled
+                              </span>
+                            );
+                          }
+                          const stage = getOrderStage(o.orderStatus);
                           return (
-                            <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full inline-block ${
-                              isDelivered ? 'bg-emerald-700 text-white shadow-2xs' :
-                              isDispatched ? 'bg-blue-600 text-white shadow-2xs' :
-                              isPacking ? 'bg-purple-700 text-white shadow-2xs' :
-                              isCancelled ? 'bg-rose-700 text-white shadow-2xs' :
-                              'bg-amber-600 text-white shadow-2xs'
+                            <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full inline-block shadow-2xs ${
+                              stage === 'delivered' ? 'bg-purple-700 text-white' :
+                              stage === 'dispatched' ? 'bg-blue-600 text-white' :
+                              stage === 'packing' ? 'bg-amber-600 text-white' :
+                              'bg-emerald-700 text-white'
                             }`}>
-                              {isDelivered ? '4. Delivered' :
-                               isDispatched ? '3. Dispatched' :
-                               isPacking ? '2. Nursery Packing' :
-                               isCancelled ? '❌ Cancelled' :
-                               '1. Confirmed'}
+                              {STAGE_CONFIG[stage].label}
                             </span>
                           );
                         })()}

@@ -166,9 +166,13 @@ export const updateOrderStatusSchema = z.object({
     'CONFIRMED',
     'PROCESSING',
     'PACKED',
+    'PACKING',
     'DISPATCHED',
     'OUT_FOR_DELIVERY',
+    'SHIPPED',
+    'COURIER',
     'DELIVERED',
+    'COMPLETED',
     'CANCELLED',
     'REFUNDED'
   ]).optional(),

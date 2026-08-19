@@ -8,6 +8,7 @@ import { MobileAdminWorkflow } from '../components/MobileAdminWorkflow';
 import { A4LabelSheetPrint } from '../components/A4LabelSheetPrint';
 import { processLocalImageFile, processMultipleImageFiles } from '../utils/imageUpload';
 import { toast } from '../utils/toast';
+import { getOrderStage, STAGE_CONFIG } from '../utils/orderStages';
 
 // ── Inline Coupon Creation Form ──────────────────────────────────────────────
 const CouponForm: React.FC<{ categories: Category[]; onSave: (data: any) => Promise<void> }> = ({ onSave }) => {
@@ -2268,20 +2269,37 @@ Your parcel dispatched today 🚚
           onOpenEditOrder={handleOpenEditOrder}
           onDeleteOrder={handleDeleteOrder}
           onSaveTracking={async (orderId, data) => {
+            pendingOrderStatusRef.current.set(orderId, {
+              status: 'DISPATCHED',
+              courierName: data.courierName,
+              trackingNumber: data.trackingNumber,
+              time: Date.now()
+            });
+
             setOrders(prev => {
               const updated = prev.map(o => o.id === orderId ? {
                 ...o,
                 orderStatus: 'DISPATCHED' as const,
                 courierName: data.courierName,
                 trackingNumber: data.trackingNumber,
-                deliveryNotes: data.trackingLink
+                deliveryNotes: data.trackingLink,
+                updatedAt: new Date().toISOString()
               } : o);
               const keysToSave = ['veerika_admin_orders', 'vrg_user_orders', 'veerika_customer_orders', 'vrg_orders', 'vrg_my_orders'];
               keysToSave.forEach(key => {
                 try { localStorage.setItem(key, JSON.stringify(updated)); } catch {}
               });
+              try {
+                const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
+                cached.orders = updated;
+                localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+              } catch {}
               return updated;
             });
+
+            try {
+              window.dispatchEvent(new CustomEvent('orderStatusUpdated', { detail: { orderId, status: 'DISPATCHED' } }));
+            } catch {}
 
             try {
               authFetch(`/api/admin/orders/${orderId}/status`, {
@@ -3584,22 +3602,10 @@ Your parcel dispatched today 🚚
               });
             };
 
-            const pendingList = sortOrdersList(orders.filter(o => {
-              const s = (o.orderStatus || '').toUpperCase();
-              return s === 'PENDING' || s === 'CONFIRMED' || s === 'PLACED' || !s;
-            }));
-            const packingList = sortOrdersList(orders.filter(o => {
-              const s = (o.orderStatus || '').toUpperCase();
-              return s === 'PROCESSING' || s === 'PACKING' || s === 'PACKED';
-            }));
-            const dispatchedList = sortOrdersList(orders.filter(o => {
-              const s = (o.orderStatus || '').toUpperCase();
-              return s === 'DISPATCHED' || s === 'SHIPPED' || s === 'COURIER' || s === 'OUT_FOR_DELIVERY';
-            }));
-            const deliveredList = sortOrdersList(orders.filter(o => {
-              const s = (o.orderStatus || '').toUpperCase();
-              return s === 'DELIVERED' || s === 'COMPLETED';
-            }));
+            const pendingList = sortOrdersList(orders.filter(o => getOrderStage(o.orderStatus) === 'confirmed'));
+            const packingList = sortOrdersList(orders.filter(o => getOrderStage(o.orderStatus) === 'packing'));
+            const dispatchedList = sortOrdersList(orders.filter(o => getOrderStage(o.orderStatus) === 'dispatched'));
+            const deliveredList = sortOrdersList(orders.filter(o => getOrderStage(o.orderStatus) === 'delivered'));
 
             const renderOrderCard = (o: Order) => {
               const isCod = o.paymentMethod === 'COD';

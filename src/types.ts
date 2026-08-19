@@ -1,5 +1,5 @@
 export type PaymentStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'REFUNDED' | 'CANCELLED';
-export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PROCESSING' | 'PACKED' | 'DISPATCHED' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED' | 'RETURNED';
+export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PROCESSING' | 'PACKED' | 'PACKING' | 'DISPATCHED' | 'OUT_FOR_DELIVERY' | 'SHIPPED' | 'COURIER' | 'DELIVERED' | 'COMPLETED' | 'CANCELLED' | 'REFUNDED' | 'RETURNED';
 export type PaymentMethod = 'PHONEPE' | 'COD' | 'UPI_DIRECT' | 'QR_PAYMENT' | 'RAZORPAY' | 'WHATSAPP' | 'UPI' | 'MANUAL';
 
 export interface Product {
