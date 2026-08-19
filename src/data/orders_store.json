@@ -593,43 +593,6 @@
     "updatedAt": "2026-08-16T11:19:35.877Z"
   },
   {
-    "id": "ORD-8255",
-    "customerName": "Nantha Kumar",
-    "customerPhone": "9344392517",
-    "customerEmail": "nanthakumar@gmail.com",
-    "shippingAddress": {
-      "fullName": "Nantha Kumar",
-      "phone": "9344392517",
-      "houseNo": "",
-      "street": "",
-      "villageTown": "Tamil Nadu",
-      "district": "Tamil Nadu",
-      "state": "Tamil Nadu",
-      "pincode": "600001"
-    },
-    "items": [
-      {
-        "productId": "vrg-ink-spot-rose",
-        "sku": "VRG-PLANT-01",
-        "name": "Live Nursery Plants & Saplings",
-        "tamilName": "செடிகள்",
-        "price": 140,
-        "quantity": 1
-      }
-    ],
-    "subtotal": 140,
-    "shippingCharge": 0,
-    "discount": 0,
-    "grandTotal": 140,
-    "paymentStatus": "SUCCESS",
-    "orderStatus": "CONFIRMED",
-    "paymentMethod": "PHONEPE",
-    "transactionId": "MT178685629970893",
-    "razorpayPaymentId": "",
-    "createdAt": "2026-08-16T10:28:19.000Z",
-    "updatedAt": "2026-08-16T10:28:19.000Z"
-  },
-  {
     "id": "ORD-1009",
     "customerName": "Nantha Kumar",
     "customerPhone": "9344392517",
