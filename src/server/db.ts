@@ -41,14 +41,24 @@ function loadDiskReviews(): Review[] {
   return DEFAULT_REVIEWS_SEED;
 }
 
-function saveDiskReviews(reviews: Review[]) {
-  try {
-    const dir = path.dirname(REVIEWS_STORE_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(REVIEWS_STORE_FILE, JSON.stringify(reviews, null, 2), 'utf-8');
-  } catch (err) {
-    console.error('Error writing reviews_store.json:', err);
+function safeWriteDiskJson(filePath: string, data: any) {
+  // In serverless environments (Vercel Lambda), filesystem is read-only except /tmp
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.LAMBDA_TASK_ROOT) {
+    return;
   }
+  try {
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (err: any) {
+    if (err?.code !== 'EROFS') {
+      console.error(`Error writing ${path.basename(filePath)}:`, err);
+    }
+  }
+}
+
+function saveDiskReviews(reviews: Review[]) {
+  safeWriteDiskJson(REVIEWS_STORE_FILE, reviews);
 }
 
 import bundledOrdersSeed from '../data/orders_store.json' with { type: 'json' };
@@ -69,13 +79,7 @@ function loadDiskOrders(): Order[] {
 }
 
 function saveDiskOrders(orders: Order[]) {
-  try {
-    const dir = path.dirname(ORDERS_STORE_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(ORDERS_STORE_FILE, JSON.stringify(orders, null, 2), 'utf-8');
-  } catch (err) {
-    console.error('Error writing orders_store.json:', err);
-  }
+  safeWriteDiskJson(ORDERS_STORE_FILE, orders);
 }
 
 const DELETED_ORDERS_STORE_FILE = path.resolve(process.cwd(), 'src/data/deleted_orders.json');
@@ -94,13 +98,7 @@ function loadDiskDeletedOrders(): Set<string> {
 }
 
 function saveDiskDeletedOrders(ids: Set<string>) {
-  try {
-    const dir = path.dirname(DELETED_ORDERS_STORE_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(DELETED_ORDERS_STORE_FILE, JSON.stringify(Array.from(ids), null, 2), 'utf-8');
-  } catch (err) {
-    console.error('Error writing deleted_orders.json:', err);
-  }
+  safeWriteDiskJson(DELETED_ORDERS_STORE_FILE, Array.from(ids));
 }
 
 
@@ -120,13 +118,7 @@ function loadDiskFinances(): FinancialEntry[] {
 }
 
 function saveDiskFinances(finances: FinancialEntry[]) {
-  try {
-    const dir = path.dirname(FINANCES_STORE_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(FINANCES_STORE_FILE, JSON.stringify(finances, null, 2), 'utf-8');
-  } catch (err) {
-    console.error('Error writing finances_store.json:', err);
-  }
+  safeWriteDiskJson(FINANCES_STORE_FILE, finances);
 }
 
 const COMBOS_STORE_FILE = path.resolve(process.cwd(), 'src/data/combos_store.json');
@@ -149,13 +141,7 @@ function loadDiskDeletedCombos(): Set<string> {
 }
 
 function saveDiskDeletedCombos(ids: Set<string>) {
-  try {
-    const dir = path.dirname(DELETED_COMBOS_STORE_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(DELETED_COMBOS_STORE_FILE, JSON.stringify(Array.from(ids), null, 2), 'utf-8');
-  } catch (err) {
-    console.error('Error writing deleted_combos.json:', err);
-  }
+  safeWriteDiskJson(DELETED_COMBOS_STORE_FILE, Array.from(ids));
 }
 
 const DELETED_PRODUCTS_STORE_FILE = path.resolve(process.cwd(), 'src/data/deleted_products.json');
@@ -174,13 +160,7 @@ function loadDiskDeletedProducts(): Set<string> {
 }
 
 function saveDiskDeletedProducts(ids: Set<string>) {
-  try {
-    const dir = path.dirname(DELETED_PRODUCTS_STORE_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(DELETED_PRODUCTS_STORE_FILE, JSON.stringify(Array.from(ids), null, 2), 'utf-8');
-  } catch (err) {
-    console.error('Error writing deleted_products.json:', err);
-  }
+  safeWriteDiskJson(DELETED_PRODUCTS_STORE_FILE, Array.from(ids));
 }
 
 const PRODUCTS_STORE_FILE = path.resolve(process.cwd(), 'src/data/products_store.json');
@@ -199,13 +179,7 @@ function loadDiskProducts(): Product[] {
 }
 
 function saveDiskProducts(products: Product[]) {
-  try {
-    const dir = path.dirname(PRODUCTS_STORE_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(PRODUCTS_STORE_FILE, JSON.stringify(products, null, 2), 'utf-8');
-  } catch (err) {
-    console.error('Error writing products_store.json:', err);
-  }
+  safeWriteDiskJson(PRODUCTS_STORE_FILE, products);
 }
 
 function loadDiskCombos(): Combo[] {
@@ -222,13 +196,7 @@ function loadDiskCombos(): Combo[] {
 }
 
 function saveDiskCombos(combos: Combo[]) {
-  try {
-    const dir = path.dirname(COMBOS_STORE_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(COMBOS_STORE_FILE, JSON.stringify(combos, null, 2), 'utf-8');
-  } catch (err) {
-    console.error('Error writing combos_store.json:', err);
-  }
+  safeWriteDiskJson(COMBOS_STORE_FILE, combos);
 }
 
 // Default Fallback Data matching WhatsApp Catalogue
