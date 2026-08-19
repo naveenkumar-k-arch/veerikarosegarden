@@ -4,6 +4,59 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
     
+    <!-- Synchronous Self-Healing Bootstrap Script for Returning Visitors -->
+    <script>
+      (function() {
+        try {
+          // 1. Unregister any stale legacy service workers from previous versions
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+              for (var i = 0; i < regs.length; i++) { regs[i].unregister(); }
+            }).catch(function() {});
+          }
+          // 2. Clear any stale cache storage
+          if ('caches' in window) {
+            caches.keys().then(function(names) {
+              for (var i = 0; i < names.length; i++) { caches.delete(names[i]); }
+            }).catch(function() {});
+          }
+          // 3. Clear conflicting navigation state if user lands on root
+          var path = (window.location.pathname || '/').trim().replace(/\/+$/, '') || '/';
+          if (path === '/' || path === '') {
+            try {
+              sessionStorage.removeItem('vrg_current_page');
+              sessionStorage.removeItem('vrg_selected_product');
+              sessionStorage.removeItem('vrg_selected_order_id');
+            } catch(e) {}
+          }
+          // 4. Validate and sanitize localStorage JSON to prevent fatal React 18 parse crashes
+          var keys = [
+            'vrg_products', 'vrg_categories', 'vrg_banners', 'vrg_reviews',
+            'vrg_combos_cache', 'vrg_deleted_combos', 'vrg_deleted_products',
+            'vrg_deleted_reviews', 'vrg_cart', 'vrg_wishlist', 'vrg_user',
+            'vrg_my_orders', 'vrg_user_orders', 'veerika_customer_orders',
+            'vrg_admin_persisted_cache', 'vrg_admin_bootstrap_cache',
+            'vrg_pending_upi_payment', 'vrg_pending_razorpay_order'
+          ];
+          for (var j = 0; j < keys.length; j++) {
+            var k = keys[j];
+            var val = localStorage.getItem(k);
+            if (val !== null) {
+              try {
+                if (val === 'undefined' || val === 'null') {
+                  localStorage.removeItem(k);
+                } else {
+                  JSON.parse(val);
+                }
+              } catch(err) {
+                localStorage.removeItem(k);
+              }
+            }
+          }
+        } catch(e) {}
+      })();
+    </script>
+    
     <title>Veerika Rose Garden - Buy Live Rose Plants, Exotic Varieties & Fruit Trees Online</title>
     <meta name="description" content="Veerika Rose Garden (வீரிகா ரோஜா கார்டன்) - Premier plant nursery in Tamil Nadu offering 50+ authentic hybrid roses, exotic rare varieties, grafted fruit trees, jasmine, medicinal herbal plants, and organic fertilizers with secure all-India delivery." />
     <meta name="keywords" content="Veerika Rose Garden, வீரிகா ரோஜா கார்டன், buy rose plants online india, exotic rare roses, black magic rose, juliet rose, live plant nursery tamil nadu, pennagaram nursery, hybrid roses, fruit tree saplings, medicinal herbal plants, online plant shopping" />

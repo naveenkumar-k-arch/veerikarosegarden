@@ -83,22 +83,23 @@ export const HomePage: React.FC<HomePageProps> = ({
   }, []);
 
   const getLiveReviews = (): Review[] => {
-    if (Array.isArray(reviewsList)) return reviewsList;
-    if (Array.isArray(reviews)) return reviews;
+    if (Array.isArray(reviewsList) && reviewsList.length > 0) return reviewsList.filter(Boolean);
+    if (Array.isArray(reviews) && reviews.length > 0) return reviews.filter(Boolean);
     try {
       const saved = localStorage.getItem('vrg_reviews');
       if (saved !== null) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) return parsed.filter(Boolean);
       }
     } catch {}
-    return INITIAL_REVIEWS;
+    return (INITIAL_REVIEWS || []).filter(Boolean);
   };
 
-  const approvedReviews = getLiveReviews().filter(r => r.status === 'APPROVED');
+  const approvedReviews = getLiveReviews().filter(r => r && (r.status === 'APPROVED' || !r.status));
 
   // Helper: exclude combo/offer products from regular grids — they belong only in CombosSection / Combos category
   const isComboProduct = (p: Product) => {
+    if (!p) return false;
     const catId = (p.categoryId || '').toLowerCase();
     const catName = (p.categoryName || '').toLowerCase();
     const id = (p.id || '').toLowerCase();
@@ -109,15 +110,18 @@ export const HomePage: React.FC<HomePageProps> = ({
       catName.includes('combo') ||
       catName.includes('offer') ||
       id.startsWith('combo-') ||
-      (p.tags && p.tags.some(t => t === 'combo' || t === 'offer' || t === 'bundle' || t === 'combos'))
+      (Array.isArray(p.tags) && p.tags.some(t => t === 'combo' || t === 'offer' || t === 'bundle' || t === 'combos'))
     );
   };
 
-  const regularProducts = products.filter(p => !isComboProduct(p));
-  const featuredProducts = regularProducts.filter(p => p.featured).slice(0, 8);
-  const bestSellers = regularProducts.filter(p => p.bestSeller).slice(0, 8);
-  const activeCategories = categories.filter(c => c.isActive !== false).sort((a, b) => (a.order ?? 1) - (b.order ?? 1));
-  const displayCategories = (activeCategories.filter(c => c.isFeatured).length > 0 ? activeCategories.filter(c => c.isFeatured) : activeCategories).slice(0, 8);
+  const safeProducts = Array.isArray(products) ? products.filter(Boolean) : [];
+  const safeCategories = Array.isArray(categories) ? categories.filter(Boolean) : [];
+
+  const regularProducts = safeProducts.filter(p => !isComboProduct(p));
+  const featuredProducts = regularProducts.filter(p => p && p.featured).slice(0, 8);
+  const bestSellers = regularProducts.filter(p => p && p.bestSeller).slice(0, 8);
+  const activeCategories = safeCategories.filter(c => c && c.isActive !== false).sort((a, b) => ((a?.order ?? 1) - (b?.order ?? 1)));
+  const displayCategories = (activeCategories.filter(c => c && c.isFeatured).length > 0 ? activeCategories.filter(c => c && c.isFeatured) : activeCategories).slice(0, 8);
 
   const getCategoryProducts = (cat: Category) => {
     const cName = (cat.name || '').toLowerCase();

@@ -61,22 +61,28 @@ export async function firestoreSaveOrder(order: any): Promise<void> {
     await fetch(url, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fields })
+      body: JSON.stringify({ fields }),
+      signal: AbortSignal.timeout(5000)
     });
-  } catch (err) {
-    console.error('Firestore saveOrder error:', err);
+  } catch (err: any) {
+    if (err?.name !== 'AbortError') {
+      console.warn('Firestore saveOrder notice:', err?.message || err);
+    }
   }
 }
 
 export async function firestoreGetAllOrders(): Promise<any[]> {
   try {
     const url = `${FIRESTORE_BASE}/orders?pageSize=200`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return [];
     const data = await res.json();
     if (!data?.documents) return [];
     return data.documents.map(docToOrder).filter(Boolean);
-  } catch (err) {
-    console.error('Firestore getAllOrders error:', err);
+  } catch (err: any) {
+    if (err?.name !== 'AbortError') {
+      console.warn('Firestore getAllOrders notice:', err?.message || err);
+    }
     return [];
   }
 }
@@ -87,7 +93,8 @@ export async function firestoreUpdateOrder(orderId: string, updates: Record<stri
     const url = `${FIRESTORE_BASE}/orders/${docId}`;
 
     // First get the existing document
-    const getRes = await fetch(url);
+    const getRes = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (!getRes.ok) return;
     const existing = await getRes.json();
     const existingFields = existing?.fields || {};
 
@@ -100,10 +107,13 @@ export async function firestoreUpdateOrder(orderId: string, updates: Record<stri
     await fetch(url, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fields: mergedFields })
+      body: JSON.stringify({ fields: mergedFields }),
+      signal: AbortSignal.timeout(5000)
     });
-  } catch (err) {
-    console.error('Firestore updateOrder error:', err);
+  } catch (err: any) {
+    if (err?.name !== 'AbortError') {
+      console.warn('Firestore updateOrder notice:', err?.message || err);
+    }
   }
 }
 
@@ -112,10 +122,13 @@ export async function firestoreDeleteOrder(orderId: string): Promise<void> {
     const docId = orderId.replace(/[^a-zA-Z0-9_-]/g, '_');
     const url = `${FIRESTORE_BASE}/orders/${docId}`;
     await fetch(url, {
-      method: 'DELETE'
+      method: 'DELETE',
+      signal: AbortSignal.timeout(5000)
     }).catch(() => null);
-  } catch (err) {
-    console.error('Firestore deleteOrder error:', err);
+  } catch (err: any) {
+    if (err?.name !== 'AbortError') {
+      console.warn('Firestore deleteOrder notice:', err?.message || err);
+    }
   }
 }
 

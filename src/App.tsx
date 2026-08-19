@@ -10,21 +10,22 @@ import { SplashScreen } from './components/SplashScreen';
 import { ToastContainer } from './components/ToastContainer';
 
 import { HomePage } from './pages/HomePage';
+import { lazyWithRetry } from './utils/lazyWithRetry';
 
-const ShopPage = React.lazy(() => import('./pages/ShopPage').then(m => ({ default: m.ShopPage })));
-const ProductDetailsPage = React.lazy(() => import('./pages/ProductDetailsPage').then(m => ({ default: m.ProductDetailsPage })));
-const CartPage = React.lazy(() => import('./pages/CartPage').then(m => ({ default: m.CartPage })));
-const CheckoutPage = React.lazy(() => import('./pages/CheckoutPage').then(m => ({ default: m.CheckoutPage })));
-const OrderStatusPage = React.lazy(() => import('./pages/OrderStatusPage').then(m => ({ default: m.OrderStatusPage })));
-const AccountPage = React.lazy(() => import('./pages/AccountPage').then(m => ({ default: m.AccountPage })));
-const PoliciesPage = React.lazy(() => import('./pages/PoliciesPage').then(m => ({ default: m.PoliciesPage })));
-const AdminPage = React.lazy(() => import('./pages/AdminPage').then(m => ({ default: m.AdminPage })));
-const AdminLoginForm = React.lazy(() => import('./components/AdminLoginForm').then(m => ({ default: m.AdminLoginForm })));
+const ShopPage = lazyWithRetry(() => import('./pages/ShopPage').then(m => ({ default: m.ShopPage })));
+const ProductDetailsPage = lazyWithRetry(() => import('./pages/ProductDetailsPage').then(m => ({ default: m.ProductDetailsPage })));
+const CartPage = lazyWithRetry(() => import('./pages/CartPage').then(m => ({ default: m.CartPage })));
+const CheckoutPage = lazyWithRetry(() => import('./pages/CheckoutPage').then(m => ({ default: m.CheckoutPage })));
+const OrderStatusPage = lazyWithRetry(() => import('./pages/OrderStatusPage').then(m => ({ default: m.OrderStatusPage })));
+const AccountPage = lazyWithRetry(() => import('./pages/AccountPage').then(m => ({ default: m.AccountPage })));
+const PoliciesPage = lazyWithRetry(() => import('./pages/PoliciesPage').then(m => ({ default: m.PoliciesPage })));
+const AdminPage = lazyWithRetry(() => import('./pages/AdminPage').then(m => ({ default: m.AdminPage })));
+const AdminLoginForm = lazyWithRetry(() => import('./components/AdminLoginForm').then(m => ({ default: m.AdminLoginForm })));
 
-const PlantCareModal = React.lazy(() => import('./components/PlantCareModal').then(m => ({ default: m.PlantCareModal })));
-const PhonePeModal = React.lazy(() => import('./components/PhonePeModal').then(m => ({ default: m.PhonePeModal })));
-const ExpertAdviceModal = React.lazy(() => import('./components/ExpertAdviceModal').then(m => ({ default: m.ExpertAdviceModal })));
-const MobileCheckoutFlow = React.lazy(() => import('./components/MobileCheckoutFlow').then(m => ({ default: m.MobileCheckoutFlow })));
+const PlantCareModal = lazyWithRetry(() => import('./components/PlantCareModal').then(m => ({ default: m.PlantCareModal })));
+const PhonePeModal = lazyWithRetry(() => import('./components/PhonePeModal').then(m => ({ default: m.PhonePeModal })));
+const ExpertAdviceModal = lazyWithRetry(() => import('./components/ExpertAdviceModal').then(m => ({ default: m.ExpertAdviceModal })));
+const MobileCheckoutFlow = lazyWithRetry(() => import('./components/MobileCheckoutFlow').then(m => ({ default: m.MobileCheckoutFlow })));
 
 import { INITIAL_PRODUCTS, INITIAL_CATEGORIES } from './data/catalogData';
 
@@ -92,20 +93,12 @@ export const App: React.FC = () => {
 
   // Page Navigation State — multi-page URL routing enabled
   const [currentPage, setCurrentPage] = useState<string>(() => {
-    if (initialUrlState.page && initialUrlState.page !== 'home') return initialUrlState.page;
-    try {
-      const saved = sessionStorage.getItem('vrg_current_page');
-      if (saved && ['home', 'shop', 'product-detail', 'cart', 'checkout', 'order-status', 'account', 'policies', 'admin'].includes(saved)) {
-        return saved;
-      }
-      // If user had an active checkout or pending UPI payment, restore checkout page
-      const pendingUpi = localStorage.getItem('vrg_pending_upi_payment');
-      const checkoutStep = sessionStorage.getItem('vrg_checkout_step') || localStorage.getItem('vrg_checkout_step');
-      if (pendingUpi || (checkoutStep && parseInt(checkoutStep, 10) > 1)) {
-        return 'checkout';
-      }
-    } catch {}
-    return 'home';
+    const pathname = (typeof window !== 'undefined' ? window.location.pathname : '').trim().replace(/\/+$/, '') || '/';
+    if (pathname === '/' || pathname === '') {
+      return 'home';
+    }
+    const state = getPageFromUrl(pathname);
+    return state.page || 'home';
   });
 
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(() => {
@@ -1121,8 +1114,6 @@ export const App: React.FC = () => {
           display: 'flex',
           flexDirection: 'column',
           fontFamily: 'var(--font-body)',
-          opacity: showSplash ? 0 : 1,
-          transition: 'opacity 0.5s ease',
           position: 'relative',
         }}
       >
@@ -1237,23 +1228,40 @@ export const App: React.FC = () => {
           />
         )}
 
-        {currentPage === 'product-detail' && selectedProduct && (
-          <ProductDetailsPage
-            product={selectedProduct}
-            onBack={() => navigateTo('shop')}
-            onAddToCart={handleAddToCart}
-            onBuyNow={handleBuyNow}
-            onOpenCareGuide={(p) => setCareGuideProduct(p)}
-            relatedProducts={products.filter((p) => p.categoryId === selectedProduct.categoryId && p.id !== selectedProduct.id)}
-            onSelectProduct={(p) => {
-              navigateTo('product-detail', { product: p });
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            reviews={reviews.filter((r) => r.productId === selectedProduct.id)}
-            onSubmitReview={handleSubmitReview}
-            isWishlisted={wishlist.some((w) => w.id === selectedProduct.id)}
-            onToggleWishlist={handleToggleWishlist}
-          />
+        {currentPage === 'product-detail' && (
+          selectedProduct ? (
+            <ProductDetailsPage
+              product={selectedProduct}
+              onBack={() => navigateTo('shop')}
+              onAddToCart={handleAddToCart}
+              onBuyNow={handleBuyNow}
+              onOpenCareGuide={(p) => setCareGuideProduct(p)}
+              relatedProducts={products.filter((p) => p.categoryId === selectedProduct.categoryId && p.id !== selectedProduct.id)}
+              onSelectProduct={(p) => {
+                navigateTo('product-detail', { product: p });
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              reviews={reviews.filter((r) => r.productId === selectedProduct.id)}
+              onSubmitReview={handleSubmitReview}
+              isWishlisted={wishlist.some((w) => w.id === selectedProduct.id)}
+              onToggleWishlist={handleToggleWishlist}
+            />
+          ) : (
+            <ShopPage
+              products={products}
+              categories={categories}
+              selectedCategory={selectedCategory}
+              onSelectCategory={(catId) => setSelectedCategory(catId)}
+              searchQuery={searchQuery}
+              onSearchChange={(q) => setSearchQuery(q)}
+              onAddToCart={handleAddToCart}
+              onViewDetails={(product) => {
+                navigateTo('product-detail', { product });
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              onOpenCareGuide={(product) => setCareGuideProduct(product)}
+            />
+          )
         )}
 
         {currentPage === 'cart' && (
@@ -1298,9 +1306,9 @@ export const App: React.FC = () => {
           />
         )}
 
-        {currentPage === 'order-status' && selectedOrderId && (
+        {currentPage === 'order-status' && (
           <OrderStatusPage
-            orderId={selectedOrderId}
+            orderId={selectedOrderId || ''}
             onBackToHome={() => {
               navigateTo('home');
               window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1363,6 +1371,34 @@ export const App: React.FC = () => {
               onBackToStore={() => navigateTo('home')}
             />
           )
+        )}
+        {/* Universal Fallback: If for any reason currentPage is unknown or mismatched, always render HomePage */}
+        {!['home', 'shop', 'product-detail', 'cart', 'checkout', 'order-status', 'account', 'policies', 'admin'].includes(currentPage) && (
+          <HomePage
+            products={products}
+            categories={categories}
+            banners={banners}
+            reviews={reviews}
+            onAddToCart={handleAddToCart}
+            onViewDetails={(product) => {
+              navigateTo('product-detail', { product });
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onOpenCareGuide={(product) => setCareGuideProduct(product)}
+            onOpenExpertAdvice={() => setIsExpertAdviceOpen(true)}
+            onNavigate={(page) => {
+              navigateTo(page);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onSelectCategory={(catId) => {
+              navigateTo('shop', { category: catId });
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onSearchTag={(tag) => {
+              navigateTo('shop', { query: tag });
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
         )}
         </React.Suspense>
       </main>

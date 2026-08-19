@@ -22,6 +22,8 @@ export interface CompactProductCardProps {
 export const CompactProductCard: React.FC<CompactProductCardProps> = ({
   product, onAddToCart, onViewDetails, isWishlisted = false, onToggleWishlist
 }) => {
+  if (!product || !product.id) return null;
+
   const [imgError, setImgError] = useState(false);
   const [added, setAdded] = useState(false);
 
@@ -280,6 +282,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   product, onAddToCart, onViewDetails, onOpenCareGuide,
   isWishlisted = false, onToggleWishlist
 }) => {
+  if (!product || !product.id) return null;
+
   const [imgError, setImgError] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
 

@@ -61,26 +61,34 @@ export const ShopPage: React.FC<ShopPageProps> = ({
   }, []);
 
   // Convert live combos to virtual products
-  const comboProducts = useMemo(() => combosList.map(comboToProduct), [combosList]);
+  const comboProducts = useMemo(() => (combosList || []).filter(Boolean).map(comboToProduct), [combosList]);
 
   // Combine regular catalog products and combo products
   const allShopProducts = useMemo(() => {
-    const existingIds = new Set(products.map(p => p.id));
-    const uniqueCombos = comboProducts.filter(cp => !existingIds.has(cp.id));
-    return [...products, ...uniqueCombos];
+    const safeProducts = (products || []).filter((p: Product) => p && p.id);
+    const existingIds = new Set(safeProducts.map(p => p.id));
+    const uniqueCombos = comboProducts.filter(cp => cp && cp.id && !existingIds.has(cp.id));
+    return [...safeProducts, ...uniqueCombos];
   }, [products, comboProducts]);
 
   // Robust Category Matching Helper
   const isProductInCat = (p: Product, catTarget?: string): boolean => {
+    if (!p) return false;
     if (!catTarget || catTarget === 'all') return true;
 
-    const matchCat = categories.find(
-      c => c.id === catTarget || c.slug === catTarget || c.id.toLowerCase() === catTarget.toLowerCase() || c.name.toLowerCase() === catTarget.toLowerCase()
+    const safeCategories = (categories || []).filter(Boolean);
+    const matchCat = safeCategories.find(
+      c => c && (
+        c.id === catTarget ||
+        c.slug === catTarget ||
+        (c.id && c.id.toLowerCase() === catTarget.toLowerCase()) ||
+        (c.name && c.name.toLowerCase() === catTarget.toLowerCase())
+      )
     );
 
-    const targetId = (matchCat ? matchCat.id : catTarget).toLowerCase();
-    const targetSlug = (matchCat ? matchCat.slug : catTarget).toLowerCase();
-    const targetName = (matchCat ? matchCat.name : catTarget).toLowerCase();
+    const targetId = (matchCat?.id || catTarget || '').toLowerCase();
+    const targetSlug = (matchCat?.slug || catTarget || '').toLowerCase();
+    const targetName = (matchCat?.name || catTarget || '').toLowerCase();
 
     const pCatId = (p.categoryId || '').toLowerCase();
     const pCatName = (p.categoryName || '').toLowerCase();

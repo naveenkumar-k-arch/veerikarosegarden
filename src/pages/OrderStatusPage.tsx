@@ -17,13 +17,17 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
       for (const k of keys) {
         const raw = localStorage.getItem(k);
         if (raw) {
-          const list: Order[] = JSON.parse(raw);
-          const found = list.find(o => 
-            (o.id && o.id.toLowerCase() === cleanTarget) ||
-            (o.merchantTransactionId && o.merchantTransactionId.toLowerCase() === cleanTarget) ||
-            (o.trackingNumber && o.trackingNumber.toLowerCase() === cleanTarget)
-          );
-          if (found) return found;
+          const list = JSON.parse(raw);
+          if (Array.isArray(list)) {
+            const found = list.find((o: any) => 
+              o && (
+                (o.id && String(o.id).toLowerCase() === cleanTarget) ||
+                (o.merchantTransactionId && String(o.merchantTransactionId).toLowerCase() === cleanTarget) ||
+                (o.trackingNumber && String(o.trackingNumber).toLowerCase() === cleanTarget)
+              )
+            );
+            if (found) return found;
+          }
         }
       }
     } catch {}
@@ -49,11 +53,12 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
           try {
             const raw = localStorage.getItem(k);
             if (raw) {
-              const list: Order[] = JSON.parse(raw);
+              const list = JSON.parse(raw);
               if (Array.isArray(list)) {
-                localStorage.setItem(k, JSON.stringify(list.filter(o => 
-                  o.id.toLowerCase() !== cleanTarget.toLowerCase() && 
-                  (!o.merchantTransactionId || o.merchantTransactionId.toLowerCase() !== cleanTarget.toLowerCase())
+                localStorage.setItem(k, JSON.stringify(list.filter((o: any) => 
+                  o && o.id && 
+                  String(o.id).toLowerCase() !== cleanTarget.toLowerCase() && 
+                  (!o.merchantTransactionId || String(o.merchantTransactionId).toLowerCase() !== cleanTarget.toLowerCase())
                 )));
               }
             }
