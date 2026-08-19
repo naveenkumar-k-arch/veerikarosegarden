@@ -163,6 +163,8 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   // 4 Stage Filter: 'confirmed' | 'packing' | 'dispatched' | 'delivered'
   const [orderStageFilter, setOrderStageFilter] = useState<'confirmed' | 'packing' | 'dispatched' | 'delivered'>('confirmed');
   const [searchQuery, setSearchQuery] = useState('');
+  // Order Sorting: 'date_desc' (Newest Date First - Default), 'date_asc' (Oldest First), 'price_desc' (Highest Amount First), 'price_asc' (Lowest Amount First)
+  const [orderSortBy, setOrderSortBy] = useState<'date_desc' | 'date_asc' | 'price_desc' | 'price_asc'>('date_desc');
 
   // Label Generation State
   const [selectedLabelOrderIds, setSelectedLabelOrderIds] = useState<string[]>([]);
@@ -978,7 +980,30 @@ Your parcel dispatched today 🚚
     reader.readAsDataURL(file);
   };
 
-  // Filtered Orders
+  // Helper to extract clean timestamp for exact chronological sorting
+  const getOrderTime = useCallback((o: Order): number => {
+    if (o.createdAt) {
+      const t = new Date(o.createdAt).getTime();
+      if (!isNaN(t) && t > 0) return t;
+    }
+    if (o.updatedAt) {
+      const t = new Date(o.updatedAt).getTime();
+      if (!isNaN(t) && t > 0) return t;
+    }
+    const num = parseInt((o.id || '').replace(/\D/g, ''), 10);
+    return isNaN(num) ? 0 : num;
+  }, []);
+
+  // All orders sorted Newest First (for Dashboard & global views)
+  const sortedAllOrders = useMemo(() => {
+    return [...orders].sort((a, b) => {
+      const diff = getOrderTime(b) - getOrderTime(a);
+      if (diff !== 0) return diff;
+      return (b.id || '').localeCompare(a.id || '');
+    });
+  }, [orders, getOrderTime]);
+
+  // Filtered & Sorted Orders Feed
   const filteredOrders = useMemo(() => {
     let list = [...orders];
 
@@ -1015,8 +1040,35 @@ Your parcel dispatched today 🚚
       );
     }
 
+    // Sort according to orderSortBy (Newest First by Default)
+    list.sort((a, b) => {
+      if (orderSortBy === 'date_desc') {
+        const diff = getOrderTime(b) - getOrderTime(a);
+        if (diff !== 0) return diff;
+        return (b.id || '').localeCompare(a.id || '');
+      }
+      if (orderSortBy === 'date_asc') {
+        const diff = getOrderTime(a) - getOrderTime(b);
+        if (diff !== 0) return diff;
+        return (a.id || '').localeCompare(b.id || '');
+      }
+      if (orderSortBy === 'price_desc') {
+        const priceA = Number(a.grandTotal || (a as any).total || 0);
+        const priceB = Number(b.grandTotal || (b as any).total || 0);
+        if (priceB !== priceA) return priceB - priceA;
+        return getOrderTime(b) - getOrderTime(a);
+      }
+      if (orderSortBy === 'price_asc') {
+        const priceA = Number(a.grandTotal || (a as any).total || 0);
+        const priceB = Number(b.grandTotal || (b as any).total || 0);
+        if (priceA !== priceB) return priceA - priceB;
+        return getOrderTime(b) - getOrderTime(a);
+      }
+      return 0;
+    });
+
     return list;
-  }, [orders, orderStageFilter, searchQuery]);
+  }, [orders, orderStageFilter, searchQuery, orderSortBy, getOrderTime]);
 
   // Filtered Products
   const filteredProducts = useMemo(() => {
@@ -1058,13 +1110,17 @@ Your parcel dispatched today 🚚
     const unprinted = list.filter(o => !isOrderPrinted(o.id));
     const printed = list.filter(o => isOrderPrinted(o.id));
 
+    // Sort both subsets newest date first
+    unprinted.sort((a, b) => getOrderTime(b) - getOrderTime(a));
+    printed.sort((a, b) => getOrderTime(b) - getOrderTime(a));
+
     let displayed: Order[] = [];
     if (labelFilterTab === 'not_printed') {
       displayed = unprinted;
     } else if (labelFilterTab === 'printed') {
       displayed = printed;
     } else {
-      // 'all': Not printed orders on top, printed orders moved down to bottom!
+      // 'all': Not printed orders on top (newest first), printed orders moved down to bottom (newest first)!
       displayed = [...unprinted, ...printed];
     }
 
@@ -1274,7 +1330,7 @@ Your parcel dispatched today 🚚
               </div>
 
               <div className="space-y-2.5">
-                {orders.slice(0, 6).map((order) => {
+                {sortedAllOrders.slice(0, 6).map((order) => {
                   const isPacking = order.orderStatus === 'PACKED' || order.orderStatus === 'PROCESSING';
                   const isDispatched = order.orderStatus === 'DISPATCHED' || order.orderStatus === 'OUT_FOR_DELIVERY';
                   const isDelivered = order.orderStatus === 'DELIVERED';
@@ -1445,6 +1501,43 @@ Your parcel dispatched today 🚚
                   </span>
                 </button>
               ))}
+            </div>
+
+            {/* Sort Controls Bar: Sort by Date / Price Toggle Buttons */}
+            <div className="flex items-center justify-between gap-2 px-0.5 pt-0.5 pb-0.5">
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+                <button
+                  type="button"
+                  onClick={() => setOrderSortBy(prev => prev === 'date_desc' ? 'date_asc' : 'date_desc')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs whitespace-nowrap active:scale-95 border ${
+                    orderSortBy.startsWith('date')
+                      ? 'bg-emerald-800 text-white border-emerald-900 shadow-xs'
+                      : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
+                  }`}
+                  title="Click to toggle Date sort order"
+                >
+                  <span>📅</span>
+                  <span>{orderSortBy === 'date_asc' ? 'Date: Oldest ↑' : 'Date: Newest ↓'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setOrderSortBy(prev => prev === 'price_desc' ? 'price_asc' : 'price_desc')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs whitespace-nowrap active:scale-95 border ${
+                    orderSortBy.startsWith('price')
+                      ? 'bg-emerald-800 text-white border-emerald-900 shadow-xs'
+                      : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
+                  }`}
+                  title="Click to toggle Price sort order"
+                >
+                  <span>💰</span>
+                  <span>{orderSortBy === 'price_asc' ? 'Price: Low → High ↑' : 'Price: High → Low ↓'}</span>
+                </button>
+              </div>
+
+              <span className="text-[11px] font-black text-slate-500 shrink-0 bg-slate-200/80 px-2 py-1 rounded-lg">
+                {filteredOrders.length} {filteredOrders.length === 1 ? 'order' : 'orders'}
+              </span>
             </div>
 
             {/* Orders Feed */}

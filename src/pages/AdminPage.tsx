@@ -223,8 +223,14 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
   const [orders, setOrders] = useState<Order[]>(() => {
     try { localStorage.removeItem('vrg_deleted_orders'); } catch {}
     const list = Array.isArray(initialCache?.orders) ? initialCache.orders : [];
-    return list.filter((o: Order) => o && o.id);
+    return list.filter((o: Order) => o && o.id).sort((a: Order, b: Order) => {
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      if (timeB !== timeA) return timeB - timeA;
+      return (b.id || '').localeCompare(a.id || '');
+    });
   });
+  const [orderSortBy, setOrderSortBy] = useState<'date_desc' | 'date_asc' | 'price_desc' | 'price_asc'>('date_desc');
   const [coupons, setCoupons] = useState<Coupon[]>(() => Array.isArray(initialCache?.coupons) ? initialCache.coupons : []);
   const [combos, setCombos] = useState<Combo[]>(() => Array.isArray(initialCache?.combos) ? initialCache.combos : []);
   const [showComboModal, setShowComboModal] = useState(false);
@@ -3537,22 +3543,63 @@ Your parcel dispatched today 🚚
 
           {/* TAB 3: ORDERS MANAGEMENT - 4 CATEGORIZED SECTIONS */}
           {activeTab === 'orders' && (() => {
-            const pendingList = orders.filter(o => {
+            const getOrderTime = (o: Order): number => {
+              if (o.createdAt) {
+                const t = new Date(o.createdAt).getTime();
+                if (!isNaN(t) && t > 0) return t;
+              }
+              if (o.updatedAt) {
+                const t = new Date(o.updatedAt).getTime();
+                if (!isNaN(t) && t > 0) return t;
+              }
+              const num = parseInt((o.id || '').replace(/\D/g, ''), 10);
+              return isNaN(num) ? 0 : num;
+            };
+
+            const sortOrdersList = (list: Order[]): Order[] => {
+              return [...list].sort((a, b) => {
+                if (orderSortBy === 'date_desc') {
+                  const diff = getOrderTime(b) - getOrderTime(a);
+                  if (diff !== 0) return diff;
+                  return (b.id || '').localeCompare(a.id || '');
+                }
+                if (orderSortBy === 'date_asc') {
+                  const diff = getOrderTime(a) - getOrderTime(b);
+                  if (diff !== 0) return diff;
+                  return (a.id || '').localeCompare(b.id || '');
+                }
+                if (orderSortBy === 'price_desc') {
+                  const priceA = Number(a.grandTotal || (a as any).total || 0);
+                  const priceB = Number(b.grandTotal || (b as any).total || 0);
+                  if (priceB !== priceA) return priceB - priceA;
+                  return getOrderTime(b) - getOrderTime(a);
+                }
+                if (orderSortBy === 'price_asc') {
+                  const priceA = Number(a.grandTotal || (a as any).total || 0);
+                  const priceB = Number(b.grandTotal || (b as any).total || 0);
+                  if (priceA !== priceB) return priceA - priceB;
+                  return getOrderTime(b) - getOrderTime(a);
+                }
+                return 0;
+              });
+            };
+
+            const pendingList = sortOrdersList(orders.filter(o => {
               const s = (o.orderStatus || '').toUpperCase();
               return s === 'PENDING' || s === 'CONFIRMED' || s === 'PLACED' || !s;
-            });
-            const packingList = orders.filter(o => {
+            }));
+            const packingList = sortOrdersList(orders.filter(o => {
               const s = (o.orderStatus || '').toUpperCase();
               return s === 'PROCESSING' || s === 'PACKING' || s === 'PACKED';
-            });
-            const dispatchedList = orders.filter(o => {
+            }));
+            const dispatchedList = sortOrdersList(orders.filter(o => {
               const s = (o.orderStatus || '').toUpperCase();
               return s === 'DISPATCHED' || s === 'SHIPPED' || s === 'COURIER' || s === 'OUT_FOR_DELIVERY';
-            });
-            const deliveredList = orders.filter(o => {
+            }));
+            const deliveredList = sortOrdersList(orders.filter(o => {
               const s = (o.orderStatus || '').toUpperCase();
               return s === 'DELIVERED' || s === 'COMPLETED';
-            });
+            }));
 
             const renderOrderCard = (o: Order) => {
               const isCod = o.paymentMethod === 'COD';
@@ -4082,6 +4129,42 @@ Your parcel dispatched today 🚚
                     <span>✅ 4. Delivered</span>
                     <span className="px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-mono">{deliveredList.length}</span>
                   </button>
+                </div>
+
+                {/* Desktop Sort Controls Bar */}
+                <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-slate-700 uppercase tracking-wider">Sort Orders:</span>
+                    <button
+                      type="button"
+                      onClick={() => setOrderSortBy(prev => prev === 'date_desc' ? 'date_asc' : 'date_desc')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs border ${
+                        orderSortBy.startsWith('date')
+                          ? 'bg-emerald-800 text-white border-emerald-900 shadow-xs'
+                          : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200'
+                      }`}
+                    >
+                      <span>📅</span>
+                      <span>{orderSortBy === 'date_asc' ? 'Date: Oldest First ↑' : 'Date: Newest First ↓'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setOrderSortBy(prev => prev === 'price_desc' ? 'price_asc' : 'price_desc')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs border ${
+                        orderSortBy.startsWith('price')
+                          ? 'bg-emerald-800 text-white border-emerald-900 shadow-xs'
+                          : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200'
+                      }`}
+                    >
+                      <span>💰</span>
+                      <span>{orderSortBy === 'price_asc' ? 'Price: Low → High ↑' : 'Price: High → Low ↓'}</span>
+                    </button>
+                  </div>
+
+                  <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-xl">
+                    Showing {pendingList.length + packingList.length + dispatchedList.length + deliveredList.length} total orders
+                  </span>
                 </div>
 
                 {/* 4 CATEGORIZED SECTIONS DISPLAY */}

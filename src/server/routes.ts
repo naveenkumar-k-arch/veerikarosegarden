@@ -1164,7 +1164,26 @@ function sanitizeBootstrapProducts(prods: any[]): any[] {
 }
 
 function sanitizeBootstrapOrders(ords: any[]): any[] {
-  return ords.map(o => {
+  const getOrderTime = (o: any): number => {
+    if (o.createdAt) {
+      const t = new Date(o.createdAt).getTime();
+      if (!isNaN(t) && t > 0) return t;
+    }
+    if (o.updatedAt) {
+      const t = new Date(o.updatedAt).getTime();
+      if (!isNaN(t) && t > 0) return t;
+    }
+    const num = parseInt((o.id || '').replace(/\D/g, ''), 10);
+    return isNaN(num) ? 0 : num;
+  };
+
+  const sorted = [...ords].sort((a, b) => {
+    const diff = getOrderTime(b) - getOrderTime(a);
+    if (diff !== 0) return diff;
+    return (b.id || '').localeCompare(a.id || '');
+  });
+
+  return sorted.map(o => {
     const hasProof = Boolean(o.paymentProofUrl);
     if (o.paymentProofUrl && typeof o.paymentProofUrl === 'string' && o.paymentProofUrl.startsWith('data:image/') && o.paymentProofUrl.length > 20000) {
       return {
