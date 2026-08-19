@@ -18,19 +18,20 @@ export function getPrismaClient(): PrismaClient | null {
 
   if (!global.__prismaGlobal) {
     try {
-      // For Supabase / Neon Transaction Poolers: ensure pgbouncer mode + sufficient connection limits
+      // For Supabase / Neon Transaction Poolers: ensure pgbouncer mode + efficient serverless connection limits
       let serverlessUrl = dbUrl;
       if (!serverlessUrl.includes('pgbouncer') && (serverlessUrl.includes('pooler') || serverlessUrl.includes('neon.tech') || serverlessUrl.includes('6543'))) {
         serverlessUrl += (serverlessUrl.includes('?') ? '&' : '?') + 'pgbouncer=true';
       }
       if (!serverlessUrl.includes('connection_limit')) {
-        serverlessUrl += (serverlessUrl.includes('?') ? '&' : '?') + 'connection_limit=15';
+        // Use 3 connections per serverless lambda instance to avoid exhausting database pooler
+        serverlessUrl += (serverlessUrl.includes('?') ? '&' : '?') + 'connection_limit=3';
       }
       if (!serverlessUrl.includes('pool_timeout')) {
-        serverlessUrl += '&pool_timeout=20';
+        serverlessUrl += '&pool_timeout=10';
       }
       if (!serverlessUrl.includes('connect_timeout')) {
-        serverlessUrl += '&connect_timeout=15';
+        serverlessUrl += '&connect_timeout=10';
       }
 
       global.__prismaGlobal = new PrismaClient({

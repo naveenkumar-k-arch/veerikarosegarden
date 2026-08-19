@@ -6137,8 +6137,11 @@ class Store {
               };
             }
           }
-        } catch (err) {
-          console.warn('Background getBanners notice:', err);
+        } catch (err: any) {
+          const code = err?.code || '';
+          if (code !== 'P2024' && code !== 'P1001') {
+            console.warn('Background getBanners notice:', err?.message || err);
+          }
         }
       })();
     }

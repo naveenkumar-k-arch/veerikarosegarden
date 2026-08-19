@@ -80,8 +80,9 @@ export async function firestoreGetAllOrders(): Promise<any[]> {
     if (!data?.documents) return [];
     return data.documents.map(docToOrder).filter(Boolean);
   } catch (err: any) {
-    if (err?.name !== 'AbortError') {
-      console.warn('Firestore getAllOrders notice:', err?.message || err);
+    const msg = String(err?.message || err || '');
+    if (err?.name !== 'AbortError' && !msg.includes('timeout') && !msg.includes('aborted')) {
+      console.warn('Firestore getAllOrders notice:', msg);
     }
     return [];
   }
