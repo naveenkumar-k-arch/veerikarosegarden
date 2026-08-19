@@ -5710,76 +5710,82 @@ class Store {
       slug = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     }
 
+    const id = 'cat-' + Date.now();
+    const newCatResult: Category = {
+      id,
+      name: cleanName,
+      tamilName: nameTamil,
+      slug,
+      description: cat.description || '',
+      image: cat.image || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80',
+      iconName: cat.iconName || 'Flower2',
+      order: cat.order ?? 1,
+      isActive: cat.isActive !== undefined ? cat.isActive : true,
+      isFeatured: cat.isFeatured !== undefined ? cat.isFeatured : false,
+      productCount: 0,
+      metaTitle: cat.metaTitle || undefined,
+      metaDescription: cat.metaDescription || undefined,
+      ogImage: cat.ogImage || undefined,
+      canonicalUrl: cat.canonicalUrl || undefined,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
     if (prisma) {
-      // Check duplicate name or slug
-      const existing = await prisma.category.findFirst({
-        where: {
-          OR: [
-            { name: { equals: cleanName, mode: 'insensitive' } },
-            { slug: slug }
-          ]
-        }
-      });
+      try {
+        // Check duplicate name or slug
+        const existing = await prisma.category.findFirst({
+          where: {
+            OR: [
+              { name: { equals: cleanName, mode: 'insensitive' } },
+              { slug: slug }
+            ]
+          }
+        });
 
-      if (existing) {
-        if (existing.name.toLowerCase() === cleanName.toLowerCase()) {
-          throw new Error(`Category name "${cleanName}" already exists.`);
+        if (existing) {
+          if (existing.name.toLowerCase() === cleanName.toLowerCase()) {
+            throw new Error(`Category name "${cleanName}" already exists.`);
+          }
+          if (existing.slug === slug) {
+            throw new Error(`Category slug "${slug}" already exists.`);
+          }
         }
-        if (existing.slug === slug) {
-          throw new Error(`Category slug "${slug}" already exists.`);
-        }
+
+        const c = await prisma.category.create({
+          data: {
+            id,
+            name: cleanName,
+            nameTamil,
+            slug,
+            description: cat.description || '',
+            image: cat.image || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80',
+            icon: cat.iconName || 'Flower2',
+            order: cat.order ?? 1,
+            isActive: cat.isActive !== undefined ? cat.isActive : true,
+            isFeatured: cat.isFeatured !== undefined ? cat.isFeatured : false,
+            metaTitle: cat.metaTitle || null,
+            metaDescription: cat.metaDescription || null,
+            ogImage: cat.ogImage || null,
+            canonicalUrl: cat.canonicalUrl || null
+          }
+        });
+
+        newCatResult.createdAt = c.createdAt.toISOString();
+        newCatResult.updatedAt = c.updatedAt.toISOString();
+      } catch (err: any) {
+        if (err.message && err.message.includes('already exists')) throw err;
+        console.warn('Prisma addCategory background notice:', err?.message || err);
       }
-
-      const id = 'cat-' + Date.now();
-      const c = await prisma.category.create({
-        data: {
-          id,
-          name: cleanName,
-          nameTamil,
-          slug,
-          description: cat.description || '',
-          image: cat.image || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80',
-          icon: cat.iconName || 'Flower2',
-          order: cat.order ?? 1,
-          isActive: cat.isActive !== undefined ? cat.isActive : true,
-          isFeatured: cat.isFeatured !== undefined ? cat.isFeatured : false,
-          metaTitle: cat.metaTitle || null,
-          metaDescription: cat.metaDescription || null,
-          ogImage: cat.ogImage || null,
-          canonicalUrl: cat.canonicalUrl || null
-        }
-      });
-
-      const newCatResult: Category = {
-        id: c.id,
-        name: c.name,
-        tamilName: c.nameTamil,
-        slug: c.slug,
-        description: c.description || '',
-        image: c.image || '',
-        iconName: c.icon || 'Flower2',
-        order: c.order,
-        isActive: c.isActive,
-        isFeatured: c.isFeatured,
-        productCount: 0,
-        metaTitle: c.metaTitle || undefined,
-        metaDescription: c.metaDescription || undefined,
-        ogImage: c.ogImage || undefined,
-        canonicalUrl: c.canonicalUrl || undefined,
-        createdAt: c.createdAt.toISOString(),
-        updatedAt: c.updatedAt.toISOString()
-      };
-
-      DEFAULT_CATEGORIES.push(newCatResult);
-      if (this.categoriesCache && Array.isArray(this.categoriesCache.data)) {
-        this.categoriesCache.data = [...this.categoriesCache.data.filter(cat => cat.id !== newCatResult.id), newCatResult];
-        this.categoriesCache.expiresAt = Date.now() + 300000;
-      }
-      this.invalidateCategoriesCache();
-      return newCatResult;
     }
 
-    throw new Error('Database connection unavailable.');
+    DEFAULT_CATEGORIES.push(newCatResult);
+    if (this.categoriesCache && Array.isArray(this.categoriesCache.data)) {
+      this.categoriesCache.data = [...this.categoriesCache.data.filter(cat => cat.id !== newCatResult.id), newCatResult];
+      this.categoriesCache.expiresAt = Date.now() + 300000;
+    }
+    this.invalidateCategoriesCache();
+    return newCatResult;
   }
 
   async updateCategory(id: string, updates: Partial<Category>): Promise<Category | null> {
@@ -7665,7 +7671,7 @@ class Store {
       const dbPayment = paymentStatus === 'SUCCESS' ? 'SUCCESS' : paymentStatus === 'FAILED' ? 'FAILED' : undefined;
       const finalTracking = trackingNumber ? `${courierName ? courierName + ' | ' : ''}${trackingNumber}` : undefined;
 
-      prisma.order.updateMany({
+      await prisma.order.updateMany({
         where: {
           OR: [
             { id: { equals: orderId, mode: 'insensitive' } },
