@@ -764,7 +764,11 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
     }
   };
 
+  const isPlacingOrderRef = React.useRef(false);
+
   const handlePlaceOrder = async () => {
+    if (isPlacingOrderRef.current || loading) return;
+
     if (!user) { setOrderError('🔒 Login required to place an order.'); return; }
     if (!paymentMethod) {
       setOrderError('⚠️ Please select a payment method before placing your order.');
@@ -792,6 +796,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
       setOrderError('📸 Please upload payment screenshot before placing order.');
       return;
     }
+    isPlacingOrderRef.current = true;
     setLoading(true);
     setOrderError(null);
     try {
@@ -842,9 +847,11 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
         } catch {}
         goTo(7);
       } else {
+        isPlacingOrderRef.current = false;
         setOrderError(res.message || 'Failed to place order. Please try again.');
       }
     } catch (err: any) {
+      isPlacingOrderRef.current = false;
       setLoading(false);
       setOrderError(err.message || 'An error occurred. Please retry.');
     }

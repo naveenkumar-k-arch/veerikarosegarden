@@ -737,7 +737,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     }
   };
 
+  const isPlacingOrderRef = React.useRef(false);
+
   const handlePlaceOrder = async () => {
+    if (isPlacingOrderRef.current || loading) return;
+
     if (!user) {
       if (onNavigateToAccount) onNavigateToAccount();
       return;
@@ -755,6 +759,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       setOrderError('📸 Please upload payment screenshot before placing order.');
       return;
     }
+    isPlacingOrderRef.current = true;
     setLoading(true);
     setOrderError(null);
     try {
@@ -805,9 +810,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         } catch {}
         goTo(7);
       } else {
+        isPlacingOrderRef.current = false;
         setOrderError(res.message || 'Failed to place order. Please try again.');
       }
     } catch (err: any) {
+      isPlacingOrderRef.current = false;
       setLoading(false);
       setOrderError(err.message || 'An error occurred. Please retry.');
     }

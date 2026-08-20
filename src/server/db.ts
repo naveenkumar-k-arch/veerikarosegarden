@@ -6909,14 +6909,40 @@ class Store {
     return merged;
   }
 
+  // In-flight concurrency lock to merge identical parallel clicks from the same phone
+  private activeCreationLocks: Map<string, Promise<Order>> = new Map();
+
   // ORDERS
   async createOrder(orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>): Promise<Order> {
+    const cleanPhone = (orderData.customerPhone || '').replace(/\D/g, '');
+    const cleanPhone10 = cleanPhone.length >= 10 ? cleanPhone.slice(-10) : cleanPhone;
+    const lockKey = `${cleanPhone10}_${orderData.grandTotal || 0}`;
+
+    // If an order creation is already actively executing for this customer, wait and reuse its result
+    if (lockKey && this.activeCreationLocks.has(lockKey)) {
+      try {
+        const inFlight = await this.activeCreationLocks.get(lockKey)!;
+        return inFlight;
+      } catch {}
+    }
+
+    const creationPromise = this._createOrderInternal(orderData, cleanPhone10);
+    if (lockKey) {
+      this.activeCreationLocks.set(lockKey, creationPromise);
+      creationPromise.finally(() => {
+        setTimeout(() => {
+          this.activeCreationLocks.delete(lockKey);
+        }, 5000);
+      });
+    }
+
+    return creationPromise;
+  }
+
+  private async _createOrderInternal(orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>, cleanPhone10: string): Promise<Order> {
     const prisma = getPrismaClient();
 
     // DEDUPLICATION GUARD: Check if the same customer recently submitted an identical pending order (within 15 mins)
-    const cleanPhone = (orderData.customerPhone || '').replace(/\D/g, '');
-    const cleanPhone10 = cleanPhone.length >= 10 ? cleanPhone.slice(-10) : cleanPhone;
-
     if (cleanPhone10) {
       const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000);
       
