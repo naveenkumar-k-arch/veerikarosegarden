@@ -66,16 +66,21 @@ import bundledOrdersSeed from '../data/orders_store.json' with { type: 'json' };
 const ORDERS_STORE_FILE = path.resolve(process.cwd(), 'src/data/orders_store.json');
 
 function loadDiskOrders(): Order[] {
+  const deletedSet = loadDiskDeletedOrders();
+  let orders: Order[] = [];
   try {
     if (fs.existsSync(ORDERS_STORE_FILE)) {
       const data = fs.readFileSync(ORDERS_STORE_FILE, 'utf-8');
       const parsed = JSON.parse(data);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) orders = parsed;
     }
   } catch (err) {
     console.error('Error reading orders_store.json:', err);
   }
-  return (Array.isArray(bundledOrdersSeed) && bundledOrdersSeed.length > 0) ? (bundledOrdersSeed as unknown as Order[]) : [];
+  if (orders.length === 0 && Array.isArray(bundledOrdersSeed) && bundledOrdersSeed.length > 0) {
+    orders = (bundledOrdersSeed as unknown as Order[]);
+  }
+  return orders.filter(o => o && o.id && !deletedSet.has(o.id) && !deletedSet.has(o.merchantTransactionId || ''));
 }
 
 function saveDiskOrders(orders: Order[]) {
@@ -7369,11 +7374,12 @@ class Store {
 
     // Priority order: in-memory updated orders first, then global buffer, database, disk/bundled, firestore, defaults
     // CRITICAL: dbOrders are always authoritative - we mark them so they never get overwritten by disk/defaults
+    const deletedOrderIds = loadDiskDeletedOrders();
     const dbOrderIds = new Set(dbOrders.map(o => o.id).filter(Boolean));
     const allCombined = [...this.memoryOrders, ...gBuffer, ...dbOrders, ...diskOrders, ...fsOrders, ...defOrders];
     const uniqueMap = new Map<string, Order>();
     allCombined.forEach(o => {
-      if (o && o.id && !deletedOrderIds.has(o.id) && !deletedOrderIds.has(o.merchantTransactionId)) {
+      if (o && o.id && !deletedOrderIds.has(o.id) && !deletedOrderIds.has(o.merchantTransactionId || '')) {
         const existing = uniqueMap.get(o.id);
         if (!existing) {
           uniqueMap.set(o.id, o);
