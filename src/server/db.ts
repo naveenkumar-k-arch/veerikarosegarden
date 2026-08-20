@@ -4794,7 +4794,7 @@ function toPrismaOrderStatus(orderStatus?: string | null): 'DELIVERED' | 'DISPAT
   if (s === 'DELIVERED' || s === 'COMPLETED') return 'DELIVERED';
   if (s === 'DISPATCHED' || s === 'OUT_FOR_DELIVERY' || s === 'SHIPPED' || s === 'COURIER' || s === 'IN_TRANSIT') return 'DISPATCHED';
   if (s === 'PACKING' || s === 'PACKED' || s === 'PROCESSING') return 'PACKING';
-  if (s === 'CONFIRMED' || s === 'PAID') return 'PAID';
+  if (s === 'CONFIRMED' || s === 'PAID') return 'PACKING';
   if (s === 'CANCELLED') return 'CANCELLED';
   return 'PAYMENT_PENDING';
 }
@@ -4803,8 +4803,7 @@ function fromPrismaOrderStatus(prismaStatus?: string | null): Order['orderStatus
   const s = String(prismaStatus || '').toUpperCase().trim();
   if (s === 'DELIVERED' || s === 'COMPLETED') return 'DELIVERED';
   if (s === 'DISPATCHED' || s === 'OUT_FOR_DELIVERY' || s === 'SHIPPED' || s === 'COURIER' || s === 'IN_TRANSIT') return 'DISPATCHED';
-  if (s === 'PACKING' || s === 'PACKED' || s === 'PROCESSING') return 'PACKING';
-  if (s === 'CONFIRMED' || s === 'PAID') return 'CONFIRMED';
+  if (s === 'PACKING' || s === 'PACKED' || s === 'PROCESSING' || s === 'CONFIRMED' || s === 'PAID') return 'PACKING';
   if (s === 'CANCELLED') return 'CANCELLED';
   return 'PENDING';
 }
