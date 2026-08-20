@@ -7247,6 +7247,8 @@ class Store {
     }
 
     // Priority order: in-memory updated orders first, then global buffer, database, disk/bundled, firestore, defaults
+    // CRITICAL: dbOrders are always authoritative - we mark them so they never get overwritten by disk/defaults
+    const dbOrderIds = new Set(dbOrders.map(o => o.id).filter(Boolean));
     const allCombined = [...this.memoryOrders, ...gBuffer, ...dbOrders, ...diskOrders, ...fsOrders, ...defOrders];
     const uniqueMap = new Map<string, Order>();
     allCombined.forEach(o => {
@@ -7255,6 +7257,25 @@ class Store {
         if (!existing) {
           uniqueMap.set(o.id, o);
         } else {
+          // RULE 1: If existing record came from DB (authoritative), only overwrite with memory/buffer orders
+          // RULE 2: If incoming is from disk/defaults and existing is from DB, SKIP - never downgrade DB status
+          const existingIsDb = dbOrderIds.has(existing.id) && !this.memoryOrders.some(m => m.id === existing.id) && !gBuffer.some(g => g.id === existing.id);
+          const incomingIsStale = !this.memoryOrders.some(m => m.id === o.id) && !gBuffer.some(g => g.id === o.id) && !dbOrderIds.has(o.id);
+          if (existingIsDb && incomingIsStale) {
+            // Keep DB version, only merge non-status fields from stale sources
+            uniqueMap.set(o.id, {
+              ...o,
+              ...existing,
+              // Always keep DB's authoritative status fields
+              orderStatus: existing.orderStatus,
+              paymentStatus: (existing.paymentStatus === 'SUCCESS' || o.paymentStatus === 'SUCCESS') ? 'SUCCESS' : existing.paymentStatus,
+              trackingNumber: existing.trackingNumber || o.trackingNumber,
+              courierName: existing.courierName || o.courierName,
+              paymentProofUrl: existing.paymentProofUrl || o.paymentProofUrl,
+            });
+            return;
+          }
+
           // Compare updatedAt timestamps to pick the fresher status
           const existingTime = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
           const incomingTime = o.updatedAt ? new Date(o.updatedAt).getTime() : 0;

@@ -1343,8 +1343,9 @@ apiRouter.get('/orders/:id', async (req: AuthenticatedRequest, res) => {
       }
     }
 
-    // Auto-verify Razorpay payment if pending
-    if (order.paymentMethod === 'RAZORPAY' && order.paymentStatus === 'PENDING') {
+    // Auto-verify Razorpay payment if STILL pending (never downgrade an already-advanced order)
+    const ADVANCED_STAGES = ['PACKING', 'DISPATCHED', 'DELIVERED'];
+    if (order.paymentMethod === 'RAZORPAY' && order.paymentStatus === 'PENDING' && !ADVANCED_STAGES.includes((order.orderStatus || '').toUpperCase())) {
       try {
         const settings = await db.getSettings();
         const rzpKeyId = (settings?.razorpayKeyId && settings.razorpayKeyId.trim()) || process.env.RAZORPAY_KEY_ID || 'rzp_live_TQ5xDdZB7QWIn2';
@@ -1367,7 +1368,11 @@ apiRouter.get('/orders/:id', async (req: AuthenticatedRequest, res) => {
         if (rzpOrderId) {
           const checkRes = await RazorpayService.checkOrderPayments(rzpOrderId, rzpKeyId, rzpKeySecret);
           if (checkRes.success && checkRes.isPaid) {
-            const updated = await db.updateOrderStatus(order.id, 'CONFIRMED', undefined, undefined, 'SUCCESS');
+            // Only set CONFIRMED if order hasn't already been advanced by admin
+            const safeStatus = ADVANCED_STAGES.includes((order.orderStatus || '').toUpperCase())
+              ? order.orderStatus
+              : 'CONFIRMED';
+            const updated = await db.updateOrderStatus(order.id, safeStatus, undefined, undefined, 'SUCCESS');
             if (updated) order = updated;
             invalidateBootstrapCache();
           }
@@ -1394,10 +1399,7 @@ apiRouter.get('/orders/:id', async (req: AuthenticatedRequest, res) => {
 // Admin GET all orders - no user filtering, always returns every order from every customer
 apiRouter.get('/admin/orders', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
-    let orders = await db.getOrders();
-    if (orders.length < 12) {
-      orders = await db.syncAllVerifiedOrdersToDatabase().catch(() => orders);
-    }
+    const orders = await db.getOrders();
     res.json({ success: true, count: orders.length, orders });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
@@ -1736,7 +1738,12 @@ const handleVerifyRazorpayPayment = async (req: AuthenticatedRequest, res: any) 
     }
 
     if (order && targetOrderId) {
-      updatedOrder = await db.updateOrderStatus(targetOrderId, 'CONFIRMED', undefined, undefined, 'SUCCESS');
+      // Preserve advanced stages — only set CONFIRMED if order is still unconfirmed
+      const ADVANCED_STAGES_V = ['PACKING', 'DISPATCHED', 'DELIVERED'];
+      const targetStatus = ADVANCED_STAGES_V.includes((order.orderStatus || '').toUpperCase())
+        ? order.orderStatus
+        : 'CONFIRMED';
+      updatedOrder = await db.updateOrderStatus(targetOrderId, targetStatus, undefined, undefined, 'SUCCESS');
       await db.addPaymentLog({
         merchantTransactionId: order.merchantTransactionId || razorpayPaymentId,
         orderId: targetOrderId,
@@ -1794,7 +1801,12 @@ apiRouter.all('/razorpay/callback', async (req: express.Request, res: express.Re
     }
 
     if (isPaymentValid && targetOrderId) {
-      const confirmedOrder = await db.updateOrderStatus(targetOrderId, 'CONFIRMED', undefined, undefined, 'SUCCESS');
+      // Preserve advanced stages — only set CONFIRMED if order is still unconfirmed
+      const ADVANCED_STAGES_CB = ['PACKING', 'DISPATCHED', 'DELIVERED'];
+      const callbackStatus = order && ADVANCED_STAGES_CB.includes((order.orderStatus || '').toUpperCase())
+        ? order.orderStatus
+        : 'CONFIRMED';
+      const confirmedOrder = await db.updateOrderStatus(targetOrderId, callbackStatus, undefined, undefined, 'SUCCESS');
       await db.addPaymentLog({
         merchantTransactionId: (order && order.merchantTransactionId) || (razorpayPaymentId as string) || targetOrderId,
         orderId: targetOrderId,
@@ -1880,9 +1892,14 @@ apiRouter.post('/orders/:id/cancel-pending', async (req: AuthenticatedRequest, r
       if (rzpOrderId) {
         const checkRes = await RazorpayService.checkOrderPayments(rzpOrderId, rzpKeyId, rzpKeySecret);
         if (checkRes.success && checkRes.isPaid) {
-          await db.updateOrderStatus(id, 'CONFIRMED', undefined, undefined, 'SUCCESS');
+          // Preserve advanced stages — only set CONFIRMED if order is still unconfirmed
+          const ADVANCED_STAGES_CP = ['PACKING', 'DISPATCHED', 'DELIVERED'];
+          const cpStatus = ADVANCED_STAGES_CP.includes((order.orderStatus || '').toUpperCase())
+            ? order.orderStatus
+            : 'CONFIRMED';
+          await db.updateOrderStatus(id, cpStatus, undefined, undefined, 'SUCCESS');
           invalidateBootstrapCache();
-          return res.json({ success: true, message: 'Payment was captured. Order confirmed!' });
+          return res.json({ success: true, message: 'Payment was captured. Order status preserved!' });
         }
       }
     }
@@ -1954,7 +1971,13 @@ apiRouter.post('/razorpay/webhook', async (req, res) => {
       const orderId = paymentEntity?.notes?.orderId || orderEntity?.receipt || paymentEntity?.description?.split('#')[1];
 
       if (orderId) {
-        await db.updateOrderStatus(orderId, 'CONFIRMED', undefined, undefined, 'SUCCESS');
+        // Preserve advanced stages — only set CONFIRMED if order is still unconfirmed
+        const ADVANCED_STAGES_WH = ['PACKING', 'DISPATCHED', 'DELIVERED'];
+        const existingOrder = await db.getOrderById(orderId).catch(() => null);
+        const webhookStatus = existingOrder && ADVANCED_STAGES_WH.includes((existingOrder.orderStatus || '').toUpperCase())
+          ? existingOrder.orderStatus
+          : 'CONFIRMED';
+        await db.updateOrderStatus(orderId, webhookStatus, undefined, undefined, 'SUCCESS');
         await db.addPaymentLog({
           merchantTransactionId: paymentEntity?.id || orderId,
           orderId,
@@ -1963,7 +1986,7 @@ apiRouter.post('/razorpay/webhook', async (req, res) => {
           checksum: signature || 'WEBHOOK_CAPTURED',
           payload: JSON.stringify(req.body)
         }).catch(() => {});
-        console.log(`[Razorpay Webhook] Order ${orderId} marked as SUCCESS (${event})`);
+        console.log(`[Razorpay Webhook] Order ${orderId} status preserved as ${webhookStatus} (${event})`);
       }
     }
 
