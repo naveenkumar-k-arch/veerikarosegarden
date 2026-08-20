@@ -104,3 +104,93 @@ export const STAGE_CONFIG: Record<OrderStage, {
     dbStatus: 'DELIVERED'
   }
 };
+
+/**
+ * Generate standard 7-line WhatsApp notification message for the 4 order stages:
+ * 1. confirmed (7 lines)
+ * 2. packing (7 lines)
+ * 3. dispatched (7 lines)
+ * 4. delivered (7 lines)
+ */
+export function generateOrderWhatsAppMessage(
+  order: {
+    id: string;
+    grandTotal?: number;
+    customerName?: string;
+    customerPhone?: string;
+    shippingAddress?: any;
+    items?: any[];
+    orderStatus?: string | null;
+    paymentStatus?: string | null;
+    paymentMethod?: string | null;
+    courierName?: string | null;
+    trackingNumber?: string | null;
+  },
+  stageInput?: OrderStage,
+  extra?: {
+    origin?: string;
+    courierName?: string;
+    trackingNumber?: string;
+  }
+): string {
+  const stage = stageInput || getOrderStage(order.orderStatus);
+  const customerName = order.customerName || order.shippingAddress?.fullName || 'Valued Customer';
+  const origin = extra?.origin || (typeof window !== 'undefined' ? window.location.origin : 'https://veerikarosegarden.com');
+  const trackingUrl = `${origin}/#/order-status/${order.id}`;
+
+  if (stage === 'confirmed') {
+    const isPaid = order.paymentStatus === 'SUCCESS';
+    const payText = isPaid ? 'PAID ✅' : `${order.paymentMethod || 'COD'} (₹${order.grandTotal ?? 0})`;
+    const itemCount = order.items?.reduce((sum: number, it: any) => sum + (Number(it.quantity) || 1), 0) || order.items?.length || 1;
+    const itemsSummary = order.items && order.items.length > 0
+      ? (order.items.length === 1 ? `${order.items[0].name} (${order.items[0].quantity || 1} No)` : `${order.items[0].name} + ${order.items.length - 1} more (${itemCount} plants)`)
+      : 'Live Plants & Saplings';
+
+    return [
+      `🌿 *Veerika Rose Garden - Order Confirmed!*`,
+      `👤 Dear ${customerName}, thank you for ordering with us.`,
+      `📋 *Order ID:* #${order.id}`,
+      `💰 *Total Amount:* ₹${order.grandTotal ?? 0} (${payText})`,
+      `🌱 *Items:* ${itemsSummary}`,
+      `🔗 *Live Tracking:* ${trackingUrl}`,
+      `📞 Contact: +91 72008 26129 | Happy Gardening! 🌸`
+    ].join('\n');
+  }
+
+  if (stage === 'packing') {
+    return [
+      `🌿 *Veerika Rose Garden - Packing in Progress!*`,
+      `👤 Dear ${customerName}, your plants are being packed.`,
+      `📋 *Order ID:* #${order.id}`,
+      `🪴 *Status:* Live saplings root-moisturized & box packed.`,
+      `🚚 Your parcel will be handed over to courier shortly.`,
+      `🔗 *Live Tracking:* ${trackingUrl}`,
+      `📞 Helpline: +91 72008 26129 | Happy Gardening! 🌸`
+    ].join('\n');
+  }
+
+  if (stage === 'dispatched') {
+    const courier = extra?.courierName || order.courierName || 'Professional Courier';
+    const awb = extra?.trackingNumber || order.trackingNumber || 'In Transit';
+    return [
+      `🚚 *Veerika Rose Garden - Order Dispatched!*`,
+      `👤 Dear ${customerName}, your parcel is on the way.`,
+      `📋 *Order ID:* #${order.id}`,
+      `📦 *Courier:* ${courier} | *AWB:* ${awb}`,
+      `📹 *Note:* Please take a continuous unboxing video upon arrival.`,
+      `🔗 *Live Tracking:* ${trackingUrl}`,
+      `📞 Helpline: +91 72008 26129 | Veerika Rose Garden 🌸`
+    ].join('\n');
+  }
+
+  // Stage 4: Delivered
+  return [
+    `🌸 *Veerika Rose Garden - Order Delivered!*`,
+    `👤 Dear ${customerName}, your plants have been delivered.`,
+    `📋 *Order ID:* #${order.id}`,
+    `🌿 *Care Tip:* Keep in mild shade for 7 days & water gently.`,
+    `🚫 Avoid chemical fertilizers/DAP for the first 30 days.`,
+    `🔗 *Track & Review:* ${trackingUrl}`,
+    `📞 Helpline: +91 72008 26129 | Thank you for choosing us! 🪴`
+  ].join('\n');
+}

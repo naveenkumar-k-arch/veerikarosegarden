@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Order, Product, Category, Review, Coupon, Banner, Combo, FinancialEntry, SiteSettings } from '../types';
 import { processLocalImageFile, processMultipleImageFiles } from '../utils/imageUpload';
 import { toast } from '../utils/toast';
-import { getOrderStage, STAGE_CONFIG, OrderStage } from '../utils/orderStages';
+import { getOrderStage, STAGE_CONFIG, OrderStage, generateOrderWhatsAppMessage } from '../utils/orderStages';
 import {
   Sprout,
   LayoutDashboard,
@@ -826,63 +826,12 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
     return parts.length > 0 ? parts.join(', ') : 'Address not specified';
   };
 
-  // WhatsApp Message Generator
+  // WhatsApp Message Generator (Strict 7-line template for each stage)
   const generateWhatsAppMessage = (order: Order, stage: 'confirmed' | 'packing' | 'dispatched' | 'delivered') => {
-    const customerName = order.customerName || order.shippingAddress?.fullName || 'Valued Customer';
-    const dateStr = formatDate(order.createdAt);
-    
-    let itemsList = '';
-    if (order.items && order.items.length > 0) {
-      itemsList = order.items
-        .map((item, idx) => `${idx + 1}. ${item.name} - ${item.quantity || 1} No`)
-        .join('\n');
-    }
-
-    const careAndCourierReminder = `
-📦 *Professional courier plants General reminder:*
-Your parcel dispatched today 🚚
-
-⚠️ *If parcel didn't receive in 2 days remind me once & check near by courier office or check website:*
-உங்களுடைய கொரியர் 2 வேலை நாட்களில் வரவில்லை என்றால் அருகில் உள்ள கொரியர் ஆஃபீஸ் ஐ அணுகவும். அப்படி இல்லையென்றால் என்னிடம் தெரிவிக்கவும்.
-
-📹 *UNBOXING VIDEO MUST*
-
-🌿 *For reduce soil plants 👇 (மண்ணை குறைத்து வாங்கும் முறையில் வாங்கினால் ):*
-
-1️⃣ Professional Courier la chedi vanguringana plants receive pannathum oru bucket la thanni oothi athula covers ellam chinna holes potu vachirunga.
-2️⃣ Oru 4 to 5 hrs kalichu chediyai red soil la nadalam nga (chinna cover remove pannirunga).
-3️⃣ Pot la vachingana half shade (oralavuku veyil padura mari) area ah va paathu oru 10 naaliku vainga. Nilathula vachingana 10 days ku shade irukura mari edhachum erpaduthi vainga. (Fulla nilal vendaam sunlight padura mari oralavuku).
-4️⃣ 20 days la irunthu 30 days varaikum entha uramum (DAP) kudukathinga. தொழு உரமும் use பண்ணாதீங்க.
-5️⃣ Regular ah watering panunga. Iram ilamal kaaya vidathinga. (Water thengi irukumpadi vaikathinga).
-6️⃣ Chedi vaikkum thottiyai dry aagamal kaalai, maalai iru velaikalum iiramaga irukumpadi paarthu kollaum (Athey samayam thanner thengamaal paarthukollaum).
-🚫 Chediyai coco peat vaithu nadavu seiyya vendam. Chedi cut seithaal manjal thuul vaikka koodathu. Mukkiyamaga soil red soil dhan use panna vendum (Your garden soil literally same as red soil athu kooda use pannikalam).
-
-⚠️ *IF NOT FOLLOW THIS INSTRUCTIONS AND PLANT DIE BACK AGAIN WE ARE NOT RESPONSIBLE FOR THAT*
-
-🌟 *Customer review procedure (intha method la unga kita ithu ellam iruntha use panunga illana mela solli iruka koodiya procedure use panunga):*
-• Mudhalil chediyai oru bucket la 6 hrs cover (reduce soil plants) holes pottu kandipa vaikanum. Apo dhan chedi ku dullness koncham pogum.
-• Reduce soil vanguningana antha cover ah remove panitu 1 gm alavu EPSOM SALT one litre water la mix pani karaichitu, 1st chediyai fulla dip panirunga nanaikira maari. Then antha soil ah wash pani bare root ah eduthukonga.
-• Then 1 gm of SAAF one litre la mix pani, THEN plant ah fulla saaf water la dip pani edunga.
-• Aduthatha chediyai red soil konchama tholu uram irunthal mix panikonga athula plant pani sun light padura mari vaikalam.
-(Intha method customer enga kita reduce soil la vangi avanga epdi valarthanga apdindratha sonna method. Ungaluku pudichi panna mudium na intha method um try panalam. Ithu naana solala review sonathu ungalukum share paniruken).`;
-
-    if (stage === 'confirmed') {
-      return `🌿 *Veerika Rose Garden (VRG Nursery)*\nOrder Confirmation 📦\n\nDear *${customerName}*,\nThank you for ordering with us! Your order has been *Confirmed* successfully.\n\n📋 *Order ID:* ${order.id}\n📅 *Date:* ${dateStr}\n💰 *Total Amount:* ₹${order.grandTotal}\n\n🌱 *Your Ordered Plants:*\n${itemsList || '• Nursery Plants & Garden Saplings'}\n\n🔗 *Track your order live:* ${window.location.origin}/#/order-status/${order.id}\n\n---${careAndCourierReminder}\n\nThank you! 🌿\n*Veerika Rose Garden*`;
-    }
-
-    if (stage === 'packing') {
-      return `📦 *Veerika Rose Garden (VRG Nursery)*\nNursery Packing Update 🌿\n\nDear *${customerName}*,\nYour plants for *Order #${order.id}* are now in the *Nursery Packing* stage!\n\n🌿 Our expert team is carefully inspecting, watering, and packing your plants with moist root balls and sturdy cardboard boxes to guarantee fresh delivery.\n\nYour package will be handed over to the courier shortly! 🚚\n\n---${careAndCourierReminder}\n\nThank you!\n*Veerika Rose Garden*`;
-    }
-
-    if (stage === 'dispatched') {
-      const courier = order.courierName || dispatchForm.courierName || 'Professional Courier';
-      const awb = order.trackingNumber || dispatchForm.awbNumber || 'In Transit';
-      const link = order.deliveryNotes || dispatchForm.trackingLink || `https://www.google.com/search?q=${encodeURIComponent(courier + ' ' + awb)}`;
-
-      return `🚚 *Veerika Rose Garden (VRG Nursery)*\nCourier Dispatch & Tracking Update!\n\nDear *${customerName}*,\nGreat news! Your plant order *#${order.id}* has been *Dispatched* via courier.\n\n📦 *Courier Partner:* ${courier}\n🏷️ *AWB / Tracking No:* ${awb}\n\n🔗 *Track Shipment:*\n${link}\n\n---${careAndCourierReminder}\n\nPlease keep your phone available during delivery.\nThank you for choosing Veerika Rose Garden! 🌿`;
-    }
-
-    return `🌸 *Veerika Rose Garden (VRG Nursery)*\nDelivered with Care! 🪴\n\nDear *${customerName}*,\nYour order *#${order.id}* has been *Delivered* successfully!\n\n---${careAndCourierReminder}\n\nWe would love your feedback! Please visit us again. 🌿\n*Veerika Rose Garden*`;
+    return generateOrderWhatsAppMessage(order, stage, {
+      courierName: dispatchForm.courierName || order.courierName,
+      trackingNumber: dispatchForm.awbNumber || order.trackingNumber
+    });
   };
 
   const handleOpenWhatsApp = (order: Order, stage: 'confirmed' | 'packing' | 'dispatched' | 'delivered') => {
