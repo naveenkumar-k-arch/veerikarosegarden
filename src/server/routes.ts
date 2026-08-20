@@ -381,12 +381,21 @@ const DEFAULT_BANNERS = [
 apiRouter.get('/banners', async (req, res) => {
   try {
     res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
-    let banners = await db.getBanners();
+    let banners = await db.getBanners(true);
     // Auto-seed default banners if table is empty
     if (!banners || banners.length === 0) {
       banners = DEFAULT_BANNERS;
     }
     res.json({ success: true, banners });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
+  }
+});
+
+apiRouter.get('/admin/banners', requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const banners = await db.getBanners(false);
+    res.json({ success: true, count: banners.length, banners });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
@@ -530,8 +539,17 @@ apiRouter.post('/coupons/apply', async (req, res) => {
 
 apiRouter.get('/coupons', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
-    const coupons = await db.getCoupons();
+    const coupons = await db.getCoupons(false);
     res.json({ success: true, coupons });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
+  }
+});
+
+apiRouter.get('/admin/coupons', requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const coupons = await db.getCoupons(false);
+    res.json({ success: true, count: coupons.length, coupons });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
@@ -616,6 +634,15 @@ apiRouter.post('/admin/coupons/:id/update', requireAdmin, handleUpdateCoupon);
 apiRouter.get('/combos', async (req, res) => {
   try {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    const combos = await db.getCombos();
+    res.json({ success: true, count: combos.length, combos });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to fetch plant combos' });
+  }
+});
+
+apiRouter.get('/admin/combos', requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
     const combos = await db.getCombos();
     res.json({ success: true, count: combos.length, combos });
   } catch (error: any) {
@@ -1463,6 +1490,8 @@ const handleUpdateOrderFullRoute = async (req: AuthenticatedRequest, res: expres
 
 apiRouter.put('/admin/orders/:id', requireAdmin, handleUpdateOrderFullRoute);
 apiRouter.post('/admin/orders/:id/update', requireAdmin, handleUpdateOrderFullRoute);
+apiRouter.post('/admin/orders/update', requireAdmin, handleUpdateOrderFullRoute);
+apiRouter.put('/admin/orders/update', requireAdmin, handleUpdateOrderFullRoute);
 apiRouter.patch('/admin/orders/:id', requireAdmin, handleUpdateOrderFullRoute);
 
 // Admin delete order
@@ -2149,6 +2178,47 @@ apiRouter.post('/settings', requireAdmin, handleUpdateSettings);
 apiRouter.put('/admin/settings', requireAdmin, handleUpdateSettings);
 apiRouter.post('/admin/settings', requireAdmin, handleUpdateSettings);
 apiRouter.post('/admin/settings/update', requireAdmin, handleUpdateSettings);
+
+// ================= FINANCIAL EXPENSES & PROFIT LOGS =================
+apiRouter.get('/admin/finances', requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const finances = await db.getFinancialEntries();
+    res.json({ success: true, count: finances.length, finances });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to fetch financial entries' });
+  }
+});
+
+apiRouter.post('/admin/finances', requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const entry = await db.addFinancialEntry(req.body);
+    invalidateBootstrapCache();
+    res.status(201).json({ success: true, entry, message: 'Financial entry added successfully' });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message || 'Failed to create financial entry' });
+  }
+});
+
+apiRouter.put('/admin/finances/:id', requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const updated = await db.updateFinancialEntry(req.params.id, req.body);
+    if (!updated) return res.status(404).json({ success: false, message: 'Financial entry not found' });
+    invalidateBootstrapCache();
+    res.json({ success: true, entry: updated, message: 'Financial entry updated successfully' });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message || 'Failed to update financial entry' });
+  }
+});
+
+apiRouter.delete('/admin/finances/:id', requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    await db.deleteFinancialEntry(req.params.id);
+    invalidateBootstrapCache();
+    res.json({ success: true, message: 'Financial entry deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to delete financial entry' });
+  }
+});
 
 // ================= EXPERT ADVICE CALLBACK & AI DOCTOR =================
 apiRouter.post('/expert-callback', (req, res) => {

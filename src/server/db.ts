@@ -6146,14 +6146,14 @@ class Store {
     return true;
   }
 
-  async getBanners(): Promise<Banner[]> {
+  async getBanners(onlyActive = false): Promise<Banner[]> {
     if (Date.now() >= this.bannersCache.expiresAt) {
       (async () => {
         try {
           const prisma = getPrismaClient();
           if (prisma) {
             const items = await prisma.banner.findMany({
-              where: { active: true },
+              where: onlyActive ? { active: true } : undefined,
               orderBy: { order: 'asc' }
             });
             if (items && items.length > 0) {
@@ -6179,23 +6179,24 @@ class Store {
         }
       })();
     }
-    return this.bannersCache.data.filter(b => !this.deletedBannerIds.has(b.id));
+    const list = this.bannersCache.data.filter(b => !this.deletedBannerIds.has(b.id));
+    return onlyActive ? list.filter(b => b.active !== false) : list;
   }
 
   // COUPONS
-  async getCoupons(): Promise<Coupon[]> {
+  async getCoupons(onlyActive = false): Promise<Coupon[]> {
     const prisma = getPrismaClient();
 
     if (prisma) {
       try {
         const items = await prisma.coupon.findMany({
-          where: { isActive: true }
+          where: onlyActive ? { isActive: true } : undefined,
+          orderBy: { createdAt: 'desc' }
         });
         return items.map(c => ({
           id: c.id,
           code: c.code,
           type: (c.discountType === 'FIXED' ? 'FIXED' : 'PERCENT') as 'FIXED' | 'PERCENT',
-
           value: c.discountValue,
           minOrder: c.minOrderValue,
           maxDiscount: c.maxDiscount || undefined,
