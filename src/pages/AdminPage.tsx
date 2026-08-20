@@ -1219,27 +1219,18 @@ const silentRefresh = async (): Promise<boolean> => {
       canonicalUrl: catForm.canonicalUrl || undefined
     };
 
-    // 1. Instant 0ms Optimistic UI update
     if (isEdit) {
       setCategories(prev => {
         const next = prev.map(c => c.id === catId ? { ...c, ...categoryItem } : c);
-        try {
-          const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
-          cached.categories = next;
-          localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
-          localStorage.setItem('vrg_categories', JSON.stringify(next));
-        } catch {}
+        persistAdminCache(c => ({ ...c, categories: next }));
+        try { localStorage.setItem('vrg_categories', JSON.stringify(next)); } catch {}
         return next;
       });
     } else {
       setCategories(prev => {
         const next = [categoryItem, ...prev];
-        try {
-          const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
-          cached.categories = next;
-          localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
-          localStorage.setItem('vrg_categories', JSON.stringify(next));
-        } catch {}
+        persistAdminCache(c => ({ ...c, categories: next }));
+        try { localStorage.setItem('vrg_categories', JSON.stringify(next)); } catch {}
         return next;
       });
     }
@@ -1275,11 +1266,7 @@ const silentRefresh = async (): Promise<boolean> => {
       if (data && data.category) {
         setCategories(prev => {
           const next = prev.map(c => (c.id === data.category.id || c.id === catId) ? { ...c, ...data.category } : c);
-          try {
-            const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
-            cached.categories = next;
-            localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
-          } catch {}
+          persistAdminCache(c => ({ ...c, categories: next }));
           return next;
         });
       }
@@ -1297,11 +1284,7 @@ const silentRefresh = async (): Promise<boolean> => {
     if (!confirm(`Are you sure you want to delete category "${name}"?`)) return;
     setCategories(prev => {
       const next = prev.filter(c => c.id !== id);
-      try {
-        const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
-        cached.categories = next;
-        localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
-      } catch {}
+      persistAdminCache(c => ({ ...c, categories: next }));
       return next;
     });
     toast.success(`Category "${name}" deleted.`, 'Category Deleted');
@@ -1349,11 +1332,7 @@ const silentRefresh = async (): Promise<boolean> => {
   const handleDeleteAllCategories = async () => {
     if (!confirm('⚠️ WARNING: Are you sure you want to delete ALL categories? This action cannot be undone.')) return;
     setCategories([]);
-    try {
-      const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
-      cached.categories = [];
-      localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
-    } catch {}
+    persistAdminCache(c => ({ ...c, categories: [] }));
     toast.success('All categories removed.', 'Categories Cleared');
     window.dispatchEvent(new CustomEvent('vrg_categories_updated'));
 

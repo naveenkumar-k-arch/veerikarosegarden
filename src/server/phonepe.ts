@@ -254,13 +254,22 @@ export class PhonePeService {
 
     // Update order in DB based on what API returned
     const order = await db.getOrderById(merchantTransactionId);
+    const ADVANCED_STAGES_PP = ['PACKING', 'DISPATCHED', 'DELIVERED'];
 
     if (apiPaymentState === 'SUCCESS' && order && order.paymentStatus !== 'SUCCESS') {
       const refId = providerRefId || `T2607${Date.now().toString().slice(-8)}`;
-      await db.updateOrderPayment(merchantTransactionId, 'SUCCESS', refId);
+      // Only update order status if not already advanced by admin
+      if (!ADVANCED_STAGES_PP.includes((order.orderStatus || '').toUpperCase())) {
+        await db.updateOrderPayment(merchantTransactionId, 'SUCCESS', refId);
+      } else {
+        // Already advanced — just update payment status, not order status
+        await db.updateOrderStatus(merchantTransactionId, order.orderStatus, undefined, undefined, 'SUCCESS');
+      }
       providerRefId = refId;
     } else if (apiPaymentState === 'FAILED' && order && order.paymentStatus === 'PENDING') {
-      await db.updateOrderPayment(merchantTransactionId, 'FAILED');
+      if (!ADVANCED_STAGES_PP.includes((order.orderStatus || '').toUpperCase())) {
+        await db.updateOrderPayment(merchantTransactionId, 'FAILED');
+      }
     }
 
     // Re-read order from DB for latest status

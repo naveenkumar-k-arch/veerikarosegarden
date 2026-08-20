@@ -725,7 +725,7 @@ apiRouter.delete('/admin/reviews/:id', requireAdmin, async (req: AuthenticatedRe
   }
 });
 
-apiRouter.delete('/reviews/:id', async (req, res) => {
+apiRouter.delete('/reviews/:id', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     await db.deleteReview(req.params.id);
     invalidateBootstrapCache();
@@ -1517,10 +1517,10 @@ const handleGenerateLabelsPdf = async (req: express.Request, res: express.Respon
   }
 };
 
-apiRouter.get('/orders/labels/pdf', handleGenerateLabelsPdf);
-apiRouter.post('/orders/labels/pdf', handleGenerateLabelsPdf);
-apiRouter.get('/admin/orders/labels/pdf', handleGenerateLabelsPdf);
-apiRouter.post('/admin/orders/labels/pdf', handleGenerateLabelsPdf);
+apiRouter.get('/orders/labels/pdf', requireAdmin, handleGenerateLabelsPdf);
+apiRouter.post('/orders/labels/pdf', requireAdmin, handleGenerateLabelsPdf);
+apiRouter.get('/admin/orders/labels/pdf', requireAdmin, handleGenerateLabelsPdf);
+apiRouter.post('/admin/orders/labels/pdf', requireAdmin, handleGenerateLabelsPdf);
 
 
 // PHONEPE VERIFIED CHECK STATUS API
