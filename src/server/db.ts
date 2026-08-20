@@ -7247,6 +7247,16 @@ class Store {
       }).catch(() => {});
     }
 
+    // Helper: order stage progression weight (0: PENDING, 1: CONFIRMED, 2: PACKING, 3: DISPATCHED, 4: DELIVERED)
+    const getStageWeight = (s?: string | null): number => {
+      const st = String(s || '').toUpperCase().trim();
+      if (st === 'DELIVERED' || st === 'COMPLETED') return 4;
+      if (st === 'DISPATCHED' || st === 'OUT_FOR_DELIVERY' || st === 'SHIPPED' || st === 'COURIER' || st === 'IN_TRANSIT') return 3;
+      if (st === 'PACKING' || st === 'PACKED' || st === 'PROCESSING') return 2;
+      if (st === 'CONFIRMED' || st === 'PAID') return 1;
+      return 0;
+    };
+
     // Priority order: in-memory updated orders first, then global buffer, database, disk/bundled, firestore, defaults
     // CRITICAL: dbOrders are always authoritative - we mark them so they never get overwritten by disk/defaults
     const dbOrderIds = new Set(dbOrders.map(o => o.id).filter(Boolean));
@@ -7258,35 +7268,21 @@ class Store {
         if (!existing) {
           uniqueMap.set(o.id, o);
         } else {
-          // RULE 1: If existing record came from DB (authoritative), only overwrite with memory/buffer orders
-          // RULE 2: If incoming is from disk/defaults and existing is from DB, SKIP - never downgrade DB status
-          const existingIsDb = dbOrderIds.has(existing.id) && !this.memoryOrders.some(m => m.id === existing.id) && !gBuffer.some(g => g.id === existing.id);
-          const incomingIsStale = !this.memoryOrders.some(m => m.id === o.id) && !gBuffer.some(g => g.id === o.id) && !dbOrderIds.has(o.id);
-          if (existingIsDb && incomingIsStale) {
-            // Keep DB version, only merge non-status fields from stale sources
-            uniqueMap.set(o.id, {
-              ...o,
-              ...existing,
-              // Always keep DB's authoritative status fields
-              orderStatus: existing.orderStatus,
-              paymentStatus: (existing.paymentStatus === 'SUCCESS' || o.paymentStatus === 'SUCCESS') ? 'SUCCESS' : existing.paymentStatus,
-              trackingNumber: existing.trackingNumber || o.trackingNumber,
-              courierName: existing.courierName || o.courierName,
-              paymentProofUrl: existing.paymentProofUrl || o.paymentProofUrl,
-            });
-            return;
-          }
-
-          // Compare updatedAt timestamps to pick the fresher status
+          // Compare updatedAt timestamps to pick the fresher record
           const existingTime = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
           const incomingTime = o.updatedAt ? new Date(o.updatedAt).getTime() : 0;
           const fresher = incomingTime > existingTime ? o : existing;
           const older = incomingTime > existingTime ? existing : o;
 
+          // GUARANTEE: Never downgrade an advanced stage (PACKING/DISPATCHED/DELIVERED) to an earlier stage
+          const existingWeight = getStageWeight(existing.orderStatus);
+          const incomingWeight = getStageWeight(o.orderStatus);
+          const resolvedStatus = incomingWeight >= existingWeight ? (fresher.orderStatus || older.orderStatus) : existing.orderStatus;
+
           uniqueMap.set(o.id, {
             ...older,
             ...fresher,
-            orderStatus: fresher.orderStatus || older.orderStatus,
+            orderStatus: resolvedStatus,
             paymentStatus: (fresher.paymentStatus === 'SUCCESS' || older.paymentStatus === 'SUCCESS') ? 'SUCCESS' : (fresher.paymentStatus || older.paymentStatus),
             paymentMethod: (fresher.paymentMethod === 'RAZORPAY' || older.paymentMethod === 'RAZORPAY') ? 'RAZORPAY' : (fresher.paymentMethod || older.paymentMethod),
             trackingNumber: fresher.trackingNumber || older.trackingNumber,
