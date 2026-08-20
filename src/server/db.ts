@@ -6912,6 +6912,90 @@ class Store {
   // ORDERS
   async createOrder(orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>): Promise<Order> {
     const prisma = getPrismaClient();
+
+    // DEDUPLICATION GUARD: Check if the same customer recently submitted an identical pending order (within 15 mins)
+    const cleanPhone = (orderData.customerPhone || '').replace(/\D/g, '');
+    const cleanPhone10 = cleanPhone.length >= 10 ? cleanPhone.slice(-10) : cleanPhone;
+
+    if (cleanPhone10) {
+      const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000);
+      
+      // 1. Check in-memory orders first
+      const memPending = this.memoryOrders.find(o => 
+        (o.customerPhone || '').replace(/\D/g, '').endsWith(cleanPhone10) &&
+        Math.abs((o.grandTotal || 0) - (orderData.grandTotal || 0)) < 1 &&
+        o.paymentStatus === 'PENDING' &&
+        new Date(o.createdAt).getTime() >= fifteenMinsAgo.getTime()
+      );
+
+      if (memPending) {
+        // Reuse and update the existing pending order
+        const updatedPending: Order = {
+          ...memPending,
+          ...orderData,
+          id: memPending.id,
+          merchantTransactionId: orderData.merchantTransactionId || memPending.merchantTransactionId,
+          updatedAt: new Date().toISOString()
+        };
+
+        const idx = this.memoryOrders.findIndex(o => o.id === memPending.id);
+        if (idx !== -1) this.memoryOrders[idx] = updatedPending;
+
+        if (prisma) {
+          prisma.order.updateMany({
+            where: { id: memPending.id },
+            data: {
+              merchantTransactionId: updatedPending.merchantTransactionId,
+              updatedAt: new Date()
+            }
+          }).catch(() => {});
+        }
+        this.invalidateOrdersCache();
+        return updatedPending;
+      }
+
+      // 2. Check Prisma PostgreSQL DB
+      if (prisma) {
+        try {
+          const dbPending = await prisma.order.findFirst({
+            where: {
+              customerPhone: { contains: cleanPhone10 },
+              totalAmount: orderData.grandTotal,
+              paymentStatus: 'PENDING',
+              status: { in: ['PENDING', 'PAYMENT_PENDING', 'PAYMENT_INITIATED'] as any },
+              createdAt: { gte: fifteenMinsAgo }
+            },
+            orderBy: { createdAt: 'desc' }
+          });
+
+          if (dbPending) {
+            const reusedOrder: Order = {
+              ...orderData,
+              id: dbPending.id,
+              orderNumber: dbPending.orderNumber || dbPending.id,
+              merchantTransactionId: orderData.merchantTransactionId || dbPending.merchantTransactionId || `MT${Date.now()}`,
+              createdAt: dbPending.createdAt.toISOString(),
+              updatedAt: new Date().toISOString()
+            };
+
+            await prisma.order.update({
+              where: { id: dbPending.id },
+              data: {
+                merchantTransactionId: reusedOrder.merchantTransactionId,
+                updatedAt: new Date()
+              }
+            }).catch(() => {});
+
+            this.memoryOrders.unshift(reusedOrder);
+            this.invalidateOrdersCache();
+            return reusedOrder;
+          }
+        } catch (err) {
+          console.warn('Prisma order deduplication check notice:', err);
+        }
+      }
+    }
+
     let nextIndex = 1001;
 
     if (prisma) {
