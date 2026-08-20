@@ -161,8 +161,8 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   const [selectedProofOrder, setSelectedProofOrder] = useState<Order | null>(null);
   const [copiedUtrToast, setCopiedUtrToast] = useState(false);
   
-  // 4 Stage Filter: 'confirmed' | 'packing' | 'dispatched' | 'delivered'
-  const [orderStageFilter, setOrderStageFilter] = useState<'confirmed' | 'packing' | 'dispatched' | 'delivered'>('confirmed');
+  // 4 Stage Filter: 'all' | 'confirmed' | 'packing' | 'dispatched' | 'delivered'
+  const [orderStageFilter, setOrderStageFilter] = useState<'all' | 'confirmed' | 'packing' | 'dispatched' | 'delivered'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   // Order Sorting: 'date_desc' (Newest Date First - Default), 'date_asc' (Oldest First), 'price_desc' (Highest Amount First), 'price_asc' (Lowest Amount First)
   const [orderSortBy, setOrderSortBy] = useState<'date_desc' | 'date_asc' | 'price_desc' | 'price_asc'>('date_desc');
@@ -994,7 +994,9 @@ Your parcel dispatched today 🚚
 
   // Filtered & Sorted Orders Feed
   const filteredOrders = useMemo(() => {
-    let list = orders.filter(o => getOrderStage(o.orderStatus) === orderStageFilter);
+    let list = orderStageFilter === 'all' 
+      ? [...orders] 
+      : orders.filter(o => getOrderStage(o.orderStatus) === orderStageFilter);
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
@@ -1446,9 +1448,10 @@ Your parcel dispatched today 🚚
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
             </div>
 
-            {/* Exactly the 4 Dedicated Order Stage Tabs */}
-            <div className="grid grid-cols-4 gap-1.5 p-1 bg-slate-200/90 rounded-2xl">
+            {/* Order Stage Filter Bar with All + 4 Stages */}
+            <div className="grid grid-cols-5 gap-1 p-1 bg-slate-200/90 rounded-2xl">
               {[
+                { key: 'all', label: 'All', count: stats.totalCount, color: 'text-slate-900' },
                 { key: 'confirmed', label: '1. Confirmed', count: stats.confirmedCount, color: 'text-emerald-700' },
                 { key: 'packing', label: '2. Packing', count: stats.packingCount, color: 'text-amber-600' },
                 { key: 'dispatched', label: '3. Courier', count: stats.dispatchedCount, color: 'text-blue-600' },
@@ -1463,7 +1466,7 @@ Your parcel dispatched today 🚚
                       : 'text-slate-600 hover:text-slate-900 font-bold'
                   }`}
                 >
-                  <span className="block text-[11px] leading-tight truncate">{tab.label}</span>
+                  <span className="block text-[10px] sm:text-[11px] leading-tight truncate">{tab.label}</span>
                   <span className={`block text-xs font-black mt-0.5 ${orderStageFilter === tab.key ? tab.color : 'text-slate-500'}`}>
                     {tab.count}
                   </span>
