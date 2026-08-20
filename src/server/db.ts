@@ -4784,8 +4784,36 @@ function packMetaIntoWorkingHours(cleanWorkingHours: string, meta: CustomMetaSet
   return `${pureHours}${META_DELIMITER}${JSON.stringify(meta)}`;
 }
 
+function toPrismaOrderStatus(orderStatus?: string | null): 'DELIVERED' | 'DISPATCHED' | 'PACKING' | 'PAID' | 'CANCELLED' | 'PAYMENT_PENDING' {
+  const s = String(orderStatus || '').toUpperCase().trim();
+  if (s === 'DELIVERED' || s === 'COMPLETED') return 'DELIVERED';
+  if (s === 'DISPATCHED' || s === 'OUT_FOR_DELIVERY' || s === 'SHIPPED' || s === 'COURIER' || s === 'IN_TRANSIT') return 'DISPATCHED';
+  if (s === 'PACKING' || s === 'PACKED' || s === 'PROCESSING') return 'PACKING';
+  if (s === 'CONFIRMED' || s === 'PAID') return 'PAID';
+  if (s === 'CANCELLED') return 'CANCELLED';
+  return 'PAYMENT_PENDING';
+}
+
+function fromPrismaOrderStatus(prismaStatus?: string | null): Order['orderStatus'] {
+  const s = String(prismaStatus || '').toUpperCase().trim();
+  if (s === 'DELIVERED' || s === 'COMPLETED') return 'DELIVERED';
+  if (s === 'DISPATCHED' || s === 'OUT_FOR_DELIVERY' || s === 'SHIPPED' || s === 'COURIER' || s === 'IN_TRANSIT') return 'DISPATCHED';
+  if (s === 'PACKING' || s === 'PACKED' || s === 'PROCESSING') return 'PACKING';
+  if (s === 'CONFIRMED' || s === 'PAID') return 'CONFIRMED';
+  if (s === 'CANCELLED') return 'CANCELLED';
+  return 'PENDING';
+}
+
 class Store {
-  private memoryOrders: Order[] = [];
+  private get memoryOrders(): Order[] {
+    if (!(globalThis as any)._memoryOrders) {
+      (globalThis as any)._memoryOrders = loadDiskOrders();
+    }
+    return (globalThis as any)._memoryOrders;
+  }
+  private set memoryOrders(val: Order[]) {
+    (globalThis as any)._memoryOrders = val;
+  }
   private get memoryFinances(): FinancialEntry[] {
     if (!(globalThis as any)._memoryFinances) {
       (globalThis as any)._memoryFinances = loadDiskFinances();
@@ -7153,18 +7181,7 @@ class Store {
           }
 
           const hasProof = Boolean(unpackedProofUrl);
-          const stStr = String(o.status || '').toUpperCase().trim();
-          const dbOrderStatus: Order['orderStatus'] = (stStr === 'DELIVERED' || stStr === 'COMPLETED'
-            ? 'DELIVERED' 
-            : stStr === 'DISPATCHED' || stStr === 'OUT_FOR_DELIVERY' || stStr === 'SHIPPED' || stStr === 'COURIER' || stStr === 'IN_TRANSIT'
-            ? 'DISPATCHED' 
-            : stStr === 'PACKING' || stStr === 'PACKED' || stStr === 'PROCESSING'
-            ? 'PACKING' 
-            : stStr === 'PAID' || stStr === 'CONFIRMED'
-            ? 'CONFIRMED' 
-            : stStr === 'CANCELLED' 
-            ? 'CANCELLED' 
-            : 'PENDING');
+          const dbOrderStatus = fromPrismaOrderStatus(o.status);
 
           return {
             id: o.id,
@@ -7229,8 +7246,8 @@ class Store {
       }).catch(() => {});
     }
 
-    // Priority order: in-memory updated orders first, then global buffer, disk/bundled, db, firestore, defaults
-    const allCombined = [...this.memoryOrders, ...gBuffer, ...diskOrders, ...dbOrders, ...fsOrders, ...defOrders];
+    // Priority order: in-memory updated orders first, then global buffer, database, disk/bundled, firestore, defaults
+    const allCombined = [...this.memoryOrders, ...gBuffer, ...dbOrders, ...diskOrders, ...fsOrders, ...defOrders];
     const uniqueMap = new Map<string, Order>();
     allCombined.forEach(o => {
       if (o && o.id && !deletedOrderIds.has(o.id) && !deletedOrderIds.has(o.merchantTransactionId)) {
@@ -7294,17 +7311,9 @@ class Store {
         const shippingFee = Number(order.shippingCharge || 0);
         const discount = Number(order.discount || 0);
 
-        const statusMap: Record<string, string> = {
-          'CONFIRMED': 'PAID',
-          'PROCESSING': 'PACKING',
-          'PACKED': 'PACKING',
-          'DISPATCHED': 'DISPATCHED',
-          'DELIVERED': 'DELIVERED',
-          'CANCELLED': 'CANCELLED',
-          'PENDING': 'PAYMENT_PENDING'
-        };
-        const dbStatus = (statusMap[order.orderStatus] || 'PAID') as any;
+        const dbStatus = toPrismaOrderStatus(order.orderStatus);
         const dbPayStatus = (order.paymentStatus === 'SUCCESS' ? 'SUCCESS' : 'PENDING') as any;
+        const updatedAtDate = order.updatedAt ? new Date(order.updatedAt) : new Date();
 
         const addressJson = JSON.stringify(order.shippingAddress || {});
         const notesObj = {
@@ -7319,26 +7328,17 @@ class Store {
           proof: order.paymentProofUrl
         };
 
-        await prisma.order.upsert({
-          where: { id: orderId },
-          update: {
-            customerName: order.customerName,
-            customerPhone: order.customerPhone,
-            customerEmail: order.customerEmail || '',
-            shippingAddress: addressJson,
-            subtotal,
-            deliveryFee: shippingFee,
-            discount,
-            totalAmount: grandTotal,
-            status: dbStatus,
-            paymentStatus: dbPayStatus,
-            paymentMethod: 'RAZORPAY',
-            merchantTransactionId: order.merchantTransactionId || `MT_${orderId}`,
-            trackingNumber: order.trackingNumber || '',
-            notes: JSON.stringify(notesObj),
-            updatedAt: new Date()
-          },
-          create: {
+        const existingInDb = await prisma.order.findUnique({
+          where: { id: orderId }
+        }).catch(() => null);
+
+        if (existingInDb) {
+          // Do NOT overwrite existing database order status with stale disk status!
+          continue;
+        }
+
+        await prisma.order.create({
+          data: {
             id: orderId,
             orderNumber: orderId,
             customerName: order.customerName,
@@ -7349,14 +7349,14 @@ class Store {
             deliveryFee: shippingFee,
             discount,
             totalAmount: grandTotal,
-            status: dbStatus,
+            status: dbStatus as any,
             paymentStatus: dbPayStatus,
             paymentMethod: 'RAZORPAY',
             merchantTransactionId: order.merchantTransactionId || `MT_${orderId}`,
             trackingNumber: order.trackingNumber || '',
             notes: JSON.stringify(notesObj),
             createdAt: order.createdAt ? new Date(order.createdAt) : new Date(),
-            updatedAt: new Date()
+            updatedAt: updatedAtDate
           }
         });
       } catch (err) {
@@ -7515,18 +7515,7 @@ class Store {
       }
 
       const hasProof = Boolean(unpackedProofUrl);
-      const stStr = String(o.status || '').toUpperCase().trim();
-      const dbStatus: Order['orderStatus'] = (stStr === 'DELIVERED' || stStr === 'COMPLETED'
-        ? 'DELIVERED' 
-        : stStr === 'DISPATCHED' || stStr === 'OUT_FOR_DELIVERY' || stStr === 'SHIPPED' || stStr === 'COURIER' || stStr === 'IN_TRANSIT'
-        ? 'DISPATCHED' 
-        : stStr === 'PACKING' || stStr === 'PACKED' || stStr === 'PROCESSING'
-        ? 'PACKING' 
-        : stStr === 'PAID' || stStr === 'CONFIRMED'
-        ? 'CONFIRMED' 
-        : stStr === 'CANCELLED' 
-        ? 'CANCELLED' 
-        : 'PENDING');
+      const dbStatus = fromPrismaOrderStatus(o.status);
 
       return {
         id: o.id,
@@ -7590,12 +7579,40 @@ class Store {
     }
   }
 
-  async updateOrderStatus(orderId: string, status?: Order['orderStatus'], trackingNumber?: string, courierName?: string, paymentStatus?: string, paymentProofUrl?: string): Promise<Order | null> {
+  async updateOrderStatus(
+    orderId: string, 
+    status?: Order['orderStatus'], 
+    trackingNumber?: string, 
+    courierName?: string, 
+    paymentStatus?: string, 
+    paymentProofUrl?: string,
+    deliveryNotes?: string
+  ): Promise<Order | null> {
     const cleanId = (orderId || '').trim().toLowerCase();
     let memOrder = this.memoryOrders.find(o => 
       (o.id && o.id.toLowerCase() === cleanId) || 
       (o.merchantTransactionId && o.merchantTransactionId.toLowerCase() === cleanId)
     );
+
+    if (!memOrder) {
+      const diskOrders = loadDiskOrders();
+      const diskMatch = diskOrders.find(o => 
+        (o.id && o.id.toLowerCase() === cleanId) || 
+        (o.merchantTransactionId && o.merchantTransactionId.toLowerCase() === cleanId)
+      );
+      if (diskMatch) {
+        memOrder = { ...diskMatch };
+        this.memoryOrders.unshift(memOrder);
+      }
+    }
+
+    if (!memOrder) {
+      const dbOrder = await this.getOrderById(orderId);
+      if (dbOrder) {
+        memOrder = { ...dbOrder };
+        this.memoryOrders.unshift(memOrder);
+      }
+    }
 
     if (!memOrder) {
       memOrder = {
@@ -7611,7 +7628,7 @@ class Store {
         discount: 0,
         grandTotal: 249,
         paymentStatus: (paymentStatus as any) || 'PENDING',
-        orderStatus: status || 'PENDING',
+        orderStatus: status || 'CONFIRMED',
         paymentMethod: paymentProofUrl ? 'QR_PAYMENT' : 'COD',
         paymentProofUrl: paymentProofUrl,
         createdAt: new Date().toISOString(),
@@ -7623,6 +7640,7 @@ class Store {
       if (paymentStatus) memOrder.paymentStatus = paymentStatus as any;
       if (trackingNumber !== undefined) (memOrder as any).trackingNumber = trackingNumber;
       if (courierName !== undefined) (memOrder as any).courierName = courierName;
+      if (deliveryNotes !== undefined) (memOrder as any).deliveryNotes = deliveryNotes;
       if (paymentProofUrl) {
         memOrder.paymentProofUrl = paymentProofUrl;
         memOrder.paymentMethod = 'QR_PAYMENT';
@@ -7656,41 +7674,6 @@ class Store {
     }
     this.invalidateOrdersCache();
 
-    const prisma = getPrismaClient();
-    if (prisma) {
-      const stUpper = String(status || '').toUpperCase().trim();
-      const dbStatus = (stUpper === 'DELIVERED' || stUpper === 'COMPLETED')
-        ? 'DELIVERED' 
-        : (stUpper === 'PACKED' || stUpper === 'PROCESSING' || stUpper === 'PACKING') 
-        ? 'PACKING' 
-        : (stUpper === 'DISPATCHED' || stUpper === 'OUT_FOR_DELIVERY' || stUpper === 'SHIPPED' || stUpper === 'COURIER' || stUpper === 'IN_TRANSIT') 
-        ? 'DISPATCHED' 
-        : stUpper === 'CANCELLED' 
-        ? 'CANCELLED' 
-        : (stUpper === 'CONFIRMED' || stUpper === 'PAID') 
-        ? 'PAID' 
-        : 'PAYMENT_PENDING';
-
-      const dbPayment = paymentStatus === 'SUCCESS' ? 'SUCCESS' : paymentStatus === 'FAILED' ? 'FAILED' : undefined;
-      const finalTracking = trackingNumber ? `${courierName ? courierName + ' | ' : ''}${trackingNumber}` : undefined;
-
-      await prisma.order.updateMany({
-        where: {
-          OR: [
-            { id: { equals: orderId, mode: 'insensitive' } },
-            { orderNumber: { equals: orderId, mode: 'insensitive' } },
-            { merchantTransactionId: { equals: orderId, mode: 'insensitive' } }
-          ]
-        },
-        data: {
-          status: dbStatus as any,
-          updatedAt: new Date(),
-          ...(dbPayment ? { paymentStatus: dbPayment as any } : {}),
-          ...(finalTracking ? { trackingNumber: finalTracking } : {})
-        }
-      }).catch(err => console.warn('Prisma background updateOrderStatus notice:', err?.message));
-    }
-
     // Sync to persistent disk store
     try {
       const diskOrders = loadDiskOrders();
@@ -7703,12 +7686,37 @@ class Store {
       saveDiskOrders(diskOrders);
     } catch {}
 
+    const prisma = getPrismaClient();
+    if (prisma) {
+      const dbStatus = toPrismaOrderStatus(memOrder.orderStatus);
+      const dbPayment = memOrder.paymentStatus === 'SUCCESS' ? 'SUCCESS' : memOrder.paymentStatus === 'FAILED' ? 'FAILED' : undefined;
+      const finalTracking = memOrder.trackingNumber ? `${memOrder.courierName ? memOrder.courierName + ' | ' : ''}${memOrder.trackingNumber}` : undefined;
+
+      await prisma.order.updateMany({
+        where: {
+          OR: [
+            { id: { equals: orderId, mode: 'insensitive' } },
+            { orderNumber: { equals: orderId, mode: 'insensitive' } },
+            { merchantTransactionId: { equals: orderId, mode: 'insensitive' } }
+          ]
+        },
+        data: {
+          status: dbStatus as any,
+          updatedAt: new Date(memOrder.updatedAt),
+          ...(dbPayment ? { paymentStatus: dbPayment as any } : {}),
+          ...(finalTracking ? { trackingNumber: finalTracking } : {})
+        }
+      }).catch(err => console.warn('Prisma background updateOrderStatus notice:', err?.message));
+    }
+
     // Non-blocking Firestore sync in background
     firestoreUpdateOrder(orderId, {
-      orderStatus: status,
+      orderStatus: memOrder.orderStatus,
+      updatedAt: memOrder.updatedAt,
       ...(paymentStatus ? { paymentStatus } : {}),
       ...(trackingNumber ? { trackingNumber } : {}),
-      ...(courierName ? { courierName } : {})
+      ...(courierName ? { courierName } : {}),
+      ...(deliveryNotes ? { deliveryNotes } : {})
     }).catch(() => {});
 
     return memOrder;
@@ -7807,7 +7815,7 @@ class Store {
             discount: order.discount,
             deliveryFee: order.shippingCharge,
             totalAmount: order.grandTotal,
-            status: (order.orderStatus === 'DELIVERED' ? 'DELIVERED' : order.orderStatus === 'PROCESSING' ? 'PACKING' : order.orderStatus === 'DISPATCHED' ? 'DISPATCHED' : 'PENDING') as any,
+            status: toPrismaOrderStatus(order.orderStatus) as any,
             paymentStatus: order.paymentStatus === 'SUCCESS' ? 'SUCCESS' : 'PENDING',
             paymentMethod: (order.paymentMethod === 'COD' ? 'COD' : order.paymentMethod === 'PHONEPE' ? 'PHONEPE' : 'UPI') as any,
             notes: order.notes || '',
@@ -7835,6 +7843,9 @@ class Store {
     const allDisk = loadDiskOrders();
     allDisk.unshift(order);
     saveDiskOrders(allDisk);
+
+    // Non-blocking Firestore sync in background
+    firestoreSaveOrder(order).catch(() => {});
 
     this.invalidateOrdersCache();
     return order;
@@ -7947,15 +7958,7 @@ class Store {
             discount: updatedOrder.discount,
             deliveryFee: updatedOrder.shippingCharge,
             totalAmount: updatedOrder.grandTotal,
-            status: (() => {
-              const s = String(updatedOrder.orderStatus || '').toUpperCase().trim();
-              if (s === 'DELIVERED' || s === 'COMPLETED') return 'DELIVERED';
-              if (s === 'DISPATCHED' || s === 'OUT_FOR_DELIVERY' || s === 'SHIPPED' || s === 'COURIER' || s === 'IN_TRANSIT') return 'DISPATCHED';
-              if (s === 'PACKING' || s === 'PACKED' || s === 'PROCESSING') return 'PACKING';
-              if (s === 'CONFIRMED' || s === 'PAID') return 'PAID';
-              if (s === 'CANCELLED') return 'CANCELLED';
-              return 'PAYMENT_PENDING';
-            })() as any,
+            status: toPrismaOrderStatus(updatedOrder.orderStatus) as any,
             paymentStatus: updatedOrder.paymentStatus === 'SUCCESS' ? 'SUCCESS' : 'PENDING',
             paymentMethod: (updatedOrder.paymentMethod === 'COD' ? 'COD' : updatedOrder.paymentMethod === 'PHONEPE' ? 'PHONEPE' : 'UPI') as any,
             notes: notesPayload,
@@ -7966,6 +7969,16 @@ class Store {
         console.error('Prisma updateOrderFull error:', err?.message || err);
       }
     }
+
+    // Non-blocking Firestore sync in background
+    firestoreUpdateOrder(updatedOrder.id, {
+      orderStatus: updatedOrder.orderStatus,
+      paymentStatus: updatedOrder.paymentStatus,
+      trackingNumber: updatedOrder.trackingNumber,
+      courierName: updatedOrder.courierName,
+      deliveryNotes: (updatedOrder as any).deliveryNotes,
+      updatedAt: updatedOrder.updatedAt
+    }).catch(() => {});
 
     return updatedOrder;
   }

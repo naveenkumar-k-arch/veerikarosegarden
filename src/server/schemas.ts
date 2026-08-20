@@ -178,5 +178,7 @@ export const updateOrderStatusSchema = z.object({
   ]).optional(),
   courierName: z.string().optional(),
   trackingNumber: z.string().optional(),
-  deliveryNotes: z.string().optional()
+  deliveryNotes: z.string().optional(),
+  paymentStatus: z.string().optional(),
+  paymentProofUrl: z.string().optional()
 });

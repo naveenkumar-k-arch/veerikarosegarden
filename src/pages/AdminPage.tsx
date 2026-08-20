@@ -764,7 +764,7 @@ const silentRefresh = async (): Promise<boolean> => {
 
   const fetchData = async () => {
     try {
-      const bRes = await authFetch('/api/admin/bootstrap?fresh=true').then((r) => r.json()).catch(() => null);
+      const bRes = await authFetch('/api/admin/bootstrap').then((r) => r.json()).catch(() => null);
 
       if (bRes?.success) {
         if (bRes.stats) setStats(bRes.stats);
@@ -893,16 +893,6 @@ const silentRefresh = async (): Promise<boolean> => {
           setOrders(ordRes.orders);
         }
       }
-
-      // Final safety check: if orders count is less than 12 or empty, trigger auto sync
-      if (!bRes?.orders || bRes.orders.length < 12) {
-        try {
-          const syncRes = await authFetch('/api/admin/sync-orders').then(r => r.json()).catch(() => null);
-          if (syncRes?.success && Array.isArray(syncRes.orders) && syncRes.orders.length > 0) {
-            setOrders(syncRes.orders);
-          }
-        } catch {}
-      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -919,9 +909,6 @@ const silentRefresh = async (): Promise<boolean> => {
     localStorage.removeItem('vrg_orders');
     localStorage.removeItem('veerika_customer_orders');
     localStorage.removeItem('vrg_user_orders');
-    sessionStorage.removeItem('vrg_admin_session_cache');
-    localStorage.removeItem('vrg_admin_persisted_cache');
-    localStorage.removeItem('vrg_admin_bootstrap_cache');
 
     fetchData();
 
@@ -1448,6 +1435,7 @@ const silentRefresh = async (): Promise<boolean> => {
           localStorage.setItem(key, JSON.stringify(updatedList));
         } catch {}
       });
+      persistAdminCache(c => ({ ...c, orders: updatedList }));
       try {
         const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
         cached.orders = updatedList;
@@ -1472,7 +1460,11 @@ const silentRefresh = async (): Promise<boolean> => {
       });
       const data = await res.json().catch(() => null);
       if (data && data.order) {
-        setOrders(prev => prev.map(o => (o.id === data.order.id || o.merchantTransactionId === data.order.merchantTransactionId) ? { ...o, ...data.order } : o));
+        setOrders(prev => {
+          const synced = prev.map(o => (o.id === data.order.id || o.merchantTransactionId === data.order.merchantTransactionId) ? { ...o, ...data.order } : o);
+          persistAdminCache(c => ({ ...c, orders: synced }));
+          return synced;
+        });
       }
     } catch (err) {
       console.error('Error dispatching order:', err);
@@ -1511,6 +1503,7 @@ const silentRefresh = async (): Promise<boolean> => {
           localStorage.setItem(key, JSON.stringify(updatedOrdersList));
         } catch {}
       });
+      persistAdminCache(c => ({ ...c, orders: updatedOrdersList }));
       try {
         const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
         cached.orders = updatedOrdersList;
@@ -1528,7 +1521,11 @@ const silentRefresh = async (): Promise<boolean> => {
       });
       const data = await res.json().catch(() => null);
       if (data && data.order) {
-        setOrders(prev => prev.map(o => (o.id === data.order.id || o.merchantTransactionId === data.order.merchantTransactionId) ? { ...o, ...data.order } : o));
+        setOrders(prev => {
+          const synced = prev.map(o => (o.id === data.order.id || o.merchantTransactionId === data.order.merchantTransactionId) ? { ...o, ...data.order } : o);
+          persistAdminCache(c => ({ ...c, orders: synced }));
+          return synced;
+        });
       }
     } catch (err) {
       console.warn('Backend updateOrderStatus error:', err);
@@ -1597,11 +1594,12 @@ const silentRefresh = async (): Promise<boolean> => {
   const handleSendWhatsAppUpdate = (o: Order) => {
     const phoneClean = (o.customerPhone || '').replace(/[^0-9]/g, '');
     const targetPhone = phoneClean.length === 10 ? '91' + phoneClean : phoneClean;
-    const statusMsg = o.orderStatus === 'DELIVERED' 
+    const stage = getOrderStage(o.orderStatus);
+    const statusMsg = stage === 'delivered'
       ? '✅ DELIVERED! Thank you for buying plants from Veerika Rose Garden.' 
-      : o.orderStatus === 'DISPATCHED' 
+      : stage === 'dispatched'
       ? `🚚 DISPATCHED via ${(o as any).courierName || 'Professional Courier'} (AWB/Tracking: ${(o as any).trackingNumber || 'VRG-SELF-DELIVERY'}).` 
-      : o.orderStatus === 'PROCESSING' 
+      : stage === 'packing'
       ? '🌿 NURSERY PACKING! Our farm team is preparing your live saplings with 7-day root moisture protection.' 
       : '🌸 ORDER CONFIRMED! We have received your order.';
 
@@ -1917,7 +1915,11 @@ Your parcel dispatched today 🚚
           updatedAt: new Date().toISOString()
         };
 
-        setOrders(prev => prev.map(o => o.id === editingOrder.id ? updatedOrder : o));
+        setOrders(prev => {
+          const updated = prev.map(o => o.id === editingOrder.id ? updatedOrder : o);
+          persistAdminCache(c => ({ ...c, orders: updated }));
+          return updated;
+        });
         toast.success(`Order #${editingOrder.id} updated successfully!`, 'Order Saved');
       } else {
         const res = await authFetch('/api/admin/orders', {
@@ -1926,7 +1928,11 @@ Your parcel dispatched today 🚚
         });
         const data = await res.json();
         if (data.success && data.order) {
-          setOrders(prev => [data.order, ...prev]);
+          setOrders(prev => {
+            const updated = [data.order, ...prev];
+            persistAdminCache(c => ({ ...c, orders: updated }));
+            return updated;
+          });
           toast.success(`WhatsApp order #${data.order.id} added to pipeline!`, 'Order Created');
         } else {
           throw new Error(data.message || 'Failed to create WhatsApp order');
@@ -2289,6 +2295,7 @@ Your parcel dispatched today 🚚
               keysToSave.forEach(key => {
                 try { localStorage.setItem(key, JSON.stringify(updated)); } catch {}
               });
+              persistAdminCache(c => ({ ...c, orders: updated }));
               try {
                 const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
                 cached.orders = updated;
@@ -3119,7 +3126,7 @@ Your parcel dispatched today 🚚
                       className="p-3 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-2xl text-left space-y-1 transition-all cursor-pointer"
                     >
                       <span className="text-lg">🌸</span>
-                      <p className="font-black text-xl text-amber-900">{orders.filter(o => o.orderStatus === 'PENDING').length}</p>
+                      <p className="font-black text-xl text-amber-900">{orders.filter(o => getOrderStage(o.orderStatus) === 'confirmed').length}</p>
                       <p className="font-bold text-amber-800 text-[11px]">1. Order Confirmed</p>
                     </button>
 
@@ -3128,7 +3135,7 @@ Your parcel dispatched today 🚚
                       className="p-3 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-2xl text-left space-y-1 transition-all cursor-pointer"
                     >
                       <span className="text-lg">🌿</span>
-                      <p className="font-black text-xl text-purple-900">{orders.filter(o => o.orderStatus === 'PROCESSING' || (o.orderStatus as any) === 'PACKING').length}</p>
+                      <p className="font-black text-xl text-purple-900">{orders.filter(o => getOrderStage(o.orderStatus) === 'packing').length}</p>
                       <p className="font-bold text-purple-800 text-[11px]">2. Nursery Packed</p>
                     </button>
 
@@ -3137,7 +3144,7 @@ Your parcel dispatched today 🚚
                       className="p-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-2xl text-left space-y-1 transition-all cursor-pointer"
                     >
                       <span className="text-lg">🚚</span>
-                      <p className="font-black text-xl text-blue-900">{orders.filter(o => o.orderStatus === 'DISPATCHED').length}</p>
+                      <p className="font-black text-xl text-blue-900">{orders.filter(o => getOrderStage(o.orderStatus) === 'dispatched').length}</p>
                       <p className="font-bold text-blue-800 text-[11px]">3. Dispatched</p>
                     </button>
 
@@ -3146,7 +3153,7 @@ Your parcel dispatched today 🚚
                       className="p-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-2xl text-left space-y-1 transition-all cursor-pointer"
                     >
                       <span className="text-lg">✅</span>
-                      <p className="font-black text-xl text-emerald-900">{orders.filter(o => o.orderStatus === 'DELIVERED').length}</p>
+                      <p className="font-black text-xl text-emerald-900">{orders.filter(o => getOrderStage(o.orderStatus) === 'delivered').length}</p>
                       <p className="font-bold text-emerald-800 text-[11px]">4. Delivered</p>
                     </button>
                   </div>
@@ -3608,11 +3615,12 @@ Your parcel dispatched today 🚚
             const deliveredList = sortOrdersList(orders.filter(o => getOrderStage(o.orderStatus) === 'delivered'));
 
             const renderOrderCard = (o: Order) => {
+              const currentStage = getOrderStage(o.orderStatus);
               const isCod = o.paymentMethod === 'COD';
               const s = (o.orderStatus || '').toUpperCase();
-              const isDelivered = s === 'DELIVERED' || s === 'COMPLETED';
-              const isDispatched = s === 'DISPATCHED' || s === 'SHIPPED' || s === 'COURIER' || s === 'OUT_FOR_DELIVERY';
-              const isPacking = s === 'PROCESSING' || s === 'PACKING' || s === 'PACKED';
+              const isDelivered = currentStage === 'delivered';
+              const isDispatched = currentStage === 'dispatched';
+              const isPacking = currentStage === 'packing';
 
               return (
                 <div key={o.id} className="bg-white p-5 rounded-2xl border border-slate-200 space-y-4 text-xs shadow-xs hover:border-slate-300 transition-all">
@@ -4031,15 +4039,19 @@ Your parcel dispatched today 🚚
                       </button>
 
                       <button
-                        onClick={() => handleUpdateOrderStatus(o.id, 'PENDING')}
-                        className={`px-2.5 py-1.5 rounded-xl font-bold text-[11px] cursor-pointer ${!isPacking && !isDispatched && !isDelivered ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+                        onClick={() => handleUpdateOrderStatus(o.id, 'CONFIRMED')}
+                        className={`px-2.5 py-1.5 rounded-xl font-bold text-[11px] cursor-pointer transition-all ${
+                          currentStage === 'confirmed' ? 'bg-emerald-700 text-white shadow-xs' : 'bg-emerald-50 text-emerald-900 hover:bg-emerald-100 border border-emerald-200'
+                        }`}
                       >
                         1. Confirmed
                       </button>
 
                       <button
-                        onClick={() => handleUpdateOrderStatus(o.id, 'PROCESSING')}
-                        className={`px-2.5 py-1.5 rounded-xl font-bold text-[11px] cursor-pointer ${isPacking ? 'bg-purple-700 text-white' : 'bg-purple-100 hover:bg-purple-200 text-purple-900'}`}
+                        onClick={() => handleUpdateOrderStatus(o.id, 'PACKING')}
+                        className={`px-2.5 py-1.5 rounded-xl font-bold text-[11px] cursor-pointer transition-all ${
+                          currentStage === 'packing' ? 'bg-amber-600 text-white shadow-xs' : 'bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-200'
+                        }`}
                       >
                         2. Nursery Packing
                       </button>
@@ -4050,14 +4062,18 @@ Your parcel dispatched today 🚚
                           setTrackingNumber(o.trackingNumber || '');
                           setDispatchOrder(o);
                         }}
-                        className={`px-2.5 py-1.5 rounded-xl font-bold text-[11px] cursor-pointer ${isDispatched ? 'bg-blue-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+                        className={`px-2.5 py-1.5 rounded-xl font-bold text-[11px] cursor-pointer transition-all ${
+                          currentStage === 'dispatched' ? 'bg-blue-600 text-white shadow-xs' : 'bg-blue-50 text-blue-900 hover:bg-blue-100 border border-blue-200'
+                        }`}
                       >
                         3. Dispatch Courier / Self
                       </button>
 
                       <button
                         onClick={() => handleUpdateOrderStatus(o.id, 'DELIVERED', 'SUCCESS')}
-                        className={`px-3 py-1.5 rounded-xl font-bold text-[11px] cursor-pointer ${isDelivered ? 'bg-emerald-800 text-white' : 'bg-emerald-700 hover:bg-emerald-800 text-white'}`}
+                        className={`px-3 py-1.5 rounded-xl font-bold text-[11px] cursor-pointer transition-all ${
+                          currentStage === 'delivered' ? 'bg-purple-700 text-white shadow-xs' : 'bg-purple-50 text-purple-900 hover:bg-purple-100 border border-purple-200'
+                        }`}
                       >
                         4. Delivered & COD Collected
                       </button>

@@ -1233,19 +1233,14 @@ apiRouter.get('/admin/bootstrap', requireAdmin, async (req: AuthenticatedRequest
       db.getCombos().catch(() => [])
     ]);
 
-    let finalOrders = orders;
-    if (finalOrders.length < 12) {
-      finalOrders = await db.syncAllVerifiedOrdersToDatabase().catch(() => orders);
-    }
-
-    const stats = await db.getDashboardStats(finalOrders, products);
+    const stats = await db.getDashboardStats(orders, products);
 
     const responsePayload = {
       success: true,
       stats,
       products: sanitizeBootstrapProducts(products),
       categories,
-      orders: sanitizeBootstrapOrders(finalOrders),
+      orders: sanitizeBootstrapOrders(orders),
       coupons,
       banners,
       reviews,
@@ -1423,8 +1418,8 @@ apiRouter.all('/admin/sync-orders', requireAdmin, async (req: AuthenticatedReque
 // Admin update order status
 apiRouter.put('/admin/orders/:id/status', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
-    const { orderStatus, trackingNumber, courierName, paymentStatus, paymentProofUrl } = req.body;
-    const order = await db.updateOrderStatus(req.params.id, orderStatus, trackingNumber, courierName, paymentStatus, paymentProofUrl);
+    const { orderStatus, trackingNumber, courierName, paymentStatus, paymentProofUrl, deliveryNotes } = req.body;
+    const order = await db.updateOrderStatus(req.params.id, orderStatus, trackingNumber, courierName, paymentStatus, paymentProofUrl, deliveryNotes);
     invalidateBootstrapCache();
     res.json({ success: true, order, message: 'Order status updated successfully' });
   } catch (error: any) {

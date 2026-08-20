@@ -1,35 +1,5 @@
 [
   {
-    "id": "ORD-1030",
-    "customerName": "Customer",
-    "customerPhone": "",
-    "customerEmail": "",
-    "shippingAddress": {
-      "fullName": "Customer",
-      "phone": "",
-      "houseNo": "",
-      "street": "",
-      "villageTown": "",
-      "district": "",
-      "state": "Tamil Nadu",
-      "pincode": "",
-      "addressType": "Home"
-    },
-    "items": [],
-    "subtotal": 199,
-    "shippingCharge": 50,
-    "discount": 0,
-    "grandTotal": 249,
-    "paymentStatus": "PENDING",
-    "orderStatus": "CONFIRMED",
-    "paymentMethod": "COD",
-    "transactionId": "MT178705175044178",
-    "razorpayPaymentId": "pay_TRDFjkNw7rDfC9",
-    "createdAt": "2026-08-19T13:00:31.966Z",
-    "updatedAt": "2026-08-19T13:00:31.966Z",
-    "merchantTransactionId": "MT1787144431966"
-  },
-  {
     "id": "ORD-1026",
     "customerName": "Vijay Sankar",
     "customerPhone": "8838426720",
@@ -67,12 +37,13 @@
     "discount": 0,
     "grandTotal": 270,
     "paymentStatus": "SUCCESS",
-    "orderStatus": "CONFIRMED",
+    "orderStatus": "PACKING",
     "paymentMethod": "RAZORPAY",
     "transactionId": "MT178704975386031",
     "razorpayPaymentId": "pay_TRCgU6ZioWgX1F",
     "createdAt": "2026-08-18T10:42:34.000Z",
-    "updatedAt": "2026-08-18T13:30:11.189Z"
+    "updatedAt": "2026-08-20T13:19:33.269Z",
+    "courierName": "Professional Courier"
   },
   {
     "id": "ORD-1025",
@@ -104,12 +75,12 @@
     "discount": 0,
     "grandTotal": 180,
     "paymentStatus": "SUCCESS",
-    "orderStatus": "CONFIRMED",
+    "orderStatus": "PACKING",
     "paymentMethod": "RAZORPAY",
     "transactionId": "MT178703481445259",
     "razorpayPaymentId": "pay_TR8RP62u3ozHYa",
     "createdAt": "2026-08-18T06:33:34.000Z",
-    "updatedAt": "2026-08-18T13:30:11.189Z"
+    "updatedAt": "2026-08-20T13:19:33.269Z"
   },
   {
     "id": "ORD-1022",
@@ -141,12 +112,12 @@
     "discount": 0,
     "grandTotal": 120,
     "paymentStatus": "SUCCESS",
-    "orderStatus": "CONFIRMED",
+    "orderStatus": "PACKING",
     "paymentMethod": "RAZORPAY",
     "transactionId": "MT178698388251987",
     "razorpayPaymentId": "pay_TQtysybdSJFz09",
     "createdAt": "2026-08-17T16:24:44.532Z",
-    "updatedAt": "2026-08-18T13:30:11.189Z"
+    "updatedAt": "2026-08-20T13:19:33.269Z"
   },
   {
     "id": "ORD-1021",
@@ -178,12 +149,12 @@
     "discount": 0,
     "grandTotal": 120,
     "paymentStatus": "SUCCESS",
-    "orderStatus": "CONFIRMED",
+    "orderStatus": "PACKING",
     "paymentMethod": "RAZORPAY",
     "transactionId": "MT178697420602189",
     "razorpayPaymentId": "pay_TQrEMsKQkQyHZW",
     "createdAt": "2026-08-17T13:43:27.888Z",
-    "updatedAt": "2026-08-18T13:30:11.189Z"
+    "updatedAt": "2026-08-20T13:19:33.269Z"
   },
   {
     "id": "ORD-1019",
@@ -231,12 +202,12 @@
     "discount": 0,
     "grandTotal": 330,
     "paymentStatus": "SUCCESS",
-    "orderStatus": "CONFIRMED",
+    "orderStatus": "PACKING",
     "paymentMethod": "RAZORPAY",
     "transactionId": "MT178694686364173",
     "razorpayPaymentId": "pay_TQjT4oDhMLuUC1",
     "createdAt": "2026-08-17T06:07:45.515Z",
-    "updatedAt": "2026-08-18T13:30:11.189Z"
+    "updatedAt": "2026-08-20T13:19:33.269Z"
   },
   {
     "id": "ORD-1018",
@@ -268,12 +239,12 @@
     "discount": 0,
     "grandTotal": 120,
     "paymentStatus": "SUCCESS",
-    "orderStatus": "CONFIRMED",
+    "orderStatus": "PACKING",
     "paymentMethod": "RAZORPAY",
     "transactionId": "MT178694089795558",
     "razorpayPaymentId": "pay_TQhlzfz1FiBeJl",
     "createdAt": "2026-08-17T04:28:19.810Z",
-    "updatedAt": "2026-08-18T13:30:11.189Z"
+    "updatedAt": "2026-08-20T13:19:33.269Z"
   },
   {
     "id": "ORD-1012",
@@ -369,12 +340,12 @@
     "discount": 0,
     "grandTotal": 1100,
     "paymentStatus": "SUCCESS",
-    "orderStatus": "CONFIRMED",
+    "orderStatus": "PACKING",
     "paymentMethod": "RAZORPAY",
     "transactionId": "MT178690641451371",
     "razorpayPaymentId": "pay_TQXyut4pu5u3T6",
     "createdAt": "2026-08-16T18:53:38.065Z",
-    "updatedAt": "2026-08-18T13:30:11.189Z"
+    "updatedAt": "2026-08-20T13:19:33.269Z"
   },
   {
     "id": "ORD-1011",
@@ -422,12 +393,12 @@
     "discount": 0,
     "grandTotal": 670,
     "paymentStatus": "SUCCESS",
-    "orderStatus": "CONFIRMED",
+    "orderStatus": "PACKING",
     "paymentMethod": "RAZORPAY",
     "transactionId": "MT178689783125672",
     "razorpayPaymentId": "pay_TQVXzFr12iu4Xg",
     "createdAt": "2026-08-16T16:30:33.109Z",
-    "updatedAt": "2026-08-18T13:30:11.189Z"
+    "updatedAt": "2026-08-20T13:19:33.269Z"
   },
   {
     "id": "ORD-1010",
@@ -459,12 +430,12 @@
     "discount": 0,
     "grandTotal": 250,
     "paymentStatus": "SUCCESS",
-    "orderStatus": "CONFIRMED",
+    "orderStatus": "PACKING",
     "paymentMethod": "RAZORPAY",
     "transactionId": "MT178689680508095",
     "razorpayPaymentId": "pay_TQVFmWyC577jK6",
     "createdAt": "2026-08-16T16:13:25.000Z",
-    "updatedAt": "2026-08-18T13:30:11.189Z"
+    "updatedAt": "2026-08-20T13:19:33.269Z"
   },
   {
     "id": "ORD-1001",
@@ -496,12 +467,12 @@
     "discount": 0,
     "grandTotal": 180,
     "paymentStatus": "SUCCESS",
-    "orderStatus": "CONFIRMED",
+    "orderStatus": "PACKING",
     "paymentMethod": "RAZORPAY",
     "transactionId": "MT178688260177844",
     "razorpayPaymentId": "pay_TQRDiBOipEHyWW",
     "createdAt": "2026-08-16T12:16:42.000Z",
-    "updatedAt": "2026-08-18T13:30:11.189Z"
+    "updatedAt": "2026-08-20T13:19:33.269Z"
   },
   {
     "id": "ORD-8256",
@@ -541,12 +512,12 @@
     "discount": 0,
     "grandTotal": 400,
     "paymentStatus": "SUCCESS",
-    "orderStatus": "CONFIRMED",
+    "orderStatus": "PACKING",
     "paymentMethod": "QR_PAYMENT",
     "transactionId": "WA_1786880994231",
     "razorpayPaymentId": "",
     "createdAt": "2026-08-16T11:49:54.620Z",
-    "updatedAt": "2026-08-16T11:49:55.357Z"
+    "updatedAt": "2026-08-20T13:19:33.269Z"
   },
   {
     "id": "ORD-8235",
@@ -578,12 +549,12 @@
     "discount": 0,
     "grandTotal": 140,
     "paymentStatus": "SUCCESS",
-    "orderStatus": "CONFIRMED",
+    "orderStatus": "PACKING",
     "paymentMethod": "UPI",
     "transactionId": "MT178635123217825",
     "razorpayPaymentId": "",
     "createdAt": "2026-08-16T11:19:35.877Z",
-    "updatedAt": "2026-08-16T11:19:35.877Z"
+    "updatedAt": "2026-08-20T13:19:33.269Z"
   },
   {
     "id": "ORD-1009",
@@ -615,11 +586,11 @@
     "discount": 0,
     "grandTotal": 140,
     "paymentStatus": "SUCCESS",
-    "orderStatus": "CONFIRMED",
+    "orderStatus": "PACKING",
     "paymentMethod": "RAZORPAY",
     "transactionId": "MT178685629970893",
     "razorpayPaymentId": "pay_TQJo8RFdy9sztg",
     "createdAt": "2026-08-16T04:58:20.000Z",
-    "updatedAt": "2026-08-18T13:30:11.189Z"
+    "updatedAt": "2026-08-20T13:19:33.269Z"
   }
 ]

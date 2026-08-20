@@ -99,9 +99,13 @@ export async function firestoreUpdateOrder(orderId: string, updates: Record<stri
     const existing = await getRes.json();
     const existingFields = existing?.fields || {};
 
-    // Merge with updates
+    // Merge with updates and ensure updatedAt timestamp is refreshed
     const mergedFields = { ...existingFields };
-    for (const [k, v] of Object.entries(updates)) {
+    const safeUpdates = {
+      updatedAt: new Date().toISOString(),
+      ...updates
+    };
+    for (const [k, v] of Object.entries(safeUpdates)) {
       mergedFields[k] = toFirestoreValue(v);
     }
 

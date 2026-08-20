@@ -1298,9 +1298,10 @@ Your parcel dispatched today 🚚
 
               <div className="space-y-2.5">
                 {sortedAllOrders.slice(0, 6).map((order) => {
-                  const isPacking = order.orderStatus === 'PACKED' || order.orderStatus === 'PROCESSING';
-                  const isDispatched = order.orderStatus === 'DISPATCHED' || order.orderStatus === 'OUT_FOR_DELIVERY';
-                  const isDelivered = order.orderStatus === 'DELIVERED';
+                  const stage = getOrderStage(order.orderStatus);
+                  const isPacking = stage === 'packing';
+                  const isDispatched = stage === 'dispatched';
+                  const isDelivered = stage === 'delivered';
 
                   return (
                     <div
