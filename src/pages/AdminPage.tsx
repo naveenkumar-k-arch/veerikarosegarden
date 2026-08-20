@@ -122,15 +122,19 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'categories' | 'orders' | 'inventory' | 'coupons' | 'banners' | 'reviews' | 'settings' | 'audit' | 'finances' | 'payment_logs'>('dashboard');
   const [orderFilterStage, setOrderFilterStage] = useState<'all' | 'pending' | 'packing' | 'dispatched' | 'delivered'>('all');
 
+  // Version-controlled persistent cache keys to purge stale order snapshots
+  const ADMIN_CACHE_KEY_SESSION = 'vrg_admin_session_cache_v4';
+  const ADMIN_CACHE_KEY_LOCAL = 'vrg_admin_persisted_cache_v4';
+
   // Multi-tiered persistent cache for instant (0ms) Stale-While-Revalidate UI hydration
   const getAdminSessionCache = (): any => {
     try {
-      const sessionSaved = sessionStorage.getItem('vrg_admin_session_cache');
+      const sessionSaved = sessionStorage.getItem(ADMIN_CACHE_KEY_SESSION);
       if (sessionSaved) {
         const parsed = JSON.parse(sessionSaved);
         if (parsed && typeof parsed === 'object' && parsed.success) return parsed;
       }
-      const localSaved = localStorage.getItem('vrg_admin_persisted_cache');
+      const localSaved = localStorage.getItem(ADMIN_CACHE_KEY_LOCAL);
       if (localSaved) {
         const parsed = JSON.parse(localSaved);
         if (parsed && typeof parsed === 'object' && parsed.success) return parsed;
@@ -178,12 +182,12 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
 
   const persistAdminCache = (updater: (prev: any) => any) => {
     try {
-      const raw = sessionStorage.getItem('vrg_admin_session_cache') || localStorage.getItem('vrg_admin_persisted_cache');
+      const raw = sessionStorage.getItem(ADMIN_CACHE_KEY_SESSION) || localStorage.getItem(ADMIN_CACHE_KEY_LOCAL);
       const cached = raw ? JSON.parse(raw) : { success: true };
       const next = updater(cached);
       const str = JSON.stringify({ success: true, ...next });
-      sessionStorage.setItem('vrg_admin_session_cache', str);
-      localStorage.setItem('vrg_admin_persisted_cache', str);
+      sessionStorage.setItem(ADMIN_CACHE_KEY_SESSION, str);
+      localStorage.setItem(ADMIN_CACHE_KEY_LOCAL, str);
     } catch {}
   };
 
@@ -860,8 +864,8 @@ const silentRefresh = async (): Promise<boolean> => {
 
         try {
           const str = JSON.stringify(bRes);
-          sessionStorage.setItem('vrg_admin_session_cache', str);
-          localStorage.setItem('vrg_admin_persisted_cache', str);
+          sessionStorage.setItem(ADMIN_CACHE_KEY_SESSION, str);
+          localStorage.setItem(ADMIN_CACHE_KEY_LOCAL, str);
         } catch {}
       } else {
         // Fast fallback: fetch public endpoints without 401 retry overhead
@@ -901,14 +905,30 @@ const silentRefresh = async (): Promise<boolean> => {
   };
 
   useEffect(() => {
-    // Purge legacy local storage blacklists (retain vrg_deleted_products)
-    localStorage.removeItem('vrg_deleted_orders');
-    localStorage.removeItem('vrg_deleted_categories');
-    localStorage.removeItem('vrg_deleted_coupons');
-    localStorage.removeItem('veerika_admin_orders');
-    localStorage.removeItem('vrg_orders');
-    localStorage.removeItem('veerika_customer_orders');
-    localStorage.removeItem('vrg_user_orders');
+    // Purge legacy local storage keys that may contain stale snapshots
+    const legacyKeys = [
+      'vrg_admin_session_cache',
+      'vrg_admin_persisted_cache',
+      'vrg_admin_bootstrap_cache',
+      'vrg_admin_session_cache_v2',
+      'vrg_admin_persisted_cache_v2',
+      'vrg_admin_session_cache_v3',
+      'vrg_admin_persisted_cache_v3',
+      'vrg_deleted_orders',
+      'vrg_deleted_categories',
+      'vrg_deleted_coupons',
+      'veerika_admin_orders',
+      'vrg_orders',
+      'veerika_customer_orders',
+      'vrg_user_orders',
+      'vrg_my_orders'
+    ];
+    legacyKeys.forEach(k => {
+      try {
+        localStorage.removeItem(k);
+        sessionStorage.removeItem(k);
+      } catch {}
+    });
 
     fetchData();
 
