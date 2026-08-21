@@ -101,21 +101,48 @@ authRouter.post('/google', async (req, res) => {
     const assignedRole: Role = isAdminEmail ? 'SUPER_ADMIN' : 'CUSTOMER';
 
     if (prisma) {
+      // Find existing user case-insensitively by email
       user = await prisma.user.findFirst({
-        where: { email: cleanEmail }
+        where: {
+          email: { equals: cleanEmail, mode: 'insensitive' }
+        }
       });
 
       if (!user) {
-        const uniquePhone = `g_${cleanEmail.replace(/[^a-zA-Z0-9]/g, '')}_${Date.now().toString().slice(-4)}`;
-        user = await prisma.user.create({
-          data: {
-            name: name,
-            email: cleanEmail,
-            phone: uniquePhone,
-            role: assignedRole,
-            isVerified: true
+        try {
+          const uniquePhone = `g_${cleanEmail.replace(/[^a-zA-Z0-9]/g, '')}_${Date.now().toString().slice(-4)}`;
+          user = await prisma.user.create({
+            data: {
+              name: name,
+              email: cleanEmail,
+              phone: uniquePhone,
+              role: assignedRole,
+              isVerified: true
+            }
+          });
+        } catch (createErr: any) {
+          // If concurrent request created the user or unique constraint failed (P2002), fetch existing user
+          user = await prisma.user.findFirst({
+            where: {
+              email: { equals: cleanEmail, mode: 'insensitive' }
+            }
+          });
+
+          if (!user) {
+            console.error('[AUTH_GOOGLE_CREATE_RETRY_FAILED]', createErr);
+            throw createErr;
           }
-        });
+        }
+      } else {
+        // If user already existed but wasn't verified or name changed, keep it up to date
+        if (!user.isVerified) {
+          try {
+            user = await prisma.user.update({
+              where: { id: user.id },
+              data: { isVerified: true }
+            });
+          } catch {}
+        }
       }
     } else {
       return res.status(500).json({ success: false, message: 'Database connection unavailable.' });
