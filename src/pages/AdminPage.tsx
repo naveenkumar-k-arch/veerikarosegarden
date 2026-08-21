@@ -808,12 +808,12 @@ const silentRefresh = async (): Promise<boolean> => {
             // Merge edit and stock overrides for recently-edited products
             filtered = filtered.map((apiProd: Product) => {
               const pendingEdit = pendingProductsRef.current.get(apiProd.id) || (apiProd.sku ? pendingProductsRef.current.get(apiProd.sku) : undefined);
-              if (pendingEdit && now - pendingEdit.savedAt < 30000) {
+              if (pendingEdit && now - pendingEdit.savedAt < 60000) {
                 return { ...apiProd, ...pendingEdit.product };
               }
-              const editedAt = pendingStockRef.current.get(apiProd.id);
-              if (editedAt && now - editedAt < 10000) {
-                const local = prev.find(p => p.id === apiProd.id);
+              const editedAt = pendingStockRef.current.get(apiProd.id) || (apiProd.sku ? pendingStockRef.current.get(apiProd.sku) : undefined);
+              if (editedAt && now - editedAt < 60000) {
+                const local = prev.find(p => p.id === apiProd.id || (apiProd.sku && p.sku === apiProd.sku));
                 return local ? { ...apiProd, stock: local.stock } : apiProd;
               }
               return apiProd;
@@ -1601,12 +1601,26 @@ const silentRefresh = async (): Promise<boolean> => {
   // Handle Quick Stock Update — optimistic with pending tracker to prevent poll revert
   const handleQuickStockUpdate = async (productId: string, newStock: number) => {
     const validStock = Math.max(0, newStock);
-    // Mark this product as recently edited (prevents fetchData from reverting it for 10s)
-    pendingStockRef.current.set(productId, Date.now());
+    let updatedProduct: Product | undefined;
     let nextList: Product[] = [];
     setProducts(prev => {
-      nextList = prev.map(p => p.id === productId ? { ...p, stock: validStock } : p);
+      nextList = prev.map(p => {
+        if (p.id === productId || p.sku === productId) {
+          updatedProduct = { ...p, stock: validStock };
+          return updatedProduct;
+        }
+        return p;
+      });
+      if (updatedProduct) {
+        pendingStockRef.current.set(productId, Date.now());
+        if (updatedProduct.sku) pendingStockRef.current.set(updatedProduct.sku, Date.now());
+        pendingProductsRef.current.set(productId, { product: updatedProduct, savedAt: Date.now() });
+        if (updatedProduct.sku) pendingProductsRef.current.set(updatedProduct.sku, { product: updatedProduct, savedAt: Date.now() });
+      }
       persistAdminCache(c => ({ ...c, products: nextList }));
+      try {
+        localStorage.setItem('vrg_products', JSON.stringify(nextList));
+      } catch {}
       return nextList;
     });
 
@@ -1614,12 +1628,9 @@ const silentRefresh = async (): Promise<boolean> => {
       await authFetch(`/api/products/${productId}`, {
         method: 'PUT',
         body: JSON.stringify({ stock: validStock })
-      }).catch(() => null);
+      });
     } catch (err) {
-      console.error(err);
-    } finally {
-      // After 12s, allow fetchData to refresh this product's stock from server
-      setTimeout(() => pendingStockRef.current.delete(productId), 12000);
+      console.error('Failed to update stock:', err);
     }
   };
 
@@ -4548,13 +4559,13 @@ const silentRefresh = async (): Promise<boolean> => {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => {
-                      if (confirm('Set stock count for ALL products to 50 units?')) {
-                        products.forEach(p => handleQuickStockUpdate(p.id, 50));
+                      if (confirm('Set stock count for ALL products to 100 units?')) {
+                        products.forEach(p => handleQuickStockUpdate(p.id, 100));
                       }
                     }}
                     className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl text-xs shadow-xs"
                   >
-                    ⚡ Set Bulk Stock (50 Units All)
+                    ⚡ Set Bulk Stock (100 Units All)
                   </button>
                 </div>
               </div>

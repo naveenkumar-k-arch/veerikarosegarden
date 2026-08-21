@@ -4711,9 +4711,9 @@ const DEFAULT_PRODUCTS: Product[] = [
 const DEFAULT_SETTINGS: SiteSettings = {
   businessName: process.env.BUSINESS_NAME || 'Veerika Rose Garden',
   tagline: process.env.BUSINESS_TAGLINE || 'Premier Plant Nursery & Farm Direct Gardens',
-  phone: process.env.BUSINESS_PHONE || '+91 72008 26129',
+  phone: process.env.BUSINESS_PHONE || '+91 63812 03534',
   email: process.env.BUSINESS_EMAIL || 'nv01110612@gmail.com',
-  whatsapp: process.env.BUSINESS_WHATSAPP || '+917200826129',
+  whatsapp: process.env.BUSINESS_WHATSAPP || '+916381203534',
   address: process.env.BUSINESS_ADDRESS || 'Pennagaram, Tamil Nadu — 636810',
   googleMapsUrl: 'https://maps.google.com/?q=Pennagaram,Tamil+Nadu',
   workingHours: 'Open 7 AM – 7 PM · All Days',
@@ -4794,7 +4794,7 @@ function toPrismaOrderStatus(orderStatus?: string | null): 'DELIVERED' | 'DISPAT
   if (s === 'DELIVERED' || s === 'COMPLETED') return 'DELIVERED';
   if (s === 'DISPATCHED' || s === 'OUT_FOR_DELIVERY' || s === 'SHIPPED' || s === 'COURIER' || s === 'IN_TRANSIT') return 'DISPATCHED';
   if (s === 'PACKING' || s === 'PACKED' || s === 'PROCESSING') return 'PACKING';
-  if (s === 'CONFIRMED' || s === 'PAID') return 'PACKING';
+  if (s === 'CONFIRMED' || s === 'PAID') return 'PAID';
   if (s === 'CANCELLED') return 'CANCELLED';
   return 'PAYMENT_PENDING';
 }
@@ -4803,9 +4803,10 @@ function fromPrismaOrderStatus(prismaStatus?: string | null): Order['orderStatus
   const s = String(prismaStatus || '').toUpperCase().trim();
   if (s === 'DELIVERED' || s === 'COMPLETED') return 'DELIVERED';
   if (s === 'DISPATCHED' || s === 'OUT_FOR_DELIVERY' || s === 'SHIPPED' || s === 'COURIER' || s === 'IN_TRANSIT') return 'DISPATCHED';
-  if (s === 'PACKING' || s === 'PACKED' || s === 'PROCESSING' || s === 'CONFIRMED' || s === 'PAID') return 'PACKING';
+  if (s === 'PACKING' || s === 'PACKED' || s === 'PROCESSING') return 'PACKING';
+  if (s === 'CONFIRMED' || s === 'PAID') return 'CONFIRMED';
   if (s === 'CANCELLED') return 'CANCELLED';
-  return 'PENDING';
+  return 'CONFIRMED';
 }
 
 class Store {
@@ -4922,6 +4923,9 @@ class Store {
         };
         return this.productsCache.data;
       }
+      const diskList = loadDiskProducts();
+      const defMap = new Map(DEFAULT_PRODUCTS.map(p => [p.id, p]));
+      const diskMap = new Map(diskList.map(p => [p.id, p]));
 
       const items = await prisma.product.findMany({
         include: { categoryRel: true, inventory: true },
@@ -4931,6 +4935,12 @@ class Store {
       let results: Product[] = items.map(p => {
         const primaryImage = p.image || (p.images && p.images.length > 0 ? p.images[0] : `/products/vrg/${p.id.replace('vrg-', '')}.png`);
         const allImages = p.images && p.images.length > 0 ? p.images : [primaryImage];
+        const diskItem = diskMap.get(p.id) || (p.sku ? diskMap.get(p.sku) : undefined);
+        const defItem = defMap.get(p.id) || (p.sku ? defMap.get(p.sku) : undefined);
+        const resolvedStock = (p.inventory?.quantity !== undefined && p.inventory?.quantity !== null)
+          ? p.inventory.quantity
+          : (diskItem?.stock !== undefined ? diskItem.stock : (defItem?.stock !== undefined ? defItem.stock : 25));
+
         return {
           id: p.id,
           sku: p.sku || `VRG-${p.id.slice(0, 6).toUpperCase()}`,
@@ -4949,7 +4959,7 @@ class Store {
           images: allImages,
           rating: p.rating || 5.0,
           reviewCount: p.reviewsCount || 0,
-          stock: p.inventory?.quantity ?? 50,
+          stock: resolvedStock,
           plantHeight: '1.5 - 2 Feet',
           potSize: p.potSize || '8 Inch Bag',
           sunlight: (p.careSunlight as any) || 'Full Sun',
@@ -7386,18 +7396,13 @@ class Store {
           // Compare updatedAt timestamps to pick the fresher record
           const existingTime = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
           const incomingTime = o.updatedAt ? new Date(o.updatedAt).getTime() : 0;
-          const fresher = incomingTime > existingTime ? o : existing;
-          const older = incomingTime > existingTime ? existing : o;
-
-          // GUARANTEE: Never downgrade an advanced stage (PACKING/DISPATCHED/DELIVERED) to an earlier stage
-          const existingWeight = getStageWeight(existing.orderStatus);
-          const incomingWeight = getStageWeight(o.orderStatus);
-          const resolvedStatus = incomingWeight >= existingWeight ? (fresher.orderStatus || older.orderStatus) : existing.orderStatus;
+          const fresher = incomingTime >= existingTime ? o : existing;
+          const older = incomingTime >= existingTime ? existing : o;
 
           uniqueMap.set(o.id, {
             ...older,
             ...fresher,
-            orderStatus: resolvedStatus,
+            orderStatus: fresher.orderStatus || older.orderStatus,
             paymentStatus: (fresher.paymentStatus === 'SUCCESS' || older.paymentStatus === 'SUCCESS') ? 'SUCCESS' : (fresher.paymentStatus || older.paymentStatus),
             paymentMethod: (fresher.paymentMethod === 'RAZORPAY' || older.paymentMethod === 'RAZORPAY') ? 'RAZORPAY' : (fresher.paymentMethod || older.paymentMethod),
             trackingNumber: fresher.trackingNumber || older.trackingNumber,

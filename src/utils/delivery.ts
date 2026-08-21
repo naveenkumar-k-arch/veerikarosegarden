@@ -57,9 +57,10 @@ export function isSouthState(stateName: string): boolean {
 
 /**
  * Calculate state & product-based delivery fee:
- * - Free Delivery items (e.g. Free Delivery Combos) have ₹0 shipping fee
+ * - Free Delivery items (e.g. Free Delivery Combos) have ₹0 shipping fee ONLY in Tamil Nadu
+ * - For other states (Karnataka, Kerala, Andhra Pradesh, Puducherry), combos and items are charged regular state shipping rates:
+ *   1st chargeable plant ₹100, each additional plant +₹20
  * - Tamil Nadu: 1st chargeable plant ₹60, each additional plant +₹20
- * - Karnataka, Kerala, Andhra Pradesh, Puducherry: 1st chargeable plant ₹100, each additional plant +₹20
  */
 export function calculateDeliveryFee(
   items: DeliveryItem[],
@@ -67,17 +68,26 @@ export function calculateDeliveryFee(
 ): number {
   if (!items || items.length === 0) return 0;
 
-  // Filter out items that have freeDelivery enabled (e.g. Combos with free delivery)
+  const inTN = isTamilNadu(stateName);
+
+  // Filter out items that have freeDelivery enabled (Active ONLY for Tamil Nadu)
   const chargeableItems = items.filter(item => {
-    if (item.freeDelivery === true) return false;
-    if (item.product && (item.product as any).freeDelivery === true) return false;
+    const isFree = item.freeDelivery === true || (item.product && (item.product as any).freeDelivery === true);
+    if (isFree && inTN) return false;
     return true;
   });
 
-  const totalChargeableCount = chargeableItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
+  const totalChargeableCount = chargeableItems.reduce((sum, item) => {
+    const isCombo = item.isCombo || item.product?.id?.startsWith('combo-') || (item.product as any)?.isCombo;
+    const bundleCount = (item.comboProducts && item.comboProducts.length > 0)
+      ? item.comboProducts.length
+      : ((item.product as any)?.comboProducts?.length || 1);
+    return sum + (isCombo ? bundleCount * (item.quantity || 1) : (item.quantity || 1));
+  }, 0);
+
   if (totalChargeableCount <= 0) return 0;
 
-  const baseFee = isTamilNadu(stateName) ? 60 : 100;
+  const baseFee = inTN ? 60 : 100;
   const additionalFee = (totalChargeableCount - 1) * 20;
 
   return baseFee + additionalFee;

@@ -152,7 +152,7 @@ export function generateOrderWhatsAppMessage(
       `📋 *Order ID:* #${order.id}`,
       `💰 *Total Amount:* ₹${order.grandTotal ?? 0} (${payText})`,
       `🌱 *Items:* ${itemsSummary}`,
-      `🔗 *Live Tracking:* ${trackingUrl}`,
+      `📦 *Next Step:* Our farm team will prepare your live saplings.`,
       `📞 Contact: +91 72008 26129 | Happy Gardening! 🌸`
     ].join('\n');
   }
@@ -164,7 +164,7 @@ export function generateOrderWhatsAppMessage(
       `📋 *Order ID:* #${order.id}`,
       `🪴 *Status:* Live saplings root-moisturized & box packed.`,
       `🚚 Your parcel will be handed over to courier shortly.`,
-      `🔗 *Live Tracking:* ${trackingUrl}`,
+      `📦 Tracking details will be shared once dispatched.`,
       `📞 Helpline: +91 72008 26129 | Happy Gardening! 🌸`
     ].join('\n');
   }
@@ -190,7 +190,7 @@ export function generateOrderWhatsAppMessage(
     `📋 *Order ID:* #${order.id}`,
     `🌿 *Care Tip:* Keep in mild shade for 7 days & water gently.`,
     `🚫 Avoid chemical fertilizers/DAP for the first 30 days.`,
-    `🔗 *Track & Review:* ${trackingUrl}`,
-    `📞 Helpline: +91 72008 26129 | Thank you for choosing us! 🪴`
+    `🌟 Thank you for supporting our organic rose nursery.`,
+    `📞 Helpline: +91 72008 26129 | Happy Gardening! 🪴`
   ].join('\n');
 }

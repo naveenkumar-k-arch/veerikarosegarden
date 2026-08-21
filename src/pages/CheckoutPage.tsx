@@ -58,9 +58,10 @@ const DELIVERY_TERMS = [
   '🌿 Plants are live/semi-dormant saplings. Minor leaf stress during transit is normal and temporary.',
   '📦 Orders are normally dispatched within 5–6 working days after confirmation.',
   '🚚 After dispatch, delivery takes 1–2 working days within Tamil Nadu.',
+  '📦 Mettur Parcel Service orders: Delivery/parcel charges are payable extra directly at the branch counter when collecting your order.',
   '📸 For QR/UPI payment orders, screenshot upload is mandatory. No screenshot = order rejected.',
   '💧 We pack plants with moisture-retaining material to survive courier transit safely.',
-  '🪴 Pot orders include free delivery. No-pot orders attract state-based delivery charges.',
+  '🪴 Free delivery for combos applies strictly to Tamil Nadu state. Standard state delivery fees apply for other states.',
   '🔄 No refund/return once the plant is dispatched. Live plants are non-returnable.',
   '📞 For any issue, contact us via WhatsApp within 24 hours of delivery with unboxing video.',
   '🏡 We deliver to villages, towns, and metro cities across all listed states.',
@@ -275,10 +276,12 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     return sum + (isCombo ? bundleCount * i.quantity : i.quantity);
   }, 0);
 
-  // Check if cart has free delivery (e.g. combo bundle offers)
-  const hasAllFreeDelivery = items.length > 0 && items.every(i => i.freeDelivery === true || (i.product as any).freeDelivery === true);
+  const inTN = isTamilNadu(address.state);
+
+  // Check if cart has free delivery (e.g. combo bundle offers - active ONLY for Tamil Nadu)
+  const hasAllFreeDelivery = inTN && items.length > 0 && items.every(i => i.freeDelivery === true || (i.product as any).freeDelivery === true);
   const chargeablePlantCount = items.reduce((sum, i) => {
-    const isFree = i.freeDelivery === true || (i.product as any).freeDelivery === true;
+    const isFree = inTN && (i.freeDelivery === true || (i.product as any).freeDelivery === true);
     if (isFree) return sum;
     const isCombo = i.isCombo || i.product.id.startsWith('combo-') || (i.product as any).isCombo;
     const bundleCount = (i.comboProducts && i.comboProducts.length > 0)
@@ -289,9 +292,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
   // Auto fallback if option becomes unavailable due to state or plant count changes
   useEffect(() => {
-    const inTN = isTamilNadu(address.state);
+    const inTNState = isTamilNadu(address.state);
     const isFullSoil = deliveryOption === 'FULL_SOIL_6INCH' || deliveryOption === 'FULL_SOIL_8INCH' || deliveryOption === 'FULL_SOIL';
-    if (isFullSoil && (!inTN || totalPlantCount > 5)) {
+    if (isFullSoil && (!inTNState || totalPlantCount > 5)) {
       setDeliveryOption('REDUCED_SOIL');
     }
     if (courierPartner === 'METTUR_PARCEL' && totalPlantCount < 3) {
@@ -1263,17 +1266,22 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                     <span className="flex items-center gap-1">🚚 Delivery Charge:</span>
                     <span className="text-[10px] text-slate-400 block">
                       {hasAllFreeDelivery
-                        ? '100% Free Doorstep Delivery Included'
+                        ? '100% Free Doorstep Delivery (Tamil Nadu Combo Offer)'
                         : courierPartner === 'METTUR_PARCEL'
-                          ? `Mettur Parcel (${metturDistrict || 'Tamil Nadu'})`
+                          ? `Mettur Parcel Depot (${metturDistrict || 'Tamil Nadu'}) • Delivery charges payable extra upon branch pickup`
                           : deliveryOption === 'FULL_SOIL_6INCH'
                             ? 'Professional Courier (6" Full Soil - ₹140/plant)'
                             : deliveryOption === 'FULL_SOIL_8INCH'
                               ? 'Professional Courier (8" Full Soil - ₹190/plant)'
                               : deliveryOption === 'FULL_SOIL'
                                 ? 'Professional Courier (6" Full Soil - ₹140/plant)'
-                                : 'Professional Courier (Reduced Soil)'}
+                                : `Professional Courier (Reduced Soil - ${inTN ? 'TN' : address.state || 'Other State'})`}
                     </span>
+                    {courierPartner === 'METTUR_PARCEL' && (
+                      <span className="text-[9px] text-amber-800 font-bold block mt-0.5">
+                        ⚠️ Pay delivery fee directly to Mettur Parcel Service when collecting order.
+                      </span>
+                    )}
                   </div>
                   <span className="font-bold text-slate-900">
                     {shippingCharge === 0 ? (

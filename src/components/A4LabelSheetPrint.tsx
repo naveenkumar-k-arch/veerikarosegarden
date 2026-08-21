@@ -218,14 +218,14 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
           pdf.setFontSize(11);
           pdf.text('Dharmapuri', labelX + 1, line2Y + 4.6);
 
-          // Line 3: +91 72008 26129
+          // Line 3: +91 63812 03534
           const line3Y = line2Y + 8;
           pdf.setFillColor(255, 255, 0); // Bright Yellow
-          pdf.rect(labelX, line3Y, 38, 6.2, 'F');
+          pdf.rect(labelX, line3Y, 44, 6.5, 'F');
           pdf.setTextColor(0, 0, 0);
           pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(11);
-          pdf.text('+91 72008 26129', labelX + 1, line3Y + 4.6);
+          pdf.setFontSize(11.5);
+          pdf.text('+91 63812 03534', labelX + 1, line3Y + 4.8);
 
           // ================= 4. COLUMN 2: "To," CUSTOMER BOX =================
           const toBoxX = labelX + 58;
@@ -240,36 +240,40 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
           // 1) Customer Name (BOLD)
           pdf.setTextColor(0, 0, 0);
           pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(9.5);
+          pdf.setFontSize(13);
           const nameLines = pdf.splitTextToSize(info.name, toBoxW - 4);
-          pdf.text(nameLines, toBoxX + 2.5, toBoxY + 5);
+          pdf.text(nameLines, toBoxX + 2.5, toBoxY + 5.2);
+
+          let currentY = toBoxY + 5.2 + (nameLines.length * 4.8) + 0.8;
 
           // 2) Customer Address (Regular font)
-          const addrStartY = toBoxY + 5 + (nameLines.length * 4.2) + 1.2;
           pdf.setTextColor(0, 0, 0);
           pdf.setFont('helvetica', 'normal');
-          pdf.setFontSize(8);
+          pdf.setFontSize(11);
           const addrLines = pdf.splitTextToSize(info.cleanAddress, toBoxW - 4);
-          const displayAddrLines = addrLines.slice(0, info.pincode ? 4 : 5);
-          pdf.text(displayAddrLines, toBoxX + 2.5, addrStartY);
+          const displayAddrLines = addrLines.slice(0, 4);
+          pdf.text(displayAddrLines, toBoxX + 2.5, currentY);
 
-          // 3) PINCODE (BOLD)
+          currentY += (displayAddrLines.length * 4.4) + 1.8;
+
+          // 3) PINCODE (BOLD - placed right below address)
           if (info.pincode) {
             pdf.setTextColor(0, 0, 0);
             pdf.setFont('helvetica', 'bold');
-            pdf.setFontSize(9.5);
-            pdf.text(`PINCODE: ${info.pincode}`, toBoxX + 2.5, toBoxY + toBoxH - 8);
+            pdf.setFontSize(13);
+            pdf.text(`PINCODE: ${info.pincode}`, toBoxX + 2.5, currentY);
+            currentY += 5.2;
           }
 
-          // 4) Customer Phone Number (BOLD)
+          // 4) Customer Phone Number (BOLD - placed right below pincode)
           if (info.phone) {
             pdf.setTextColor(0, 0, 0);
             pdf.setFont('helvetica', 'bold');
-            pdf.setFontSize(9.5);
+            pdf.setFontSize(13);
             const phoneFormatted = info.phone.toLowerCase().startsWith('ph') || info.phone.toLowerCase().startsWith('mob')
               ? info.phone
               : `Mob: ${info.phone}`;
-            pdf.text(phoneFormatted, toBoxX + 2.5, toBoxY + toBoxH - 3.5);
+            pdf.text(phoneFormatted, toBoxX + 2.5, currentY);
           }
 
           // ================= 5. COLUMN 3: ORDERED PLANTS BOX =================
@@ -283,10 +287,10 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
           pdf.rect(itemBoxX, itemBoxY, itemBoxW, itemBoxH, 'S');
 
           // Plants List
-          let itemY = itemBoxY + 5;
+          let itemY = itemBoxY + 5.2;
           pdf.setTextColor(0, 0, 0);
           pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(8.5);
+          pdf.setFontSize(11);
 
           if (order.items && order.items.length > 0) {
             order.items.forEach((item) => {
@@ -295,7 +299,7 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
                 const splitItem = pdf.splitTextToSize(itemText, itemBoxW - 4);
                 const linesToPrint = splitItem.slice(0, 2);
                 pdf.text(linesToPrint, itemBoxX + 2.5, itemY);
-                itemY += (linesToPrint.length * 3.8) + 1.5;
+                itemY += (linesToPrint.length * 4.4) + 1.5;
               }
             });
           } else {
@@ -459,33 +463,33 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
                       </div>
                       <div>
                         <span className="bg-[#FFFF00] font-black text-black text-xs sm:text-sm px-1 inline-block leading-tight">
-                          +91 72008 26129
+                          +91 63812 03534
                         </span>
                       </div>
                     </div>
 
                     {/* Middle Column: To Customer Box */}
-                    <div className="col-span-5 border border-black p-2 rounded-xs min-h-[140px] flex flex-col justify-between text-black">
+                    <div className="col-span-5 border border-black p-2.5 rounded-xs min-h-[140px] flex flex-col justify-start gap-1 text-black">
                       <div className="space-y-1">
                         {/* 1) Customer Name (BOLD) */}
-                        <p className="font-black text-xs sm:text-sm text-black leading-tight">
+                        <p className="font-black text-sm sm:text-base text-black leading-tight">
                           {info.name}
                         </p>
                         {/* 2) Customer Address (Regular font) */}
-                        <p className="font-normal text-[11px] text-black leading-tight">
+                        <p className="font-normal text-xs sm:text-sm text-black leading-tight">
                           {info.cleanAddress}
                         </p>
                       </div>
-                      <div className="pt-2 space-y-0.5">
-                        {/* 3) PINCODE (BOLD) */}
+                      <div className="pt-1 space-y-0.5">
+                        {/* 3) PINCODE (BOLD - placed right below address) */}
                         {info.pincode && (
-                          <p className="font-black text-xs sm:text-sm text-black leading-tight">
+                          <p className="font-black text-sm sm:text-base text-black leading-tight">
                             PINCODE: {info.pincode}
                           </p>
                         )}
-                        {/* 4) Customer Phone Number (BOLD) */}
+                        {/* 4) Customer Phone Number (BOLD - placed right below pincode) */}
                         {info.phone && (
-                          <p className="font-black text-xs sm:text-sm text-black leading-tight">
+                          <p className="font-black text-sm sm:text-base text-black leading-tight">
                             {info.phone.toLowerCase().startsWith('ph') || info.phone.toLowerCase().startsWith('mob')
                               ? info.phone
                               : `Mob: ${info.phone}`}
@@ -495,8 +499,8 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
                     </div>
 
                     {/* Right Column: Ordered Plants Box */}
-                    <div className="col-span-3 border border-black p-2 rounded-xs min-h-[140px] flex flex-col justify-start text-black">
-                      <div className="space-y-1 font-bold text-xs text-black">
+                    <div className="col-span-3 border border-black p-2.5 rounded-xs min-h-[140px] flex flex-col justify-start text-black">
+                      <div className="space-y-1 font-bold text-xs sm:text-sm text-black">
                         {order.items && order.items.length > 0 ? (
                           order.items.map((item, idx) => (
                             <p key={idx} className="leading-tight">

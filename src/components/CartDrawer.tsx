@@ -151,7 +151,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     )}
                     {hasFreeDelivery && (
                       <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-1.5 py-0.2 rounded mt-0.5">
-                        <Truck className="w-2.5 h-2.5" /> Free Delivery
+                        <Truck className="w-2.5 h-2.5" /> Free Delivery (TN)
                       </span>
                     )}
                     {isCombo && (

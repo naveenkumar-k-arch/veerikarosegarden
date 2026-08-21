@@ -152,7 +152,7 @@ export const CartPage: React.FC<CartPageProps> = ({
                       </h3>
                       {hasFreeDelivery && (
                         <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 font-extrabold text-[10px] px-2 py-0.5 rounded-md">
-                          <Truck className="w-3 h-3 text-emerald-600" /> Free Delivery
+                          <Truck className="w-3 h-3 text-emerald-600" /> Free Delivery (TN)
                         </span>
                       )}
                       {discountPercent > 0 && (

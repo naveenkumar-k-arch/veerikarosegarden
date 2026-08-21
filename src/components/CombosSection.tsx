@@ -313,7 +313,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                         </div>
                         {combo.freeDelivery && (
                           <span className="bg-emerald-100 text-emerald-900 font-extrabold text-[10px] sm:text-[11px] px-2 py-0.5 rounded-lg border border-emerald-300">
-                            🚚 Free Delivery
+                            🚚 Free Delivery (TN)
                           </span>
                         )}
                       </div>
@@ -395,7 +395,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                     </span>
                     {modalCombo.freeDelivery && (
                       <span className="bg-emerald-600 text-white font-black text-xs px-3 py-1 rounded-full">
-                        🚚 FREE DELIVERY INCLUDED
+                        🚚 FREE DELIVERY (TN ONLY)
                       </span>
                     )}
                     {discount > 0 && (

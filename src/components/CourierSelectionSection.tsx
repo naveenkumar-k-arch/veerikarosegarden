@@ -351,10 +351,28 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
                   <span className="text-[9px] font-black bg-amber-100 text-amber-900 px-2 py-0.5 rounded-md">
                     Min 3 Plants Required
                   </span>
+                  <span className="text-[9px] font-black bg-rose-100 text-rose-800 px-2 py-0.5 rounded-md">
+                    Pay Delivery Fee on Pickup
+                  </span>
                 </div>
                 <p className="text-[11px] text-slate-600">
                   Economical bulk parcel service with pickup depots across Tamil Nadu, Bangalore &amp; Pondicherry.
                 </p>
+
+                {/* Important Notice: Pay extra for delivery on receiving */}
+                <div className="mt-2 p-2.5 bg-amber-50/90 border border-amber-300/80 rounded-xl space-y-1 text-amber-950">
+                  <p className="text-[11px] font-extrabold flex items-center gap-1 text-amber-900">
+                    <span>⚠️</span>
+                    <span>Important: Delivery Charge Payable at Branch</span>
+                  </p>
+                  <p className="text-[10px] text-amber-900 font-semibold leading-relaxed">
+                    Customers need to pay the parcel / delivery charges extra directly to Mettur Parcel Service when collecting their order at the branch depot.
+                  </p>
+                  <p className="text-[10px] text-amber-800 font-medium font-sans">
+                    குறிப்பு: பார்சல் டெலிவரி கட்டணத்தை பார்சல் அலுவலகத்தில் பெற்றுக்கொள்ளும்போது தனியாக செலுத்த வேண்டும்.
+                  </p>
+                </div>
+
                 {!isMetturAllowed && (
                   <p className="text-[10px] font-bold text-rose-700 pt-1">
                     ⚠️ Mettur Parcel requires a minimum of 3 plants (You currently have {totalPlantCount} plant{totalPlantCount !== 1 ? 's' : ''}). Please add more plants to enable Mettur Service.
@@ -362,16 +380,16 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
                 )}
                 {isMetturAllowed && (
                   <p className="text-[10px] font-bold text-emerald-800 pt-0.5">
-                    Rate: ₹60 for 1–6 plants, +₹60 for every additional 6 plants.
+                    Estimated Depot Rate: ₹60 for 1–6 plants, +₹60 for every additional 6 plants (To-Pay at Branch).
                   </p>
                 )}
               </div>
             </div>
             <div className="text-right shrink-0">
-              <span className="text-xs sm:text-sm font-black text-emerald-900 block">
-                {!isMetturAllowed ? 'Min 3 Qty' : `₹${metturParcelCharge}`}
+              <span className="text-xs sm:text-sm font-black text-amber-900 block">
+                {!isMetturAllowed ? 'Min 3 Qty' : 'Pay at Branch'}
               </span>
-              <span className="text-[9px] text-slate-400 font-medium">Delivery Charge</span>
+              <span className="text-[9px] text-slate-400 font-medium">Extra at Depot</span>
             </div>
           </div>
 
@@ -469,13 +487,19 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
 
               {/* Status Message */}
               {isAvailable ? (
-                <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-start gap-2 text-emerald-900 text-[11px] font-medium">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <span>
-                    ✅ <strong>Mettur Parcel Service</strong> is active in{' '}
-                    <strong>{metturDistrict || shippingDistrict}</strong> ({metturBranch || 'Main Branch'}).
-                    Your parcel will be dispatched directly to this depot / delivery point.
-                  </span>
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-1.5 text-emerald-950 text-[11px]">
+                  <div className="flex items-start gap-2 font-medium">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>
+                      ✅ <strong>Mettur Parcel Service</strong> is active in{' '}
+                      <strong>{metturDistrict || shippingDistrict}</strong> ({metturBranch || 'Main Branch'}).
+                      Your parcel will be dispatched directly to this depot / branch.
+                    </span>
+                  </div>
+                  <div className="text-[10px] bg-amber-100/70 border border-amber-300/80 rounded-lg p-1.5 text-amber-950 font-bold flex items-center gap-1">
+                    <span>💵</span>
+                    <span>Note: Parcel handling / delivery charge is to be paid directly at the branch counter when collecting your plants.</span>
+                  </div>
                 </div>
               ) : (
                 <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2 text-amber-900 text-[11px] font-medium">

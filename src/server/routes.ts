@@ -20,7 +20,7 @@ import {
   updateOrderStatusSchema
 } from './schemas.js';
 import { isPrismaConnected } from './prisma.js';
-import { calculateDeliveryFee, getDeliveryChargeForOption, DeliveryOptionType } from '../utils/delivery.js';
+import { calculateDeliveryFee, getDeliveryChargeForOption, isTamilNadu, DeliveryOptionType } from '../utils/delivery.js';
 import { generateDispatchLabelsPdf } from './utils/labelPdf.js';
 
 export const apiRouter = express.Router();
@@ -921,10 +921,11 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
 
     // Server-side Shipping Charge calculation
     const targetState = shippingAddress?.state || 'Tamil Nadu';
-    const allItemsHaveFreeDelivery = verifiedItems.length > 0 && verifiedItems.every(i => i.freeDelivery === true);
+    const inTN = isTamilNadu(targetState);
+    const allItemsHaveFreeDelivery = inTN && verifiedItems.length > 0 && verifiedItems.every(i => i.freeDelivery === true);
     let shippingCharge = 0;
-    if (req.body.shippingCharge !== undefined && !isNaN(Number(req.body.shippingCharge))) {
-      shippingCharge = Math.max(0, Number(req.body.shippingCharge));
+    if (req.body.shippingCharge !== undefined && !isNaN(Number(req.body.shippingCharge)) && inTN && allItemsHaveFreeDelivery) {
+      shippingCharge = 0;
     } else {
       const explicitOpt = (req.body.deliveryOption || req.body.potOption || '').toString();
       const courierStr = (req.body.courierName || '').toString().toLowerCase();
