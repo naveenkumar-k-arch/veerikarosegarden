@@ -2,6 +2,7 @@ export interface DeliveryItem {
   quantity: number;
   freeDelivery?: boolean;
   isCombo?: boolean;
+  comboProducts?: any[];
   product?: {
     id?: string;
     name?: string;
@@ -10,6 +11,8 @@ export interface DeliveryItem {
     tags?: string[];
     category?: string;
     freeDelivery?: boolean;
+    isCombo?: boolean;
+    comboProducts?: any[];
   };
   name?: string;
   englishName?: string;
