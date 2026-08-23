@@ -884,6 +884,44 @@ export const App: React.FC = () => {
     }
   }, []);
 
+  // Dynamic SEO & Title tag updater for improved Google search indexing
+  useEffect(() => {
+    let title = 'Veerika Rose Garden - Buy Live Rose Plants, Exotic Varieties & Fruit Trees Online';
+    let desc = 'Veerika Rose Garden (வீரிகா ரோஜா கார்டன்) - Premier plant nursery in Tamil Nadu offering 50+ authentic hybrid roses, exotic rare varieties, grafted fruit trees, jasmine, medicinal herbal plants, and organic fertilizers with secure all-India delivery.';
+
+    if (currentPage === 'product-detail' && selectedProduct) {
+      title = `${selectedProduct.name} (₹${selectedProduct.sellingPrice}) - Buy Live Plant Online | Veerika Rose Garden`;
+      desc = selectedProduct.description ? selectedProduct.description.slice(0, 155) : `Buy authentic ${selectedProduct.name} live plant online from Veerika Rose Garden nursery with secure all-India delivery.`;
+    } else if (currentPage === 'shop') {
+      const activeCategory = categories.find(c => c.id === selectedCategory || c.slug === selectedCategory);
+      if (activeCategory) {
+        title = `${activeCategory.name} - Buy Live Plants Online | Veerika Rose Garden`;
+        desc = activeCategory.description ? activeCategory.description.slice(0, 155) : `Explore authentic ${activeCategory.name} from Veerika Rose Garden Pennagaram. Fast dispatch across India.`;
+      } else {
+        title = 'Shop Live Roses, Fruit Trees & Rare Plants | Veerika Rose Garden';
+        desc = 'Browse our complete catalog of authentic hybrid rose plants, fruit saplings, jasmine, and herbal plants with all-India safe delivery.';
+      }
+    } else if (currentPage === 'cart') {
+      title = `Shopping Cart (${cartCount} items) | Veerika Rose Garden`;
+    } else if (currentPage === 'checkout') {
+      title = 'Secure Checkout & Payment | Veerika Rose Garden';
+    } else if (currentPage === 'order-status') {
+      title = `Track Order Status ${selectedOrderId ? '#' + selectedOrderId : ''} | Veerika Rose Garden`;
+      desc = 'Track your live nursery plant order transit and courier dispatch in real time.';
+    } else if (currentPage === 'policies') {
+      title = 'Shipping, Replacement Guarantee & Privacy Policies | Veerika Rose Garden';
+      desc = 'Learn about our 100% Safe Live Transit Guarantee, express shipping policies, and replacement terms.';
+    } else if (currentPage === 'account') {
+      title = 'My Account & Orders | Veerika Rose Garden';
+    }
+
+    document.title = title;
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+      metaDesc.setAttribute('content', desc);
+    }
+  }, [currentPage, selectedProduct, selectedCategory, selectedOrderId, cartCount, categories]);
+
   // When products list updates from API, resolve selectedProduct if URL points to a product page
   useEffect(() => {
     const { page, paramId } = getPageFromUrl(window.location.pathname);

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Order } from '../types';
 import { Sprout, Printer, ArrowLeft, Download, Loader2, CheckCircle2 } from 'lucide-react';
 import * as jspdfPkg from 'jspdf';
+import { sanitizePdfText } from '../utils/textSanitizer';
 
 const jsPDFClass: any = (jspdfPkg as any).jsPDF || (jspdfPkg as any).default || jspdfPkg;
 
@@ -55,17 +56,18 @@ const parseLabelCustomerInfo = (order: Order) => {
       }
     }
 
-    if (!cleanAddress) {
-      cleanAddress = 'Address details on order';
-    }
+    cleanAddress = sanitizePdfText(cleanAddress, 'Address details on order');
+    const sanitizedName = sanitizePdfText(name, 'Valued Customer');
+    const sanitizedPhone = sanitizePdfText(phone);
+    const sanitizedPincode = sanitizePdfText(pincode);
 
     return {
-      name: name.trim(),
+      name: sanitizedName,
       cleanAddress: cleanAddress.startsWith('No') || cleanAddress.startsWith('Door') || cleanAddress.startsWith('Address')
         ? cleanAddress
         : `Address ${cleanAddress}`,
-      pincode: pincode.trim(),
-      phone: phone.trim()
+      pincode: sanitizedPincode,
+      phone: sanitizedPhone
     };
   }
 
@@ -86,13 +88,18 @@ const parseLabelCustomerInfo = (order: Order) => {
     .trim()
     .replace(/^,+\s*|,+\s*$/g, '');
 
+  const sanitizedAddress = sanitizePdfText(cleanStr, 'Address details on order');
+  const sanitizedName = sanitizePdfText(name, 'Valued Customer');
+  const sanitizedPhone = sanitizePdfText(phone);
+  const sanitizedPincode = sanitizePdfText(pincode);
+
   return {
-    name: name.trim(),
-    cleanAddress: cleanStr.startsWith('No') || cleanStr.startsWith('Door') || cleanStr.startsWith('Address')
-      ? cleanStr
-      : `Address ${cleanStr || 'Address details on order'}`,
-    pincode: pincode.trim(),
-    phone: phone.trim()
+    name: sanitizedName,
+    cleanAddress: sanitizedAddress.startsWith('No') || sanitizedAddress.startsWith('Door') || sanitizedAddress.startsWith('Address')
+      ? sanitizedAddress
+      : `Address ${sanitizedAddress}`,
+    pincode: sanitizedPincode,
+    phone: sanitizedPhone
   };
 };
 
@@ -295,7 +302,8 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
           if (order.items && order.items.length > 0) {
             order.items.forEach((item) => {
               if (itemY <= itemBoxY + itemBoxH - 4) {
-                const itemText = `${item.name}${item.quantity > 1 ? ` (${item.quantity})` : ''}`;
+                const cleanItemName = sanitizePdfText(item.name, 'Nursery Plant Sapling');
+                const itemText = `${cleanItemName}${item.quantity > 1 ? ` (${item.quantity})` : ''}`;
                 const splitItem = pdf.splitTextToSize(itemText, itemBoxW - 4);
                 const linesToPrint = splitItem.slice(0, 2);
                 pdf.text(linesToPrint, itemBoxX + 2.5, itemY);

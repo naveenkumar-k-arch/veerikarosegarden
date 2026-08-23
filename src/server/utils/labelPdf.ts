@@ -1,5 +1,6 @@
 import * as jspdfPkg from 'jspdf';
 import { Order } from '../../types.js';
+import { sanitizePdfText } from '../../utils/textSanitizer.js';
 
 const jsPDFClass: any = (jspdfPkg as any).jsPDF || (jspdfPkg as any).default || jspdfPkg;
 
@@ -78,17 +79,18 @@ export function generateDispatchLabelsPdf(
         }
       }
 
-      if (!cleanAddress) {
-        cleanAddress = 'Address details on order';
-      }
+      cleanAddress = sanitizePdfText(cleanAddress, 'Address details on order');
+      const sanitizedName = sanitizePdfText(name, 'Valued Customer');
+      const sanitizedPhone = sanitizePdfText(phone);
+      const sanitizedPincode = sanitizePdfText(pincode);
 
       return {
-        name: name.trim(),
+        name: sanitizedName,
         cleanAddress: cleanAddress.startsWith('No') || cleanAddress.startsWith('Door') || cleanAddress.startsWith('Address')
           ? cleanAddress
           : `Address ${cleanAddress}`,
-        pincode: pincode.trim(),
-        phone: phone.trim()
+        pincode: sanitizedPincode,
+        phone: sanitizedPhone
       };
     }
 
@@ -109,13 +111,18 @@ export function generateDispatchLabelsPdf(
       .trim()
       .replace(/^,+\s*|,+\s*$/g, '');
 
+    const sanitizedAddress = sanitizePdfText(cleanStr, 'Address details on order');
+    const sanitizedName = sanitizePdfText(name, 'Valued Customer');
+    const sanitizedPhone = sanitizePdfText(phone);
+    const sanitizedPincode = sanitizePdfText(pincode);
+
     return {
-      name: name.trim(),
-      cleanAddress: cleanStr.startsWith('No') || cleanStr.startsWith('Door') || cleanStr.startsWith('Address')
-        ? cleanStr
-        : `Address ${cleanStr || 'Address details on order'}`,
-      pincode: pincode.trim(),
-      phone: phone.trim()
+      name: sanitizedName,
+      cleanAddress: sanitizedAddress.startsWith('No') || sanitizedAddress.startsWith('Door') || sanitizedAddress.startsWith('Address')
+        ? sanitizedAddress
+        : `Address ${sanitizedAddress}`,
+      pincode: sanitizedPincode,
+      phone: sanitizedPhone
     };
   };
 
@@ -262,7 +269,8 @@ export function generateDispatchLabelsPdf(
       if (order.items && order.items.length > 0) {
         order.items.forEach((item) => {
           if (itemY <= itemBoxY + itemBoxH - 4) {
-            const itemText = `${item.name}${item.quantity > 1 ? ` (${item.quantity})` : ''}`;
+            const cleanItemName = sanitizePdfText(item.name, 'Nursery Plant Sapling');
+            const itemText = `${cleanItemName}${item.quantity > 1 ? ` (${item.quantity})` : ''}`;
             const splitItem = pdf.splitTextToSize(itemText, itemBoxW - 4);
             const linesToPrint = splitItem.slice(0, 2);
             pdf.text(linesToPrint, itemBoxX + 2.5, itemY);
