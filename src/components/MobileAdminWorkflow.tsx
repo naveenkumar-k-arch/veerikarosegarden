@@ -54,7 +54,9 @@ import {
   CheckSquare,
   ArrowDown,
   CheckCheck,
-  Filter
+  Filter,
+  RotateCcw,
+  SlidersHorizontal
 } from 'lucide-react';
 import { A4LabelSheetPrint } from './A4LabelSheetPrint';
 
@@ -167,11 +169,21 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   // Order Sorting: 'date_desc' (Newest Date First - Default), 'date_asc' (Oldest First), 'price_desc' (Highest Amount First), 'price_asc' (Lowest Amount First)
   const [orderSortBy, setOrderSortBy] = useState<'date_desc' | 'date_asc' | 'price_desc' | 'price_asc'>('date_desc');
 
+  // Courier & Date Filter States for Orders
+  const [orderCourierFilter, setOrderCourierFilter] = useState<string>('all');
+  const [orderDatePreset, setOrderDatePreset] = useState<'all' | 'today' | 'yesterday' | 'last_7_days' | 'this_month' | 'custom'>('all');
+  const [orderSpecificDate, setOrderSpecificDate] = useState<string>('');
+  const [orderStartDate, setOrderStartDate] = useState<string>('');
+  const [orderEndDate, setOrderEndDate] = useState<string>('');
+  const [showOrderDateRange, setShowOrderDateRange] = useState<boolean>(false);
+
   // Label Generation State
   const [selectedLabelOrderIds, setSelectedLabelOrderIds] = useState<string[]>([]);
   const [showLabelPrintPreview, setShowLabelPrintPreview] = useState(false);
   const [labelFilterTab, setLabelFilterTab] = useState<'all' | 'not_printed' | 'printed'>('all');
   const [labelSearchQuery, setLabelSearchQuery] = useState('');
+  const [labelCourierFilter, setLabelCourierFilter] = useState<string>('all');
+  const [labelSpecificDate, setLabelSpecificDate] = useState<string>('');
   const [printedOrderIds, setPrintedOrderIds] = useState<string[]>(() => {
     try {
       const stored = localStorage.getItem('vrg_printed_label_order_ids');
@@ -932,6 +944,41 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
     return isNaN(num) ? 0 : num;
   }, []);
 
+  // Helper to extract clean local YYYY-MM-DD from order
+  const getOrderDateKey = useCallback((o: Order): string => {
+    const raw = o.createdAt || o.updatedAt || (o as any).date;
+    if (!raw) return '';
+    try {
+      const d = new Date(raw);
+      if (isNaN(d.getTime())) return '';
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    } catch {
+      return '';
+    }
+  }, []);
+
+  // Dynamically extract unique couriers present in orders plus standard carrier options
+  const availableCouriers = useMemo(() => {
+    const standardCouriers = [
+      'Professional Courier',
+      'ST Courier',
+      'Delhivery',
+      'India Post / Speed Post',
+      'DTDC',
+      'Blue Dart',
+      'Mettur Transports',
+      'Self Delivery (Farm Team)'
+    ];
+    const fromOrders = orders
+      .map(o => o.courierName?.trim())
+      .filter((c): c is string => Boolean(c));
+    const set = new Set([...standardCouriers, ...fromOrders]);
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [orders]);
+
   // All orders sorted Newest First (for Dashboard & global views)
   const sortedAllOrders = useMemo(() => {
     return [...orders].sort((a, b) => {
@@ -947,6 +994,52 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
       ? [...orders] 
       : orders.filter(o => getOrderStage(o.orderStatus) === orderStageFilter);
 
+    // 1. Courier Service Filter
+    if (orderCourierFilter !== 'all') {
+      const targetCourier = orderCourierFilter.toLowerCase().trim();
+      list = list.filter(o => {
+        const oCourier = (o.courierName || 'Professional Courier').toLowerCase().trim();
+        return oCourier.includes(targetCourier) || targetCourier.includes(oCourier);
+      });
+    }
+
+    // 2. Date Filter
+    if (orderSpecificDate) {
+      // User selected a specific date in the date picker
+      list = list.filter(o => getOrderDateKey(o) === orderSpecificDate);
+    } else if (orderDatePreset === 'today') {
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      list = list.filter(o => getOrderDateKey(o) === todayStr);
+    } else if (orderDatePreset === 'yesterday') {
+      const y = new Date();
+      y.setDate(y.getDate() - 1);
+      const yestStr = `${y.getFullYear()}-${String(y.getMonth() + 1).padStart(2, '0')}-${String(y.getDate()).padStart(2, '0')}`;
+      list = list.filter(o => getOrderDateKey(o) === yestStr);
+    } else if (orderDatePreset === 'last_7_days') {
+      const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      list = list.filter(o => getOrderTime(o) >= sevenDaysAgo);
+    } else if (orderDatePreset === 'this_month') {
+      const now = new Date();
+      const curYear = now.getFullYear();
+      const curMonth = now.getMonth();
+      list = list.filter(o => {
+        const raw = o.createdAt || o.updatedAt || (o as any).date;
+        if (!raw) return false;
+        const d = new Date(raw);
+        return !isNaN(d.getTime()) && d.getFullYear() === curYear && d.getMonth() === curMonth;
+      });
+    } else if (orderDatePreset === 'custom' && (orderStartDate || orderEndDate)) {
+      list = list.filter(o => {
+        const dKey = getOrderDateKey(o);
+        if (!dKey) return false;
+        if (orderStartDate && dKey < orderStartDate) return false;
+        if (orderEndDate && dKey > orderEndDate) return false;
+        return true;
+      });
+    }
+
+    // 3. Search Query Filter
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       list = list.filter(o => 
@@ -954,7 +1047,12 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
         (o.customerName && o.customerName.toLowerCase().includes(q)) ||
         (o.shippingAddress?.fullName && o.shippingAddress.fullName.toLowerCase().includes(q)) ||
         (o.customerPhone && o.customerPhone.includes(q)) ||
-        (o.shippingAddress?.phone && o.shippingAddress.phone.includes(q))
+        (o.shippingAddress?.phone && o.shippingAddress.phone.includes(q)) ||
+        (o.courierName && o.courierName.toLowerCase().includes(q)) ||
+        (o.trackingNumber && o.trackingNumber.toLowerCase().includes(q)) ||
+        (o.shippingAddress?.villageTown && o.shippingAddress.villageTown.toLowerCase().includes(q)) ||
+        (o.shippingAddress?.district && o.shippingAddress.district.toLowerCase().includes(q)) ||
+        (o.shippingAddress?.pincode && o.shippingAddress.pincode.includes(q))
       );
     }
 
@@ -986,7 +1084,19 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
     });
 
     return list;
-  }, [orders, orderStageFilter, searchQuery, orderSortBy, getOrderTime]);
+  }, [
+    orders,
+    orderStageFilter,
+    orderCourierFilter,
+    orderDatePreset,
+    orderSpecificDate,
+    orderStartDate,
+    orderEndDate,
+    searchQuery,
+    orderSortBy,
+    getOrderTime,
+    getOrderDateKey
+  ]);
 
   // Filtered Products
   const filteredProducts = useMemo(() => {
@@ -1014,6 +1124,18 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   const { notPrintedOrders, printedOrders, displayedLabelOrders } = useMemo(() => {
     let list = [...orders];
 
+    if (labelCourierFilter !== 'all') {
+      const targetCourier = labelCourierFilter.toLowerCase().trim();
+      list = list.filter(o => {
+        const oCourier = (o.courierName || 'Professional Courier').toLowerCase().trim();
+        return oCourier.includes(targetCourier) || targetCourier.includes(oCourier);
+      });
+    }
+
+    if (labelSpecificDate) {
+      list = list.filter(o => getOrderDateKey(o) === labelSpecificDate);
+    }
+
     if (labelSearchQuery.trim()) {
       const q = labelSearchQuery.toLowerCase().trim();
       list = list.filter(o =>
@@ -1021,7 +1143,8 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
         (o.customerName && o.customerName.toLowerCase().includes(q)) ||
         (o.shippingAddress?.fullName && o.shippingAddress.fullName.toLowerCase().includes(q)) ||
         (o.customerPhone && o.customerPhone.includes(q)) ||
-        (o.shippingAddress?.phone && o.shippingAddress.phone.includes(q))
+        (o.shippingAddress?.phone && o.shippingAddress.phone.includes(q)) ||
+        (o.courierName && o.courierName.toLowerCase().includes(q))
       );
     }
 
@@ -1047,7 +1170,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
       printedOrders: printed,
       displayedLabelOrders: displayed
     };
-  }, [orders, isOrderPrinted, labelFilterTab, labelSearchQuery]);
+  }, [orders, isOrderPrinted, labelFilterTab, labelSearchQuery, labelCourierFilter, labelSpecificDate, getOrderDateKey, getOrderTime]);
 
   const selectedLabelOrders = useMemo(() => {
     return orders.filter(o => selectedLabelOrderIds.includes(o.id));
@@ -1385,16 +1508,26 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               </div>
             </div>
 
-            {/* Search Bar */}
+            {/* Search Bar with Instant Clear */}
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search by Order ID, Name, Phone..."
+                placeholder="Search by Order ID, Customer Name, Phone, Pincode, Courier..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700"
+                className="w-full pl-9 pr-8 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700"
               />
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-700 p-0.5"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
 
             {/* Order Stage Filter Bar with All + 4 Stages */}
@@ -1422,6 +1555,309 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 </button>
               ))}
             </div>
+
+            {/* Courier Service & Date Filter Controls Panel */}
+            <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs space-y-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {/* 1. Courier Service Filter */}
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                    <span className="flex items-center gap-1">
+                      <Truck className="w-3 h-3 text-emerald-700" />
+                      <span>Courier Service</span>
+                    </span>
+                    {orderCourierFilter !== 'all' && (
+                      <span className="text-[9px] bg-emerald-100 text-emerald-800 font-black px-1.5 py-0.2 rounded-full">
+                        Filter Active
+                      </span>
+                    )}
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={orderCourierFilter}
+                      onChange={e => setOrderCourierFilter(e.target.value)}
+                      className="w-full pl-8 pr-7 py-2 bg-slate-50 hover:bg-slate-100/80 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700 cursor-pointer appearance-none"
+                    >
+                      <option value="all">🚚 All Couriers ({orders.length} orders)</option>
+                      {availableCouriers.map(courier => {
+                        const count = orders.filter(o => {
+                          const c = (o.courierName || 'Professional Courier').toLowerCase().trim();
+                          const t = courier.toLowerCase().trim();
+                          return c.includes(t) || t.includes(c);
+                        }).length;
+                        return (
+                          <option key={courier} value={courier}>
+                            {courier} ({count})
+                          </option>
+                        );
+                      })}
+                    </select>
+                    <Truck className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5 pointer-events-none" />
+                    {orderCourierFilter !== 'all' ? (
+                      <button
+                        type="button"
+                        onClick={() => setOrderCourierFilter('all')}
+                        className="absolute right-2 top-2 text-slate-400 hover:text-slate-700 p-0.5 cursor-pointer"
+                        title="Clear courier filter"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    ) : (
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 rotate-90 pointer-events-none" />
+                    )}
+                  </div>
+                </div>
+
+                {/* 2. Specific Date Picker */}
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-3 h-3 text-emerald-700" />
+                      <span>Select Date</span>
+                    </span>
+                    {orderSpecificDate && (
+                      <span className="text-[9px] bg-emerald-100 text-emerald-800 font-black px-1.5 py-0.2 rounded-full">
+                        {orderSpecificDate}
+                      </span>
+                    )}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={orderSpecificDate}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setOrderSpecificDate(val);
+                        if (val) {
+                          setOrderDatePreset('custom');
+                          setShowOrderDateRange(false);
+                        } else {
+                          setOrderDatePreset('all');
+                        }
+                      }}
+                      className="w-full pl-8 pr-7 py-2 bg-slate-50 hover:bg-slate-100/80 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700 cursor-pointer"
+                    />
+                    <Calendar className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5 pointer-events-none" />
+                    {orderSpecificDate && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOrderSpecificDate('');
+                          setOrderDatePreset('all');
+                        }}
+                        className="absolute right-2 top-2 text-slate-400 hover:text-slate-700 p-0.5 cursor-pointer"
+                        title="Clear date filter"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Date Presets */}
+              <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pt-0.5">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider shrink-0 mr-1">
+                  Presets:
+                </span>
+                {[
+                  { key: 'all', label: 'All Dates' },
+                  { key: 'today', label: 'Today' },
+                  { key: 'yesterday', label: 'Yesterday' },
+                  { key: 'last_7_days', label: 'Last 7 Days' },
+                  { key: 'this_month', label: 'This Month' },
+                  { key: 'range', label: 'Date Range ↔' }
+                ].map(preset => {
+                  const isActive = preset.key === 'range' ? showOrderDateRange : (orderDatePreset === preset.key && !orderSpecificDate);
+                  return (
+                    <button
+                      key={preset.key}
+                      type="button"
+                      onClick={() => {
+                        if (preset.key === 'range') {
+                          setShowOrderDateRange(prev => !prev);
+                          if (!showOrderDateRange) {
+                            setOrderDatePreset('custom');
+                            setOrderSpecificDate('');
+                          }
+                        } else {
+                          setShowOrderDateRange(false);
+                          setOrderDatePreset(preset.key as any);
+                          setOrderSpecificDate('');
+                          setOrderStartDate('');
+                          setOrderEndDate('');
+                        }
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-extrabold whitespace-nowrap transition-all cursor-pointer border ${
+                        isActive
+                          ? 'bg-emerald-800 text-white border-emerald-900 shadow-2xs'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Custom Date Range Picker */}
+              {showOrderDateRange && (
+                <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2 animate-in fade-in duration-150">
+                  <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
+                    <span className="flex items-center gap-1">
+                      <SlidersHorizontal className="w-3 h-3 text-emerald-700" />
+                      <span>Custom Date Range (From → To)</span>
+                    </span>
+                    {(orderStartDate || orderEndDate) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOrderStartDate('');
+                          setOrderEndDate('');
+                        }}
+                        className="text-[10px] text-rose-600 hover:underline font-bold cursor-pointer"
+                      >
+                        Clear Range
+                      </button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[9px] font-black text-slate-400 uppercase mb-0.5">From Date</label>
+                      <input
+                        type="date"
+                        value={orderStartDate}
+                        onChange={e => {
+                          setOrderStartDate(e.target.value);
+                          setOrderDatePreset('custom');
+                          setOrderSpecificDate('');
+                        }}
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:ring-2 focus:ring-emerald-700 cursor-pointer"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] font-black text-slate-400 uppercase mb-0.5">To Date</label>
+                      <input
+                        type="date"
+                        value={orderEndDate}
+                        onChange={e => {
+                          setOrderEndDate(e.target.value);
+                          setOrderDatePreset('custom');
+                          setOrderSpecificDate('');
+                        }}
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:ring-2 focus:ring-emerald-700 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Active Filter Badges Bar */}
+            {(orderCourierFilter !== 'all' || orderSpecificDate || (orderDatePreset !== 'all' && !orderSpecificDate) || orderStartDate || orderEndDate || searchQuery.trim() || orderStageFilter !== 'all') && (
+              <div className="flex items-center gap-1.5 flex-wrap p-2 bg-emerald-50/80 rounded-xl border border-emerald-200 animate-in fade-in duration-100">
+                <span className="text-[10px] font-black text-emerald-900 uppercase tracking-wider flex items-center gap-1">
+                  <Filter className="w-3 h-3 text-emerald-700" />
+                  <span>Active:</span>
+                </span>
+
+                {orderCourierFilter !== 'all' && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-white text-emerald-900 border border-emerald-300 rounded-md text-[10px] font-black shadow-2xs">
+                    <span>🚚 {orderCourierFilter}</span>
+                    <button
+                      type="button"
+                      onClick={() => setOrderCourierFilter('all')}
+                      className="hover:text-rose-600 cursor-pointer"
+                      title="Remove courier filter"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+
+                {orderSpecificDate && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-white text-emerald-900 border border-emerald-300 rounded-md text-[10px] font-black shadow-2xs">
+                    <span>📅 {orderSpecificDate}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOrderSpecificDate('');
+                        setOrderDatePreset('all');
+                      }}
+                      className="hover:text-rose-600 cursor-pointer"
+                      title="Remove date filter"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+
+                {!orderSpecificDate && (orderDatePreset !== 'all' || orderStartDate || orderEndDate) && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-white text-emerald-900 border border-emerald-300 rounded-md text-[10px] font-black shadow-2xs">
+                    <span>📅 {(orderStartDate || orderEndDate) ? `${orderStartDate || 'Start'} → ${orderEndDate || 'End'}` : orderDatePreset.replace(/_/g, ' ').toUpperCase()}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOrderDatePreset('all');
+                        setOrderStartDate('');
+                        setOrderEndDate('');
+                        setShowOrderDateRange(false);
+                      }}
+                      className="hover:text-rose-600 cursor-pointer"
+                      title="Remove preset filter"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+
+                {orderStageFilter !== 'all' && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-white text-emerald-900 border border-emerald-300 rounded-md text-[10px] font-black shadow-2xs">
+                    <span>🏷️ {orderStageFilter.toUpperCase()}</span>
+                    <button
+                      type="button"
+                      onClick={() => setOrderStageFilter('all')}
+                      className="hover:text-rose-600 cursor-pointer"
+                      title="Remove stage filter"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+
+                {searchQuery.trim() && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-white text-emerald-900 border border-emerald-300 rounded-md text-[10px] font-black shadow-2xs">
+                    <span>🔍 "{searchQuery}"</span>
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="hover:text-rose-600 cursor-pointer"
+                      title="Clear search"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOrderCourierFilter('all');
+                    setOrderDatePreset('all');
+                    setOrderSpecificDate('');
+                    setOrderStartDate('');
+                    setOrderEndDate('');
+                    setShowOrderDateRange(false);
+                    setSearchQuery('');
+                    setOrderStageFilter('all');
+                  }}
+                  className="ml-auto px-2 py-0.5 bg-rose-100 hover:bg-rose-200 text-rose-800 text-[10px] font-extrabold rounded-md flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  <RotateCcw className="w-2.5 h-2.5" />
+                  <span>Reset All</span>
+                </button>
+              </div>
+            )}
 
             {/* Sort Controls Bar: Sort by Date / Price Toggle Buttons */}
             <div className="flex items-center justify-between gap-2 px-0.5 pt-0.5 pb-0.5">
@@ -1455,7 +1891,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 </button>
               </div>
 
-              <span className="text-[11px] font-black text-slate-500 shrink-0 bg-slate-200/80 px-2 py-1 rounded-lg">
+              <span className="text-[11px] font-black text-slate-600 shrink-0 bg-slate-200/80 px-2 py-1 rounded-lg">
                 {filteredOrders.length} {filteredOrders.length === 1 ? 'order' : 'orders'}
               </span>
             </div>
@@ -1649,8 +2085,35 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               })}
 
               {filteredOrders.length === 0 && (
-                <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-2">
-                  <p className="text-xs font-bold text-slate-500">No orders found in this stage</p>
+                <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                    <Package className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-black text-slate-800">No orders match your filter criteria</p>
+                    <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
+                      {orderSpecificDate ? `No orders recorded on ${orderSpecificDate}` : 'Try adjusting your courier partner, date selection, or stage filters.'}
+                    </p>
+                  </div>
+                  {(orderCourierFilter !== 'all' || orderSpecificDate || orderDatePreset !== 'all' || orderStartDate || orderEndDate || searchQuery.trim() || orderStageFilter !== 'all') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOrderCourierFilter('all');
+                        setOrderDatePreset('all');
+                        setOrderSpecificDate('');
+                        setOrderStartDate('');
+                        setOrderEndDate('');
+                        setShowOrderDateRange(false);
+                        setSearchQuery('');
+                        setOrderStageFilter('all');
+                      }}
+                      className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer inline-flex items-center gap-1.5"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Reset Filters & Show All</span>
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -1836,29 +2299,157 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             </div>
 
             {/* Ordered Plants Itemized List */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-2.5">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-extrabold text-slate-900">
-                  Ordered Plants ({selectedOrder.items?.length || 0})
-                </h3>
-                <span className="text-xs font-extrabold text-slate-900">₹{selectedOrder.grandTotal}</span>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                <div>
+                  <h3 className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5">
+                    <Package className="w-4 h-4 text-emerald-700" />
+                    <span>Ordered Plants ({selectedOrder.items?.reduce((sum, item) => sum + (item.quantity || 1), 0) || selectedOrder.items?.length || 0} plants)</span>
+                  </h3>
+                  <p className="text-[10px] text-slate-500 font-medium">Itemized manifest, pricing & service details</p>
+                </div>
+                <span className="text-sm font-black text-slate-900 bg-emerald-50 text-emerald-950 px-2.5 py-1 rounded-xl border border-emerald-200">
+                  ₹{selectedOrder.grandTotal}
+                </span>
               </div>
+
+              {/* Service & Delivery Badges */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-[11px]">
+                {/* Courier Service */}
+                <div className="flex items-start gap-2">
+                  <Truck className="w-3.5 h-3.5 text-emerald-700 mt-0.5 shrink-0" />
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Courier Service</span>
+                    <span className="font-extrabold text-slate-900 truncate block">
+                      {selectedOrder.courierName || 'Professional Courier'}
+                    </span>
+                    {(selectedOrder.courierBranch || selectedOrder.courierDistrict) && (
+                      <span className="text-[10px] text-slate-600 truncate block">
+                        {selectedOrder.courierBranch ? `Branch: ${selectedOrder.courierBranch}` : ''}
+                        {selectedOrder.courierDistrict ? ` (${selectedOrder.courierDistrict})` : ''}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Soil & Packaging Type of Service */}
+                <div className="flex items-start gap-2">
+                  <Sprout className="w-3.5 h-3.5 text-emerald-700 mt-0.5 shrink-0" />
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Type of Service</span>
+                    <span className="font-extrabold text-slate-900 block truncate">
+                      {selectedOrder.potOption === 'FULL_SOIL_8INCH' ? '🪴 8" Bag Full Soil (Root Intact)' :
+                       selectedOrder.potOption === 'FULL_SOIL_6INCH' ? '🪴 6" Bag Full Soil (Root Intact)' :
+                       selectedOrder.potOption === 'FULL_SOIL' ? '🪴 Full Soil (Root Intact)' :
+                       '🌱 Reduced Soil (Nursery Standard)'}
+                    </span>
+                    <span className="text-[10px] text-slate-600 block truncate">
+                      {selectedOrder.packingOption === 'MAX_PROTECTION' ? '📦 Max Heavy Duty Protection' :
+                       selectedOrder.packingOption === 'EXTRA_SECURE' ? '📦 Extra Secure Bubble Packing' :
+                       '📦 Standard Plant Guard Packing'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Itemized Plants List */}
               <div className="divide-y divide-slate-100">
                 {selectedOrder.items && selectedOrder.items.length > 0 ? (
-                  selectedOrder.items.map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between py-2 text-xs">
-                      <div>
-                        <p className="font-bold text-slate-800">{idx + 1}. {item.name}</p>
-                        {item.tamilName && (
-                          <p className="text-[11px] text-emerald-800 font-medium">{item.tamilName}</p>
-                        )}
+                  selectedOrder.items.map((item, idx) => {
+                    const unitPrice = Number(item.price || (item as any).sellingPrice || 0);
+                    const qty = Number(item.quantity || 1);
+                    const lineTotal = unitPrice > 0 ? unitPrice * qty : 0;
+                    const hasDistinctTamil = Boolean(
+                      item.tamilName &&
+                      item.tamilName.trim().toLowerCase() !== item.name.trim().toLowerCase()
+                    );
+
+                    return (
+                      <div key={idx} className="flex items-center justify-between py-2.5 text-xs gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-extrabold text-slate-900 leading-snug">
+                            {idx + 1}. {item.name}
+                          </p>
+                          {hasDistinctTamil && (
+                            <p className="text-[11px] text-emerald-800 font-bold mt-0.5">
+                              {item.tamilName}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            {unitPrice > 0 ? (
+                              <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">
+                                ₹{unitPrice} each
+                              </span>
+                            ) : null}
+                            {item.sku ? (
+                              <span className="text-[9px] font-mono text-slate-400">
+                                {item.sku}
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <span className="font-extrabold text-slate-900 block text-xs bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200">
+                            {qty} No
+                          </span>
+                          {lineTotal > 0 ? (
+                            <span className="font-black text-emerald-950 text-xs mt-1 block">
+                              ₹{lineTotal}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 mt-1 block">Included</span>
+                          )}
+                        </div>
                       </div>
-                      <span className="font-bold text-slate-900 shrink-0">{item.quantity || 1} No</span>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <p className="text-xs text-slate-400 italic py-2">No items listed.</p>
                 )}
+              </div>
+
+              {/* Order Amount Breakdown Summary */}
+              <div className="pt-2 border-t border-slate-100 bg-slate-50/70 p-3 rounded-xl space-y-1.5 text-xs">
+                <div className="flex items-center justify-between text-slate-600 text-[11px]">
+                  <span>Plants Subtotal:</span>
+                  <span className="font-bold text-slate-800">
+                    ₹{selectedOrder.subtotal || selectedOrder.items?.reduce((sum, item) => sum + (Number(item.price || (item as any).sellingPrice || 0) * Number(item.quantity || 1)), 0) || selectedOrder.grandTotal}
+                  </span>
+                </div>
+                {selectedOrder.shippingCharge !== undefined && (
+                  <div className="flex items-center justify-between text-slate-600 text-[11px]">
+                    <span className="flex items-center gap-1">
+                      <Truck className="w-3 h-3 text-slate-400" />
+                      <span>Delivery / Courier Charge:</span>
+                    </span>
+                    <span className="font-bold text-slate-800">
+                      {selectedOrder.shippingCharge === 0 ? 'FREE' : `₹${selectedOrder.shippingCharge}`}
+                    </span>
+                  </div>
+                )}
+                {Boolean(selectedOrder.potCharge && selectedOrder.potCharge > 0) && (
+                  <div className="flex items-center justify-between text-slate-600 text-[11px]">
+                    <span>Soil / Pot Service Charge:</span>
+                    <span className="font-bold text-slate-800">+₹{selectedOrder.potCharge}</span>
+                  </div>
+                )}
+                {Boolean(selectedOrder.packingCharge && selectedOrder.packingCharge > 0) && (
+                  <div className="flex items-center justify-between text-slate-600 text-[11px]">
+                    <span>Protective Packaging Charge:</span>
+                    <span className="font-bold text-slate-800">+₹{selectedOrder.packingCharge}</span>
+                  </div>
+                )}
+                {Boolean(selectedOrder.discount && selectedOrder.discount > 0) && (
+                  <div className="flex items-center justify-between text-emerald-700 text-[11px]">
+                    <span>Coupon / Discount {selectedOrder.couponCode ? `(${selectedOrder.couponCode})` : ''}:</span>
+                    <span className="font-black">-₹{selectedOrder.discount}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between text-xs font-black text-slate-900 pt-1.5 border-t border-slate-200">
+                  <span>Grand Total:</span>
+                  <span className="text-sm font-black text-emerald-950">₹{selectedOrder.grandTotal}</span>
+                </div>
               </div>
             </div>
 
@@ -2478,25 +3069,77 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               </button>
             </div>
 
-            {/* Quick Search in Labels */}
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search orders for labels by ID, Name, Phone..."
-                value={labelSearchQuery}
-                onChange={e => setLabelSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-8 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700"
-              />
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-              {labelSearchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setLabelSearchQuery('')}
-                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 p-0.5 rounded-full"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
+            {/* Quick Search & Filters in Labels */}
+            <div className="space-y-2">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search orders for labels by ID, Name, Phone..."
+                  value={labelSearchQuery}
+                  onChange={e => setLabelSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-8 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700"
+                />
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                {labelSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setLabelSearchQuery('')}
+                    className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 p-0.5 rounded-full cursor-pointer"
+                    title="Clear search"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Label Quick Filters: Courier & Date */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="relative">
+                  <select
+                    value={labelCourierFilter}
+                    onChange={e => setLabelCourierFilter(e.target.value)}
+                    className="w-full pl-8 pr-7 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700 cursor-pointer appearance-none"
+                  >
+                    <option value="all">🚚 Filter by Courier (All)</option>
+                    {availableCouriers.map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                  <Truck className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5 pointer-events-none" />
+                  {labelCourierFilter !== 'all' ? (
+                    <button
+                      type="button"
+                      onClick={() => setLabelCourierFilter('all')}
+                      className="absolute right-2 top-2 text-slate-400 hover:text-slate-700 p-0.5 cursor-pointer"
+                      title="Clear courier filter"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  ) : (
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 rotate-90 pointer-events-none" />
+                  )}
+                </div>
+
+                <div className="relative">
+                  <input
+                    type="date"
+                    value={labelSpecificDate}
+                    onChange={e => setLabelSpecificDate(e.target.value)}
+                    className="w-full pl-8 pr-7 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700 cursor-pointer"
+                  />
+                  <Calendar className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5 pointer-events-none" />
+                  {labelSpecificDate && (
+                    <button
+                      type="button"
+                      onClick={() => setLabelSpecificDate('')}
+                      className="absolute right-2 top-2 text-slate-400 hover:text-slate-700 p-0.5 cursor-pointer"
+                      title="Clear date filter"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Main Selection Card */}
