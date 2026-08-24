@@ -1357,17 +1357,22 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             {/* Recent Orders Section */}
             <div className="space-y-3 pt-1">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-slate-900">Recent Orders</h3>
-                <button
-                  onClick={() => {
-                    setOrderStageFilter('confirmed');
-                    navigateScreen('orders_list');
-                  }}
-                  className="text-xs font-bold text-emerald-800 hover:text-emerald-950 flex items-center gap-0.5 cursor-pointer"
-                >
-                  <span>View Orders ({orders.length})</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Recent Orders</h3>
+                  <p className="text-[10px] text-slate-400 font-medium">Real-time nursery order updates</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setOrderStageFilter('all');
+                      navigateScreen('orders_list');
+                    }}
+                    className="text-[11px] font-black text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-xl flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+                  >
+                    <SlidersHorizontal className="w-3 h-3 text-emerald-700" />
+                    <span>Filter & Search ({orders.length})</span>
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-2.5">
