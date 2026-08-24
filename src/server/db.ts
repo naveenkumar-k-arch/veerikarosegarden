@@ -6668,28 +6668,49 @@ class Store {
       }
     }
 
-    // 4. Delete from Prisma
+    // 4. Delete from Prisma safely (never cascade delete historical customer order items)
     const prisma = getPrismaClient();
     if (prisma) {
       try {
-        await Promise.all([
-          prisma.combo.deleteMany({
+        await prisma.combo.deleteMany({
+          where: {
+            OR: [
+              { id: cleanId },
+              { id: cleanId.toLowerCase() }
+            ]
+          }
+        });
+
+        const orderItemCount = await prisma.orderItem.count({
+          where: {
+            OR: [
+              { productId: cleanId },
+              { productId: cleanId.toLowerCase() }
+            ]
+          }
+        }).catch(() => 0);
+
+        if (orderItemCount === 0) {
+          await prisma.product.deleteMany({
             where: {
               OR: [
                 { id: cleanId },
                 { id: cleanId.toLowerCase() }
               ]
             }
-          }),
-          prisma.product.deleteMany({
+          });
+        } else {
+          // Keep product record so past orders preserve foreign key & historical snapshot, but mark unavailable for new orders
+          await prisma.product.updateMany({
             where: {
               OR: [
                 { id: cleanId },
                 { id: cleanId.toLowerCase() }
               ]
-            }
-          })
-        ]);
+            },
+            data: { inStock: false }
+          }).catch(() => {});
+        }
       } catch (err) {
         console.error('Prisma deleteCombo error:', err);
       }
