@@ -201,6 +201,47 @@ export function generateDispatchLabelsPdf(
       pdf.setFontSize(11.5);
       pdf.text('+91 63812 03534', labelX + 1, line3Y + 4.8);
 
+      // Line 4: SERVICE & COURIER LOGISTICS DETAILS
+      const serviceStartY = line3Y + 9.5;
+      const cleanCourier = sanitizePdfText(order.courierName || 'Professional Courier', 'Professional Courier');
+      
+      let cleanPotOption = 'Reduced Soil';
+      if (order.potOption === 'FULL_SOIL_8INCH') {
+        cleanPotOption = '8" Full Soil Root Pot';
+      } else if (order.potOption === 'FULL_SOIL_6INCH') {
+        cleanPotOption = '6" Full Soil Root Pot';
+      } else if (order.potOption === 'FULL_SOIL' || cleanCourier.toLowerCase().includes('full soil')) {
+        cleanPotOption = 'Full Soil Root Pot';
+      } else {
+        cleanPotOption = 'Reduced Soil (Transit Safe)';
+      }
+
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(9.5);
+      pdf.text(`Service: ${cleanCourier}`, labelX + 1, serviceStartY);
+
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(9);
+      pdf.text(`Type: ${cleanPotOption}`, labelX + 1, serviceStartY + 4.6);
+
+      if (order.packingOption === 'MAX_PROTECTION' || order.packingOption === 'EXTRA_SECURE') {
+        const packText = order.packingOption === 'MAX_PROTECTION' ? 'Pack: Max Heavy Guard' : 'Pack: Extra Secure Bubble';
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8.5);
+        pdf.text(packText, labelX + 1, serviceStartY + 9.0);
+      }
+
+      if (order.courierBranch || order.courierDistrict) {
+        const branchText = sanitizePdfText(order.courierBranch || order.courierDistrict || '', '');
+        if (branchText) {
+          pdf.setFont('helvetica', 'normal');
+          pdf.setFontSize(8);
+          const branchY = serviceStartY + (order.packingOption === 'MAX_PROTECTION' || order.packingOption === 'EXTRA_SECURE' ? 13.0 : 9.0);
+          pdf.text(`Depot: ${branchText.slice(0, 24)}`, labelX + 1, branchY);
+        }
+      }
+
       // ================= 4. COLUMN 2: "To," CUSTOMER BOX =================
       const toBoxX = labelX + 58;
       const toBoxY = ly + 22;
