@@ -3753,14 +3753,13 @@ const silentRefresh = async (): Promise<boolean> => {
             const toggleWeekExpansion = (key: string) => {
               setExpandedWeeks(prev => ({
                 ...prev,
-                [key]: prev[key] === undefined ? false : !prev[key] // defaults to open, so undefined means currently open -> flip to false
+                [key]: !Boolean(prev[key])
               }));
             };
 
-            const isWeekExpanded = (key: string, index: number) => {
-              if (expandedWeeks[key] !== undefined) return expandedWeeks[key];
-              // First 2 weeks open by default, older collapsed
-              return index < 2;
+            const isWeekExpanded = (key: string, index?: number) => {
+              // Closed by default for all weeks
+              return Boolean(expandedWeeks[key]);
             };
 
             const handleExpandAllWeeks = () => {

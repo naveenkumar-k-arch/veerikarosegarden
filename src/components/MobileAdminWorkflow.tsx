@@ -1221,13 +1221,13 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   const toggleWeekExpansion = (key: string) => {
     setExpandedWeeks(prev => ({
       ...prev,
-      [key]: prev[key] === undefined ? false : !prev[key]
+      [key]: !Boolean(prev[key])
     }));
   };
 
-  const isWeekExpanded = (key: string, index: number) => {
-    if (expandedWeeks[key] !== undefined) return expandedWeeks[key];
-    return index < 2; // first 2 weeks open by default
+  const isWeekExpanded = (key: string, index?: number) => {
+    // Closed by default for all weeks
+    return Boolean(expandedWeeks[key]);
   };
 
   // Filtered Products
