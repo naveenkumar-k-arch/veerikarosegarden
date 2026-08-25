@@ -194,3 +194,28 @@ export function generateOrderWhatsAppMessage(
     `📞 Helpline: +91 72008 26129 | Happy Gardening! 🪴`
   ].join('\n');
 }
+
+/**
+ * Checks if an order was created or added via WhatsApp / Offline entry.
+ */
+export function isWhatsAppOrder(o: any): boolean {
+  if (!o) return false;
+  const pm = (o.paymentMethod || '').toString().toUpperCase();
+  const id = (o.id || o.orderNumber || '').toString().toUpperCase();
+  const txnId = (o.merchantTransactionId || '').toString().toUpperCase();
+  const notes = (o.notes || '').toString().toLowerCase();
+
+  return (
+    pm === 'WHATSAPP' ||
+    pm === 'OFFLINE' ||
+    pm === 'MANUAL' ||
+    id.startsWith('VRG-WA') ||
+    id.startsWith('WA-') ||
+    txnId.startsWith('WA_') ||
+    txnId.startsWith('VRG-WA') ||
+    notes.includes('whatsapp') ||
+    notes.includes('offline order') ||
+    notes.includes('whatsapp chat')
+  );
+}
+

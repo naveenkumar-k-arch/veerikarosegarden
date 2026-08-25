@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Order } from '../types';
 import { InvoicePrint } from '../components/InvoicePrint';
-import { ShieldCheck, CheckCircle2, Truck, Package, Clock, Printer, ArrowLeft, MessageSquare, ExternalLink, RefreshCw } from 'lucide-react';
-import { getOrderStage, STAGE_CONFIG } from '../utils/orderStages';
+import { getOrderStage, STAGE_CONFIG, isWhatsAppOrder } from '../utils/orderStages';
+import { WhatsAppIcon } from '../components/WhatsAppIcon';
+
 
 interface OrderStatusPageProps {
   orderId: string;
@@ -187,13 +188,23 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
               <CheckCircle2 className="w-8 h-8" />
             </div>
             <div>
-              <span className="text-xs font-bold uppercase tracking-wider block">
-                {isCod 
-                  ? '💵 Cash on Delivery Order Confirmed' 
-                  : (order.paymentMethod === 'QR_PAYMENT' || order.paymentMethod === 'UPI_DIRECT')
-                  ? (order.paymentStatus === 'SUCCESS' ? '✅ Scan QR Payment Verified' : order.paymentStatus === 'FAILED' ? '❌ Scan QR Payment Rejected (Unverified)' : '⏳ Scan QR Payment Pending Verification')
-                  : isSuccess ? 'Payment Verified' : 'Payment Pending'}
-              </span>
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <span className="text-xs font-bold uppercase tracking-wider block">
+                  {isWhatsAppOrder(order)
+                    ? 'WhatsApp / Direct Order Confirmed'
+                    : isCod 
+                    ? '💵 Cash on Delivery Order Confirmed' 
+                    : (order.paymentMethod === 'QR_PAYMENT' || order.paymentMethod === 'UPI_DIRECT')
+                    ? (order.paymentStatus === 'SUCCESS' ? '✅ Scan QR Payment Verified' : order.paymentStatus === 'FAILED' ? '❌ Scan QR Payment Rejected (Unverified)' : '⏳ Scan QR Payment Pending Verification')
+                    : isSuccess ? 'Payment Verified' : 'Payment Pending'}
+                </span>
+                {isWhatsAppOrder(order) && (
+                  <span className="inline-flex items-center gap-1 bg-[#25D366] text-white text-[11px] font-extrabold px-2.5 py-0.5 rounded-full shadow-xs">
+                    <WhatsAppIcon className="w-3.5 h-3.5 fill-white" />
+                    <span>WhatsApp Order</span>
+                  </span>
+                )}
+              </div>
               <h1 className="text-2xl font-black text-white">Order Reference #{order.id}</h1>
               <p className="text-xs text-emerald-200 font-medium mt-0.5">
                 Merchant Txn ID: <strong className="font-mono text-white">{order.merchantTransactionId}</strong>

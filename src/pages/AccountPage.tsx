@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { User, Order, Product } from '../types';
 import { User as UserIcon, Package, Heart, LogOut, Phone, Mail, Lock, KeyRound, Sparkles, ChevronRight, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { GoogleAuthButton } from '../components/GoogleAuthButton';
-import { getOrderStage, STAGE_CONFIG } from '../utils/orderStages';
+import { getOrderStage, STAGE_CONFIG, isWhatsAppOrder } from '../utils/orderStages';
+import { WhatsAppIcon } from '../components/WhatsAppIcon';
+
 
 interface AccountPageProps {
   user: User | null;
@@ -673,12 +675,22 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                 >
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 cursor-pointer" onClick={() => onViewOrder(o.id)}>
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-slate-900 text-sm">Order #{o.id}</span>
+                        {isWhatsAppOrder(o) && (
+                          <span className="inline-flex items-center gap-1 bg-[#25D366] text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-2xs">
+                            <WhatsAppIcon className="w-3 h-3 fill-white" />
+                            <span>WhatsApp Order</span>
+                          </span>
+                        )}
                         <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
-                          o.paymentStatus === 'SUCCESS' ? 'bg-emerald-100 text-emerald-900 border-emerald-300 font-extrabold' : o.paymentStatus === 'FAILED' ? 'bg-rose-100 text-rose-900 border-rose-300 font-bold' : 'bg-amber-100 text-amber-900 border-amber-300'
+                          isWhatsAppOrder(o)
+                            ? 'bg-emerald-100 text-emerald-950 border-emerald-300 font-extrabold'
+                            : o.paymentStatus === 'SUCCESS' ? 'bg-emerald-100 text-emerald-900 border-emerald-300 font-extrabold' : o.paymentStatus === 'FAILED' ? 'bg-rose-100 text-rose-900 border-rose-300 font-bold' : 'bg-amber-100 text-amber-900 border-amber-300'
                         }`}>
-                          {o.paymentMethod === 'COD' 
+                          {isWhatsAppOrder(o)
+                            ? '💬 WHATSAPP / DIRECT ORDER'
+                            : o.paymentMethod === 'COD' 
                             ? (o.paymentStatus === 'SUCCESS' ? '💵 COD PAID (Cash Collected)' : '⏳ COD PENDING (Pay on Delivery)') 
                             : (o.paymentMethod === 'QR_PAYMENT' || o.paymentMethod === 'UPI_DIRECT')
                             ? (o.paymentStatus === 'SUCCESS' ? '✅ QR PAID (Verified)' : o.paymentStatus === 'FAILED' ? '❌ QR REJECTED (Unverified)' : '⏳ QR PENDING VERIFICATION')

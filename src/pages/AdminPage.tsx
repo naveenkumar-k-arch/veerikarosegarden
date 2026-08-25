@@ -8,7 +8,9 @@ import { MobileAdminWorkflow } from '../components/MobileAdminWorkflow';
 import { A4LabelSheetPrint } from '../components/A4LabelSheetPrint';
 import { processLocalImageFile, processMultipleImageFiles } from '../utils/imageUpload';
 import { toast } from '../utils/toast';
-import { getOrderStage, STAGE_CONFIG, generateOrderWhatsAppMessage } from '../utils/orderStages';
+import { getOrderStage, STAGE_CONFIG, generateOrderWhatsAppMessage, isWhatsAppOrder } from '../utils/orderStages';
+import { WhatsAppIcon } from '../components/WhatsAppIcon';
+
 
 // ── Inline Coupon Creation Form ──────────────────────────────────────────────
 const CouponForm: React.FC<{ categories: Category[]; onSave: (data: any) => Promise<void> }> = ({ onSave }) => {
@@ -236,6 +238,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
     });
   });
   const [orderSortBy, setOrderSortBy] = useState<'date_desc' | 'date_asc' | 'price_desc' | 'price_asc'>('date_desc');
+  const [orderSourceFilter, setOrderSourceFilter] = useState<'all' | 'whatsapp' | 'website'>('all');
   const [coupons, setCoupons] = useState<Coupon[]>(() => Array.isArray(initialCache?.coupons) ? initialCache.coupons : []);
   const [combos, setCombos] = useState<Combo[]>(() => Array.isArray(initialCache?.combos) ? initialCache.combos : []);
   const [showComboModal, setShowComboModal] = useState(false);
@@ -3183,33 +3186,61 @@ const silentRefresh = async (): Promise<boolean> => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 font-medium">
-                          {recentOrdersList.slice(0, 10).map((o: Order) => (
-                            <tr key={o.id} className="hover:bg-slate-50">
-                              <td className="py-2.5 px-3 font-mono font-black text-slate-900">{o.id}</td>
-                              <td className="py-2.5 px-3 font-bold text-slate-800">{o.customerName} ({typeof o.shippingAddress === 'string' ? o.shippingAddress : o.shippingAddress?.villageTown || 'Nursery'})</td>
-                              <td className="py-2.5 px-3">
-                                <div className="max-w-[220px]">
-                                  <p className="font-bold text-slate-900 truncate">
-                                    {o.items?.map(i => i.name).join(', ') || 'Plant item'}
-                                  </p>
-                                  <p className="text-[10px] text-slate-500 font-semibold">
-                                    {o.items?.length || 0} item{(o.items?.length || 0) > 1 ? 's' : ''}
-                                  </p>
-                                </div>
-                              </td>
-                              <td className="py-2.5 px-3 font-bold text-emerald-800">₹{o.grandTotal}</td>
-                              <td className="py-2.5 px-3">
-                                <span className={`font-bold px-2.5 py-0.5 rounded-full text-[10px] ${o.paymentMethod === 'COD' ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-blue-100 text-blue-900'}`}>
-                                  {o.paymentMethod} ({o.paymentStatus})
-                                </span>
-                              </td>
-                              <td className="py-2.5 px-3">
-                                <span className={`font-bold px-2 py-0.5 rounded-full text-[10px] ${o.orderStatus === 'DELIVERED' ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-800'}`}>
-                                  {o.orderStatus}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
+                          {recentOrdersList.slice(0, 10).map((o: Order) => {
+                            const isWA = isWhatsAppOrder(o);
+                            return (
+                              <tr key={o.id} className="hover:bg-slate-50">
+                                <td className="py-2.5 px-3 font-mono font-black text-slate-900">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    {isWA ? (
+                                      <span title="Added via WhatsApp" className="inline-flex items-center gap-1 bg-[#25D366] text-white px-2 py-0.5 rounded-md font-black text-[10px] shadow-2xs">
+                                        <WhatsAppIcon className="w-3 h-3 fill-white" /> WA
+                                      </span>
+                                    ) : (
+                                      <span title="Website Order" className="bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded text-[9px] font-bold">
+                                        WEB
+                                      </span>
+                                    )}
+                                    <span>{o.id}</span>
+                                  </div>
+                                </td>
+                                <td className="py-2.5 px-3 font-bold text-slate-800">
+                                  <div className="flex items-center gap-1.5">
+                                    {isWA && <WhatsAppIcon className="w-3.5 h-3.5 fill-[#25D366] shrink-0" />}
+                                    <span>{o.customerName} ({typeof o.shippingAddress === 'string' ? o.shippingAddress : o.shippingAddress?.villageTown || 'Nursery'})</span>
+                                  </div>
+                                </td>
+                                <td className="py-2.5 px-3">
+                                  <div className="max-w-[220px]">
+                                    <p className="font-bold text-slate-900 truncate">
+                                      {o.items?.map(i => i.name).join(', ') || 'Plant item'}
+                                    </p>
+                                    <p className="text-[10px] text-slate-500 font-semibold">
+                                      {o.items?.length || 0} item{(o.items?.length || 0) > 1 ? 's' : ''}
+                                    </p>
+                                  </div>
+                                </td>
+                                <td className="py-2.5 px-3 font-bold text-emerald-800">₹{o.grandTotal}</td>
+                                <td className="py-2.5 px-3">
+                                  <span className={`font-bold px-2.5 py-0.5 rounded-full text-[10px] flex items-center gap-1 w-fit ${
+                                    isWA
+                                      ? 'bg-emerald-100 text-emerald-950 border border-emerald-300'
+                                      : o.paymentMethod === 'COD'
+                                      ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                                      : 'bg-blue-100 text-blue-900'
+                                  }`}>
+                                    {isWA && <WhatsAppIcon className="w-3 h-3 fill-[#25D366]" />}
+                                    <span>{isWA ? 'WhatsApp' : o.paymentMethod} ({o.paymentStatus})</span>
+                                  </span>
+                                </td>
+                                <td className="py-2.5 px-3">
+                                  <span className={`font-bold px-2 py-0.5 rounded-full text-[10px] ${o.orderStatus === 'DELIVERED' ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-800'}`}>
+                                    {o.orderStatus}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
@@ -3573,27 +3604,43 @@ const silentRefresh = async (): Promise<boolean> => {
               });
             };
 
-            const pendingList = sortOrdersList(orders.filter(o => getOrderStage(o.orderStatus) === 'confirmed'));
-            const packingList = sortOrdersList(orders.filter(o => getOrderStage(o.orderStatus) === 'packing'));
-            const dispatchedList = sortOrdersList(orders.filter(o => getOrderStage(o.orderStatus) === 'dispatched'));
-            const deliveredList = sortOrdersList(orders.filter(o => getOrderStage(o.orderStatus) === 'delivered'));
+            const filteredBySource = orders.filter(o => {
+              if (orderSourceFilter === 'whatsapp') return isWhatsAppOrder(o);
+              if (orderSourceFilter === 'website') return !isWhatsAppOrder(o);
+              return true;
+            });
+
+            const pendingList = sortOrdersList(filteredBySource.filter(o => getOrderStage(o.orderStatus) === 'confirmed'));
+            const packingList = sortOrdersList(filteredBySource.filter(o => getOrderStage(o.orderStatus) === 'packing'));
+            const dispatchedList = sortOrdersList(filteredBySource.filter(o => getOrderStage(o.orderStatus) === 'dispatched'));
+            const deliveredList = sortOrdersList(filteredBySource.filter(o => getOrderStage(o.orderStatus) === 'delivered'));
+
+            const whatsAppOrdersCount = orders.filter(isWhatsAppOrder).length;
+            const websiteOrdersCount = orders.length - whatsAppOrdersCount;
 
             const renderOrderCard = (o: Order) => {
               const currentStage = getOrderStage(o.orderStatus);
               const isCod = o.paymentMethod === 'COD';
+              const isWA = isWhatsAppOrder(o);
               const s = (o.orderStatus || '').toUpperCase();
               const isDelivered = currentStage === 'delivered';
               const isDispatched = currentStage === 'dispatched';
               const isPacking = currentStage === 'packing';
 
               return (
-                <div key={o.id} className="bg-white p-5 rounded-2xl border border-slate-200 space-y-4 text-xs shadow-xs hover:border-slate-300 transition-all">
+                <div key={o.id} className={`bg-white p-5 rounded-2xl border ${isWA ? 'border-emerald-300 ring-1 ring-emerald-200/50' : 'border-slate-200'} space-y-4 text-xs shadow-xs hover:border-slate-300 transition-all`}>
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-3">
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-mono font-black text-slate-900 text-sm">Order #{o.id}</span>
-                        <span className={`px-2.5 py-0.5 rounded-full font-bold text-[11px] ${
-                          o.paymentMethod === 'WHATSAPP' || (o.merchantTransactionId && o.merchantTransactionId.startsWith('WA_'))
+                        {isWA && (
+                          <span className="inline-flex items-center gap-1.5 bg-[#25D366] text-white font-extrabold px-2.5 py-0.5 rounded-full text-[11px] shadow-xs tracking-wide">
+                            <WhatsAppIcon className="w-3.5 h-3.5 fill-white" />
+                            <span>WhatsApp Order</span>
+                          </span>
+                        )}
+                        <span className={`px-2.5 py-0.5 rounded-full font-bold text-[11px] flex items-center gap-1 ${
+                          isWA
                             ? 'bg-emerald-100 text-emerald-950 border border-emerald-300'
                             : isCod 
                             ? 'bg-amber-100 text-amber-900 border border-amber-300' 
@@ -3603,15 +3650,18 @@ const silentRefresh = async (): Promise<boolean> => {
                             ? 'bg-indigo-100 text-indigo-950 border border-indigo-300'
                             : 'bg-blue-100 text-blue-900 border border-blue-300'
                         }`}>
-                          {o.paymentMethod === 'WHATSAPP' || (o.merchantTransactionId && o.merchantTransactionId.startsWith('WA_'))
-                            ? '💬 WhatsApp / Offline Order'
-                            : isCod 
-                            ? '💵 Cash on Delivery (COD)' 
-                            : o.paymentMethod === 'RAZORPAY'
-                            ? '⚡ Razorpay (Auto-Verified)'
-                            : (o.paymentMethod === 'QR_PAYMENT' || o.paymentMethod === 'UPI_DIRECT' || o.paymentProofUrl)
-                            ? '📸 Scan QR Code Payment'
-                            : '📱 PhonePe (Auto-Verified)'}
+                          {isWA && <WhatsAppIcon className="w-3 h-3 fill-[#25D366]" />}
+                          <span>
+                            {isWA
+                              ? 'WhatsApp / Offline'
+                              : isCod 
+                              ? '💵 Cash on Delivery (COD)' 
+                              : o.paymentMethod === 'RAZORPAY'
+                              ? '⚡ Razorpay (Auto-Verified)'
+                              : (o.paymentMethod === 'QR_PAYMENT' || o.paymentMethod === 'UPI_DIRECT' || o.paymentProofUrl)
+                              ? '📸 Scan QR Code Payment'
+                              : '📱 PhonePe (Auto-Verified)'}
+                          </span>
                         </span>
                         {(o.paymentMethod === 'QR_PAYMENT' || o.paymentMethod === 'UPI_DIRECT' || Boolean(o.paymentProofUrl)) && o.paymentProofUrl && (
                           <button
@@ -4079,13 +4129,63 @@ const silentRefresh = async (): Promise<boolean> => {
                   </div>
                 </div>
 
+                {/* Source Filter Tabs: All vs WhatsApp vs Website */}
+                <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-black text-slate-700 uppercase tracking-wider">Order Channel:</span>
+                    <button
+                      type="button"
+                      onClick={() => setOrderSourceFilter('all')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs border ${
+                        orderSourceFilter === 'all'
+                          ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                          : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200'
+                      }`}
+                    >
+                      <span>📦 All Orders</span>
+                      <span className="px-1.5 py-0.2 rounded-full bg-white/20 text-[10px] font-mono">{orders.length}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setOrderSourceFilter('whatsapp')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs border ${
+                        orderSourceFilter === 'whatsapp'
+                          ? 'bg-[#25D366] text-white border-[#1eb757] shadow-xs'
+                          : 'bg-emerald-50 text-emerald-900 hover:bg-emerald-100 border-emerald-200'
+                      }`}
+                    >
+                      <WhatsAppIcon className={`w-3.5 h-3.5 ${orderSourceFilter === 'whatsapp' ? 'fill-white' : 'fill-[#25D366]'}`} />
+                      <span>WhatsApp Orders</span>
+                      <span className="px-1.5 py-0.2 rounded-full bg-white/30 text-[10px] font-mono">{whatsAppOrdersCount}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setOrderSourceFilter('website')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs border ${
+                        orderSourceFilter === 'website'
+                          ? 'bg-blue-600 text-white border-blue-700 shadow-xs'
+                          : 'bg-blue-50 text-blue-900 hover:bg-blue-100 border-blue-200'
+                      }`}
+                    >
+                      <span>🌐 Website Orders</span>
+                      <span className="px-1.5 py-0.2 rounded-full bg-white/30 text-[10px] font-mono">{websiteOrdersCount}</span>
+                    </button>
+                  </div>
+
+                  <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-xl">
+                    Showing {filteredBySource.length} {orderSourceFilter === 'whatsapp' ? 'WhatsApp' : orderSourceFilter === 'website' ? 'Website' : ''} Orders
+                  </span>
+                </div>
+
                 {/* 4 Interactive Stage Filter Tabs */}
                 <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-100/80 rounded-2xl border border-slate-200">
                   <button
                     onClick={() => setOrderFilterStage('all')}
                     className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${orderFilterStage === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
                   >
-                    All Sections ({orders.length})
+                    All Sections ({filteredBySource.length})
                   </button>
                   <button
                     onClick={() => setOrderFilterStage('pending')}
