@@ -318,21 +318,15 @@ export const METTUR_PARCEL_COVERAGE: MetturStateCoverage[] = [
           { name: 'Villupuram Central Main Hub (Old Bus Stand)', type: 'HUB' },
           { name: 'Villupuram NH Bypass / Master Plan Complex', type: 'BRANCH' },
           { name: 'Tindivanam Main GST Road Hub', type: 'HUB' },
-          { name: 'Gingee Fort Town Branch', type: 'BRANCH' },
-          { name: 'Vikravandi NH Branch', type: 'BRANCH' },
-          { name: 'Vanur / Auroville Road Branch', type: 'BRANCH' },
-          { name: 'Marakkanam ECR Agency', type: 'AGENCY' }
-        ]
-      },
-      {
-        district: 'Kallakurichi',
-        branches: [
-          { name: 'Kallakurichi Town Central Hub (Salem Main Rd)', type: 'HUB' },
+          { name: 'Kallakurichi Town Central Hub', type: 'HUB' },
           { name: 'Ulundurpet NH Tollgate Hub', type: 'HUB' },
           { name: 'Sankarapuram Town Branch', type: 'BRANCH' },
           { name: 'Tirukoilur Town Main Branch', type: 'BRANCH' },
           { name: 'Chinnasalem Main Branch', type: 'BRANCH' },
-          { name: 'Rishivandiyam Agency', type: 'AGENCY' }
+          { name: 'Gingee Fort Town Branch', type: 'BRANCH' },
+          { name: 'Vikravandi NH Branch', type: 'BRANCH' },
+          { name: 'Vanur / Auroville Road Branch', type: 'BRANCH' },
+          { name: 'Marakkanam ECR Agency', type: 'AGENCY' }
         ]
       },
       {
@@ -366,19 +360,7 @@ export const METTUR_PARCEL_COVERAGE: MetturStateCoverage[] = [
           { name: 'Tirunelveli Junction Central Mega Hub', type: 'HUB' },
           { name: 'Palayamkottai Bus Stand / High Ground', type: 'BRANCH' },
           { name: 'Tirunelveli Town / Swami Sannathi Branch', type: 'BRANCH' },
-          { name: 'Ambasamudram Town Main Branch', type: 'HUB' },
-          { name: 'Cheranmahadevi Town Branch', type: 'BRANCH' },
-          { name: 'Vallioor Main NH Hub', type: 'HUB' },
-          { name: 'Radhapuram Town Branch', type: 'BRANCH' },
-          { name: 'Nanguneri Branch', type: 'BRANCH' },
-          { name: 'Kalakkad Branch', type: 'BRANCH' },
-          { name: 'Tisayanvilai Agency', type: 'AGENCY' }
-        ]
-      },
-      {
-        district: 'Tenkasi',
-        branches: [
-          { name: 'Tenkasi Central Main Hub (Kasi Viswanathar Rd)', type: 'HUB' },
+          { name: 'Tenkasi Central Main Hub', type: 'HUB' },
           { name: 'Sankarankovil Town Main Hub', type: 'HUB' },
           { name: 'Kadayanallur Town Branch', type: 'BRANCH' },
           { name: 'Sengottai Border Hub', type: 'BRANCH' },
@@ -386,7 +368,13 @@ export const METTUR_PARCEL_COVERAGE: MetturStateCoverage[] = [
           { name: 'Surandai Town Branch', type: 'BRANCH' },
           { name: 'Puliangudi Main Branch', type: 'BRANCH' },
           { name: 'Pavoorchatram Branch', type: 'BRANCH' },
-          { name: 'Vasudevanallur Agency', type: 'AGENCY' }
+          { name: 'Ambasamudram Town Main Branch', type: 'HUB' },
+          { name: 'Cheranmahadevi Town Branch', type: 'BRANCH' },
+          { name: 'Vallioor Main NH Hub', type: 'HUB' },
+          { name: 'Radhapuram Town Branch', type: 'BRANCH' },
+          { name: 'Nanguneri Branch', type: 'BRANCH' },
+          { name: 'Kalakkad Branch', type: 'BRANCH' },
+          { name: 'Tisayanvilai Agency', type: 'AGENCY' }
         ]
       },
       {
@@ -446,112 +434,22 @@ export const METTUR_PARCEL_COVERAGE: MetturStateCoverage[] = [
         ]
       },
       {
-        district: 'Ramanathapuram',
+        district: 'Chengalpattu / Kanchipuram',
         branches: [
-          { name: 'Ramanathapuram Central Town Hub (Vandikaran St)', type: 'HUB' },
-          { name: 'Rameswaram Island Town Hub', type: 'HUB' },
-          { name: 'Paramakudi Town Main Branch', type: 'HUB' },
-          { name: 'Kilakarai Town Branch', type: 'BRANCH' },
-          { name: 'Mudukulathur Branch', type: 'BRANCH' },
-          { name: 'Kamuthi Town Branch', type: 'BRANCH' },
-          { name: 'Sayalgudi Agency', type: 'AGENCY' },
-          { name: 'RS Mangalam Agency', type: 'AGENCY' }
-        ]
-      },
-      {
-        district: 'Ariyalur',
-        branches: [
-          { name: 'Ariyalur Town Main Central Hub', type: 'HUB' },
-          { name: 'Jayankondam Main Town Branch', type: 'HUB' },
-          { name: 'Sendurai Town Branch', type: 'BRANCH' },
-          { name: 'Udayarpalayam Branch', type: 'BRANCH' },
-          { name: 'Andimadam Agency', type: 'AGENCY' }
-        ]
-      },
-      {
-        district: 'Perambalur',
-        branches: [
-          { name: 'Perambalur Town Main Central Hub (Trichy NH)', type: 'HUB' },
-          { name: 'Veppanthattai Branch', type: 'BRANCH' },
-          { name: 'Kunnam Town Branch', type: 'BRANCH' },
-          { name: 'Alathur / Padalur Agency', type: 'AGENCY' }
-        ]
-      },
-      {
-        district: 'Nagapattinam',
-        branches: [
-          { name: 'Nagapattinam Town Central Port Hub', type: 'HUB' },
-          { name: 'Velankanni Pilgrim Town Branch', type: 'HUB' },
-          { name: 'Vedaranyam Town Branch', type: 'BRANCH' },
-          { name: 'Kilvelur Branch', type: 'BRANCH' },
-          { name: 'Thirukuvalai Agency', type: 'AGENCY' }
-        ]
-      },
-      {
-        district: 'Mayiladuthurai',
-        branches: [
-          { name: 'Mayiladuthurai Central Town Hub (Katchery Rd)', type: 'HUB' },
-          { name: 'Sirkazhi Main Town Branch', type: 'HUB' },
-          { name: 'Tharangambadi Coastal Branch', type: 'BRANCH' },
-          { name: 'Kuthalam Town Branch', type: 'BRANCH' },
-          { name: 'Poompuhar Agency', type: 'AGENCY' }
-        ]
-      },
-      {
-        district: 'Tiruvarur',
-        branches: [
-          { name: 'Tiruvarur Town Central Hub (South Main St)', type: 'HUB' },
-          { name: 'Mannargudi Central Town Hub (Big Temple St)', type: 'HUB' },
-          { name: 'Thiruthuraipoondi Town Branch', type: 'BRANCH' },
-          { name: 'Nannilam Town Branch', type: 'BRANCH' },
-          { name: 'Kodavasal Town Branch', type: 'BRANCH' },
-          { name: 'Valangaiman Branch', type: 'BRANCH' },
-          { name: 'Needamangalam Agency', type: 'AGENCY' }
-        ]
-      },
-      {
-        district: 'Ranipet',
-        branches: [
-          { name: 'Ranipet / Walajapet Central Industrial Hub', type: 'HUB' },
-          { name: 'Arcot Main Town Branch', type: 'HUB' },
-          { name: 'Arakkonam Junction Mega Hub', type: 'HUB' },
-          { name: 'Sholinghur Temple Town Branch', type: 'BRANCH' },
-          { name: 'Nemili Branch', type: 'BRANCH' },
-          { name: 'Kaveripakkam Agency', type: 'AGENCY' }
-        ]
-      },
-      {
-        district: 'Tirupattur',
-        branches: [
-          { name: 'Tirupattur Central Town Hub (Railway Station Rd)', type: 'HUB' },
-          { name: 'Vaniyambadi Leather City Hub', type: 'HUB' },
-          { name: 'Ambur Main Central Hub (MC Road)', type: 'HUB' },
-          { name: 'Jolarpettai Junction Branch', type: 'BRANCH' },
-          { name: 'Natrampalli Branch', type: 'BRANCH' }
-        ]
-      },
-      {
-        district: 'Chengalpattu',
-        branches: [
+          { name: 'Kanchipuram Central Silk City Hub (Gandhi Rd)', type: 'HUB' },
           { name: 'Chengalpattu Town Central Hub (GST Road)', type: 'HUB' },
           { name: 'Maraimalai Nagar Industrial Hub', type: 'HUB' },
           { name: 'Tambaram East / Camp Road Branch', type: 'HUB' },
           { name: 'Guduvanchery GST Road Branch', type: 'BRANCH' },
+          { name: 'Sriperumbudur Mega Industrial Hub (NH 4)', type: 'HUB' },
           { name: 'Maduranthakam Town Branch', type: 'BRANCH' },
           { name: 'Thiruporur OMR Branch', type: 'BRANCH' },
           { name: 'Kelambakkam OMR / ECR Branch', type: 'BRANCH' },
           { name: 'Mamallapuram ECR Tourist Branch', type: 'BRANCH' },
-          { name: 'Cheyyur Coastal Agency', type: 'AGENCY' }
-        ]
-      },
-      {
-        district: 'Kanchipuram',
-        branches: [
-          { name: 'Kanchipuram Central Silk City Hub (Gandhi Rd)', type: 'HUB' },
-          { name: 'Sriperumbudur Mega Industrial Hub (NH 4)', type: 'HUB' },
           { name: 'Walajabad Town Branch', type: 'BRANCH' },
           { name: 'Uthiramerur Town Branch', type: 'BRANCH' },
-          { name: 'Kundrathur Main Road Branch', type: 'BRANCH' }
+          { name: 'Kundrathur Main Road Branch', type: 'BRANCH' },
+          { name: 'Cheyyur Coastal Agency', type: 'AGENCY' }
         ]
       },
       {
@@ -569,13 +467,29 @@ export const METTUR_PARCEL_COVERAGE: MetturStateCoverage[] = [
         ]
       },
       {
-        district: 'The Nilgiris',
+        district: 'Nilgiris (Foot / Hills)',
         branches: [
           { name: 'Mettupalayam Junction Gateway Hub', type: 'HUB' },
           { name: 'Coonoor Main Town Branch (Mount Rd)', type: 'BRANCH' },
           { name: 'Ooty / Udhagamandalam Town Hub (Commercial Rd)', type: 'HUB' },
           { name: 'Kotagiri Main Town Branch', type: 'BRANCH' },
           { name: 'Gudalur Town Border Branch', type: 'BRANCH' }
+        ]
+      },
+      {
+        district: 'Ranipet / Tirupattur',
+        branches: [
+          { name: 'Ranipet / Walajapet Central Industrial Hub', type: 'HUB' },
+          { name: 'Arcot Main Town Branch', type: 'HUB' },
+          { name: 'Arakkonam Junction Mega Hub', type: 'HUB' },
+          { name: 'Ambur Main Central Hub (MC Road)', type: 'HUB' },
+          { name: 'Vaniyambadi Leather City Hub', type: 'HUB' },
+          { name: 'Tirupattur Central Town Hub (Railway Station Rd)', type: 'HUB' },
+          { name: 'Sholinghur Temple Town Branch', type: 'BRANCH' },
+          { name: 'Jolarpettai Junction Branch', type: 'BRANCH' },
+          { name: 'Natrampalli Branch', type: 'BRANCH' },
+          { name: 'Nemili Branch', type: 'BRANCH' },
+          { name: 'Kaveripakkam Agency', type: 'AGENCY' }
         ]
       }
     ]
@@ -610,23 +524,6 @@ export const METTUR_PARCEL_COVERAGE: MetturStateCoverage[] = [
           { name: 'Nanjangud Industrial Town Branch', type: 'BRANCH' },
           { name: 'Hunsur Town Branch', type: 'BRANCH' }
         ]
-      },
-      {
-        district: 'Chamarajanagar',
-        branches: [
-          { name: 'Chamarajanagar Town Main Hub', type: 'HUB' },
-          { name: 'Kollegal Silk Town Branch', type: 'BRANCH' },
-          { name: 'Gundlupet Kerala-TN Border Branch', type: 'BRANCH' }
-        ]
-      },
-      {
-        district: 'Kolar / Hosakote',
-        branches: [
-          { name: 'Hosakote Industrial Gateway Hub', type: 'HUB' },
-          { name: 'Kolar Town Central Branch', type: 'BRANCH' },
-          { name: 'Robertsonpet / KGF Branch', type: 'BRANCH' },
-          { name: 'Malur Industrial Branch', type: 'BRANCH' }
-        ]
       }
     ]
   },
@@ -638,15 +535,10 @@ export const METTUR_PARCEL_COVERAGE: MetturStateCoverage[] = [
         branches: [
           { name: 'Puducherry Central Main Hub (Maraimalai Adigal Salai)', type: 'HUB' },
           { name: 'Puducherry Boulevard / JN Street Branch', type: 'BRANCH' },
+          { name: 'Karaikal Town Main Central Hub (Bharathiyar St)', type: 'HUB' },
           { name: 'Villianur Main Town Branch', type: 'BRANCH' },
           { name: 'Lawspet Airport Road Branch', type: 'BRANCH' },
-          { name: 'Bahour Agency', type: 'AGENCY' }
-        ]
-      },
-      {
-        district: 'Karaikal',
-        branches: [
-          { name: 'Karaikal Town Main Central Hub (Bharathiyar St)', type: 'HUB' },
+          { name: 'Bahour Agency', type: 'AGENCY' },
           { name: 'Tirumalairayanpattinam Branch', type: 'BRANCH' }
         ]
       }
@@ -663,47 +555,6 @@ export const METTUR_PARCEL_COVERAGE: MetturStateCoverage[] = [
           { name: 'Chittur Town Branch', type: 'BRANCH' },
           { name: 'Ottapalam Town Branch', type: 'BRANCH' },
           { name: 'Mannarkkad Town Branch', type: 'BRANCH' }
-        ]
-      },
-      {
-        district: 'Thrissur',
-        branches: [
-          { name: 'Thrissur Central Cultural Capital Hub (Kokkala)', type: 'HUB' },
-          { name: 'Chalakudy Main NH Branch', type: 'BRANCH' },
-          { name: 'Kunnamkulam Town Branch', type: 'BRANCH' },
-          { name: 'Wadakkanchery Branch', type: 'BRANCH' }
-        ]
-      },
-      {
-        district: 'Ernakulam / Kochi',
-        branches: [
-          { name: 'Kaloor / Ernakulam Central Hub', type: 'HUB' },
-          { name: 'Aluva Railway Station Rd Branch', type: 'BRANCH' },
-          { name: 'Angamaly Main NH Branch', type: 'BRANCH' },
-          { name: 'Tripunithura Town Branch', type: 'BRANCH' }
-        ]
-      }
-    ]
-  },
-  {
-    state: 'Andhra Pradesh',
-    districts: [
-      {
-        district: 'Chittoor',
-        branches: [
-          { name: 'Chittoor Town Main Central Hub (High Road)', type: 'HUB' },
-          { name: 'Kuppam Border Town Branch (PES Medical Rd)', type: 'HUB' },
-          { name: 'Palamaner NH Branch', type: 'BRANCH' },
-          { name: 'Nagari Town Branch', type: 'BRANCH' },
-          { name: 'Puttur Town Branch', type: 'BRANCH' }
-        ]
-      },
-      {
-        district: 'Tirupati',
-        branches: [
-          { name: 'Tirupati Central Temple City Hub (TPT-Renigunta Rd)', type: 'HUB' },
-          { name: 'Renigunta Junction Branch', type: 'BRANCH' },
-          { name: 'Srikalahasti Temple Town Branch', type: 'BRANCH' }
         ]
       }
     ]
