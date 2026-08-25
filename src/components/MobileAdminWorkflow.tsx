@@ -2,7 +2,8 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Order, Product, Category, Review, Coupon, Banner, Combo, FinancialEntry, SiteSettings } from '../types';
 import { processLocalImageFile, processMultipleImageFiles } from '../utils/imageUpload';
 import { toast } from '../utils/toast';
-import { getOrderStage, STAGE_CONFIG, OrderStage, generateOrderWhatsAppMessage } from '../utils/orderStages';
+import { getOrderStage, STAGE_CONFIG, OrderStage, generateOrderWhatsAppMessage, isWhatsAppOrder } from '../utils/orderStages';
+import { WhatsAppIcon } from './WhatsAppIcon';
 import {
   Sprout,
   LayoutDashboard,
@@ -20,6 +21,7 @@ import {
   ExternalLink,
   Copy,
   ChevronRight,
+  ChevronDown,
   Search,
   CheckCircle2,
   Clock,
@@ -163,8 +165,16 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   const [selectedProofOrder, setSelectedProofOrder] = useState<Order | null>(null);
   const [copiedUtrToast, setCopiedUtrToast] = useState(false);
   
-  // 4 Stage Filter: 'all' | 'confirmed' | 'packing' | 'dispatched' | 'delivered'
-  const [orderStageFilter, setOrderStageFilter] = useState<'all' | 'confirmed' | 'packing' | 'dispatched' | 'delivered'>('all');
+  // 4 Stage Filter + Week-Based & Holding: 'all' | 'week_based' | 'confirmed' | 'packing' | 'dispatched' | 'delivered' | 'holding'
+  const [orderStageFilter, setOrderStageFilter] = useState<'all' | 'week_based' | 'confirmed' | 'packing' | 'dispatched' | 'delivered' | 'holding'>('all');
+  const [holdingOrderIds, setHoldingOrderIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('vrg_holding_order_ids');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [];
+  });
+  const [expandedWeeks, setExpandedWeeks] = useState<Record<string, boolean>>({});
   const [searchQuery, setSearchQuery] = useState('');
   // Order Sorting: 'date_desc' (Newest Date First - Default), 'date_asc' (Oldest First), 'price_desc' (Highest Amount First), 'price_asc' (Lowest Amount First)
   const [orderSortBy, setOrderSortBy] = useState<'date_desc' | 'date_asc' | 'price_desc' | 'price_asc'>('date_desc');
@@ -259,6 +269,46 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
       } catch {}
     }
   };
+
+  // Handle Manual Order Holding (Hold Back Order / Delay Shipment for current week)
+  const handleToggleHolding = (orderId: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const isCurrentlyHolding = holdingOrderIds.includes(orderId);
+    const nextHolding = !isCurrentlyHolding;
+    const nextList = nextHolding
+      ? Array.from(new Set([...holdingOrderIds, orderId]))
+      : holdingOrderIds.filter(id => id !== orderId);
+
+    setHoldingOrderIds(nextList);
+    try {
+      localStorage.setItem('vrg_holding_order_ids', JSON.stringify(nextList));
+    } catch {}
+
+    if (nextHolding) {
+      toast.warning(`Order #${orderId} marked as ON HOLD (Delayed shipment for this week)`, 'Order On Hold');
+    } else {
+      toast.success(`Order #${orderId} released from Hold & resumed flow!`, 'Order Resumed');
+    }
+
+    try {
+      window.dispatchEvent(new CustomEvent('vrg_orders_sync', { detail: { orderId, isHolding: nextHolding } }));
+    } catch {}
+  };
+
+  // Sync holdingOrderIds across custom events
+  useEffect(() => {
+    const handleSync = () => {
+      try {
+        const saved = localStorage.getItem('vrg_holding_order_ids');
+        if (saved) setHoldingOrderIds(JSON.parse(saved));
+      } catch {}
+    };
+    window.addEventListener('vrg_orders_sync', handleSync);
+    return () => window.removeEventListener('vrg_orders_sync', handleSync);
+  }, []);
 
   const handleMarkOrdersPrintedBatch = (orderIds: string[], markPrinted = true) => {
     if (orderIds.length === 0) return;
@@ -990,8 +1040,10 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
   // Filtered & Sorted Orders Feed
   const filteredOrders = useMemo(() => {
-    let list = orderStageFilter === 'all' 
+    let list = orderStageFilter === 'all' || orderStageFilter === 'week_based'
       ? [...orders] 
+      : orderStageFilter === 'holding'
+      ? orders.filter(o => holdingOrderIds.includes(o.id) || (o as any).isHolding === true)
       : orders.filter(o => getOrderStage(o.orderStatus) === orderStageFilter);
 
     // 1. Courier Service Filter
@@ -1087,6 +1139,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   }, [
     orders,
     orderStageFilter,
+    holdingOrderIds,
     orderCourierFilter,
     orderDatePreset,
     orderSpecificDate,
@@ -1097,6 +1150,85 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
     getOrderTime,
     getOrderDateKey
   ]);
+
+  // Sunday to Saturday week cycle bounds helper
+  const getSundayToSaturdayBounds = useCallback((date: Date) => {
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return null;
+    const day = d.getDay(); // 0 is Sunday
+    const start = new Date(d);
+    start.setDate(d.getDate() - day);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    end.setHours(23, 59, 59, 999);
+
+    return { start, end };
+  }, []);
+
+  // Compute Week Groups for Sunday - Saturday fulfillment cycles
+  const weekGroups = useMemo(() => {
+    const nowBounds = getSundayToSaturdayBounds(new Date());
+    const map = new Map<string, any>();
+
+    filteredOrders.forEach(o => {
+      const t = o.createdAt ? new Date(o.createdAt) : o.updatedAt ? new Date(o.updatedAt) : new Date();
+      const bounds = getSundayToSaturdayBounds(t) || { start: new Date(), end: new Date() };
+      const key = bounds.start.toISOString().split('T')[0];
+
+      if (!map.has(key)) {
+        const startStr = bounds.start.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+        const endStr = bounds.end.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+        const isCurrentWeek = Boolean(nowBounds && bounds.start.getTime() === nowBounds.start.getTime());
+        const isPastWeek = Boolean(nowBounds && bounds.end.getTime() < nowBounds.start.getTime());
+
+        map.set(key, {
+          key,
+          startDate: bounds.start,
+          endDate: bounds.end,
+          label: `Sunday, ${startStr} – Saturday, ${endStr}`,
+          shortLabel: `${startStr} – ${endStr}`,
+          orders: [],
+          confirmedOrders: [],
+          packingOrders: [],
+          dispatchedOrders: [],
+          deliveredOrders: [],
+          holdingOrders: [],
+          isCurrentWeek,
+          isPastWeek
+        });
+      }
+
+      const group = map.get(key)!;
+      group.orders.push(o);
+
+      const isOnHold = holdingOrderIds.includes(o.id) || (o as any).isHolding === true;
+      if (isOnHold) {
+        group.holdingOrders.push(o);
+      }
+
+      const stage = getOrderStage(o.orderStatus);
+      if (stage === 'confirmed') group.confirmedOrders.push(o);
+      else if (stage === 'packing') group.packingOrders.push(o);
+      else if (stage === 'dispatched') group.dispatchedOrders.push(o);
+      else if (stage === 'delivered') group.deliveredOrders.push(o);
+    });
+
+    return Array.from(map.values()).sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
+  }, [filteredOrders, holdingOrderIds, getSundayToSaturdayBounds]);
+
+  const toggleWeekExpansion = (key: string) => {
+    setExpandedWeeks(prev => ({
+      ...prev,
+      [key]: prev[key] === undefined ? false : !prev[key]
+    }));
+  };
+
+  const isWeekExpanded = (key: string, index: number) => {
+    if (expandedWeeks[key] !== undefined) return expandedWeeks[key];
+    return index < 2; // first 2 weeks open by default
+  };
 
   // Filtered Products
   const filteredProducts = useMemo(() => {
@@ -1535,25 +1667,27 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               )}
             </div>
 
-            {/* Order Stage Filter Bar with All + 4 Stages */}
-            <div className="grid grid-cols-5 gap-1 p-1 bg-slate-200/90 rounded-2xl">
+            {/* Order Stage Filter Bar with All + Week Based + 4 Stages + On Hold */}
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar p-1.5 bg-slate-200/90 rounded-2xl">
               {[
                 { key: 'all', label: 'All', count: stats.totalCount, color: 'text-slate-900' },
+                { key: 'week_based', label: '📅 Week Based', count: `${weekGroups.length} W`, color: 'text-indigo-800' },
                 { key: 'confirmed', label: '1. Confirmed', count: stats.confirmedCount, color: 'text-emerald-700' },
                 { key: 'packing', label: '2. Packing', count: stats.packingCount, color: 'text-amber-600' },
                 { key: 'dispatched', label: '3. Courier', count: stats.dispatchedCount, color: 'text-blue-600' },
                 { key: 'delivered', label: '4. Delivered', count: stats.deliveredCount, color: 'text-purple-700' },
+                ...(holdingOrderIds.length > 0 ? [{ key: 'holding', label: '⏸️ On Hold', count: holdingOrderIds.length, color: 'text-amber-700' }] : []),
               ].map(tab => (
                 <button
                   key={tab.key}
                   onClick={() => setOrderStageFilter(tab.key as any)}
-                  className={`py-2 px-1 rounded-xl text-center transition-all cursor-pointer ${
+                  className={`py-2 px-3 rounded-xl text-center transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                     orderStageFilter === tab.key
                       ? 'bg-white text-slate-900 font-extrabold shadow-sm'
                       : 'text-slate-600 hover:text-slate-900 font-bold'
                   }`}
                 >
-                  <span className="block text-[10px] sm:text-[11px] leading-tight truncate">{tab.label}</span>
+                  <span className="block text-[10px] sm:text-[11px] leading-tight">{tab.label}</span>
                   <span className={`block text-xs font-black mt-0.5 ${orderStageFilter === tab.key ? tab.color : 'text-slate-500'}`}>
                     {tab.count}
                   </span>
@@ -1901,14 +2035,16 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               </span>
             </div>
 
-            {/* Orders Feed */}
-            <div className="space-y-2.5">
-              {filteredOrders.map(order => {
+            {/* Helper to render individual mobile order card */}
+            {(() => {
+              const renderMobileOrderCard = (order: Order) => {
                 const stageKey = getOrderStage(order.orderStatus);
                 const isConfirmed = stageKey === 'confirmed';
                 const isPacking = stageKey === 'packing';
                 const isDispatched = stageKey === 'dispatched';
                 const isDelivered = stageKey === 'delivered';
+                const isWhatsApp = isWhatsAppOrder(order);
+                const isOnHold = holdingOrderIds.includes(order.id) || (order as any).isHolding === true;
 
                 return (
                   <div
@@ -1916,13 +2052,39 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                     onClick={() => {
                       navigateScreen('order_details', order);
                     }}
-                    className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-slate-300 active:scale-[0.99] transition-all cursor-pointer space-y-2.5"
+                    className={`bg-white p-4 rounded-2xl border transition-all cursor-pointer space-y-2.5 ${
+                      isOnHold
+                        ? 'border-amber-400 bg-amber-50/20 shadow-md ring-1 ring-amber-300'
+                        : 'border-slate-200 shadow-xs hover:border-slate-300 active:scale-[0.99]'
+                    }`}
                   >
+                    {isOnHold && (
+                      <div className="flex items-center justify-between px-2.5 py-1 bg-amber-100/90 text-amber-950 text-[10px] font-black rounded-lg border border-amber-300">
+                        <span className="flex items-center gap-1">
+                          <span>⏸️</span>
+                          <span>ORDER ON HOLD (Delayed shipment)</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => handleToggleHolding(order.id, e)}
+                          className="px-2 py-0.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white rounded font-bold text-[9px] cursor-pointer"
+                        >
+                          Resume Flow
+                        </button>
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-mono font-black text-xs text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
                           {order.id}
                         </span>
+                        {isWhatsApp && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-black bg-emerald-100 text-emerald-900 border border-emerald-300 shadow-2xs">
+                            <WhatsAppIcon size={12} className="shrink-0" />
+                            <span>WhatsApp</span>
+                          </span>
+                        )}
                         <span className={`text-[10px] font-black px-2 py-0.5 rounded-md border ${
                           isDelivered
                             ? 'bg-purple-100 text-purple-900 border-purple-300'
@@ -1934,6 +2096,11 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                         }`}>
                           {isDelivered ? '4. Delivered' : isDispatched ? '3. Courier Dispatched' : isPacking ? '2. Nursery Packing' : '1. Order Confirmed'}
                         </span>
+                        {isOnHold && (
+                          <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-200 text-amber-950 border border-amber-300">
+                            ⏸️ ON HOLD
+                          </span>
+                        )}
                       </div>
                       <span className="font-black text-sm text-slate-900">
                         ₹{order.grandTotal}
@@ -2013,8 +2180,22 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                         )}
                       </div>
 
-                      {/* Quick Advance Button directly on card */}
-                      <div className="flex items-center gap-1.5">
+                      {/* Action Buttons */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {/* Manual Hold / Release Button */}
+                        <button
+                          type="button"
+                          onClick={(e) => handleToggleHolding(order.id, e)}
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border transition-all cursor-pointer ${
+                            isOnHold
+                              ? 'bg-amber-600 text-white border-amber-700 hover:bg-amber-700 shadow-xs'
+                              : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-amber-50 hover:text-amber-900 hover:border-amber-300'
+                          }`}
+                          title={isOnHold ? 'Release order and resume fulfillment' : 'Hold order in case delayed by end of week'}
+                        >
+                          {isOnHold ? '▶️ Resume' : '⏸️ Hold'}
+                        </button>
+
                         {isConfirmed && (
                           <button
                             type="button"
@@ -2087,41 +2268,180 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                     </div>
                   </div>
                 );
-              })}
+              };
 
-              {filteredOrders.length === 0 && (
-                <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-3">
-                  <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
-                    <Package className="w-6 h-6" />
+              {/* 1. Week Based Accordion Mode */}
+              if (orderStageFilter === 'week_based') {
+                return (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between px-1">
+                      <p className="text-xs font-bold text-slate-700">
+                        📅 Weekly Fulfillment Batches (Sunday to Saturday cycles)
+                      </p>
+                      <div className="flex items-center gap-2 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const allOpen: Record<string, boolean> = {};
+                            weekGroups.forEach(w => { allOpen[w.key] = true; });
+                            setExpandedWeeks(allOpen);
+                          }}
+                          className="text-emerald-800 font-extrabold hover:underline"
+                        >
+                          Expand All
+                        </button>
+                        <span className="text-slate-300">|</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const allClosed: Record<string, boolean> = {};
+                            weekGroups.forEach(w => { allClosed[w.key] = false; });
+                            setExpandedWeeks(allClosed);
+                          }}
+                          className="text-slate-500 font-bold hover:underline"
+                        >
+                          Collapse All
+                        </button>
+                      </div>
+                    </div>
+
+                    {weekGroups.map((group, index) => {
+                      const expanded = isWeekExpanded(group.key, index);
+                      const pendingCount = group.confirmedOrders.length + group.packingOrders.length;
+                      const hasDelayedAlert = group.isPastWeek && pendingCount > 0;
+
+                      return (
+                        <div
+                          key={group.key}
+                          className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden transition-all"
+                        >
+                          {/* Accordion Header */}
+                          <div
+                            onClick={() => toggleWeekExpansion(group.key)}
+                            className="p-3.5 bg-slate-50 hover:bg-slate-100/80 cursor-pointer flex flex-col gap-2 transition-colors border-b border-slate-100"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className="font-extrabold text-sm text-slate-900">
+                                  📅 {group.label}
+                                </span>
+                                {group.isCurrentWeek && (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-900 border border-emerald-300">
+                                    ⚡ Current Week
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-black text-slate-900 bg-white px-2.5 py-1 rounded-xl border border-slate-200 shadow-2xs">
+                                  {group.orders.length} {group.orders.length === 1 ? 'Order' : 'Orders'}
+                                </span>
+                                {expanded ? (
+                                  <ChevronDown className="w-4 h-4 text-slate-600" />
+                                ) : (
+                                  <ChevronRight className="w-4 h-4 text-slate-600" />
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Stage Pills within week header */}
+                            <div className="flex items-center gap-1.5 flex-wrap text-[10px] font-bold">
+                              <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-900 border border-emerald-200">
+                                🌸 Confirmed ({group.confirmedOrders.length})
+                              </span>
+                              <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-200">
+                                🌿 Packing ({group.packingOrders.length})
+                              </span>
+                              <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-900 border border-blue-200">
+                                🚚 Courier ({group.dispatchedOrders.length})
+                              </span>
+                              <span className="px-2 py-0.5 rounded-md bg-purple-100 text-purple-900 border border-purple-200">
+                                ✅ Delivered ({group.deliveredOrders.length})
+                              </span>
+                              {group.holdingOrders.length > 0 && (
+                                <span className="px-2 py-0.5 rounded-md bg-amber-200 text-amber-950 border border-amber-300 font-extrabold">
+                                  ⏸️ On Hold ({group.holdingOrders.length})
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Accordion Body */}
+                          {expanded && (
+                            <div className="p-3 bg-slate-50/50 space-y-2.5 animate-in fade-in duration-150">
+                              {hasDelayedAlert && (
+                                <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-950 text-xs font-semibold flex items-center justify-between gap-2">
+                                  <span>
+                                    ⚠️ <strong>{pendingCount} order(s)</strong> from this past week cycle are not yet delivered. Consider putting delayed orders on hold or expediting packing.
+                                  </span>
+                                </div>
+                              )}
+
+                              {group.orders.map(order => renderMobileOrderCard(order))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {weekGroups.length === 0 && (
+                      <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-2">
+                        <Package className="w-8 h-8 text-slate-300 mx-auto" />
+                        <p className="text-xs font-bold text-slate-600">No orders match the selected filters</p>
+                      </div>
+                    )}
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-xs font-black text-slate-800">No orders match your filter criteria</p>
-                    <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
-                      {orderSpecificDate ? `No orders recorded on ${orderSpecificDate}` : 'Try adjusting your courier partner, date selection, or stage filters.'}
-                    </p>
-                  </div>
-                  {(orderCourierFilter !== 'all' || orderSpecificDate || orderDatePreset !== 'all' || orderStartDate || orderEndDate || searchQuery.trim() || orderStageFilter !== 'all') && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOrderCourierFilter('all');
-                        setOrderDatePreset('all');
-                        setOrderSpecificDate('');
-                        setOrderStartDate('');
-                        setOrderEndDate('');
-                        setShowOrderDateRange(false);
-                        setSearchQuery('');
-                        setOrderStageFilter('all');
-                      }}
-                      className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer inline-flex items-center gap-1.5"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      <span>Reset Filters & Show All</span>
-                    </button>
+                );
+              }
+
+              {/* 2. Normal Feed / Holding Stage Filter Mode */}
+              return (
+                <div className="space-y-2.5">
+                  {orderStageFilter === 'holding' && (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-amber-950 text-xs font-semibold flex items-center justify-between">
+                      <span>⏸️ Showing all orders currently <strong>ON HOLD</strong> across all weekly batches.</span>
+                      <span className="text-amber-800 font-bold">{filteredOrders.length} Held</span>
+                    </div>
+                  )}
+
+                  {filteredOrders.map(order => renderMobileOrderCard(order))}
+
+                  {filteredOrders.length === 0 && (
+                    <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-3">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                        <Package className="w-6 h-6" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs font-black text-slate-800">
+                          {orderStageFilter === 'holding' ? 'No orders currently on hold' : 'No orders match your filter criteria'}
+                        </p>
+                        <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
+                          {orderSpecificDate ? `No orders recorded on ${orderSpecificDate}` : 'Try adjusting your courier partner, date selection, or stage filters.'}
+                        </p>
+                      </div>
+                      {(orderCourierFilter !== 'all' || orderSpecificDate || orderDatePreset !== 'all' || orderStartDate || orderEndDate || searchQuery.trim() || orderStageFilter !== 'all') && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOrderCourierFilter('all');
+                            setOrderDatePreset('all');
+                            setOrderSpecificDate('');
+                            setOrderStartDate('');
+                            setOrderEndDate('');
+                            setShowOrderDateRange(false);
+                            setSearchQuery('');
+                            setOrderStageFilter('all');
+                          }}
+                          className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer inline-flex items-center gap-1.5"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>Reset Filters & Show All</span>
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
+              );
+            })()}
           </div>
         )}
 
