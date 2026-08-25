@@ -248,8 +248,8 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     return 'PROFESSIONAL_COURIER';
   });
   const [metturState, setMetturState] = useState<string>('Tamil Nadu');
-  const [metturDistrict, setMetturDistrict] = useState<string>('Salem');
-  const [metturBranch, setMetturBranch] = useState<string>('Salem Main Hub (Shevapet)');
+  const [metturDistrict, setMetturDistrict] = useState<string>('');
+  const [metturBranch, setMetturBranch] = useState<string>('');
   const [selectedPacking, setSelectedPacking] = useState<PackingOptionType>(() => {
     try {
       const saved = sessionStorage.getItem('vrg_checkout_packing');
@@ -747,6 +747,14 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
     if (!user) {
       if (onNavigateToAccount) onNavigateToAccount();
+      return;
+    }
+    if (courierPartner === 'METTUR_PARCEL' && (!metturBranch || metturBranch.trim() === '')) {
+      const msg = '⚠️ Please select your nearest Mettur Parcel Branch / Hub before placing your order.';
+      setOrderError(msg);
+      toast.error(msg, 'Hub Selection Required');
+      const el = document.getElementById('mettur-branch-dropdown') || document.querySelector('[name="courierPartner"]');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
     if (!paymentMethod) {

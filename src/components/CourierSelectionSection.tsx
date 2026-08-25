@@ -55,12 +55,12 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
   const isAvailable = isMetturServiceAvailable(metturState || shippingState, metturDistrict || shippingDistrict);
   const branches = getBranchesForDistrict(metturState || shippingState, metturDistrict || shippingDistrict);
 
-  // Auto-select first branch if current selection is invalid
+  // Reset branch if current selection is invalid for district
   useEffect(() => {
-    if (branches.length > 0) {
+    if (branches.length > 0 && metturBranch) {
       const exists = branches.some(b => b.name === metturBranch);
       if (!exists) {
-        onChangeMetturBranch(branches[0].name);
+        onChangeMetturBranch('');
       }
     }
   }, [branches, metturBranch, onChangeMetturBranch]);
@@ -322,7 +322,7 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
           }}
           className={`p-3.5 sm:p-4 rounded-2xl border-2 transition-all ${
             !isMetturAllowed
-              ? 'border-slate-200 bg-slate-100/80 opacity-70 cursor-not-allowed'
+              ? 'border-slate-200 bg-slate-100/70 opacity-60 cursor-not-allowed'
               : selectedCourier === 'METTUR_PARCEL'
               ? 'border-emerald-600 bg-emerald-50/70 ring-2 ring-emerald-500/20 shadow-xs cursor-pointer'
               : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100 cursor-pointer'
@@ -333,88 +333,53 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
               <input
                 type="radio"
                 name="courierPartner"
-                checked={selectedCourier === 'METTUR_PARCEL'}
                 disabled={!isMetturAllowed}
+                checked={selectedCourier === 'METTUR_PARCEL'}
                 onChange={() => {
-                  if (isMetturAllowed) {
-                    onChangeCourier('METTUR_PARCEL');
-                    if (onChangeDeliveryOption) onChangeDeliveryOption('METTUR_PARCEL');
-                  }
+                  if (!isMetturAllowed) return;
+                  onChangeCourier('METTUR_PARCEL');
+                  if (onChangeDeliveryOption) onChangeDeliveryOption('METTUR_PARCEL');
                 }}
                 className="mt-1 accent-emerald-700 cursor-pointer disabled:cursor-not-allowed"
               />
-              <div className="space-y-0.5">
+              <div className="space-y-0.5 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <h4 className="text-xs sm:text-sm font-black text-slate-900">
-                    📦 Mettur Parcel Service (Branch Pickup)
+                    🚚 Mettur Parcel Service (Branch / Depot Pickup)
                   </h4>
                   <span className="text-[9px] font-black bg-amber-100 text-amber-900 px-2 py-0.5 rounded-md">
-                    Min 3 Plants Required
+                    MIN 3 PLANTS
                   </span>
-                  <span className="text-[9px] font-black bg-rose-100 text-rose-800 px-2 py-0.5 rounded-md">
-                    Pay Delivery Fee on Pickup
+                  <span className="text-[9px] font-black bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded-md">
+                    SAFE &amp; FAST
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-600">
-                  Economical bulk parcel service with pickup depots across Tamil Nadu, Bangalore &amp; Pondicherry.
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  Self-pickup at your nearest Mettur Parcel Service branch / depot. Delivery charges payable directly at branch counter upon collection.
                 </p>
 
-                {/* Important Notice: Pay extra for delivery on receiving */}
-                <div className="mt-2 p-2.5 bg-amber-50/90 border border-amber-300/80 rounded-xl space-y-1 text-amber-950">
-                  <p className="text-[11px] font-extrabold flex items-center gap-1 text-amber-900">
-                    <span>⚠️</span>
-                    <span>Important: Delivery Charge Payable at Branch</span>
-                  </p>
-                  <p className="text-[10px] text-amber-900 font-semibold leading-relaxed">
-                    Customers need to pay the parcel / delivery charges extra directly to Mettur Parcel Service when collecting their order at the branch depot.
-                  </p>
-                  <p className="text-[10px] text-amber-800 font-medium font-sans">
-                    குறிப்பு: பார்சல் டெலிவரி கட்டணத்தை பார்சல் அலுவலகத்தில் பெற்றுக்கொள்ளும்போது தனியாக செலுத்த வேண்டும்.
-                  </p>
-                </div>
-
                 {!isMetturAllowed && (
-                  <p className="text-[10px] font-bold text-rose-700 pt-1">
-                    ⚠️ Mettur Parcel requires a minimum of 3 plants (You currently have {totalPlantCount} plant{totalPlantCount !== 1 ? 's' : ''}). Please add more plants to enable Mettur Service.
-                  </p>
-                )}
-                {isMetturAllowed && (
-                  <p className="text-[10px] font-bold text-emerald-800 pt-0.5">
-                    Estimated Depot Rate: ₹60 for 1–6 plants, +₹60 for every additional 6 plants (To-Pay at Branch).
+                  <p className="text-[10px] text-amber-700 font-bold pt-1">
+                    ⚠️ Requires minimum 3 plants (Current count: {totalPlantCount}). Add more plants to unlock Mettur Parcel Service!
                   </p>
                 )}
               </div>
             </div>
+
             <div className="text-right shrink-0">
-              <span className="text-xs sm:text-sm font-black text-amber-900 block">
-                {!isMetturAllowed ? 'Min 3 Qty' : 'Pay at Branch'}
+              <span className="text-xs font-black text-emerald-800 block">
+                Pay at Branch
               </span>
-              <span className="text-[9px] text-slate-400 font-medium">Extra at Depot</span>
+              <span className="text-[10px] text-slate-600">Counter pickup</span>
             </div>
           </div>
 
-          {/* Mettur Parcel Branch & Availability Selection Box */}
-          {selectedCourier === 'METTUR_PARCEL' && (
-            <div
-              onClick={(e) => e.stopPropagation()}
-              className="mt-3.5 pt-3.5 border-t border-emerald-200/80 space-y-3 bg-white p-3.5 rounded-xl border border-slate-200"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-extrabold text-slate-800 flex items-center gap-1">
-                  <MapPin className="w-3.5 h-3.5 text-emerald-700" />
-                  Select Nearby Mettur Parcel Service Depot / Branch:
-                </span>
-                {isAvailable ? (
-                  <span className="text-[9px] font-black bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                    Service Available
-                  </span>
-                ) : (
-                  <span className="text-[9px] font-black bg-rose-100 text-rose-800 px-2 py-0.5 rounded-md flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3 text-rose-600" />
-                    Branch Unavailable
-                  </span>
-                )}
+          {/* Mettur Branch Selection Controls */}
+          {selectedCourier === 'METTUR_PARCEL' && isMetturAllowed && (
+            <div className="mt-3.5 pt-3.5 border-t border-emerald-200/80 space-y-3">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                <MapPin className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Select Your Nearest Mettur Parcel Branch / Hub</span>
               </div>
 
               {/* State & District Selector */}
@@ -429,7 +394,7 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
                       const newDistricts = getMetturStateCoverage(newState);
                       if (newDistricts.length > 0) {
                         onChangeMetturDistrict(newDistricts[0].district);
-                        onChangeMetturBranch(newDistricts[0].branches[0]?.name || '');
+                        onChangeMetturBranch('');
                       }
                     }}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 cursor-pointer"
@@ -449,10 +414,7 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
                     onChange={(e) => {
                       const newDist = e.target.value;
                       onChangeMetturDistrict(newDist);
-                      const bList = getBranchesForDistrict(metturState, newDist);
-                      if (bList.length > 0) {
-                        onChangeMetturBranch(bList[0].name);
-                      }
+                      onChangeMetturBranch('');
                     }}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 cursor-pointer"
                   >
@@ -468,14 +430,25 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
               {/* Branch Selector */}
               {branches.length > 0 ? (
                 <div>
-                  <label className="text-[10px] font-extrabold text-slate-600 block mb-1">
-                    Select Nearest Branch / Delivery Office
+                  <label className="text-[10px] font-extrabold text-slate-700 block mb-1 flex items-center justify-between">
+                    <span>Select Nearest Branch / Delivery Office (Required)</span>
+                    {!metturBranch && (
+                      <span className="text-[10px] text-rose-600 font-extrabold">
+                        * Required
+                      </span>
+                    )}
                   </label>
                   <select
-                    value={metturBranch || (branches[0]?.name || '')}
+                    id="mettur-branch-dropdown"
+                    value={metturBranch || ''}
                     onChange={(e) => onChangeMetturBranch(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 cursor-pointer"
+                    className={`w-full px-3 py-2.5 bg-slate-50 border rounded-xl text-xs font-bold focus:outline-none focus:ring-2 cursor-pointer transition-all ${
+                      !metturBranch
+                        ? 'border-rose-400 ring-2 ring-rose-200 text-rose-900 bg-rose-50/40'
+                        : 'border-slate-300 text-slate-900 focus:ring-emerald-600'
+                    }`}
                   >
+                    <option value="">-- Select Nearest Mettur Branch / Hub --</option>
                     {branches.map((b) => (
                       <option key={b.name} value={b.name}>
                         📍 {b.name} [{b.type}]
@@ -485,15 +458,25 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
                 </div>
               ) : null}
 
-              {/* Status Message */}
-              {isAvailable ? (
-                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-1.5 text-emerald-950 text-[11px]">
+              {/* Error Notice when No Hub is Selected */}
+              {!metturBranch && isAvailable && (
+                <div className="p-2.5 bg-rose-50 border border-rose-300 rounded-xl flex items-center gap-2 text-rose-900 text-[11px] font-bold animate-in fade-in">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>
+                    ⚠️ <strong>Error:</strong> No Mettur branch selected! Please select your pickup branch above to continue.
+                  </span>
+                </div>
+              )}
+
+              {/* Status Message when Hub is Selected */}
+              {isAvailable && metturBranch && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-1.5 text-emerald-950 text-[11px] animate-in fade-in">
                   <div className="flex items-start gap-2 font-medium">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                     <span>
-                      ✅ <strong>Mettur Parcel Service</strong> is active in{' '}
-                      <strong>{metturDistrict || shippingDistrict}</strong> ({metturBranch || 'Main Branch'}).
-                      Your parcel will be dispatched directly to this depot / branch.
+                      ✅ <strong>Mettur Parcel Service</strong> is active for{' '}
+                      <strong>{metturDistrict || shippingDistrict}</strong> ({metturBranch}).
+                      Your parcel will be dispatched directly to this depot.
                     </span>
                   </div>
                   <div className="text-[10px] bg-amber-100/70 border border-amber-300/80 rounded-lg p-1.5 text-amber-950 font-bold flex items-center gap-1">
@@ -501,7 +484,9 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
                     <span>Note: Parcel handling / delivery charge is to be paid directly at the branch counter when collecting your plants.</span>
                   </div>
                 </div>
-              ) : (
+              )}
+
+              {!isAvailable && (
                 <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2 text-amber-900 text-[11px] font-medium">
                   <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
                   <span>
