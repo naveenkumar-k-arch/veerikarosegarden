@@ -749,13 +749,23 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       if (onNavigateToAccount) onNavigateToAccount();
       return;
     }
-    if (courierPartner === 'METTUR_PARCEL' && (!metturBranch || metturBranch.trim() === '')) {
-      const msg = '⚠️ Please select your nearest Mettur Parcel Branch / Hub before placing your order.';
-      setOrderError(msg);
-      toast.error(msg, 'Hub Selection Required');
-      const el = document.getElementById('mettur-branch-dropdown') || document.querySelector('[name="courierPartner"]');
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
+    if (courierPartner === 'METTUR_PARCEL') {
+      if (!metturDistrict || metturDistrict.trim() === '') {
+        const msg = '⚠️ Please select your District for Mettur Parcel Service before placing your order.';
+        setOrderError(msg);
+        toast.error(msg, 'District Selection Required');
+        const el = document.getElementById('mettur-district-dropdown') || document.querySelector('[name="courierPartner"]');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      if (!metturBranch || metturBranch.trim() === '') {
+        const msg = '⚠️ Please select your nearest Mettur Parcel Branch / Hub before placing your order.';
+        setOrderError(msg);
+        toast.error(msg, 'Hub Selection Required');
+        const el = document.getElementById('mettur-branch-dropdown') || document.querySelector('[name="courierPartner"]');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
     }
     if (!paymentMethod) {
       setOrderError('Please select a payment method.');

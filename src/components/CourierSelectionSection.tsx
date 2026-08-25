@@ -52,8 +52,8 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
   }, [shippingState, metturState, onChangeMetturState]);
 
   const activeStateDistricts = getMetturStateCoverage(metturState || shippingState || 'Tamil Nadu');
-  const isAvailable = isMetturServiceAvailable(metturState || shippingState, metturDistrict || shippingDistrict);
-  const branches = getBranchesForDistrict(metturState || shippingState, metturDistrict || shippingDistrict);
+  const isAvailable = Boolean(metturDistrict) && isMetturServiceAvailable(metturState || shippingState, metturDistrict);
+  const branches = metturDistrict ? getBranchesForDistrict(metturState || shippingState, metturDistrict) : [];
 
   // Reset branch if current selection is invalid for district
   useEffect(() => {
@@ -379,7 +379,7 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
             <div className="mt-3.5 pt-3.5 border-t border-emerald-200/80 space-y-3">
               <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
                 <MapPin className="w-3.5 h-3.5 text-emerald-700" />
-                <span>Select Your Nearest Mettur Parcel Branch / Hub</span>
+                <span>Select Your District &amp; Nearest Mettur Branch</span>
               </div>
 
               {/* State & District Selector */}
@@ -391,11 +391,8 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
                     onChange={(e) => {
                       const newState = e.target.value;
                       onChangeMetturState(newState);
-                      const newDistricts = getMetturStateCoverage(newState);
-                      if (newDistricts.length > 0) {
-                        onChangeMetturDistrict(newDistricts[0].district);
-                        onChangeMetturBranch('');
-                      }
+                      onChangeMetturDistrict('');
+                      onChangeMetturBranch('');
                     }}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 cursor-pointer"
                   >
@@ -408,16 +405,27 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-extrabold text-slate-600 block mb-1">District</label>
+                  <label className="text-[10px] font-extrabold text-slate-600 block mb-1 flex items-center justify-between">
+                    <span>District (Required)</span>
+                    {!metturDistrict && (
+                      <span className="text-[10px] text-rose-600 font-extrabold">* Required</span>
+                    )}
+                  </label>
                   <select
-                    value={metturDistrict || (activeStateDistricts[0]?.district || '')}
+                    id="mettur-district-dropdown"
+                    value={metturDistrict || ''}
                     onChange={(e) => {
                       const newDist = e.target.value;
                       onChangeMetturDistrict(newDist);
                       onChangeMetturBranch('');
                     }}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 cursor-pointer"
+                    className={`w-full px-3 py-2.5 bg-slate-50 border rounded-xl text-xs font-bold focus:outline-none focus:ring-2 cursor-pointer transition-all ${
+                      !metturDistrict
+                        ? 'border-rose-400 ring-2 ring-rose-200 text-rose-900 bg-rose-50/40'
+                        : 'border-slate-300 text-slate-900 focus:ring-emerald-600'
+                    }`}
                   >
+                    <option value="">-- Select Your District (Required) --</option>
                     {activeStateDistricts.map((d) => (
                       <option key={d.district} value={d.district}>
                         {d.district} ({d.branches.length} Branch{d.branches.length > 1 ? 'es' : ''})
@@ -427,8 +435,18 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
                 </div>
               </div>
 
-              {/* Branch Selector */}
-              {branches.length > 0 ? (
+              {/* No District Selected Notice */}
+              {!metturDistrict && (
+                <div className="p-2.5 bg-rose-50 border border-rose-300 rounded-xl flex items-center gap-2 text-rose-900 text-[11px] font-bold animate-in fade-in">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>
+                    ⚠️ <strong>Error:</strong> No district selected! Please choose your district above to view branches.
+                  </span>
+                </div>
+              )}
+
+              {/* Branch Selector (Shown only when district is selected) */}
+              {metturDistrict && branches.length > 0 && (
                 <div>
                   <label className="text-[10px] font-extrabold text-slate-700 block mb-1 flex items-center justify-between">
                     <span>Select Nearest Branch / Delivery Office (Required)</span>
@@ -456,26 +474,26 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
                     ))}
                   </select>
                 </div>
-              ) : null}
+              )}
 
-              {/* Error Notice when No Hub is Selected */}
-              {!metturBranch && isAvailable && (
+              {/* Error Notice when District is Selected but No Branch is Selected */}
+              {metturDistrict && !metturBranch && isAvailable && (
                 <div className="p-2.5 bg-rose-50 border border-rose-300 rounded-xl flex items-center gap-2 text-rose-900 text-[11px] font-bold animate-in fade-in">
                   <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
                   <span>
-                    ⚠️ <strong>Error:</strong> No Mettur branch selected! Please select your pickup branch above to continue.
+                    ⚠️ <strong>Error:</strong> No branch selected! Please choose your nearest pickup office above.
                   </span>
                 </div>
               )}
 
-              {/* Status Message when Hub is Selected */}
-              {isAvailable && metturBranch && (
+              {/* Status Message when both District & Branch are Selected */}
+              {isAvailable && metturDistrict && metturBranch && (
                 <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-1.5 text-emerald-950 text-[11px] animate-in fade-in">
                   <div className="flex items-start gap-2 font-medium">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                     <span>
                       ✅ <strong>Mettur Parcel Service</strong> is active for{' '}
-                      <strong>{metturDistrict || shippingDistrict}</strong> ({metturBranch}).
+                      <strong>{metturDistrict}</strong> ({metturBranch}).
                       Your parcel will be dispatched directly to this depot.
                     </span>
                   </div>
@@ -486,7 +504,7 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
                 </div>
               )}
 
-              {!isAvailable && (
+              {metturDistrict && !isAvailable && (
                 <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2 text-amber-900 text-[11px] font-medium">
                   <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
                   <span>
