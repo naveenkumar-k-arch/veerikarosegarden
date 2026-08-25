@@ -122,7 +122,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
   const [desktopLabelOrders, setDesktopLabelOrders] = useState<Order[] | null>(null);
   const [showAdminMenuDrawer, setShowAdminMenuDrawer] = useState(false);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'categories' | 'orders' | 'inventory' | 'coupons' | 'banners' | 'reviews' | 'settings' | 'audit' | 'finances' | 'payment_logs'>('dashboard');
-  const [orderFilterStage, setOrderFilterStage] = useState<'all' | 'pending' | 'packing' | 'dispatched' | 'delivered'>('all');
+  const [orderFilterStage, setOrderFilterStage] = useState<'all' | 'week_based' | 'pending' | 'packing' | 'dispatched' | 'delivered' | 'holding'>('all');
 
   // Version-controlled persistent cache keys to purge stale order snapshots
   const ADMIN_CACHE_KEY_SESSION = 'vrg_admin_session_cache_v4';
@@ -239,6 +239,15 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
   });
   const [orderSortBy, setOrderSortBy] = useState<'date_desc' | 'date_asc' | 'price_desc' | 'price_asc'>('date_desc');
   const [orderSourceFilter, setOrderSourceFilter] = useState<'all' | 'whatsapp' | 'website'>('all');
+  const [holdingOrderIds, setHoldingOrderIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('vrg_holding_order_ids');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [];
+  });
+  const [expandedWeeks, setExpandedWeeks] = useState<Record<string, boolean>>({});
+
   const [coupons, setCoupons] = useState<Coupon[]>(() => Array.isArray(initialCache?.coupons) ? initialCache.coupons : []);
   const [combos, setCombos] = useState<Combo[]>(() => Array.isArray(initialCache?.combos) ? initialCache.combos : []);
   const [showComboModal, setShowComboModal] = useState(false);
@@ -1535,6 +1544,46 @@ const silentRefresh = async (): Promise<boolean> => {
 
     try {
       window.dispatchEvent(new CustomEvent('orderStatusUpdated', { detail: { orderId, status, paymentStatus } }));
+    } catch {}
+  };
+
+  // Handle Manual Order Holding (Hold Back Order / Delay Shipment)
+  const handleToggleHolding = (orderId: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const isCurrentlyHolding = holdingOrderIds.includes(orderId);
+    const nextHolding = !isCurrentlyHolding;
+    const nextList = nextHolding
+      ? Array.from(new Set([...holdingOrderIds, orderId]))
+      : holdingOrderIds.filter(id => id !== orderId);
+
+    setHoldingOrderIds(nextList);
+    try {
+      localStorage.setItem('vrg_holding_order_ids', JSON.stringify(nextList));
+    } catch {}
+
+    setOrders(prev => {
+      const updated = prev.map(o => (o.id === orderId || o.merchantTransactionId === orderId) ? { ...o, isHolding: nextHolding } : o);
+      const keysToSave = ['veerika_admin_orders', 'vrg_user_orders', 'veerika_customer_orders', 'vrg_orders', 'vrg_my_orders'];
+      keysToSave.forEach(key => {
+        try {
+          localStorage.setItem(key, JSON.stringify(updated));
+        } catch {}
+      });
+      persistAdminCache(c => ({ ...c, orders: updated }));
+      return updated;
+    });
+
+    if (nextHolding) {
+      toast.warning(`Order #${orderId} marked as ON HOLD (Delayed shipment for this week)`, 'Order On Hold');
+    } else {
+      toast.success(`Order #${orderId} released from Hold & resumed flow!`, 'Order Resumed');
+    }
+
+    try {
+      window.dispatchEvent(new CustomEvent('vrg_orders_sync', { detail: { orderId, isHolding: nextHolding } }));
     } catch {}
   };
 
@@ -3561,7 +3610,7 @@ const silentRefresh = async (): Promise<boolean> => {
             </div>
           )}
 
-          {/* TAB 3: ORDERS MANAGEMENT - 4 CATEGORIZED SECTIONS */}
+          {/* TAB 3: ORDERS MANAGEMENT - 4 CATEGORIZED SECTIONS + WEEK-BASED VIEW */}
           {activeTab === 'orders' && (() => {
             const getOrderTime = (o: Order): number => {
               if (o.createdAt) {
@@ -3614,6 +3663,117 @@ const silentRefresh = async (): Promise<boolean> => {
             const packingList = sortOrdersList(filteredBySource.filter(o => getOrderStage(o.orderStatus) === 'packing'));
             const dispatchedList = sortOrdersList(filteredBySource.filter(o => getOrderStage(o.orderStatus) === 'dispatched'));
             const deliveredList = sortOrdersList(filteredBySource.filter(o => getOrderStage(o.orderStatus) === 'delivered'));
+            const holdingList = sortOrdersList(filteredBySource.filter(o => holdingOrderIds.includes(o.id) || (o as any).isHolding === true));
+
+            // ── Week-Based Grouping (Sunday to Saturday/Monday) ───────────────────
+            interface WeekGroup {
+              key: string;
+              startDate: Date;
+              endDate: Date;
+              label: string;
+              shortLabel: string;
+              orders: Order[];
+              confirmedOrders: Order[];
+              packingOrders: Order[];
+              dispatchedOrders: Order[];
+              deliveredOrders: Order[];
+              holdingOrders: Order[];
+              isCurrentWeek: boolean;
+              isPastWeek: boolean;
+            }
+
+            const getSundayToSaturdayBounds = (date: Date) => {
+              const d = new Date(date);
+              if (isNaN(d.getTime())) return null;
+              const day = d.getDay(); // 0 is Sunday
+              const start = new Date(d);
+              start.setDate(d.getDate() - day);
+              start.setHours(0, 0, 0, 0);
+
+              const end = new Date(start);
+              end.setDate(start.getDate() + 6);
+              end.setHours(23, 59, 59, 999);
+
+              return { start, end };
+            };
+
+            const nowBounds = getSundayToSaturdayBounds(new Date());
+            const weekGroupsMap = new Map<string, WeekGroup>();
+
+            filteredBySource.forEach(o => {
+              const t = o.createdAt ? new Date(o.createdAt) : o.updatedAt ? new Date(o.updatedAt) : new Date();
+              const bounds = getSundayToSaturdayBounds(t) || { start: new Date(), end: new Date() };
+              const key = bounds.start.toISOString().split('T')[0];
+
+              if (!weekGroupsMap.has(key)) {
+                const startStr = bounds.start.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+                const endStr = bounds.end.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+                const isCurrentWeek = Boolean(nowBounds && bounds.start.getTime() === nowBounds.start.getTime());
+                const isPastWeek = Boolean(nowBounds && bounds.end.getTime() < nowBounds.start.getTime());
+
+                weekGroupsMap.set(key, {
+                  key,
+                  startDate: bounds.start,
+                  endDate: bounds.end,
+                  label: `Sunday, ${startStr} – Saturday, ${endStr}`,
+                  shortLabel: `${startStr} – ${endStr}`,
+                  orders: [],
+                  confirmedOrders: [],
+                  packingOrders: [],
+                  dispatchedOrders: [],
+                  deliveredOrders: [],
+                  holdingOrders: [],
+                  isCurrentWeek,
+                  isPastWeek
+                });
+              }
+
+              const group = weekGroupsMap.get(key)!;
+              group.orders.push(o);
+
+              const isOnHold = holdingOrderIds.includes(o.id) || (o as any).isHolding === true;
+              if (isOnHold) {
+                group.holdingOrders.push(o);
+              }
+
+              const stage = getOrderStage(o.orderStatus);
+              if (stage === 'confirmed') group.confirmedOrders.push(o);
+              else if (stage === 'packing') group.packingOrders.push(o);
+              else if (stage === 'dispatched') group.dispatchedOrders.push(o);
+              else if (stage === 'delivered') group.deliveredOrders.push(o);
+            });
+
+            const weekGroups: WeekGroup[] = Array.from(weekGroupsMap.values())
+              .sort((a, b) => b.startDate.getTime() - a.startDate.getTime())
+              .map(g => ({
+                ...g,
+                orders: sortOrdersList(g.orders)
+              }));
+
+            const toggleWeekExpansion = (key: string) => {
+              setExpandedWeeks(prev => ({
+                ...prev,
+                [key]: prev[key] === undefined ? false : !prev[key] // defaults to open, so undefined means currently open -> flip to false
+              }));
+            };
+
+            const isWeekExpanded = (key: string, index: number) => {
+              if (expandedWeeks[key] !== undefined) return expandedWeeks[key];
+              // First 2 weeks open by default, older collapsed
+              return index < 2;
+            };
+
+            const handleExpandAllWeeks = () => {
+              const allOpen: Record<string, boolean> = {};
+              weekGroups.forEach(g => { allOpen[g.key] = true; });
+              setExpandedWeeks(allOpen);
+            };
+
+            const handleCollapseAllWeeks = () => {
+              const allClosed: Record<string, boolean> = {};
+              weekGroups.forEach(g => { allClosed[g.key] = false; });
+              setExpandedWeeks(allClosed);
+            };
 
             const whatsAppOrdersCount = orders.filter(isWhatsAppOrder).length;
             const websiteOrdersCount = orders.length - whatsAppOrdersCount;
@@ -3622,13 +3782,35 @@ const silentRefresh = async (): Promise<boolean> => {
               const currentStage = getOrderStage(o.orderStatus);
               const isCod = o.paymentMethod === 'COD';
               const isWA = isWhatsAppOrder(o);
+              const isOnHold = holdingOrderIds.includes(o.id) || (o as any).isHolding === true;
               const s = (o.orderStatus || '').toUpperCase();
               const isDelivered = currentStage === 'delivered';
               const isDispatched = currentStage === 'dispatched';
               const isPacking = currentStage === 'packing';
 
               return (
-                <div key={o.id} className={`bg-white p-5 rounded-2xl border ${isWA ? 'border-emerald-300 ring-1 ring-emerald-200/50' : 'border-slate-200'} space-y-4 text-xs shadow-xs hover:border-slate-300 transition-all`}>
+                <div key={o.id} className={`bg-white p-5 rounded-2xl border ${isOnHold ? 'border-amber-400 ring-2 ring-amber-300/60 bg-amber-50/20' : isWA ? 'border-emerald-300 ring-1 ring-emerald-200/50' : 'border-slate-200'} space-y-4 text-xs shadow-xs hover:border-slate-300 transition-all`}>
+                  {/* ON HOLD BANNER */}
+                  {isOnHold && (
+                    <div className="bg-amber-100 border-2 border-amber-400 rounded-xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-amber-950 font-bold shadow-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">⏸️</span>
+                        <div>
+                          <span className="font-extrabold uppercase text-xs tracking-wider block text-amber-900">ORDER CURRENTLY ON HOLD</span>
+                          <span className="text-[11px] font-medium text-amber-800">
+                            Shipment delayed / held for this week by nursery team.
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={(e) => handleToggleHolding(o.id, e)}
+                        className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-black text-xs cursor-pointer shadow-xs transition-colors shrink-0"
+                      >
+                        ▶️ Release from Hold
+                      </button>
+                    </div>
+                  )}
+
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-3">
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
@@ -3637,6 +3819,11 @@ const silentRefresh = async (): Promise<boolean> => {
                           <span className="inline-flex items-center gap-1.5 bg-[#25D366] text-white font-extrabold px-2.5 py-0.5 rounded-full text-[11px] shadow-xs tracking-wide">
                             <WhatsAppIcon className="w-3.5 h-3.5 fill-white" />
                             <span>WhatsApp Order</span>
+                          </span>
+                        )}
+                        {isOnHold && (
+                          <span className="inline-flex items-center gap-1 bg-amber-500 text-white font-extrabold px-2.5 py-0.5 rounded-full text-[11px] shadow-xs">
+                            ⏸️ ON HOLD
                           </span>
                         )}
                         <span className={`px-2.5 py-0.5 rounded-full font-bold text-[11px] flex items-center gap-1 ${
@@ -3901,52 +4088,38 @@ const silentRefresh = async (): Promise<boolean> => {
                                 </p>
                               </div>
                             </div>
-                            <span className={`text-xs font-black px-3 py-1 rounded-xl border ${
-                              o.paymentStatus === 'SUCCESS' ? 'bg-emerald-700 text-white border-emerald-800' : 'bg-amber-500 text-white border-amber-600'
-                            }`}>
-                              {o.paymentStatus === 'SUCCESS' ? '✓ PAID (AUTO-VERIFIED)' : '⏳ PENDING'}
+                            <span className="px-3 py-1 bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-2xs shrink-0">
+                              ✅ 100% PAID
                             </span>
                           </div>
                         ) : (
-                          <div className="bg-indigo-50/90 border-2 border-indigo-200 rounded-2xl p-4 space-y-3 shadow-xs">
-                            {/* Header bar with Amount & Payment Method */}
-                            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-indigo-200/80 pb-2.5">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-extrabold text-slate-900 text-xs flex items-center gap-1.5 bg-indigo-100 px-3 py-1 rounded-xl border border-indigo-300">
-                                  <Camera className="w-4 h-4 text-indigo-700" />
-                                  <span>Payment Method: <strong>Scan QR Code Payment (Manual Verification)</strong></span>
-                                </span>
-
-                                <span className="font-extrabold text-emerald-900 text-xs bg-emerald-100 px-3 py-1 rounded-xl border border-emerald-300">
-                                  💰 Amount to Verify: <strong>₹{o.grandTotal}</strong>
-                                </span>
+                          <div className="bg-gradient-to-br from-indigo-50/90 to-blue-50/70 border border-indigo-200 rounded-2xl p-4 space-y-3 shadow-xs">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-indigo-200/80 pb-2.5">
+                              <div className="flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-lg bg-indigo-700 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-xs">
+                                  📸
+                                </div>
+                                <div>
+                                  <p className="font-extrabold text-indigo-950 text-xs">
+                                    Direct UPI / QR Code Payment Proof
+                                  </p>
+                                  <p className="text-[10.5px] text-indigo-800 font-medium">
+                                    Customer submitted verification screenshot
+                                  </p>
+                                </div>
                               </div>
-
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className={`text-xs font-black px-3 py-1 rounded-xl border ${
-                                  o.paymentStatus === 'SUCCESS' 
-                                    ? 'bg-emerald-700 text-white border-emerald-800' 
-                                    : o.paymentStatus === 'FAILED' 
-                                    ? 'bg-rose-600 text-white border-rose-700' 
-                                    : 'bg-amber-500 text-white border-amber-600'
-                                }`}>
-                                  {o.paymentStatus === 'SUCCESS' ? '✅ VERIFIED (PAID)' : o.paymentStatus === 'FAILED' ? '❌ REJECTED / UNVERIFIED' : '⏳ PENDING MANUAL VERIFICATION'}
+                              {o.paymentProofUploadedAt && (
+                                <span className="text-[10px] text-indigo-900 font-bold bg-white px-2 py-0.5 rounded-md border border-indigo-200">
+                                  Uploaded: {new Date(o.paymentProofUploadedAt).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}
                                 </span>
-
-                                {o.transactionId && (
-                                  <span className="font-mono text-[11px] text-indigo-950 font-black bg-white px-2.5 py-1 rounded-lg border border-indigo-200">
-                                    UTR / Ref: {o.transactionId}
-                                  </span>
-                                )}
-                              </div>
+                              )}
                             </div>
 
-                            {/* Proof Image Box & Manual Verification Action Controls */}
-                            <div className="flex flex-col md:flex-row items-center gap-4">
-                              {/* Receipt Screenshot Image */}
+                            <div className="flex flex-col md:flex-row gap-4 items-center">
+                              {/* Payment Screenshot Preview */}
                               {o.paymentProofUrl ? (
-                                <div className="flex flex-col items-center gap-1.5 shrink-0 w-full md:w-48">
-                                  <div 
+                                <div className="w-full md:w-44 shrink-0 flex flex-col items-center gap-1.5">
+                                  <div
                                     onClick={() => setSelectedProofOrder(o)}
                                     className="relative group cursor-pointer w-full h-32 rounded-xl overflow-hidden border-2 border-indigo-400 bg-slate-900 flex items-center justify-center shadow-sm"
                                     title="Click to zoom receipt photo"
@@ -4036,11 +4209,24 @@ const silentRefresh = async (): Promise<boolean> => {
 
                     {/* Interactive Stage Controls & Customer Alerts */}
                     <div className="flex flex-wrap items-center gap-2">
+                      {/* MANUAL HOLDING BUTTON */}
+                      <button
+                        onClick={(e) => handleToggleHolding(o.id, e)}
+                        className={`px-3 py-1.5 rounded-xl font-extrabold text-[11px] flex items-center gap-1.5 cursor-pointer transition-all shadow-xs ${
+                          isOnHold
+                            ? 'bg-amber-600 hover:bg-amber-700 text-white ring-2 ring-amber-400 shadow-md'
+                            : 'bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300'
+                        }`}
+                        title={isOnHold ? "Click to release from holding and resume shipment" : "Hold back this order manually (not delivered this week)"}
+                      >
+                        <span>{isOnHold ? '▶️ Resume Flow' : '⏸️ Put on Hold'}</span>
+                      </button>
+
                       <button
                         onClick={() => handleSendWhatsAppUpdate(o)}
                         className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-[11px] flex items-center gap-1 shadow-xs cursor-pointer"
                       >
-                        📲 Send WhatsApp Alert
+                        📲 WhatsApp Alert
                       </button>
 
                       <button
@@ -4067,7 +4253,7 @@ const silentRefresh = async (): Promise<boolean> => {
                           currentStage === 'packing' ? 'bg-amber-600 text-white shadow-xs' : 'bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-200'
                         }`}
                       >
-                        2. Nursery Packing
+                        2. Packing
                       </button>
 
                       <button
@@ -4080,7 +4266,7 @@ const silentRefresh = async (): Promise<boolean> => {
                           currentStage === 'dispatched' ? 'bg-blue-600 text-white shadow-xs' : 'bg-blue-50 text-blue-900 hover:bg-blue-100 border border-blue-200'
                         }`}
                       >
-                        3. Dispatch Courier / Self
+                        3. Courier
                       </button>
 
                       <button
@@ -4089,7 +4275,7 @@ const silentRefresh = async (): Promise<boolean> => {
                           currentStage === 'delivered' ? 'bg-purple-700 text-white shadow-xs' : 'bg-purple-50 text-purple-900 hover:bg-purple-100 border border-purple-200'
                         }`}
                       >
-                        4. Delivered & COD Collected
+                        4. Delivered
                       </button>
 
                       <button
@@ -4098,7 +4284,6 @@ const silentRefresh = async (): Promise<boolean> => {
                         title="Permanently Delete Order"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
-                        <span>Delete Order</span>
                       </button>
                     </div>
                   </div>
@@ -4113,18 +4298,18 @@ const silentRefresh = async (): Promise<boolean> => {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
                   <div>
                     <h3 className="font-black text-lg text-slate-900">Categorized Orders Management ({orders.length})</h3>
-                    <p className="text-xs text-slate-500 font-medium">Organized in 4 Nursery Pipeline Sections</p>
+                    <p className="text-xs text-slate-500 font-medium">Organized by Weekly Pipeline & 4 Nursery Fulfillment Stages</p>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <button
                       onClick={handleOpenAddWhatsAppOrder}
                       className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer transition-all hover:scale-102 active:scale-98"
                     >
-                      <span className="text-base">💬</span>
+                      <WhatsAppIcon className="w-4 h-4 fill-white" />
                       <span>+ Add WhatsApp / Offline Order</span>
                     </button>
                     <span className="text-xs bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold px-3 py-1.5 rounded-xl">
-                      🚚 Auto-Synced with PostgreSQL DB
+                      🚚 Neon PostgreSQL Synced
                     </span>
                   </div>
                 </div>
@@ -4179,14 +4364,27 @@ const silentRefresh = async (): Promise<boolean> => {
                   </span>
                 </div>
 
-                {/* 4 Interactive Stage Filter Tabs */}
+                {/* Interactive Stage & Week Filter Tabs */}
                 <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-100/80 rounded-2xl border border-slate-200">
                   <button
                     onClick={() => setOrderFilterStage('all')}
                     className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${orderFilterStage === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
                   >
-                    All Sections ({filteredBySource.length})
+                    All ({filteredBySource.length})
                   </button>
+
+                  <button
+                    onClick={() => setOrderFilterStage('week_based')}
+                    className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      orderFilterStage === 'week_based'
+                        ? 'bg-indigo-700 text-white shadow-md'
+                        : 'bg-indigo-50 text-indigo-950 hover:bg-indigo-100 border border-indigo-200'
+                    }`}
+                  >
+                    <span>📅 Week Based</span>
+                    <span className="px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-mono">{weekGroups.length} Weeks</span>
+                  </button>
+
                   <button
                     onClick={() => setOrderFilterStage('pending')}
                     className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${orderFilterStage === 'pending' ? 'bg-amber-500 text-white shadow-xs' : 'bg-amber-50 text-amber-900 hover:bg-amber-100'}`}
@@ -4194,20 +4392,23 @@ const silentRefresh = async (): Promise<boolean> => {
                     <span>🌸 1. Confirmed</span>
                     <span className="px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-mono">{pendingList.length}</span>
                   </button>
+
                   <button
                     onClick={() => setOrderFilterStage('packing')}
                     className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${orderFilterStage === 'packing' ? 'bg-purple-600 text-white shadow-xs' : 'bg-purple-50 text-purple-900 hover:bg-purple-100'}`}
                   >
-                    <span>🌿 2. Nursery Packed</span>
+                    <span>🌿 2. Packing</span>
                     <span className="px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-mono">{packingList.length}</span>
                   </button>
+
                   <button
                     onClick={() => setOrderFilterStage('dispatched')}
                     className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${orderFilterStage === 'dispatched' ? 'bg-blue-600 text-white shadow-xs' : 'bg-blue-50 text-blue-900 hover:bg-blue-100'}`}
                   >
-                    <span>🚚 3. Dispatched</span>
+                    <span>🚚 3. Courier</span>
                     <span className="px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-mono">{dispatchedList.length}</span>
                   </button>
+
                   <button
                     onClick={() => setOrderFilterStage('delivered')}
                     className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${orderFilterStage === 'delivered' ? 'bg-emerald-700 text-white shadow-xs' : 'bg-emerald-50 text-emerald-900 hover:bg-emerald-100'}`}
@@ -4215,6 +4416,20 @@ const silentRefresh = async (): Promise<boolean> => {
                     <span>✅ 4. Delivered</span>
                     <span className="px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-mono">{deliveredList.length}</span>
                   </button>
+
+                  {holdingList.length > 0 && (
+                    <button
+                      onClick={() => setOrderFilterStage('holding')}
+                      className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer ${
+                        orderFilterStage === 'holding'
+                          ? 'bg-amber-600 text-white shadow-md'
+                          : 'bg-amber-100 text-amber-950 hover:bg-amber-200 border border-amber-300'
+                      }`}
+                    >
+                      <span>⏸️ On Hold</span>
+                      <span className="px-1.5 py-0.5 rounded-full bg-white/30 text-[10px] font-mono">{holdingList.length}</span>
+                    </button>
+                  )}
                 </div>
 
                 {/* Desktop Sort Controls Bar */}
@@ -4249,96 +4464,252 @@ const silentRefresh = async (): Promise<boolean> => {
                   </div>
 
                   <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-xl">
-                    Showing {pendingList.length + packingList.length + dispatchedList.length + deliveredList.length} total orders
+                    Showing {filteredBySource.length} total orders ({holdingList.length} on hold)
                   </span>
                 </div>
 
-                {/* 4 CATEGORIZED SECTIONS DISPLAY */}
-                <div className="space-y-8">
-                  {/* SECTION 1: ORDER CONFIRMED */}
-                  {(orderFilterStage === 'all' || orderFilterStage === 'pending') && (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between bg-amber-50 p-3.5 rounded-2xl border border-amber-200">
-                        <h4 className="font-black text-sm text-amber-950 flex items-center gap-2">
-                          <span className="text-base">🌸</span> SECTION 1: ORDER CONFIRMED ({pendingList.length})
+                {/* ── SECTION: WEEK BASED GROUPING (DROPDOWN ACCORDIONS) ───────────── */}
+                {orderFilterStage === 'week_based' && (
+                  <div className="space-y-4">
+                    {/* Week-Based Header Toolbar */}
+                    <div className="bg-gradient-to-r from-indigo-900 to-indigo-800 text-white p-5 rounded-2xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                      <div>
+                        <h4 className="font-black text-base flex items-center gap-2">
+                          <span>📅</span> WEEK-BASED BATCH DISPATCH PIPELINE ({weekGroups.length} Weeks)
                         </h4>
-                        <span className="text-[11px] font-bold text-amber-800 bg-white/80 px-2.5 py-0.5 rounded-lg border border-amber-200">
-                          Ready for Nursery Moisture Packing
-                        </span>
+                        <p className="text-xs text-indigo-200 font-medium">
+                          Organized by Sunday to Saturday weekly cycles with live fulfillment status & Manual Holding control.
+                        </p>
                       </div>
-                      {pendingList.length === 0 ? (
-                        <p className="text-xs text-slate-400 italic p-4 bg-white rounded-xl border border-dashed border-slate-200 text-center">No new pending orders in this section.</p>
-                      ) : (
-                        <div className="space-y-4">
-                          {pendingList.map(renderOrderCard)}
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={handleExpandAllWeeks}
+                          className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer border border-white/20"
+                        >
+                          Expand All
+                        </button>
+                        <button
+                          onClick={handleCollapseAllWeeks}
+                          className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer border border-white/20"
+                        >
+                          Collapse All
+                        </button>
+                      </div>
                     </div>
-                  )}
 
-                  {/* SECTION 2: NURSERY PACKED */}
-                  {(orderFilterStage === 'all' || orderFilterStage === 'packing') && (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between bg-purple-50 p-3.5 rounded-2xl border border-purple-200">
-                        <h4 className="font-black text-sm text-purple-950 flex items-center gap-2">
-                          <span className="text-base">🌿</span> SECTION 2: NURSERY PACKED ({packingList.length})
-                        </h4>
-                        <span className="text-[11px] font-bold text-purple-800 bg-white/80 px-2.5 py-0.5 rounded-lg border border-purple-200">
-                          Root Moisture Sealed & Packed
-                        </span>
-                      </div>
-                      {packingList.length === 0 ? (
-                        <p className="text-xs text-slate-400 italic p-4 bg-white rounded-xl border border-dashed border-slate-200 text-center">No orders currently in Nursery Packed stage.</p>
-                      ) : (
-                        <div className="space-y-4">
-                          {packingList.map(renderOrderCard)}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                    {weekGroups.length === 0 ? (
+                      <p className="text-xs text-slate-400 italic p-8 bg-white rounded-2xl border border-dashed border-slate-200 text-center">
+                        No orders recorded for any week.
+                      </p>
+                    ) : (
+                      <div className="space-y-4">
+                        {weekGroups.map((group, groupIdx) => {
+                          const expanded = isWeekExpanded(group.key, groupIdx);
+                          const undeliveredCount = group.confirmedOrders.length + group.packingOrders.length + group.dispatchedOrders.length;
+                          const hasDelayedOrders = group.isPastWeek && undeliveredCount > 0;
 
-                  {/* SECTION 3: DISPATCHED */}
-                  {(orderFilterStage === 'all' || orderFilterStage === 'dispatched') && (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between bg-blue-50 p-3.5 rounded-2xl border border-blue-200">
-                        <h4 className="font-black text-sm text-blue-950 flex items-center gap-2">
-                          <span className="text-base">🚚</span> SECTION 3: DISPATCHED & IN TRANSIT ({dispatchedList.length})
-                        </h4>
-                        <span className="text-[11px] font-bold text-blue-800 bg-white/80 px-2.5 py-0.5 rounded-lg border border-blue-200">
-                          Handed to Courier Partner / Farm Driver
-                        </span>
-                      </div>
-                      {dispatchedList.length === 0 ? (
-                        <p className="text-xs text-slate-400 italic p-4 bg-white rounded-xl border border-dashed border-slate-200 text-center">No dispatched orders currently in transit.</p>
-                      ) : (
-                        <div className="space-y-4">
-                          {dispatchedList.map(renderOrderCard)}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                          return (
+                            <div
+                              key={group.key}
+                              className={`bg-white rounded-2xl border-2 transition-all shadow-xs overflow-hidden ${
+                                group.isCurrentWeek
+                                  ? 'border-indigo-400 ring-2 ring-indigo-200/50'
+                                  : hasDelayedOrders
+                                  ? 'border-amber-400'
+                                  : 'border-slate-200 hover:border-slate-300'
+                              }`}
+                            >
+                              {/* WEEK ACCORDION HEADER (CLICK TO TOGGLE) */}
+                              <div
+                                onClick={() => toggleWeekExpansion(group.key)}
+                                className="p-4 cursor-pointer hover:bg-slate-50/80 transition-colors flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 select-none"
+                              >
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <ChevronDown className={`w-5 h-5 text-slate-600 transition-transform duration-200 ${expanded ? 'rotate-180 text-indigo-700' : ''}`} />
+                                    <span className="font-black text-sm text-slate-900">
+                                      📅 {group.label}
+                                    </span>
+                                    {group.isCurrentWeek && (
+                                      <span className="bg-indigo-700 text-white font-extrabold text-[10px] px-2 py-0.5 rounded-full shadow-2xs">
+                                        ⚡ CURRENT WEEK
+                                      </span>
+                                    )}
+                                    {hasDelayedOrders && (
+                                      <span className="bg-amber-500 text-white font-extrabold text-[10px] px-2 py-0.5 rounded-full shadow-2xs">
+                                        ⚠️ {undeliveredCount} PENDING
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[11px] text-slate-500 font-medium pl-7">
+                                    Weekly Cycle: Sunday to Saturday • Total: <strong className="text-slate-800">{group.orders.length} Orders</strong>
+                                  </p>
+                                </div>
 
-                  {/* SECTION 4: DELIVERED */}
-                  {(orderFilterStage === 'all' || orderFilterStage === 'delivered') && (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between bg-emerald-50 p-3.5 rounded-2xl border border-emerald-200">
-                        <h4 className="font-black text-sm text-emerald-950 flex items-center gap-2">
-                          <span className="text-base">✅</span> SECTION 4: DELIVERED & COMPLETED ({deliveredList.length})
-                        </h4>
-                        <span className="text-[11px] font-bold text-emerald-800 bg-white/80 px-2.5 py-0.5 rounded-lg border border-emerald-200">
-                          Customer Delivered & Payment Collected
-                        </span>
+                                {/* WEEK STAGE BREAKDOWN PILLS */}
+                                <div className="flex items-center gap-1.5 flex-wrap pl-7 lg:pl-0">
+                                  <span className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-amber-50 text-amber-900 border border-amber-200">
+                                    🌸 {group.confirmedOrders.length} Confirmed
+                                  </span>
+                                  <span className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-purple-50 text-purple-900 border border-purple-200">
+                                    🌿 {group.packingOrders.length} Packing
+                                  </span>
+                                  <span className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-blue-50 text-blue-900 border border-blue-200">
+                                    🚚 {group.dispatchedOrders.length} Courier
+                                  </span>
+                                  <span className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-emerald-50 text-emerald-900 border border-emerald-200">
+                                    ✅ {group.deliveredOrders.length} Delivered
+                                  </span>
+                                  {group.holdingOrders.length > 0 && (
+                                    <span className="px-2.5 py-1 rounded-xl text-[11px] font-extrabold bg-amber-500 text-white shadow-2xs">
+                                      ⏸️ {group.holdingOrders.length} On Hold
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* EXPANDED WEEK ORDERS LIST */}
+                              {expanded && (
+                                <div className="p-4 pt-0 border-t border-slate-100 space-y-4 bg-slate-50/50">
+                                  {/* Past Week Undelivered Warning Banner */}
+                                  {hasDelayedOrders && (
+                                    <div className="mt-3 bg-amber-50 border-2 border-amber-300 rounded-xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-amber-950 text-xs">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-base">⚠️</span>
+                                        <span>
+                                          <strong>Notice:</strong> {undeliveredCount} order(s) from this past week are not yet delivered. If shipment is delayed, click <strong>"⏸️ Put on Hold"</strong> on that order card.
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  <div className="pt-2 space-y-4">
+                                    {group.orders.map(renderOrderCard)}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
-                      {deliveredList.length === 0 ? (
-                        <p className="text-xs text-slate-400 italic p-4 bg-white rounded-xl border border-dashed border-slate-200 text-center">No delivered orders yet.</p>
-                      ) : (
-                        <div className="space-y-4">
-                          {deliveredList.map(renderOrderCard)}
-                        </div>
-                      )}
+                    )}
+                  </div>
+                )}
+
+                {/* ── SECTION: HOLDING ORDERS ONLY VIEW ────────────────────────────── */}
+                {orderFilterStage === 'holding' && (
+                  <div className="space-y-4">
+                    <div className="bg-amber-500 text-white p-4 rounded-2xl shadow-sm flex items-center justify-between">
+                      <div>
+                        <h4 className="font-black text-base flex items-center gap-2">
+                          <span>⏸️</span> ORDERS ON HOLD / DELAYED SHIPMENTS ({holdingList.length})
+                        </h4>
+                        <p className="text-xs text-amber-100 font-medium">
+                          These orders have been held back from the current weekly shipment batch. Click "Resume Flow" when ready to dispatch.
+                        </p>
+                      </div>
                     </div>
-                  )}
-                </div>
+
+                    {holdingList.length === 0 ? (
+                      <p className="text-xs text-slate-400 italic p-8 bg-white rounded-2xl border border-dashed border-slate-200 text-center">
+                        No orders are currently on hold.
+                      </p>
+                    ) : (
+                      <div className="space-y-4">
+                        {holdingList.map(renderOrderCard)}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* ── 4 CATEGORIZED SECTIONS DISPLAY (ALL / STAGE VIEWS) ──────────── */}
+                {orderFilterStage !== 'week_based' && orderFilterStage !== 'holding' && (
+                  <div className="space-y-8">
+                    {/* SECTION 1: ORDER CONFIRMED */}
+                    {(orderFilterStage === 'all' || orderFilterStage === 'pending') && (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between bg-amber-50 p-3.5 rounded-2xl border border-amber-200">
+                          <h4 className="font-black text-sm text-amber-950 flex items-center gap-2">
+                            <span className="text-base">🌸</span> SECTION 1: ORDER CONFIRMED ({pendingList.length})
+                          </h4>
+                          <span className="text-[11px] font-bold text-amber-800 bg-white/80 px-2.5 py-0.5 rounded-lg border border-amber-200">
+                            Ready for Nursery Moisture Packing
+                          </span>
+                        </div>
+                        {pendingList.length === 0 ? (
+                          <p className="text-xs text-slate-400 italic p-4 bg-white rounded-xl border border-dashed border-slate-200 text-center">No new pending orders in this section.</p>
+                        ) : (
+                          <div className="space-y-4">
+                            {pendingList.map(renderOrderCard)}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* SECTION 2: NURSERY PACKED */}
+                    {(orderFilterStage === 'all' || orderFilterStage === 'packing') && (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between bg-purple-50 p-3.5 rounded-2xl border border-purple-200">
+                          <h4 className="font-black text-sm text-purple-950 flex items-center gap-2">
+                            <span className="text-base">🌿</span> SECTION 2: NURSERY PACKED ({packingList.length})
+                          </h4>
+                          <span className="text-[11px] font-bold text-purple-800 bg-white/80 px-2.5 py-0.5 rounded-lg border border-purple-200">
+                            Root Moisture Sealed & Packed
+                          </span>
+                        </div>
+                        {packingList.length === 0 ? (
+                          <p className="text-xs text-slate-400 italic p-4 bg-white rounded-xl border border-dashed border-slate-200 text-center">No orders currently in Nursery Packed stage.</p>
+                        ) : (
+                          <div className="space-y-4">
+                            {packingList.map(renderOrderCard)}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* SECTION 3: DISPATCHED */}
+                    {(orderFilterStage === 'all' || orderFilterStage === 'dispatched') && (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between bg-blue-50 p-3.5 rounded-2xl border border-blue-200">
+                          <h4 className="font-black text-sm text-blue-950 flex items-center gap-2">
+                            <span className="text-base">🚚</span> SECTION 3: DISPATCHED & IN TRANSIT ({dispatchedList.length})
+                          </h4>
+                          <span className="text-[11px] font-bold text-blue-800 bg-white/80 px-2.5 py-0.5 rounded-lg border border-blue-200">
+                            Handed to Courier Partner / Farm Driver
+                          </span>
+                        </div>
+                        {dispatchedList.length === 0 ? (
+                          <p className="text-xs text-slate-400 italic p-4 bg-white rounded-xl border border-dashed border-slate-200 text-center">No dispatched orders currently in transit.</p>
+                        ) : (
+                          <div className="space-y-4">
+                            {dispatchedList.map(renderOrderCard)}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* SECTION 4: DELIVERED */}
+                    {(orderFilterStage === 'all' || orderFilterStage === 'delivered') && (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between bg-emerald-50 p-3.5 rounded-2xl border border-emerald-200">
+                          <h4 className="font-black text-sm text-emerald-950 flex items-center gap-2">
+                            <span className="text-base">✅</span> SECTION 4: DELIVERED & COMPLETED ({deliveredList.length})
+                          </h4>
+                          <span className="text-[11px] font-bold text-emerald-800 bg-white/80 px-2.5 py-0.5 rounded-lg border border-emerald-200">
+                            Customer Delivered & Payment Collected
+                          </span>
+                        </div>
+                        {deliveredList.length === 0 ? (
+                          <p className="text-xs text-slate-400 italic p-4 bg-white rounded-xl border border-dashed border-slate-200 text-center">No delivered orders yet.</p>
+                        ) : (
+                          <div className="space-y-4">
+                            {deliveredList.map(renderOrderCard)}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })()}
