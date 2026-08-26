@@ -3508,66 +3508,70 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             </div>
 
             {/* Main Selection Card */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <div>
-                  <h3 className="text-xs font-extrabold text-slate-900">
+            <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <h3 className="text-xs font-black text-slate-900 truncate">
                     Select Orders (Max 4 per sheet)
                   </h3>
-                  <p className="text-[10px] text-slate-500">
+                  <p className="text-[10px] text-slate-500 font-medium">
                     {notPrintedOrders.length} unprinted ready • {printedOrders.length} printed moved down
                   </p>
                 </div>
 
-                <div className="flex items-center gap-1.5 flex-wrap">
+                {selectedLabelOrderIds.length > 0 && (
                   <button
-                    onClick={() => {
-                      const pool = notPrintedOrders.length > 0 ? notPrintedOrders : displayedLabelOrders;
-                      const targetIds = pool.slice(0, 4).map(o => o.id);
-                      setSelectedLabelOrderIds(targetIds);
-                    }}
-                    className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-[11px] font-extrabold cursor-pointer transition-colors"
+                    onClick={() => setSelectedLabelOrderIds([])}
+                    className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[10px] font-bold cursor-pointer transition-colors shrink-0 active:scale-95"
                   >
-                    Select First 4
+                    Clear ({selectedLabelOrderIds.length})
                   </button>
+                )}
+              </div>
 
-                  <button
-                    onClick={() => {
-                      const pool = notPrintedOrders.length > 0 ? notPrintedOrders : displayedLabelOrders;
-                      const targetIds = pool.slice(0, 8).map(o => o.id);
-                      setSelectedLabelOrderIds(targetIds);
-                    }}
-                    className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-[11px] font-bold cursor-pointer transition-colors"
-                  >
-                    Select 8 (2 Sheets)
-                  </button>
+              {/* Quick Select Buttons Grid (Mobile Optimized) */}
+              <div className="grid grid-cols-3 gap-1.5 pt-0.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const pool = notPrintedOrders.length > 0 ? notPrintedOrders : displayedLabelOrders;
+                    const targetIds = pool.slice(0, 4).map(o => o.id);
+                    setSelectedLabelOrderIds(targetIds);
+                  }}
+                  className="px-2 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 rounded-xl text-[11px] font-extrabold cursor-pointer transition-colors text-center truncate active:scale-95"
+                >
+                  Select 4 (1 Sheet)
+                </button>
 
-                  <button
-                    onClick={() => {
-                      const pool = notPrintedOrders.length > 0 ? notPrintedOrders : displayedLabelOrders;
-                      const targetIds = pool.map(o => o.id);
-                      setSelectedLabelOrderIds(targetIds);
-                    }}
-                    className="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-[11px] font-extrabold cursor-pointer transition-colors shadow-2xs"
-                    title="Select all unprinted orders"
-                  >
-                    Select All ({notPrintedOrders.length > 0 ? notPrintedOrders.length : displayedLabelOrders.length})
-                  </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const pool = notPrintedOrders.length > 0 ? notPrintedOrders : displayedLabelOrders;
+                    const targetIds = pool.slice(0, 8).map(o => o.id);
+                    setSelectedLabelOrderIds(targetIds);
+                  }}
+                  className="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 rounded-xl text-[11px] font-extrabold cursor-pointer transition-colors text-center truncate active:scale-95"
+                >
+                  Select 8 (2 Sheets)
+                </button>
 
-                  {selectedLabelOrderIds.length > 0 && (
-                    <button
-                      onClick={() => setSelectedLabelOrderIds([])}
-                      className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-bold cursor-pointer transition-colors"
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const pool = notPrintedOrders.length > 0 ? notPrintedOrders : displayedLabelOrders;
+                    const targetIds = pool.map(o => o.id);
+                    setSelectedLabelOrderIds(targetIds);
+                  }}
+                  className="px-2 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-[11px] font-extrabold cursor-pointer transition-colors text-center truncate shadow-2xs active:scale-95"
+                  title="Select all unprinted orders"
+                >
+                  Select All ({notPrintedOrders.length > 0 ? notPrintedOrders.length : displayedLabelOrders.length})
+                </button>
               </div>
 
               {/* Bulk Actions Banner if orders selected */}
               {selectedLabelOrderIds.length > 0 && (
-                <div className="p-2.5 bg-emerald-50/80 rounded-xl border border-emerald-200 flex items-center justify-between flex-wrap gap-2">
+                <div className="p-2.5 bg-emerald-50/90 rounded-xl border border-emerald-200 flex items-center justify-between flex-wrap gap-2">
                   <span className="text-[11px] font-extrabold text-emerald-950">
                     🏷️ {selectedLabelOrderIds.length} order(s) selected
                   </span>
@@ -3597,11 +3601,11 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               {/* Week-Based Quick Expand/Collapse Toolbar */}
               {labelWeekGroups.length > 0 && (
                 <div className="flex items-center justify-between px-1 pt-1 text-[11px]">
-                  <span className="font-extrabold text-indigo-950 flex items-center gap-1">
+                  <span className="font-extrabold text-indigo-950 flex items-center gap-1 min-w-0">
                     <span>📅</span>
-                    <span>{labelWeekGroups.length} Dispatch Weeks ({displayedLabelOrders.length} Orders)</span>
+                    <span className="truncate">{labelWeekGroups.length} Dispatch Weeks ({displayedLabelOrders.length} Orders)</span>
                   </span>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       type="button"
                       onClick={() => {
@@ -3751,43 +3755,50 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                           key={week.key}
                           className="bg-white rounded-2xl border border-indigo-100 shadow-xs overflow-hidden transition-all"
                         >
-                          {/* Week Header Banner Accordion Button */}
-                          <div
-                            onClick={() => toggleLabelWeekExpansion(week.key)}
-                            className="p-3 bg-gradient-to-r from-slate-50 to-indigo-50/50 hover:from-slate-100/80 hover:to-indigo-100/60 border-b border-indigo-100/80 flex items-center justify-between gap-2 cursor-pointer select-none transition-colors"
-                          >
-                            <div className="flex items-center gap-2 min-w-0">
-                              <div className="w-7 h-7 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-900 shrink-0 font-bold text-xs">
-                                W{labelWeekGroups.length - index}
-                              </div>
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="font-extrabold text-xs text-slate-900 truncate">
-                                    {week.label}
-                                  </span>
-                                  {week.isCurrentWeek && (
-                                    <span className="text-[9px] font-black bg-indigo-600 text-white px-1.5 py-0.2 rounded-md">
-                                      Current Week
-                                    </span>
-                                  )}
+                          {/* Week Header Banner Accordion */}
+                          <div className="bg-gradient-to-r from-slate-50 to-indigo-50/40 border-b border-indigo-100/80 transition-colors">
+                            {/* Row 1: Clickable Week Info & Chevron */}
+                            <div
+                              onClick={() => toggleLabelWeekExpansion(week.key)}
+                              className="p-3 flex items-center justify-between gap-2.5 cursor-pointer select-none"
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-900 shrink-0 font-black text-[11px]">
+                                  W{labelWeekGroups.length - index}
                                 </div>
-                                <p className="text-[10px] text-slate-500 font-semibold mt-0.5 flex items-center gap-2">
-                                  <span>📦 {relevantOrders.length} {labelFilterTab === 'not_printed' ? 'unprinted' : labelFilterTab === 'printed' ? 'printed' : 'orders'}</span>
-                                  {labelFilterTab === 'all' && (
-                                    <>
-                                      <span>•</span>
-                                      <span className="text-amber-700 font-bold">⏳ {week.notPrintedOrders.length} unprinted</span>
-                                      <span>•</span>
-                                      <span className="text-emerald-700 font-bold">✓ {week.printedOrders.length} printed</span>
-                                    </>
-                                  )}
-                                </p>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="font-extrabold text-xs text-slate-900 truncate">
+                                      {week.shortLabel}
+                                    </span>
+                                    {week.isCurrentWeek && (
+                                      <span className="text-[9px] font-black bg-indigo-600 text-white px-1.5 py-0.2 rounded-md shrink-0">
+                                        Current Week
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[10px] text-slate-500 font-semibold mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                    <span>📦 {relevantOrders.length} {labelFilterTab === 'not_printed' ? 'unprinted' : labelFilterTab === 'printed' ? 'printed' : 'orders'}</span>
+                                    {labelFilterTab === 'all' && (
+                                      <>
+                                        <span>•</span>
+                                        <span className="text-amber-700 font-bold">⏳ {week.notPrintedOrders.length} unprinted</span>
+                                        <span>•</span>
+                                        <span className="text-emerald-700 font-bold">✓ {week.printedOrders.length} printed</span>
+                                      </>
+                                    )}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="p-1 rounded-lg text-slate-500 hover:bg-slate-200/60 shrink-0">
+                                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180 text-indigo-700' : 'text-slate-500'}`} />
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              {/* Quick select 4 for this week */}
-                              {relevantOrders.length > 0 && (
+                            {/* Row 2: Action Buttons (Only if week has orders to select) */}
+                            {relevantOrders.length > 0 && (
+                              <div className="px-3 pb-2.5 pt-0 flex items-center gap-2">
                                 <button
                                   type="button"
                                   onClick={(e) => {
@@ -3795,15 +3806,12 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                                     const targetIds = relevantOrders.slice(0, 4).map(o => o.id);
                                     setSelectedLabelOrderIds(prev => Array.from(new Set([...prev, ...targetIds])));
                                   }}
-                                  className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 font-extrabold text-[10px] rounded-lg border border-indigo-200 cursor-pointer transition-all active:scale-95"
+                                  className="flex-1 py-1.5 px-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 font-extrabold text-[11px] rounded-xl border border-indigo-200 cursor-pointer transition-all active:scale-95 text-center truncate shadow-2xs"
                                   title="Select up to 4 orders in this week for 1 label sheet"
                                 >
                                   + Select 4
                                 </button>
-                              )}
 
-                              {/* Quick select ALL for this week */}
-                              {relevantOrders.length > 0 && (
                                 <button
                                   type="button"
                                   onClick={(e) => {
@@ -3811,21 +3819,13 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                                     const targetIds = relevantOrders.map(o => o.id);
                                     setSelectedLabelOrderIds(prev => Array.from(new Set([...prev, ...targetIds])));
                                   }}
-                                  className="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-[10px] rounded-lg cursor-pointer transition-all active:scale-95 shadow-2xs"
+                                  className="flex-1 py-1.5 px-2 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-[11px] rounded-xl cursor-pointer transition-all active:scale-95 shadow-2xs text-center truncate"
                                   title="Select all orders in this week"
                                 >
                                   + Select All ({relevantOrders.length})
                                 </button>
-                              )}
-
-                              <div className="p-1 rounded-lg text-slate-400 hover:bg-slate-200/60">
-                                {isExpanded ? (
-                                  <ChevronDown className="w-4 h-4 text-slate-700 rotate-180 transition-transform duration-200" />
-                                ) : (
-                                  <ChevronDown className="w-4 h-4 text-slate-700 transition-transform duration-200" />
-                                )}
                               </div>
-                            </div>
+                            )}
                           </div>
 
                           {/* Week Orders Content */}
