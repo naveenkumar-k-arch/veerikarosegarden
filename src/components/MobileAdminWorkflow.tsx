@@ -194,6 +194,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   const [labelSearchQuery, setLabelSearchQuery] = useState('');
   const [labelCourierFilter, setLabelCourierFilter] = useState<string>('all');
   const [labelSpecificDate, setLabelSpecificDate] = useState<string>('');
+  const [expandedLabelWeeks, setExpandedLabelWeeks] = useState<Record<string, boolean>>({});
   const [printedOrderIds, setPrintedOrderIds] = useState<string[]>(() => {
     try {
       const stored = localStorage.getItem('vrg_printed_label_order_ids');
@@ -1302,6 +1303,73 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   const selectedLabelOrders = useMemo(() => {
     return orders.filter(o => selectedLabelOrderIds.includes(o.id));
   }, [orders, selectedLabelOrderIds]);
+
+  // Week-Based Grouping for Label Sheet Orders
+  const labelWeekGroups = useMemo(() => {
+    const nowBounds = getSundayToSaturdayBounds(new Date());
+    const map = new Map<string, {
+      key: string;
+      startDate: Date;
+      endDate: Date;
+      label: string;
+      shortLabel: string;
+      orders: Order[];
+      notPrintedOrders: Order[];
+      printedOrders: Order[];
+      isCurrentWeek: boolean;
+      isPastWeek: boolean;
+    }>();
+
+    displayedLabelOrders.forEach(o => {
+      const t = o.createdAt ? new Date(o.createdAt) : o.updatedAt ? new Date(o.updatedAt) : new Date();
+      const bounds = getSundayToSaturdayBounds(t) || { start: new Date(), end: new Date() };
+      const key = bounds.start.toISOString().split('T')[0];
+
+      if (!map.has(key)) {
+        const startStr = bounds.start.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+        const endStr = bounds.end.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+        const isCurrentWeek = Boolean(nowBounds && bounds.start.getTime() === nowBounds.start.getTime());
+        const isPastWeek = Boolean(nowBounds && bounds.end.getTime() < nowBounds.start.getTime());
+
+        map.set(key, {
+          key,
+          startDate: bounds.start,
+          endDate: bounds.end,
+          label: `Sunday, ${startStr} – Saturday, ${endStr}`,
+          shortLabel: `${startStr} – ${endStr}`,
+          orders: [],
+          notPrintedOrders: [],
+          printedOrders: [],
+          isCurrentWeek,
+          isPastWeek
+        });
+      }
+
+      const group = map.get(key)!;
+      group.orders.push(o);
+      if (isOrderPrinted(o.id)) {
+        group.printedOrders.push(o);
+      } else {
+        group.notPrintedOrders.push(o);
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
+  }, [displayedLabelOrders, isOrderPrinted, getSundayToSaturdayBounds]);
+
+  const toggleLabelWeekExpansion = (key: string) => {
+    setExpandedLabelWeeks(prev => ({
+      ...prev,
+      [key]: prev[key] === undefined ? false : !prev[key]
+    }));
+  };
+
+  const isLabelWeekExpanded = (key: string, index: number) => {
+    if (expandedLabelWeeks[key] !== undefined) {
+      return expandedLabelWeeks[key];
+    }
+    return index < 2;
+  };
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-800 pb-20">
@@ -3516,6 +3584,40 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 </div>
               )}
 
+              {/* Week-Based Quick Expand/Collapse Toolbar */}
+              {labelFilterTab === 'all' && labelWeekGroups.length > 0 && (
+                <div className="flex items-center justify-between px-1 pt-1 text-[11px]">
+                  <span className="font-extrabold text-indigo-950 flex items-center gap-1">
+                    <span>📅</span>
+                    <span>{labelWeekGroups.length} Dispatch Weeks ({displayedLabelOrders.length} Orders)</span>
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const allOpen: Record<string, boolean> = {};
+                        labelWeekGroups.forEach(w => { allOpen[w.key] = true; });
+                        setExpandedLabelWeeks(allOpen);
+                      }}
+                      className="text-[10px] font-bold text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded-md transition-colors cursor-pointer border border-indigo-200"
+                    >
+                      Expand All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const allClosed: Record<string, boolean> = {};
+                        labelWeekGroups.forEach(w => { allClosed[w.key] = false; });
+                        setExpandedLabelWeeks(allClosed);
+                      }}
+                      className="text-[10px] font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-2 py-0.5 rounded-md transition-colors cursor-pointer border border-slate-200"
+                    >
+                      Collapse All
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Helper rendering function for single order card */}
               {(() => {
                 const renderOrderCard = (order: Order, isPrinted: boolean) => {
@@ -3619,67 +3721,137 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                   );
                 };
 
-                // Sectioned View when labelFilterTab === 'all'
+                // Week-Based Grouping View when labelFilterTab === 'all'
                 if (labelFilterTab === 'all') {
                   return (
-                    <div className="space-y-4">
-                      {/* Section 1: Not Printed (Top Priority) */}
-                      {notPrintedOrders.length > 0 && (
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between px-1">
-                            <div className="flex items-center gap-1.5">
-                              <span className="w-2 h-2 rounded-full bg-amber-500" />
-                              <span className="text-xs font-black text-slate-900 uppercase tracking-wider">
-                                Not Printed Orders ({notPrintedOrders.length})
-                              </span>
-                            </div>
-                            <span className="text-[10px] text-amber-800 font-bold bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">
-                              Top Priority
-                            </span>
-                          </div>
-                          <div className="space-y-2">
-                            {notPrintedOrders.map(order => renderOrderCard(order, false))}
-                          </div>
-                        </div>
-                      )}
+                    <div className="space-y-3 pt-1">
+                      {labelWeekGroups.map((week, index) => {
+                        const isExpanded = isLabelWeekExpanded(week.key, index);
 
-                      {/* Section 2: Printed Orders (Moved to Bottom with Border Line) */}
-                      {printedOrders.length > 0 && (
-                        <div className="space-y-2 pt-2">
-                          {/* Prominent Border Line Divider in between Not Printed and Printed */}
-                          {notPrintedOrders.length > 0 && (
-                            <div className="relative py-3 my-2">
-                              <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                                <div className="w-full border-t-2 border-slate-300 border-dashed" />
+                        return (
+                          <div
+                            key={week.key}
+                            className="bg-white rounded-2xl border border-indigo-100 shadow-xs overflow-hidden transition-all"
+                          >
+                            {/* Week Header Banner Accordion Button */}
+                            <div
+                              onClick={() => toggleLabelWeekExpansion(week.key)}
+                              className="p-3 bg-gradient-to-r from-slate-50 to-indigo-50/50 hover:from-slate-100/80 hover:to-indigo-100/60 border-b border-indigo-100/80 flex items-center justify-between gap-2 cursor-pointer select-none transition-colors"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className="w-7 h-7 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-900 shrink-0 font-bold text-xs">
+                                  W{labelWeekGroups.length - index}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="font-extrabold text-xs text-slate-900 truncate">
+                                      {week.label}
+                                    </span>
+                                    {week.isCurrentWeek && (
+                                      <span className="text-[9px] font-black bg-indigo-600 text-white px-1.5 py-0.2 rounded-md">
+                                        Current Week
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[10px] text-slate-500 font-semibold mt-0.5 flex items-center gap-2">
+                                    <span>📦 {week.orders.length} orders</span>
+                                    <span>•</span>
+                                    <span className="text-amber-700 font-bold">⏳ {week.notPrintedOrders.length} unprinted</span>
+                                    <span>•</span>
+                                    <span className="text-emerald-700 font-bold">✓ {week.printedOrders.length} printed</span>
+                                  </p>
+                                </div>
                               </div>
-                              <div className="relative flex justify-center">
-                                <span className="bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-700 rounded-full border border-slate-300 shadow-2xs flex items-center gap-1.5 uppercase tracking-wider">
-                                  <ArrowDown className="w-3.5 h-3.5 text-emerald-700 stroke-[2.5]" />
-                                  <span>Printed Orders Below</span>
-                                </span>
+
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {/* Quick select 4 for this week */}
+                                {week.notPrintedOrders.length > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const targetIds = week.notPrintedOrders.slice(0, 4).map(o => o.id);
+                                      setSelectedLabelOrderIds(prev => Array.from(new Set([...prev, ...targetIds])));
+                                    }}
+                                    className="px-2 py-1 bg-indigo-100 hover:bg-indigo-200 text-indigo-900 font-extrabold text-[10px] rounded-lg border border-indigo-200 cursor-pointer transition-all active:scale-95"
+                                    title="Select up to 4 unprinted orders in this week for 1 label sheet"
+                                  >
+                                    + Select 4
+                                  </button>
+                                )}
+
+                                <div className="p-1 rounded-lg text-slate-400 hover:bg-slate-200/60">
+                                  {isExpanded ? (
+                                    <ChevronDown className="w-4 h-4 text-slate-700 rotate-180 transition-transform duration-200" />
+                                  ) : (
+                                    <ChevronDown className="w-4 h-4 text-slate-700 transition-transform duration-200" />
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          )}
 
-                          <div className="flex items-center justify-between px-1 pt-1">
-                            <div className="flex items-center gap-1.5">
-                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                              <span className="text-xs font-black text-slate-800 uppercase tracking-wider">
-                                Printed Orders ({printedOrders.length})
-                              </span>
-                            </div>
-                            <span className="text-[10px] text-emerald-800 font-bold bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
-                              <ArrowDown className="w-3 h-3 text-emerald-700" />
-                              <span>Moved to bottom</span>
-                            </span>
-                          </div>
-                          <div className="space-y-2">
-                            {printedOrders.map(order => renderOrderCard(order, true))}
-                          </div>
-                        </div>
-                      )}
+                            {/* Week Orders Content */}
+                            {isExpanded && (
+                              <div className="p-3 space-y-3 bg-slate-50/50">
+                                {/* Section 1: Unprinted Orders in Week */}
+                                {week.notPrintedOrders.length > 0 && (
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between px-1">
+                                      <span className="text-[10px] font-black text-amber-900 uppercase tracking-wider flex items-center gap-1">
+                                        <span className="w-2 h-2 rounded-full bg-amber-500" />
+                                        <span>Not Printed ({week.notPrintedOrders.length})</span>
+                                      </span>
+                                      <span className="text-[9px] text-amber-800 font-bold bg-amber-100 px-2 py-0.2 rounded-full border border-amber-200">
+                                        Ready to Print
+                                      </span>
+                                    </div>
+                                    <div className="space-y-2">
+                                      {week.notPrintedOrders.map(order => renderOrderCard(order, false))}
+                                    </div>
+                                  </div>
+                                )}
 
-                      {displayedLabelOrders.length === 0 && (
+                                {/* Divider if both unprinted and printed exist */}
+                                {week.notPrintedOrders.length > 0 && week.printedOrders.length > 0 && (
+                                  <div className="relative py-2 my-1">
+                                    <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                                      <div className="w-full border-t border-slate-200 border-dashed" />
+                                    </div>
+                                    <div className="relative flex justify-center">
+                                      <span className="bg-slate-100 px-2.5 py-0.5 text-[9px] font-bold text-slate-500 rounded-full border border-slate-200 uppercase tracking-wider">
+                                        Printed Below
+                                      </span>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Section 2: Printed Orders in Week */}
+                                {week.printedOrders.length > 0 && (
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between px-1">
+                                      <span className="text-[10px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1">
+                                        <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                                        <span>Printed Orders ({week.printedOrders.length})</span>
+                                      </span>
+                                    </div>
+                                    <div className="space-y-2">
+                                      {week.printedOrders.map(order => renderOrderCard(order, true))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {week.orders.length === 0 && (
+                                  <p className="text-xs text-slate-400 italic text-center py-3">
+                                    No orders in this week cycle.
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      {labelWeekGroups.length === 0 && (
                         <p className="text-xs text-slate-500 italic text-center py-6">
                           {labelSearchQuery ? 'No orders match your search query.' : 'No orders currently available.'}
                         </p>
