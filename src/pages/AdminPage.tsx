@@ -2213,8 +2213,8 @@ const silentRefresh = async (): Promise<boolean> => {
                   <option value="Professional Courier – Full Soil">
                     🌱 Professional Courier – Full Soil (Tamil Nadu Only)
                   </option>
-                  <option value="Mettur Parcel Service">
-                    📦 Mettur Parcel Service (Branch Pickup Depot)
+                  <option value="Mettur Parcel Service (MSS)">
+                    📦 Mettur Parcel Service / MSS (Branch Pickup Depot)
                   </option>
                 </select>
               </div>
@@ -4447,19 +4447,6 @@ const silentRefresh = async (): Promise<boolean> => {
                       <span>📅</span>
                       <span>{orderSortBy === 'date_asc' ? 'Date: Oldest First ↑' : 'Date: Newest First ↓'}</span>
                     </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setOrderSortBy(prev => prev === 'price_desc' ? 'price_asc' : 'price_desc')}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs border ${
-                        orderSortBy.startsWith('price')
-                          ? 'bg-emerald-800 text-white border-emerald-900 shadow-xs'
-                          : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200'
-                      }`}
-                    >
-                      <span>💰</span>
-                      <span>{orderSortBy === 'price_asc' ? 'Price: Low → High ↑' : 'Price: High → Low ↓'}</span>
-                    </button>
                   </div>
 
                   <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-xl">
@@ -6441,24 +6428,12 @@ const silentRefresh = async (): Promise<boolean> => {
               <label className="font-bold text-slate-700 block mb-1">Select Delivery Method:</label>
               <select
                 value={courierName}
-                onChange={(e) => {
-                  setCourierName(e.target.value);
-                  if (e.target.value.includes('Self Delivery')) {
-                    setTrackingNumber('VRG-SELF-DELIVERY');
-                  }
-                }}
-                className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                onChange={(e) => setCourierName(e.target.value)}
+                className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-xs"
               >
-                <option value="Professional Courier">Professional Courier (Doorstep)</option>
-                <option value="Professional Courier – Reduced Soil">Professional Courier – Reduced Soil</option>
-                <option value="Professional Courier – Full Soil">Professional Courier – Full Soil</option>
-                <option value="Mettur Parcel Service">Mettur Parcel Service (Branch Pickup)</option>
-                <option value="ST Courier">ST Courier (Tamil Nadu Village Fast)</option>
-                <option value="Self Delivery (Nursery Farm Team)">🌿 Self Delivery / Farm Direct Team (No AWB Required)</option>
-                <option value="Delhivery">Delhivery</option>
-                <option value="DTDC">DTDC</option>
-                <option value="India Post Speed Post">India Post Speed Post</option>
-                <option value="Local Auto / Transport">Local Auto / Transport Delivery</option>
+                <option value="Professional Courier – Reduced Soil">🚚 Professional Courier – Reduced Soil (Doorstep Delivery)</option>
+                <option value="Professional Courier – Full Soil">🌱 Professional Courier – Full Soil (Tamil Nadu Only)</option>
+                <option value="Mettur Parcel Service (MSS)">📦 Mettur Parcel Service / MSS (Branch Pickup Depot)</option>
               </select>
             </div>
 

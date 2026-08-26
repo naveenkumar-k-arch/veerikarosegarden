@@ -1010,17 +1010,12 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
     }
   }, []);
 
-  // Dynamically extract unique couriers present in orders plus standard carrier options
+  // Dynamically extract unique couriers present in orders plus standard 3 carrier options
   const availableCouriers = useMemo(() => {
     const standardCouriers = [
-      'Professional Courier',
-      'ST Courier',
-      'Delhivery',
-      'India Post / Speed Post',
-      'DTDC',
-      'Blue Dart',
-      'Mettur Transports',
-      'Self Delivery (Farm Team)'
+      'Professional Courier – Reduced Soil',
+      'Professional Courier – Full Soil',
+      'Mettur Parcel Service (MSS)'
     ];
     const fromOrders = orders
       .map(o => o.courierName?.trim())
@@ -2013,20 +2008,6 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 >
                   <span>📅</span>
                   <span>{orderSortBy === 'date_asc' ? 'Date: Oldest ↑' : 'Date: Newest ↓'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setOrderSortBy(prev => prev === 'price_desc' ? 'price_asc' : 'price_desc')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs whitespace-nowrap active:scale-95 border ${
-                    orderSortBy.startsWith('price')
-                      ? 'bg-emerald-800 text-white border-emerald-900 shadow-xs'
-                      : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
-                  }`}
-                  title="Click to toggle Price sort order"
-                >
-                  <span>💰</span>
-                  <span>{orderSortBy === 'price_asc' ? 'Price: Low → High ↑' : 'Price: High → Low ↓'}</span>
                 </button>
               </div>
 
@@ -3263,16 +3244,9 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                   }}
                   className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700"
                 >
-                  <option value="Professional Courier">Professional Courier (Doorstep)</option>
-                  <option value="Professional Courier – Reduced Soil">Professional Courier – Reduced Soil</option>
-                  <option value="Professional Courier – Full Soil">Professional Courier – Full Soil</option>
-                  <option value="Mettur Parcel Service">Mettur Parcel Service (Branch Pickup)</option>
-                  <option value="ST Courier">ST Courier</option>
-                  <option value="Delhivery">Delhivery</option>
-                  <option value="DTDC">DTDC</option>
-                  <option value="India Post">India Post (Speed Post)</option>
-                  <option value="Self Delivery">Self Delivery (Nursery Farm Team)</option>
-                  <option value="Other">Other Courier / Transport</option>
+                  <option value="Professional Courier – Reduced Soil">🚚 Professional Courier – Reduced Soil (Doorstep Delivery)</option>
+                  <option value="Professional Courier – Full Soil">🌱 Professional Courier – Full Soil (Tamil Nadu Only)</option>
+                  <option value="Mettur Parcel Service (MSS)">📦 Mettur Parcel Service / MSS (Branch Pickup Depot)</option>
                 </select>
               </div>
 
