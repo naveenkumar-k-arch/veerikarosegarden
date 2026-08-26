@@ -1200,6 +1200,11 @@ export const App: React.FC = () => {
           }}
           searchQuery={searchQuery}
           onSearchChange={(q) => setSearchQuery(q)}
+          products={products}
+          onSelectProduct={(product) => {
+            navigateTo('product-detail', { product });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
           categories={categories}
           activeCategory={selectedCategory}
           onSelectCategory={(catId) => {
@@ -1220,6 +1225,11 @@ export const App: React.FC = () => {
           user={user}
           searchQuery={searchQuery}
           onSearchChange={(q) => setSearchQuery(q)}
+          products={products}
+          onSelectProduct={(product) => {
+            navigateTo('product-detail', { product });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
           onNavigate={(page, params) => {
             if (isMobileCheckoutOpen && page !== 'cart') {
               setIsMobileCheckoutOpen(false);

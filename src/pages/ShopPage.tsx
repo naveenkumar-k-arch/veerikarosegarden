@@ -170,8 +170,11 @@ export const ShopPage: React.FC<ShopPageProps> = ({
       const matchEnglish = (p.englishName || '').toLowerCase().includes(q);
       const matchTamil = (p.tamilName || '').toLowerCase().includes(q);
       const matchScientific = (p.scientificName || '').toLowerCase().includes(q);
+      const matchSku = (p.sku || '').toLowerCase().includes(q);
+      const matchCategory = (p.categoryName || '').toLowerCase().includes(q) || (p.categoryId || '').toLowerCase().includes(q);
+      const matchDescription = (p.description || '').toLowerCase().includes(q);
       const matchTags = Array.isArray(p.tags) && p.tags.some((t) => (t || '').toLowerCase().includes(q));
-      return matchName || matchEnglish || matchTamil || matchScientific || matchTags;
+      return matchName || matchEnglish || matchTamil || matchScientific || matchSku || matchCategory || matchDescription || matchTags;
     }
 
     return true;

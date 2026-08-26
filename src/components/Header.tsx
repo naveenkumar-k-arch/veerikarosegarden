@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ShoppingBag, Search, Heart, User as UserIcon, Phone, MessageSquare, Menu, X, LayoutDashboard, Sparkles } from 'lucide-react';
-import { Category, User } from '../types';
+import { Category, User, Product } from '../types';
+import { SearchAutocompleteDropdown } from './SearchAutocompleteDropdown';
 
 interface HeaderProps {
   cartCount: number;
@@ -12,6 +13,8 @@ interface HeaderProps {
   onSelectCategory?: (catId?: string) => void;
   searchQuery: string;
   onSearchChange: (q: string) => void;
+  products?: Product[];
+  onSelectProduct?: (product: Product) => void;
   isAdmin?: boolean;
   onToggleAdmin?: () => void;
   user?: User | null;
@@ -21,11 +24,14 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   cartCount, wishlistCount = 0, onOpenCart, onNavigate,
   categories = [], activeCategory, onSelectCategory = (_catId?: string) => {},
-  searchQuery, onSearchChange, isAdmin = false, onToggleAdmin = () => {},
+  searchQuery, onSearchChange, products = [], onSelectProduct,
+  isAdmin = false, onToggleAdmin = () => {},
   user, onOpenExpertAdvice
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [showDesktopDropdown, setShowDesktopDropdown] = useState(false);
+  const [showMobileDropdown, setShowMobileDropdown] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -94,25 +100,51 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Desktop Search Bar */}
-          <form onSubmit={handleSearchSubmit} style={{ flex: 1, maxWidth: 420, position: 'relative', display: 'none' }} className="lg-show-flex">
-            <Search style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: 'var(--text-light)' }} />
-            <input
-              type="text"
-              placeholder="Search plants in English, தமிழ், or Scientific name..."
-              value={searchQuery}
-              onChange={e => onSearchChange(e.target.value)}
-              className="input-bright"
-              style={{ paddingLeft: 34, paddingRight: 80, fontSize: 12 }}
+          <div style={{ flex: 1, maxWidth: 420, position: 'relative', display: 'none' }} className="lg-show-flex">
+            <form onSubmit={(e) => { handleSearchSubmit(e); setShowDesktopDropdown(false); }} style={{ width: '100%', position: 'relative' }}>
+              <Search style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: 'var(--text-light)', zIndex: 2 }} />
+              <input
+                type="text"
+                placeholder="Search plants in English, தமிழ், or Scientific name..."
+                value={searchQuery}
+                onFocus={() => { if (searchQuery.trim()) setShowDesktopDropdown(true); }}
+                onChange={e => {
+                  onSearchChange(e.target.value);
+                  setShowDesktopDropdown(Boolean(e.target.value.trim()));
+                }}
+                className="input-bright"
+                style={{ paddingLeft: 34, paddingRight: 80, fontSize: 12 }}
+              />
+              <button type="submit" style={{
+                position: 'absolute', right: 3, top: 3, bottom: 3, padding: '0 12px',
+                background: 'linear-gradient(135deg, #16a34a, #15803d)',
+                color: 'white', border: 'none', borderRadius: 8,
+                fontSize: 10, fontWeight: 700, cursor: 'pointer', zIndex: 2
+              }}>
+                SEARCH
+              </button>
+            </form>
+
+            {/* Desktop Autocomplete Live Suggestions */}
+            <SearchAutocompleteDropdown
+              query={searchQuery}
+              products={products}
+              isOpen={showDesktopDropdown && Boolean(searchQuery.trim())}
+              onClose={() => setShowDesktopDropdown(false)}
+              onSelectProduct={(p) => {
+                setShowDesktopDropdown(false);
+                if (onSelectProduct) {
+                  onSelectProduct(p);
+                } else {
+                  onNavigate('product-detail', { product: p });
+                }
+              }}
+              onViewAll={(q) => {
+                setShowDesktopDropdown(false);
+                onNavigate('shop', { query: q });
+              }}
             />
-            <button type="submit" style={{
-              position: 'absolute', right: 3, top: 3, bottom: 3, padding: '0 12px',
-              background: 'linear-gradient(135deg, #16a34a, #15803d)',
-              color: 'white', border: 'none', borderRadius: 8,
-              fontSize: 10, fontWeight: 700, cursor: 'pointer',
-            }}>
-              SEARCH
-            </button>
-          </form>
+          </div>
 
           {/* Action Buttons */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
@@ -199,20 +231,46 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Mobile Search Bar */}
-        <form onSubmit={handleSearchSubmit} style={{ marginTop: 6, position: 'relative', display: 'none' }} className="mobile-show">
-          <Search style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 13, height: 13, color: 'var(--text-light)' }} />
-          <input
-            type="text"
-            placeholder="Search plants..."
-            value={searchQuery}
-            onChange={e => onSearchChange(e.target.value)}
-            className="input-bright"
-            style={{ paddingLeft: 30, paddingRight: 64, height: 34, fontSize: 13 }}
+        <div style={{ marginTop: 6, position: 'relative', display: 'none' }} className="mobile-show">
+          <form onSubmit={(e) => { handleSearchSubmit(e); setShowMobileDropdown(false); }} style={{ width: '100%', position: 'relative' }}>
+            <Search style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 13, height: 13, color: 'var(--text-light)', zIndex: 2 }} />
+            <input
+              type="text"
+              placeholder="Search plants..."
+              value={searchQuery}
+              onFocus={() => { if (searchQuery.trim()) setShowMobileDropdown(true); }}
+              onChange={e => {
+                onSearchChange(e.target.value);
+                setShowMobileDropdown(Boolean(e.target.value.trim()));
+              }}
+              className="input-bright"
+              style={{ paddingLeft: 30, paddingRight: 64, height: 34, fontSize: 13 }}
+            />
+            <button type="submit" style={{ position: 'absolute', right: 3, top: 3, bottom: 3, padding: '0 10px', background: 'linear-gradient(135deg, #16a34a, #15803d)', color: 'white', border: 'none', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', zIndex: 2 }}>
+              GO
+            </button>
+          </form>
+
+          {/* Mobile Autocomplete Live Suggestions */}
+          <SearchAutocompleteDropdown
+            query={searchQuery}
+            products={products}
+            isOpen={showMobileDropdown && Boolean(searchQuery.trim())}
+            onClose={() => setShowMobileDropdown(false)}
+            onSelectProduct={(p) => {
+              setShowMobileDropdown(false);
+              if (onSelectProduct) {
+                onSelectProduct(p);
+              } else {
+                onNavigate('product-detail', { product: p });
+              }
+            }}
+            onViewAll={(q) => {
+              setShowMobileDropdown(false);
+              onNavigate('shop', { query: q });
+            }}
           />
-          <button type="submit" style={{ position: 'absolute', right: 3, top: 3, bottom: 3, padding: '0 10px', background: 'linear-gradient(135deg, #16a34a, #15803d)', color: 'white', border: 'none', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>
-            GO
-          </button>
-        </form>
+        </div>
       </div>
 
       {/* Horizontal Category Strip */}

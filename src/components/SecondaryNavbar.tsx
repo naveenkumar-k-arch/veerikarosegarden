@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Search, Home, Store, ShoppingCart, User as UserIcon } from 'lucide-react';
-import { User } from '../types';
+import { User, Product } from '../types';
+import { SearchAutocompleteDropdown } from './SearchAutocompleteDropdown';
 
 interface SecondaryNavbarProps {
   onNavigate: (page: string, params?: any) => void;
@@ -9,6 +10,8 @@ interface SecondaryNavbarProps {
   user?: User | null;
   searchQuery?: string;
   onSearchChange?: (q: string) => void;
+  products?: Product[];
+  onSelectProduct?: (product: Product) => void;
 }
 
 export const SecondaryNavbar: React.FC<SecondaryNavbarProps> = ({
@@ -18,13 +21,17 @@ export const SecondaryNavbar: React.FC<SecondaryNavbarProps> = ({
   user,
   searchQuery = '',
   onSearchChange,
+  products = [],
+  onSelectProduct,
 }) => {
   const [localSearch, setLocalSearch] = useState<string>(searchQuery);
+  const [showDropdown, setShowDropdown] = useState(false);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setShowDropdown(false);
     if (onSearchChange) onSearchChange(localSearch);
-    onNavigate('shop');
+    onNavigate('shop', { query: localSearch });
   };
 
   const getPageTitle = (page: string) => {
@@ -88,19 +95,43 @@ export const SecondaryNavbar: React.FC<SecondaryNavbarProps> = ({
         </div>
 
         {/* Center Quick Search (Desktop / Tablet) */}
-        <form onSubmit={handleSearchSubmit} className="hidden sm:flex flex-1 max-w-sm relative">
-          <input
-            type="text"
-            placeholder="Search plants in English, தமிழ்..."
-            value={localSearch}
-            onChange={(e) => {
-              setLocalSearch(e.target.value);
-              if (onSearchChange) onSearchChange(e.target.value);
+        <div className="hidden sm:block flex-1 max-w-sm relative">
+          <form onSubmit={handleSearchSubmit} className="w-full relative">
+            <input
+              type="text"
+              placeholder="Search plants in English, தமிழ்..."
+              value={localSearch}
+              onFocus={() => { if (localSearch.trim()) setShowDropdown(true); }}
+              onChange={(e) => {
+                setLocalSearch(e.target.value);
+                setShowDropdown(Boolean(e.target.value.trim()));
+                if (onSearchChange) onSearchChange(e.target.value);
+              }}
+              className="w-full pl-9 pr-4 py-1.5 bg-slate-100 focus:bg-white border border-slate-200 focus:border-emerald-500 rounded-full text-xs font-semibold text-slate-900 transition-all outline-none"
+            />
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
+          </form>
+
+          {/* Autocomplete Dropdown */}
+          <SearchAutocompleteDropdown
+            query={localSearch}
+            products={products}
+            isOpen={showDropdown && Boolean(localSearch.trim())}
+            onClose={() => setShowDropdown(false)}
+            onSelectProduct={(p) => {
+              setShowDropdown(false);
+              if (onSelectProduct) {
+                onSelectProduct(p);
+              } else {
+                onNavigate('product-detail', { product: p });
+              }
             }}
-            className="w-full pl-9 pr-4 py-1.5 bg-slate-100 focus:bg-white border border-slate-200 focus:border-emerald-500 rounded-full text-xs font-semibold text-slate-900 transition-all outline-none"
+            onViewAll={(q) => {
+              setShowDropdown(false);
+              onNavigate('shop', { query: q });
+            }}
           />
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
-        </form>
+        </div>
 
         {/* Right Navigation Actions */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
