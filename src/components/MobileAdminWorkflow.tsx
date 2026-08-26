@@ -1364,11 +1364,9 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
     }));
   };
 
-  const isLabelWeekExpanded = (key: string, index: number) => {
-    if (expandedLabelWeeks[key] !== undefined) {
-      return expandedLabelWeeks[key];
-    }
-    return index < 2;
+  const isLabelWeekExpanded = (key: string, _index?: number) => {
+    // All closed by default
+    return Boolean(expandedLabelWeeks[key]);
   };
 
   return (
@@ -3544,6 +3542,18 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                     Select 8 (2 Sheets)
                   </button>
 
+                  <button
+                    onClick={() => {
+                      const pool = notPrintedOrders.length > 0 ? notPrintedOrders : displayedLabelOrders;
+                      const targetIds = pool.map(o => o.id);
+                      setSelectedLabelOrderIds(targetIds);
+                    }}
+                    className="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-[11px] font-extrabold cursor-pointer transition-colors shadow-2xs"
+                    title="Select all unprinted orders"
+                  >
+                    Select All ({notPrintedOrders.length > 0 ? notPrintedOrders.length : displayedLabelOrders.length})
+                  </button>
+
                   {selectedLabelOrderIds.length > 0 && (
                     <button
                       onClick={() => setSelectedLabelOrderIds([])}
@@ -3777,6 +3787,23 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                                     title="Select up to 4 unprinted orders in this week for 1 label sheet"
                                   >
                                     + Select 4
+                                  </button>
+                                )}
+
+                                {/* Quick select ALL for this week */}
+                                {week.orders.length > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const pool = week.notPrintedOrders.length > 0 ? week.notPrintedOrders : week.orders;
+                                      const targetIds = pool.map(o => o.id);
+                                      setSelectedLabelOrderIds(prev => Array.from(new Set([...prev, ...targetIds])));
+                                    }}
+                                    className="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-[10px] rounded-lg cursor-pointer transition-all active:scale-95 shadow-2xs"
+                                    title="Select all unprinted orders in this week"
+                                  >
+                                    + Select All ({week.notPrintedOrders.length > 0 ? week.notPrintedOrders.length : week.orders.length})
                                   </button>
                                 )}
 
