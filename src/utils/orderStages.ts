@@ -125,6 +125,9 @@ export function generateOrderWhatsAppMessage(
     paymentMethod?: string | null;
     courierName?: string | null;
     trackingNumber?: string | null;
+    deliveryOption?: string | null;
+    potOption?: string | null;
+    serviceType?: string | null;
   },
   stageInput?: OrderStage,
   extra?: {
@@ -139,51 +142,207 @@ export function generateOrderWhatsAppMessage(
   const trackingUrl = `${origin}/#/order-status/${order.id}`;
 
   if (stage === 'confirmed') {
-    const isPaid = order.paymentStatus === 'SUCCESS';
-    const payText = isPaid ? 'PAID ✅' : `${order.paymentMethod || 'COD'} (₹${order.grandTotal ?? 0})`;
-    const itemCount = order.items?.reduce((sum: number, it: any) => sum + (Number(it.quantity) || 1), 0) || order.items?.length || 1;
+    const rawAddr = order.shippingAddress;
+    let addressStr = 'N/A';
+    let pincodeStr = 'N/A';
+    let phoneStr = order.customerPhone || 'N/A';
+
+    if (rawAddr) {
+      if (typeof rawAddr === 'string') {
+        addressStr = rawAddr;
+      } else {
+        const parts = [
+          rawAddr.addressLine1,
+          rawAddr.addressLine2,
+          rawAddr.city,
+          rawAddr.district,
+          rawAddr.state
+        ].filter(Boolean);
+        addressStr = parts.join(', ') || rawAddr.address || 'N/A';
+        pincodeStr = rawAddr.pincode || rawAddr.postalCode || 'N/A';
+        if (rawAddr.phone && phoneStr === 'N/A') {
+          phoneStr = rawAddr.phone;
+        }
+      }
+    }
+
     const itemsSummary = order.items && order.items.length > 0
-      ? (order.items.length === 1 ? `${order.items[0].name} (${order.items[0].quantity || 1} No)` : `${order.items[0].name} + ${order.items.length - 1} more (${itemCount} plants)`)
+      ? order.items.map((it: any) => `${it.name || it.title || 'Plant'} (Qty: ${it.quantity || 1})`).join(', ')
       : 'Live Plants & Saplings';
 
+    const rawOpt = (order.serviceType || order.deliveryOption || order.potOption || rawAddr?.deliveryOption || '').toString().toUpperCase();
+    let serviceTypeStr = 'Full Soil / Ready Soil / Matured Parcel Service';
+    if (rawOpt.includes('6INCH')) serviceTypeStr = 'Full Soil (6 Inch Pot)';
+    else if (rawOpt.includes('8INCH')) serviceTypeStr = 'Full Soil (8 Inch Pot)';
+    else if (rawOpt.includes('FULL_SOIL')) serviceTypeStr = 'Full Soil Delivery';
+    else if (rawOpt.includes('REDUCED')) serviceTypeStr = 'Reduced Soil Delivery';
+    else if (rawOpt.includes('METTUR')) serviceTypeStr = 'Mettur Parcel Service';
+
     return [
-      `🌿 *Veerika Rose Garden - Order Confirmed!*`,
-      `👤 Dear ${customerName}, thank you for ordering with us.`,
-      `📋 *Order ID:* #${order.id}`,
-      `💰 *Total Amount:* ₹${order.grandTotal ?? 0} (${payText})`,
-      `🌱 *Items:* ${itemsSummary}`,
-      `📦 *Next Step:* Our farm team will prepare your live saplings.`,
-      `📞 Contact: +91 72008 26129 | Happy Gardening! 🌸`
+      `🌸 VEERIKA ROSE GARDEN 🌸`,
+      ``,
+      `ORDER CONFIRMATION`,
+      ``,
+      `Address: ${addressStr}`,
+      ``,
+      `Phone Number: ${phoneStr}`,
+      ``,
+      `Pincode: ${pincodeStr}`,
+      ``,
+      `Plan: ${itemsSummary}`,
+      ``,
+      `Service Type: ${serviceTypeStr}`,
+      ``,
+      `Please confirm your Address, Plan & Service Type:`,
+      ``,
+      `👉 YES – Address, Plan & Service Type are correct`,
+      `👉 NO – Please update the Address, Plan & Service Type and reply back to us.`,
+      ``,
+      `✅ Your order has been confirmed!`,
+      ``,
+      `📦 Your order will be dispatched within 5–7 days from the date of order confirmation.`,
+      ``,
+      `🚚 After dispatch: Your order will be delivered within 2 days.`,
+      ``,
+      `📍 Tracking ID: We will share your Tracking ID once your order has been dispatched.`,
+      ``,
+      `Thank you for your order! ❤️`,
+      ``,
+      `🌸 VEERIKA ROSE GARDEN 🌸`
     ].join('\n');
   }
 
   if (stage === 'packing') {
     return [
-      `🌿 *Veerika Rose Garden - Packing in Progress!*`,
-      `👤 Dear ${customerName}, your plants are being packed.`,
-      `📋 *Order ID:* #${order.id}`,
-      `🪴 *Status:* Live saplings root-moisturized & box packed.`,
-      `🚚 Your parcel will be handed over to courier shortly.`,
-      `📦 Tracking details will be shared once dispatched.`,
-      `📞 Helpline: +91 72008 26129 | Happy Gardening! 🌸`
+      `🌹 veerika ROSE COTTON 🌹`,
+      ``,
+      `📦 PACKING UPDATE`,
+      ``,
+      `Your order packing has been processed successfully. ✅`,
+      ``,
+      `Once the packing process is completed, your order will be dispatched. 🚚`,
+      ``,
+      `📍 Dispatch Update: We will share the dispatch confirmation and Tracking ID once your order has been dispatched.`,
+      ``,
+      `Thank you for your order! ❤️`
     ].join('\n');
   }
 
   if (stage === 'dispatched') {
-    const courier = extra?.courierName || order.courierName || 'Professional Courier';
-    const awb = extra?.trackingNumber || order.trackingNumber || 'In Transit';
+    const awb = extra?.trackingNumber || order.trackingNumber || 'Shared upon courier scan';
     return [
-      `🚚 *Veerika Rose Garden - Order Dispatched!*`,
-      `👤 Dear ${customerName}, your parcel is on the way.`,
-      `📋 *Order ID:* #${order.id}`,
-      `📦 *Courier:* ${courier} | *AWB:* ${awb}`,
-      `📹 *Note:* Please take a continuous unboxing video upon arrival.`,
-      `🔗 *Live Tracking:* ${trackingUrl}`,
-      `📞 Helpline: +91 72008 26129 | Veerika Rose Garden 🌸`
+      `🌹 VEERIKA ROSE GARDEN 🌹`,
+      ``,
+      `📦 ORDER DISPATCHED / ஆர்டர் அனுப்பப்பட்டது`,
+      ``,
+      `🔎 Tracking ID / டிராக்கிங் ஐடி: ${awb}`,
+      ``,
+      `🔗 Track Your Order / ஆர்டரை Track செய்ய:`,
+      `${trackingUrl}`,
+      ``,
+      `✅ Your order has been dispatched today! 🚚`,
+      `உங்களுடைய ஆர்டர் இன்று Dispatch செய்யப்பட்டுள்ளது.`,
+      ``,
+      `You can track your parcel using the above Tracking ID through the tracking link.`,
+      `மேலே கொடுக்கப்பட்டுள்ள Tracking ID மற்றும் Tracking Link மூலம் உங்கள் Parcel-ஐ Track செய்யலாம்.`,
+      ``,
+      `📦 Professional Courier – General Reminder / பொதுவான நினைவூட்டல்:`,
+      ``,
+      `⚠️ If you don't receive the parcel within 2 working days, please contact your nearby Professional Courier office or check the tracking website.`,
+      ``,
+      `⚠️ உங்களுடைய Parcel 2 வேலை நாட்களுக்குள் கிடைக்கவில்லை என்றால், அருகில் உள்ள Professional Courier Office-ஐ அணுகவும் அல்லது Tracking Website-ல் Check செய்யவும்.`,
+      ``,
+      `📹 UNBOXING VIDEO MUST`,
+      `📹 Parcel-ஐ Open செய்யும்போது Unboxing Video கட்டாயம் எடுக்கவும்.`,
+      ``,
+      `🌿 FOR REDUCED SOIL PLANTS / மண்ணை குறைத்து வாங்கிய செடிகளுக்கு மட்டும்:`,
+      ``,
+      `1️⃣ English:`,
+      `After receiving the plant from Professional Courier, place the cover in a bucket of water and make small holes in the cover. Keep it for 4–5 hours.`,
+      ``,
+      `தமிழ்:`,
+      `Professional Courier-ல் செடியை Receive செய்ததும், Cover-ஐ ஒரு Bucket தண்ணீரில் வைத்து, Cover-ல் சிறிய Holes போட்டு 4–5 மணி நேரம் வைக்கவும்.`,
+      ``,
+      `2️⃣ English:`,
+      `After 4–5 hours, remove the cover and plant it in Red Soil.`,
+      ``,
+      `தமிழ்:`,
+      `4–5 மணி நேரம் கழித்து Cover-ஐ Remove செய்து, செடியை Red Soil-ல் நடலாம்.`,
+      ``,
+      `3️⃣ English:`,
+      `If you are keeping the plant in a pot, place it in a half-shade area for around 10 days. It should receive some sunlight. Avoid full shade.`,
+      ``,
+      `தமிழ்:`,
+      `Pot-ல் செடியை வைத்தால், சுமார் 10 நாட்களுக்கு Half-Shade பகுதியில் வைக்கவும். ஓரளவு Sunlight பட வேண்டும். Full Shade-ல் வைக்க வேண்டாம்.`,
+      ``,
+      `4️⃣ English:`,
+      `Do not use any fertilizer, including DAP or farmyard manure, for the first 20–30 days.`,
+      ``,
+      `தமிழ்:`,
+      `முதல் 20–30 நாட்களுக்கு எந்த Fertilizer-ம், DAP அல்லது தொழு உரமும் பயன்படுத்த வேண்டாம்.`,
+      ``,
+      `5️⃣ English:`,
+      `Water the plant regularly. Do not allow the soil to become completely dry, and do not let water stagnate.`,
+      ``,
+      `தமிழ்:`,
+      `Regular-ஆ Water செய்யவும். Soil முழுமையாக காய்ந்து போகாமல் பார்த்துக்கொள்ளவும். அதே நேரத்தில் தண்ணீர் தேங்கி நிற்காமல் பார்த்துக்கொள்ளவும்.`,
+      ``,
+      `6️⃣ English:`,
+      `Keep the soil moist in the morning and evening, but avoid overwatering.`,
+      ``,
+      `தமிழ்:`,
+      `காலை மற்றும் மாலை தேவையான அளவு ஈரப்பதம் இருக்குமாறு பார்த்துக்கொள்ளவும். அதிகமாக தண்ணீர் தேங்க விட வேண்டாம்.`,
+      ``,
+      `🚫 IMPORTANT / முக்கியம்:`,
+      ``,
+      `English:`,
+      `Do not plant the plant using Coco Peat. If you cut the plant, do not apply turmeric powder. Red Soil is recommended. If your garden soil is similar to Red Soil, you can use it.`,
+      ``,
+      `தமிழ்:`,
+      `Coco Peat வைத்து செடியை நடவு செய்ய வேண்டாம். செடியை Cut செய்தால் மஞ்சள் தூள் வைக்க வேண்டாம். Red Soil பயன்படுத்துவது சிறந்தது. உங்கள் Garden Soil Red Soil போல இருந்தால் அதையும் பயன்படுத்தலாம்.`,
+      ``,
+      `⚠️ IMPORTANT NOTICE / முக்கிய அறிவிப்பு:`,
+      ``,
+      `English:`,
+      `If these instructions are not followed and the plant dies back, we will not be responsible.`,
+      ``,
+      `தமிழ்:`,
+      `இந்த Instructions-ஐ Follow செய்யாமல் செடி பாதிக்கப்பட்டாலோ அல்லது Die Back ஆனால் அதற்கு நாங்கள் பொறுப்பல்ல.`,
+      ``,
+      `🌟 CUSTOMER REVIEW PROCEDURE / CUSTOMER REVIEW-ல் பகிரப்பட்ட முறை:`,
+      ``,
+      `English:`,
+      `If you have purchased a Reduced Soil Plant, you may try the following method shared by our customer:`,
+      ``,
+      `தமிழ்:`,
+      `Reduced Soil Plant வாங்கியிருந்தால், எங்களுடைய Customer ஒருவர் Share செய்துள்ள கீழே உள்ள Method-ஐ விருப்பப்பட்டால் Try செய்யலாம்:`,
+      ``,
+      `• 6 hours: Keep the plant in a bucket with the cover and small holes.`,
+      `• 6 மணி நேரம்: Cover-ல் சிறிய Holes போட்டு, செடியை Bucket-ல் வைக்கவும்.`,
+      ``,
+      `• Mix 1 gm Epsom Salt in 1 litre water, dip the plant properly, then wash the soil and take out the bare roots.`,
+      ``,
+      `• 1 gm Epsom Salt + 1 litre Water கலந்து, செடியை நன்றாக Dip செய்து, பிறகு Soil-ஐ Wash செய்து Bare Root-ஆக எடுக்கலாம்.`,
+      ``,
+      `• Mix 1 gm Saaf in 1 litre water and dip the plant in the solution.`,
+      ``,
+      `• 1 gm Saaf + 1 litre Water கலந்து, செடியை அந்த Solution-ல் Dip செய்து எடுக்கலாம்.`,
+      ``,
+      `• Plant it in Red Soil with a small amount of farmyard manure, if available, and keep it where it receives some sunlight.`,
+      ``,
+      `• சிறிதளவு தொழு உரம் இருந்தால் Red Soil-ல் கலந்து, செடியை நட்டு ஓரளவு Sunlight கிடைக்கும் இடத்தில் வைக்கலாம்.`,
+      ``,
+      `💚 This is a method shared by a customer based on their experience. You may try it if you are comfortable with the procedure.`,
+      ``,
+      `💚 இது ஒரு Customer தங்களுடைய Experience-ல் Share செய்த Method. உங்களுக்கு வசதியாகவும் விருப்பமாகவும் இருந்தால் இந்த Method-ஐ Try செய்யலாம்.`,
+      ``,
+      `❤️ Thank you for your order! / உங்கள் ஆர்டருக்கு நன்றி!`,
+      ``,
+      `🌹 VEERIKA ROSE GARDEN 🌹`
     ].join('\n');
   }
 
-  // Stage 4: Delivered
+  // Stage 4: Delivered (kept old format as requested)
   return [
     `🌸 *Veerika Rose Garden - Order Delivered!*`,
     `👤 Dear ${customerName}, your plants have been delivered.`,

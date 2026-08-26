@@ -10,6 +10,7 @@ import { INDIAN_STATES, isTamilNadu, getDeliveryChargeForOption, DeliveryOptionT
 import { computeOrderTotals } from '../utils/orderTotals';
 import { CourierSelectionSection, CourierPartnerType } from '../components/CourierSelectionSection';
 import { PlantProtectivePackingSection, PackingOptionType } from '../components/PlantProtectivePackingSection';
+import { toast } from '../utils/toast';
 
 export interface CheckoutPageProps {
   items: CartItem[];

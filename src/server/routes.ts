@@ -818,15 +818,24 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
         return res.status(400).json({ success: false, message: 'Quantity must be a positive integer.' });
       }
 
-      // Check if it's a combo item
-      let matchedCombo = allCombos.find(c => 
-        c.id === item.productId || 
-        (item.productId && (item.productId.includes(c.id) || c.id.includes(item.productId))) ||
-        (item.sku && c.id.includes(item.sku.replace('CMB-', '')))
+      // Check if it's explicitly a combo item (Strict exact matching to prevent product/combo collision)
+      let matchedCombo: any = null;
+      const isExplicitCombo = Boolean(
+        item.isCombo || 
+        (item.productId && (String(item.productId).startsWith('combo-') || String(item.productId).startsWith('vrg-combo-'))) ||
+        (item.sku && String(item.sku).startsWith('CMB-'))
       );
 
-      if (!matchedCombo && (item.isCombo || String(item.productId).startsWith('combo-') || String(item.sku).startsWith('CMB-'))) {
-        matchedCombo = await db.getComboById(item.productId);
+      if (isExplicitCombo) {
+        matchedCombo = allCombos.find(c => 
+          c.id === item.productId || 
+          (c.id && c.id.toLowerCase() === String(item.productId).toLowerCase()) ||
+          (item.comboId && c.id === item.comboId)
+        ) || null;
+
+        if (!matchedCombo) {
+          matchedCombo = await db.getComboById(item.productId);
+        }
       }
 
       if (matchedCombo) {
@@ -836,7 +845,7 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
 
         verifiedItems.push({
           productId: matchedCombo.id,
-          sku: 'CMB-' + matchedCombo.id.slice(-6),
+          sku: 'CMB-' + matchedCombo.id.replace(/^combo-|^vrg-combo-/i, '').slice(0, 8).toUpperCase(),
           name: matchedCombo.title,
           tamilName: matchedCombo.subtitle || 'சிறப்பு சேர்க்கை தொகுப்பு',
           price: verifiedPrice,

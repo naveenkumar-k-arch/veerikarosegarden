@@ -5548,10 +5548,7 @@ class Store {
     const prisma = getPrismaClient();
     if (prisma) {
       try {
-        await Promise.all([
-          prisma.orderItem.deleteMany({ where: { productId: cleanId } }).catch(() => {}),
-          prisma.combo.deleteMany({ where: { OR: [{ id: cleanId }, { id: cleanId.toLowerCase() }] } }).catch(() => {})
-        ]);
+        await prisma.combo.deleteMany({ where: { OR: [{ id: cleanId }, { id: cleanId.toLowerCase() }] } }).catch(() => {});
         await prisma.product.deleteMany({
           where: {
             OR: [
@@ -5580,7 +5577,6 @@ class Store {
     const prisma = getPrismaClient();
     if (prisma) {
       try {
-        await prisma.orderItem.deleteMany().catch(() => {});
         await prisma.inventory.deleteMany().catch(() => {});
         await prisma.product.deleteMany().catch(() => {});
       } catch (err) {
@@ -7110,6 +7106,8 @@ class Store {
           select: { id: true }
         }).catch(() => []);
         const existingSet = new Set(existingProds.map(p => p.id));
+        const defaultProd = await prisma.product.findFirst({ select: { id: true } }).catch(() => null);
+        const fallbackId = defaultProd?.id || existingProds[0]?.id || 'prod-rose-01';
 
         // Create any missing product in parallel if needed
         const missingItems = order.items.filter(i => !existingSet.has(i.productId));
@@ -7166,7 +7164,7 @@ class Store {
             notes: notesPayload,
             items: {
               create: order.items.map(item => ({
-                productId: item.productId,
+                productId: existingSet.has(item.productId) ? item.productId : (fallbackId || item.productId),
                 productName: item.name,
                 price: item.price,
                 quantity: item.quantity,
@@ -7249,16 +7247,24 @@ class Store {
             ...parseShippingAddress(o.shippingAddress)
           };
 
-          const itemsSnapshot: OrderItemSnapshot[] = o.items.map(i => ({
-            productId: i.productId,
-            sku: `VRG-${(i.productId || 'PROD').slice(0, 6).toUpperCase()}`,
-            name: i.productName || 'Nursery Plant',
-            tamilName: i.productName || 'நார்சரி செடி',
-            price: i.price,
-            mrp: i.price,
-            quantity: i.quantity,
-            image: '/products/double-delight.jpeg'
-          }));
+          const itemsSnapshot: OrderItemSnapshot[] = o.items.map(i => {
+            const rawId = (i.productId || 'PLANT').trim();
+            const isComboItem = rawId.toLowerCase().startsWith('combo-') || rawId.toLowerCase().startsWith('vrg-combo-');
+            const cleanSku = isComboItem
+              ? `CMB-${rawId.replace(/^combo-|^vrg-combo-/i, '').slice(0, 8).toUpperCase()}`
+              : `VRG-${rawId.replace(/^vrg-|^prod-/i, '').slice(0, 8).toUpperCase()}`;
+
+            return {
+              productId: i.productId,
+              sku: cleanSku,
+              name: i.productName || 'Nursery Plant',
+              tamilName: i.productName || 'நார்சரி செடி',
+              price: i.price,
+              mrp: i.price,
+              quantity: i.quantity,
+              image: '/products/double-delight.jpeg'
+            };
+          });
 
           // Unpack paymentProofUrl, transactionId, packing and courier options from notes
           const notesStr = (o as any).notes || '';
@@ -7496,6 +7502,17 @@ class Store {
           continue;
         }
 
+        const defaultProd = await prisma.product.findFirst({ select: { id: true } }).catch(() => null);
+        const fallbackProdId = defaultProd?.id || 'prod-rose-01';
+
+        const validItems = (order.items || []).map((it: any) => ({
+          productId: it.productId || fallbackProdId,
+          productName: it.name || it.productName || 'Nursery Plant',
+          price: Number(it.price || 0),
+          quantity: Number(it.quantity || 1),
+          totalPrice: Number(it.price || 0) * Number(it.quantity || 1)
+        }));
+
         await prisma.order.create({
           data: {
             id: orderId,
@@ -7515,7 +7532,8 @@ class Store {
             trackingNumber: order.trackingNumber || '',
             notes: JSON.stringify(notesObj),
             createdAt: order.createdAt ? new Date(order.createdAt) : new Date(),
-            updatedAt: updatedAtDate
+            updatedAt: updatedAtDate,
+            items: validItems.length > 0 ? { create: validItems } : undefined
           }
         });
       } catch (err) {
@@ -7618,16 +7636,24 @@ class Store {
         ...parseShippingAddress(o.shippingAddress)
       };
 
-      const itemsSnapshot: OrderItemSnapshot[] = o.items.map(i => ({
-        productId: i.productId,
-        sku: i.product?.sku || `VRG-${i.productId.slice(0, 6).toUpperCase()}`,
-        name: i.productName,
-        tamilName: i.product?.nameTamil || i.productName,
-        price: i.price,
-        mrp: i.product?.originalPrice || i.price,
-        quantity: i.quantity,
-        image: i.product?.image || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80'
-      }));
+      const itemsSnapshot: OrderItemSnapshot[] = o.items.map(i => {
+        const rawId = (i.productId || 'PLANT').trim();
+        const isComboItem = rawId.toLowerCase().startsWith('combo-') || rawId.toLowerCase().startsWith('vrg-combo-');
+        const cleanSku = i.product?.sku || (isComboItem
+          ? `CMB-${rawId.replace(/^combo-|^vrg-combo-/i, '').slice(0, 8).toUpperCase()}`
+          : `VRG-${rawId.replace(/^vrg-|^prod-/i, '').slice(0, 8).toUpperCase()}`);
+
+        return {
+          productId: i.productId,
+          sku: cleanSku,
+          name: i.productName || i.product?.name || 'Nursery Plant',
+          tamilName: i.product?.nameTamil || i.productName || 'நார்சரி செடி',
+          price: i.price,
+          mrp: i.product?.originalPrice || i.price,
+          quantity: i.quantity,
+          image: i.product?.image || '/products/double-delight.jpeg'
+        };
+      });
 
       // Unpack notes
       const notesStr = (o as any).notes || '';
@@ -8124,6 +8150,44 @@ class Store {
             trackingNumber: updatedOrder.trackingNumber || null
           }
         });
+
+        // Permanently persist updated items to Prisma OrderItem table
+        if (updatedItems && updatedItems.length > 0) {
+          const dbOrder = await prisma.order.findFirst({
+            where: orderMatch,
+            select: { id: true }
+          }).catch(() => null);
+
+          if (dbOrder) {
+            const defaultProd = await prisma.product.findFirst({ select: { id: true } }).catch(() => null);
+            const fallbackProdId = defaultProd?.id || 'prod-rose-01';
+
+            await prisma.orderItem.deleteMany({
+              where: { orderId: dbOrder.id }
+            }).catch(() => {});
+
+            for (const it of updatedItems) {
+              let pId = it.productId;
+              if (pId) {
+                const exists = await prisma.product.findUnique({ where: { id: pId }, select: { id: true } }).catch(() => null);
+                if (!exists) pId = fallbackProdId;
+              } else {
+                pId = fallbackProdId;
+              }
+
+              await prisma.orderItem.create({
+                data: {
+                  orderId: dbOrder.id,
+                  productId: pId,
+                  productName: it.name || it.productName || 'Nursery Plant',
+                  price: Number(it.price || 0),
+                  quantity: Number(it.quantity || 1),
+                  totalPrice: Number(it.price || 0) * Number(it.quantity || 1)
+                }
+              }).catch((e: any) => console.warn('[updateOrderFull] could not insert orderItem:', e?.message || e));
+            }
+          }
+        }
       } catch (err: any) {
         console.error('Prisma updateOrderFull error:', err?.message || err);
       }
