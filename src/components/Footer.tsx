@@ -161,8 +161,28 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
 
         {/* Bottom bar */}
         <div style={{ paddingTop: 22, borderTop: '1.5px solid #f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <p style={{ fontSize: 11, color: 'var(--text-light)', margin: 0 }}>
-            © {new Date().getFullYear()} Veerika Rose Garden Nursery. All rights reserved.
+          <p style={{ fontSize: 11, color: 'var(--text-light)', margin: 0, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <span>© {new Date().getFullYear()} Veerika Rose Garden Nursery. All rights reserved.</span>
+            <span style={{ opacity: 0.4 }}>•</span>
+            <span>
+              This website built by{' '}
+              <a
+                href="https://myportfolio-five-rouge-12.vercel.app"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  color: 'var(--color-green-dark, #15803d)',
+                  fontWeight: 600,
+                  textDecoration: 'underline',
+                  textUnderlineOffset: 2,
+                  transition: 'color 0.2s ease'
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#047857'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--color-green-dark, #15803d)'; }}
+              >
+                Naveenkumar K
+              </a>
+            </span>
           </p>
           <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
             {['Privacy Policy', 'Terms of Service', 'Refund Policy'].map(link => (
