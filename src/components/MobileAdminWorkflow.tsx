@@ -1522,7 +1522,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               onClick={onOpenAddWhatsAppOrder}
               className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
             >
-              <span>💬</span>
+              <WhatsAppIcon size={14} className="fill-white shrink-0" />
               <span>+ Add Order</span>
             </button>
           )}
@@ -1574,7 +1574,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 onClick={onOpenAddWhatsAppOrder}
                 className="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 active:scale-98 text-white font-extrabold text-xs rounded-2xl shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
-                <span className="text-base">💬</span>
+                <WhatsAppIcon size={16} className="fill-white shrink-0" />
                 <span>+ Add WhatsApp / Offline Order</span>
               </button>
             )}
@@ -1814,9 +1814,9 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                   <button
                     type="button"
                     onClick={onOpenAddWhatsAppOrder}
-                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-xs flex items-center gap-1 cursor-pointer active:scale-95 transition-all"
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
                   >
-                    <span>💬</span>
+                    <WhatsAppIcon size={14} className="fill-white shrink-0" />
                     <span>+ Add Order</span>
                   </button>
                 )}
@@ -5612,7 +5612,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                   }}
                   className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-emerald-50 text-emerald-950 border border-emerald-300 hover:bg-emerald-100 transition-colors cursor-pointer font-extrabold text-xs text-left shadow-2xs"
                 >
-                  <span className="text-base">💬</span>
+                  <WhatsAppIcon size={16} className="fill-[#25D366] shrink-0" />
                   <span>+ Add WhatsApp / Offline Order</span>
                 </button>
               )}
