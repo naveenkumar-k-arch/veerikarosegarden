@@ -817,10 +817,11 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
   // 4-Stage Stats Calculation directly from real orders
   const stats = useMemo(() => {
-    const confirmedOrders = orders.filter(o => getOrderStage(o.orderStatus) === 'confirmed');
-    const packingOrders = orders.filter(o => getOrderStage(o.orderStatus) === 'packing');
-    const dispatchedOrders = orders.filter(o => getOrderStage(o.orderStatus) === 'dispatched');
-    const deliveredOrders = orders.filter(o => getOrderStage(o.orderStatus) === 'delivered');
+    const activeOrders = orders.filter(o => (o.orderStatus || '').toUpperCase() !== 'CANCELLED' && o.paymentStatus !== 'FAILED');
+    const confirmedOrders = activeOrders.filter(o => getOrderStage(o.orderStatus) === 'confirmed');
+    const packingOrders = activeOrders.filter(o => getOrderStage(o.orderStatus) === 'packing');
+    const dispatchedOrders = activeOrders.filter(o => getOrderStage(o.orderStatus) === 'dispatched');
+    const deliveredOrders = activeOrders.filter(o => getOrderStage(o.orderStatus) === 'delivered');
 
     const paidOrders = orders.filter(o => {
       const pStatus = (o.paymentStatus || '').toString().toUpperCase();
@@ -1040,7 +1041,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
       ? [...orders] 
       : orderStageFilter === 'holding'
       ? orders.filter(o => holdingOrderIds.includes(o.id) || (o as any).isHolding === true)
-      : orders.filter(o => getOrderStage(o.orderStatus) === orderStageFilter);
+      : orders.filter(o => (o.orderStatus || '').toUpperCase() !== 'CANCELLED' && o.paymentStatus !== 'FAILED' && getOrderStage(o.orderStatus) === orderStageFilter);
 
     // 1. Courier Service Filter
     if (orderCourierFilter !== 'all') {

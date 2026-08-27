@@ -620,7 +620,6 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
     setLoading(true);
     setOrderError(null);
 
-    // Save pending payment in localStorage so return from GPay / app switch is automatically reconciled
     try {
       localStorage.setItem('vrg_pending_razorpay_order', JSON.stringify({
         orderId: orderRes.orderId,
@@ -633,21 +632,29 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
     const loaded = await loadRazorpayScript();
     if (!loaded) {
       isPaymentInProgressRef.current = false;
+      isPlacingOrderRef.current = false;
+      try { localStorage.removeItem('vrg_pending_razorpay_order'); } catch {}
       setOrderError('Failed to load Razorpay SDK. Please check your internet connection and try again.');
       setLoading(false);
       return;
     }
 
-    // Auto status poller: Polls server in background while user completes payment in UPI app / Razorpay
+    let isDismissedOrDone = false;
     const pollInterval = setInterval(async () => {
+      if (isDismissedOrDone || paymentCompletedRef.current) {
+        clearInterval(pollInterval);
+        return;
+      }
       try {
         const check = await fetch(`/api/orders/${orderRes.orderId}`);
         const d = await check.json();
-        if (d.success && d.order && (d.order.paymentStatus === 'SUCCESS' || d.order.orderStatus === 'CONFIRMED')) {
+        if (d.success && d.order && d.order.paymentStatus === 'SUCCESS') {
+          isDismissedOrDone = true;
           clearInterval(pollInterval);
           try { localStorage.removeItem('vrg_pending_razorpay_order'); } catch {}
           paymentCompletedRef.current = true;
           isPaymentInProgressRef.current = false;
+          isPlacingOrderRef.current = false;
           setLoading(false);
           setOrderError(null);
           setPlacedOrderId(orderRes.orderId);
@@ -656,16 +663,32 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
             onOrderConfirmed(d.order);
           }
           goTo(7, true);
+        } else if (d.success && d.order && (d.order.paymentStatus === 'FAILED' || d.order.orderStatus === 'CANCELLED')) {
+          isDismissedOrDone = true;
+          clearInterval(pollInterval);
+          try { localStorage.removeItem('vrg_pending_razorpay_order'); } catch {}
+          isPaymentInProgressRef.current = false;
+          isPlacingOrderRef.current = false;
+          setLoading(false);
         }
       } catch {}
     }, 2500);
 
-    // Timeout poller after 2 minutes
     setTimeout(() => clearInterval(pollInterval), 120000);
+
+    const cancelPendingOrder = async (reason: string) => {
+      try {
+        await fetch(`/api/orders/${orderRes.orderId}/cancel-pending`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason })
+        });
+      } catch {}
+    };
 
     const options: any = {
       key: orderRes.razorpayKeyId || (import.meta as any).env?.VITE_RAZORPAY_KEY_ID || 'rzp_live_TQ5xDdZB7QWIn2',
-      amount: Math.round((orderRes.amount || grandTotal) * 100), // in paise
+      amount: Math.round((orderRes.amount || grandTotal) * 100),
       currency: 'INR',
       name: siteSettings?.businessName || 'Veerika Rose Garden',
       description: `Plant Order #${orderRes.orderId}`,
@@ -674,15 +697,18 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
       callback_url: `${window.location.origin}/api/razorpay/callback?orderId=${orderRes.orderId}`,
       modal: {
         ondismiss: async () => {
+          isDismissedOrDone = true;
+          clearInterval(pollInterval);
           if (paymentCompletedRef.current) return;
-          // Final background check on dismiss in case payment finished just as modal closed
+
           try {
             const check = await fetch(`/api/orders/${orderRes.orderId}`);
             const d = await check.json();
-            if (d.success && d.order && (d.order.paymentStatus === 'SUCCESS' || d.order.orderStatus === 'CONFIRMED')) {
-              clearInterval(pollInterval);
+            if (d.success && d.order && d.order.paymentStatus === 'SUCCESS') {
+              try { localStorage.removeItem('vrg_pending_razorpay_order'); } catch {}
               paymentCompletedRef.current = true;
               isPaymentInProgressRef.current = false;
+              isPlacingOrderRef.current = false;
               setLoading(false);
               setOrderError(null);
               setPlacedOrderId(orderRes.orderId);
@@ -695,19 +721,20 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
             }
           } catch {}
 
+          try { localStorage.removeItem('vrg_pending_razorpay_order'); } catch {}
+          await cancelPendingOrder('Customer dismissed Razorpay payment window');
           isPaymentInProgressRef.current = false;
+          isPlacingOrderRef.current = false;
           setLoading(false);
-          setOrderError('Payment was not completed. Your items are safe in cart — tap Pay Now to try again.');
+          setOrderError('Payment was not completed. Your items are safe in cart — tap Confirm & Place Order to try again.');
         }
       },
       handler: async function (response: any) {
+        isDismissedOrDone = true;
         clearInterval(pollInterval);
-        paymentCompletedRef.current = true;
         isPaymentInProgressRef.current = true;
         setLoading(true);
         setOrderError(null);
-        setPlacedOrderId(orderRes.orderId);
-        goTo(7, true);
 
         try {
           const verifyRes = await fetch('/api/razorpay/verify', {
@@ -725,19 +752,25 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
           isPaymentInProgressRef.current = false;
           if (verifyData.success) {
             paymentCompletedRef.current = true;
+            isPlacingOrderRef.current = false;
+            try { localStorage.removeItem('vrg_pending_razorpay_order'); } catch {}
             if (onOrderConfirmed) {
               onOrderConfirmed(verifyData.order || { id: orderRes.orderId, grandTotal: orderRes.amount });
             }
             setPlacedOrderId(orderRes.orderId);
+            setFetchedOrder(verifyData.order || null);
             goTo(7, true);
           } else {
             paymentCompletedRef.current = false;
+            isPlacingOrderRef.current = false;
+            try { localStorage.removeItem('vrg_pending_razorpay_order'); } catch {}
             setOrderError(verifyData.message || 'Razorpay payment verification failed.');
           }
         } catch (err: any) {
           setLoading(false);
           isPaymentInProgressRef.current = false;
           paymentCompletedRef.current = false;
+          isPlacingOrderRef.current = false;
           setOrderError('Error verifying Razorpay payment with server.');
         }
       },
@@ -754,14 +787,23 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
     try {
       const rzp = new (window as any).Razorpay(options);
       rzp.on('payment.failed', async function (response: any) {
+        isDismissedOrDone = true;
+        clearInterval(pollInterval);
         if (paymentCompletedRef.current) return;
+        try { localStorage.removeItem('vrg_pending_razorpay_order'); } catch {}
+        await cancelPendingOrder(response.error?.description || 'Transaction declined');
         isPaymentInProgressRef.current = false;
+        isPlacingOrderRef.current = false;
         setLoading(false);
         setOrderError(`Razorpay Payment Failed: ${response.error?.description || 'Transaction declined'}`);
       });
       rzp.open();
     } catch (err: any) {
+      isDismissedOrDone = true;
+      clearInterval(pollInterval);
+      try { localStorage.removeItem('vrg_pending_razorpay_order'); } catch {}
       isPaymentInProgressRef.current = false;
+      isPlacingOrderRef.current = false;
       setLoading(false);
       setOrderError('Failed to open Razorpay payment modal.');
     }
@@ -778,7 +820,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
       return;
     }
     if (paymentMethod === 'PHONEPE' && !isPhonePeEnabled) {
-      setOrderError('⚠️ PhonePe payment is currently disabled. Please select QR Code or another payment option.');
+      setOrderError('⚠️ PhonePe is currently disabled. Please select another payment option.');
       return;
     }
     if (paymentMethod === 'RAZORPAY' && !isRazorpayEnabled) {
@@ -840,8 +882,13 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
           localStorage.removeItem('vrg_checkout_step');
           localStorage.removeItem('vrg_pending_upi_payment');
         } catch {}
-        if (effectivePM === 'RAZORPAY' && res.razorpayOrderId) {
-          handleRazorpayPayment(res);
+        if (effectivePM === 'RAZORPAY') {
+          if (res.razorpayOrderId) {
+            handleRazorpayPayment(res);
+          } else {
+            isPlacingOrderRef.current = false;
+            setOrderError(res.message || 'Failed to initialize Razorpay payment. Please try again.');
+          }
           return;
         }
         setPlacedOrderId(res.orderId || null);

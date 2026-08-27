@@ -3654,6 +3654,7 @@ const silentRefresh = async (): Promise<boolean> => {
             };
 
             const filteredBySource = orders.filter(o => {
+              if ((o.orderStatus || '').toUpperCase() === 'CANCELLED' || o.paymentStatus === 'FAILED') return false;
               if (orderSourceFilter === 'whatsapp') return isWhatsAppOrder(o);
               if (orderSourceFilter === 'website') return !isWhatsAppOrder(o);
               return true;
@@ -3828,10 +3829,12 @@ const silentRefresh = async (): Promise<boolean> => {
                         <span className={`px-2.5 py-0.5 rounded-full font-bold text-[11px] flex items-center gap-1 ${
                           isWA
                             ? 'bg-emerald-100 text-emerald-950 border border-emerald-300'
+                            : (o.paymentStatus === 'FAILED' || (o.orderStatus || '').toUpperCase() === 'CANCELLED')
+                            ? 'bg-rose-100 text-rose-900 border border-rose-300'
                             : isCod 
                             ? 'bg-amber-100 text-amber-900 border border-amber-300' 
                             : o.paymentMethod === 'RAZORPAY'
-                            ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                            ? (o.paymentStatus === 'SUCCESS' ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : 'bg-amber-100 text-amber-900 border border-amber-300')
                             : (o.paymentMethod === 'QR_PAYMENT' || o.paymentMethod === 'UPI_DIRECT' || o.paymentProofUrl)
                             ? 'bg-indigo-100 text-indigo-950 border border-indigo-300'
                             : 'bg-blue-100 text-blue-900 border border-blue-300'
@@ -3840,10 +3843,12 @@ const silentRefresh = async (): Promise<boolean> => {
                           <span>
                             {isWA
                               ? 'WhatsApp / Offline'
+                              : (o.paymentStatus === 'FAILED' || (o.orderStatus || '').toUpperCase() === 'CANCELLED')
+                              ? (o.paymentMethod === 'RAZORPAY' ? '❌ Razorpay (Cancelled / Failed)' : '❌ Order Cancelled')
                               : isCod 
                               ? '💵 Cash on Delivery (COD)' 
                               : o.paymentMethod === 'RAZORPAY'
-                              ? '⚡ Razorpay (Auto-Verified)'
+                              ? (o.paymentStatus === 'SUCCESS' ? '⚡ Razorpay (Auto-Verified)' : '⏳ Razorpay (Incomplete / Pending)')
                               : (o.paymentMethod === 'QR_PAYMENT' || o.paymentMethod === 'UPI_DIRECT' || o.paymentProofUrl)
                               ? '📸 Scan QR Code Payment'
                               : '📱 PhonePe (Auto-Verified)'}

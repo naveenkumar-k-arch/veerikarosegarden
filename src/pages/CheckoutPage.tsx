@@ -618,20 +618,29 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
     const loaded = await loadRazorpayScript();
     if (!loaded) {
+      isPlacingOrderRef.current = false;
+      try { localStorage.removeItem('vrg_pending_razorpay_order'); } catch {}
       setOrderError('Failed to load Razorpay SDK. Please check internet connection.');
       setLoading(false);
       return;
     }
 
     // Auto status poller: Polls server in background while user completes payment in UPI app / Razorpay
+    let isDismissedOrDone = false;
     const pollInterval = setInterval(async () => {
+      if (isDismissedOrDone || paymentCompletedRef.current) {
+        clearInterval(pollInterval);
+        return;
+      }
       try {
         const check = await fetch(`/api/orders/${orderRes.orderId}`);
         const d = await check.json();
-        if (d.success && d.order && (d.order.paymentStatus === 'SUCCESS' || d.order.orderStatus === 'CONFIRMED')) {
+        if (d.success && d.order && d.order.paymentStatus === 'SUCCESS') {
+          isDismissedOrDone = true;
           clearInterval(pollInterval);
           try { localStorage.removeItem('vrg_pending_razorpay_order'); } catch {}
           paymentCompletedRef.current = true;
+          isPlacingOrderRef.current = false;
           setLoading(false);
           setOrderError(null);
           setPlacedOrderId(orderRes.orderId);
@@ -641,12 +650,28 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           }
           setStep(7);
           goTo(7);
+        } else if (d.success && d.order && (d.order.paymentStatus === 'FAILED' || d.order.orderStatus === 'CANCELLED')) {
+          isDismissedOrDone = true;
+          clearInterval(pollInterval);
+          try { localStorage.removeItem('vrg_pending_razorpay_order'); } catch {}
+          isPlacingOrderRef.current = false;
+          setLoading(false);
         }
       } catch {}
     }, 2500);
 
     // Timeout poller after 2 minutes
     setTimeout(() => clearInterval(pollInterval), 120000);
+
+    const cancelPendingOrder = async (reason: string) => {
+      try {
+        await fetch(`/api/orders/${orderRes.orderId}/cancel-pending`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason })
+        });
+      } catch {}
+    };
 
     const options: any = {
       key: orderRes.razorpayKeyId || (import.meta as any).env?.VITE_RAZORPAY_KEY_ID || 'rzp_live_TQ5xDdZB7QWIn2',
@@ -659,14 +684,18 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       callback_url: `${window.location.origin}/api/razorpay/callback?orderId=${orderRes.orderId}`,
       modal: {
         ondismiss: async () => {
+          isDismissedOrDone = true;
+          clearInterval(pollInterval);
           if (paymentCompletedRef.current) return;
-          // Final background check on dismiss in case payment finished just as modal closed
+
+          // Background check in case payment completed right as modal closed
           try {
             const check = await fetch(`/api/orders/${orderRes.orderId}`);
             const d = await check.json();
-            if (d.success && d.order && (d.order.paymentStatus === 'SUCCESS' || d.order.orderStatus === 'CONFIRMED')) {
-              clearInterval(pollInterval);
+            if (d.success && d.order && d.order.paymentStatus === 'SUCCESS') {
+              try { localStorage.removeItem('vrg_pending_razorpay_order'); } catch {}
               paymentCompletedRef.current = true;
+              isPlacingOrderRef.current = false;
               setLoading(false);
               setOrderError(null);
               setPlacedOrderId(orderRes.orderId);
@@ -680,18 +709,19 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
             }
           } catch {}
 
+          // User truly cancelled / dismissed before completing payment
+          try { localStorage.removeItem('vrg_pending_razorpay_order'); } catch {}
+          await cancelPendingOrder('Customer dismissed Razorpay payment window');
+          isPlacingOrderRef.current = false;
           setLoading(false);
-          setOrderError('Payment was not completed. Your items are safe in cart — click Pay Now to try again.');
+          setOrderError('Payment was not completed. Your items are safe in cart — click Confirm & Place Order to try again.');
         }
       },
       handler: async (response: any) => {
+        isDismissedOrDone = true;
         clearInterval(pollInterval);
-        paymentCompletedRef.current = true;
         setLoading(true);
         setOrderError(null);
-        setPlacedOrderId(orderRes.orderId);
-        setStep(7);
-        goTo(7);
 
         try {
           const verifyRes = await fetch('/api/razorpay/verify', {
@@ -708,15 +738,26 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           setLoading(false);
           if (verifyData.success) {
             paymentCompletedRef.current = true;
+            try { localStorage.removeItem('vrg_pending_razorpay_order'); } catch {}
+            isPlacingOrderRef.current = false;
             if (onOrderConfirmed) {
               onOrderConfirmed(verifyData.order || { id: orderRes.orderId, grandTotal: orderRes.amount });
             }
             setPlacedOrderId(orderRes.orderId);
+            setFetchedOrder(verifyData.order || null);
             setStep(7);
             goTo(7);
+          } else {
+            paymentCompletedRef.current = false;
+            isPlacingOrderRef.current = false;
+            try { localStorage.removeItem('vrg_pending_razorpay_order'); } catch {}
+            setOrderError(verifyData.message || 'Razorpay payment verification failed. Please try again.');
           }
         } catch {
+          paymentCompletedRef.current = false;
+          isPlacingOrderRef.current = false;
           setLoading(false);
+          setOrderError('Network error while verifying Razorpay payment. Please check your internet connection.');
         }
       },
       prefill: {
@@ -729,13 +770,21 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     try {
       const rzp = new (window as any).Razorpay(options);
       rzp.on('payment.failed', async (resp: any) => {
+        isDismissedOrDone = true;
+        clearInterval(pollInterval);
         if (paymentCompletedRef.current) return;
-        setOrderError(`Payment failed: ${resp.error?.description || 'Transaction declined.'}`);
+        try { localStorage.removeItem('vrg_pending_razorpay_order'); } catch {}
+        await cancelPendingOrder(resp.error?.description || 'Transaction declined');
+        isPlacingOrderRef.current = false;
         setLoading(false);
+        setOrderError(`Payment failed: ${resp.error?.description || 'Transaction declined.'}`);
       });
       rzp.open();
     } catch {
+      isDismissedOrDone = true;
       clearInterval(pollInterval);
+      try { localStorage.removeItem('vrg_pending_razorpay_order'); } catch {}
+      isPlacingOrderRef.current = false;
       setLoading(false);
       setOrderError('Failed to open Razorpay payment window.');
     }
@@ -822,8 +871,13 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           localStorage.removeItem('vrg_checkout_step');
           localStorage.removeItem('vrg_pending_upi_payment');
         } catch {}
-        if (effectivePM === 'RAZORPAY' && res.razorpayOrderId) {
-          handleRazorpayPayment(res);
+        if (effectivePM === 'RAZORPAY') {
+          if (res.razorpayOrderId) {
+            handleRazorpayPayment(res);
+          } else {
+            isPlacingOrderRef.current = false;
+            setOrderError(res.message || 'Failed to initialize Razorpay payment. Please try again.');
+          }
           return;
         }
         setPlacedOrderId(res.orderId || null);

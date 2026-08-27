@@ -555,11 +555,13 @@ export const App: React.FC = () => {
 
         const res = await fetch(`/api/orders/${encodeURIComponent(pending.orderId)}?verify=razorpay`);
         const data = await res.json();
-        if (data.success && data.order && (data.order.paymentStatus === 'SUCCESS' || data.order.orderStatus === 'CONFIRMED')) {
+        if (data.success && data.order && data.order.paymentStatus === 'SUCCESS') {
           localStorage.removeItem('vrg_pending_razorpay_order');
           handleOrderConfirmed(data.order);
           setIsMobileCheckoutOpen(false);
           navigateTo('order-status', { orderId: data.order.id });
+        } else if (data.success && data.order && (data.order.paymentStatus === 'FAILED' || data.order.orderStatus === 'CANCELLED')) {
+          localStorage.removeItem('vrg_pending_razorpay_order');
         }
       } catch (err) {
         console.warn('Pending Razorpay reconciliation notice:', err);

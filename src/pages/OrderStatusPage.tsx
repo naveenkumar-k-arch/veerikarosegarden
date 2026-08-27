@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Package, ArrowLeft, RefreshCw, CheckCircle2, Printer, Truck, ExternalLink } from 'lucide-react';
+import { Package, ArrowLeft, RefreshCw, CheckCircle2, Printer, Truck, ExternalLink, XCircle, AlertCircle, ShoppingBag } from 'lucide-react';
 import { Order } from '../types';
 import { InvoicePrint } from '../components/InvoicePrint';
 import { getOrderStage, STAGE_CONFIG, isWhatsAppOrder } from '../utils/orderStages';
@@ -148,13 +148,14 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
   }
 
   const isCod = order.paymentMethod === 'COD';
-  const isSuccess = order.paymentStatus === 'SUCCESS' || isCod;
+  const isCancelled = (order.orderStatus || '').toUpperCase() === 'CANCELLED' || order.paymentStatus === 'FAILED';
+  const isPendingOnline = !isCancelled && !isCod && order.paymentStatus === 'PENDING';
+  const isSuccess = !isCancelled && !isPendingOnline && (order.paymentStatus === 'SUCCESS' || isCod);
 
   const currentStage = getOrderStage(order.orderStatus);
-  const isDelivered = currentStage === 'delivered';
-  const isDispatched = currentStage === 'dispatched' || isDelivered;
-  const isPacking = currentStage === 'packing' || isDispatched;
-  const isConfirmed = true;
+  const isDelivered = !isCancelled && currentStage === 'delivered';
+  const isDispatched = !isCancelled && (currentStage === 'dispatched' || isDelivered);
+  const isPacking = !isCancelled && (currentStage === 'packing' || isDispatched);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
@@ -177,27 +178,49 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
         </button>
       </div>
 
-      {/* Main Confirmation Banner */}
+      {/* Main Status Banner */}
       <div className={`p-6 sm:p-8 rounded-3xl border text-white shadow-lg space-y-4 ${
-        isSuccess ? 'bg-emerald-900 border-emerald-800' : 'bg-slate-900 border-slate-800'
+        isCancelled
+          ? 'bg-rose-950 border-rose-800'
+          : isPendingOnline
+          ? 'bg-amber-950 border-amber-800'
+          : isSuccess
+          ? 'bg-emerald-900 border-emerald-800'
+          : 'bg-slate-900 border-slate-800'
       }`}>
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4 text-center sm:text-left">
             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${
-              isSuccess ? 'bg-emerald-700 text-emerald-100' : 'bg-amber-600 text-white'
+              isCancelled
+                ? 'bg-rose-800 text-rose-100'
+                : isPendingOnline
+                ? 'bg-amber-800 text-amber-100'
+                : isSuccess
+                ? 'bg-emerald-700 text-emerald-100'
+                : 'bg-slate-800 text-slate-200'
             }`}>
-              <CheckCircle2 className="w-8 h-8" />
+              {isCancelled ? (
+                <XCircle className="w-8 h-8" />
+              ) : isPendingOnline ? (
+                <AlertCircle className="w-8 h-8" />
+              ) : (
+                <CheckCircle2 className="w-8 h-8" />
+              )}
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap mb-1">
                 <span className="text-xs font-bold uppercase tracking-wider block">
-                  {isWhatsAppOrder(order)
+                  {isCancelled
+                    ? (order.paymentMethod === 'RAZORPAY' ? '❌ Razorpay Payment Cancelled / Unsuccessful' : '❌ Order Cancelled')
+                    : isPendingOnline
+                    ? (order.paymentMethod === 'RAZORPAY' ? '⏳ Razorpay Payment Incomplete' : '⏳ Payment Pending Verification')
+                    : isWhatsAppOrder(order)
                     ? 'WhatsApp / Direct Order Confirmed'
                     : isCod 
                     ? '💵 Cash on Delivery Order Confirmed' 
                     : (order.paymentMethod === 'QR_PAYMENT' || order.paymentMethod === 'UPI_DIRECT')
                     ? (order.paymentStatus === 'SUCCESS' ? '✅ Scan QR Payment Verified' : order.paymentStatus === 'FAILED' ? '❌ Scan QR Payment Rejected (Unverified)' : '⏳ Scan QR Payment Pending Verification')
-                    : isSuccess ? 'Payment Verified' : 'Payment Pending'}
+                    : isSuccess ? 'Payment Verified & Order Confirmed' : 'Payment Pending'}
                 </span>
                 {isWhatsAppOrder(order) && (
                   <span className="inline-flex items-center gap-1 bg-[#25D366] text-white text-[11px] font-extrabold px-2.5 py-0.5 rounded-full shadow-xs">
@@ -207,20 +230,40 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
                 )}
               </div>
               <h1 className="text-2xl font-black text-white">Order Reference #{order.id}</h1>
-              <p className="text-xs text-emerald-200 font-medium mt-0.5">
-                Merchant Txn ID: <strong className="font-mono text-white">{order.merchantTransactionId}</strong>
+              <p className={`text-xs font-medium mt-0.5 ${
+                isCancelled ? 'text-rose-200' : isPendingOnline ? 'text-amber-200' : 'text-emerald-200'
+              }`}>
+                {isCancelled
+                  ? 'Payment was not completed. No amount was charged from your account.'
+                  : isPendingOnline
+                  ? 'We have not received payment confirmation for this order yet.'
+                  : `Merchant Txn ID: `}
+                {!isCancelled && !isPendingOnline && (
+                  <strong className="font-mono text-white">{order.merchantTransactionId}</strong>
+                )}
               </p>
             </div>
           </div>
 
           <div className="flex flex-col items-center sm:items-end gap-2 shrink-0">
-            <button
-              onClick={() => setShowInvoiceModal(true)}
-              className="px-4 py-2 bg-white text-emerald-950 font-bold text-xs rounded-xl shadow-xs hover:bg-emerald-50 flex items-center gap-1.5 cursor-pointer"
-            >
-              <Printer className="w-4 h-4" />
-              <span>Tax Invoice</span>
-            </button>
+            {isSuccess && (
+              <button
+                onClick={() => setShowInvoiceModal(true)}
+                className="px-4 py-2 bg-white text-emerald-950 font-bold text-xs rounded-xl shadow-xs hover:bg-emerald-50 flex items-center gap-1.5 cursor-pointer"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Tax Invoice</span>
+              </button>
+            )}
+            {isCancelled && (
+              <button
+                onClick={onBackToHome}
+                className="px-4 py-2 bg-white text-rose-950 font-bold text-xs rounded-xl shadow-xs hover:bg-rose-50 flex items-center gap-1.5 cursor-pointer"
+              >
+                <ShoppingBag className="w-4 h-4" />
+                <span>Shop Again</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -231,22 +274,60 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
           <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
             <Truck className="w-5 h-5 text-emerald-700" /> Live Nursery Delivery Timeline
           </h3>
-          <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 inline-block w-fit">
-            Current Stage: {isDelivered ? '4. Delivered' : isDispatched ? '3. Dispatched' : isPacking ? '2. Nursery Packing' : '1. Order Confirmed'}
+          <span className={`text-xs font-bold px-3 py-1 rounded-full border inline-block w-fit ${
+            isCancelled
+              ? 'bg-rose-50 text-rose-800 border-rose-200'
+              : isPendingOnline
+              ? 'bg-amber-50 text-amber-800 border-amber-200'
+              : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+          }`}>
+            Current Stage: {isCancelled ? '❌ Order Cancelled / Unconfirmed' : isPendingOnline ? '⏳ Awaiting Payment' : isDelivered ? '4. Delivered' : isDispatched ? '3. Dispatched' : isPacking ? '2. Nursery Packing' : '1. Order Confirmed'}
           </span>
         </div>
 
         {/* Horizontal Timeline Steps */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
           {/* Stage 1 */}
-          <div className="p-3.5 bg-emerald-50 border-2 border-emerald-300 rounded-2xl text-emerald-950 space-y-1 shadow-2xs">
+          <div className={`p-3.5 rounded-2xl border-2 space-y-1 shadow-2xs ${
+            isCancelled
+              ? 'bg-rose-50 border-rose-300 text-rose-950'
+              : isPendingOnline
+              ? 'bg-amber-50 border-amber-300 text-amber-950'
+              : 'bg-emerald-50 border-emerald-300 text-emerald-950'
+          }`}>
             <div className="flex items-center justify-between">
-              <CheckCircle2 className="w-5 h-5 text-emerald-700" />
-              <span className="text-[10px] font-black text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded-md">✓ DONE</span>
+              {isCancelled ? (
+                <XCircle className="w-5 h-5 text-rose-700" />
+              ) : isPendingOnline ? (
+                <AlertCircle className="w-5 h-5 text-amber-700" />
+              ) : (
+                <CheckCircle2 className="w-5 h-5 text-emerald-700" />
+              )}
+              <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md ${
+                isCancelled
+                  ? 'text-rose-900 bg-rose-100'
+                  : isPendingOnline
+                  ? 'text-amber-900 bg-amber-100'
+                  : 'text-emerald-800 bg-emerald-100'
+              }`}>
+                {isCancelled ? '❌ CANCELLED' : isPendingOnline ? '⏳ PENDING' : '✓ DONE'}
+              </span>
             </div>
-            <p className="font-bold text-xs">1. Order Confirmed</p>
-            <p className="text-[10.5px] text-emerald-800">
-              {isCod ? 'Cash on Delivery' : order.paymentMethod === 'RAZORPAY' ? 'Razorpay Paid' : (order.paymentMethod === 'QR_PAYMENT' || order.paymentMethod === 'UPI_DIRECT') ? 'Scan QR Paid' : 'Paid Online'}
+            <p className="font-bold text-xs">
+              {isCancelled ? '1. Not Confirmed' : isPendingOnline ? '1. Pending Payment' : '1. Order Confirmed'}
+            </p>
+            <p className={`text-[10.5px] ${isCancelled ? 'text-rose-700' : isPendingOnline ? 'text-amber-700' : 'text-emerald-800'}`}>
+              {isCancelled
+                ? (order.paymentMethod === 'RAZORPAY' ? 'Razorpay Cancelled' : 'Order Cancelled')
+                : isPendingOnline
+                ? 'Payment Unfinished'
+                : isCod 
+                ? 'Cash on Delivery' 
+                : order.paymentMethod === 'RAZORPAY' 
+                ? 'Razorpay Paid' 
+                : (order.paymentMethod === 'QR_PAYMENT' || order.paymentMethod === 'UPI_DIRECT') 
+                ? 'Scan QR Paid' 
+                : 'Paid Online'}
             </p>
           </div>
 
@@ -391,8 +472,18 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
           )}
 
           <div className="flex justify-between items-center text-sm font-bold text-slate-900 pt-2 border-t border-slate-200">
-            <span>{isCod ? 'Total Payable via Cash on Delivery:' : order.paymentMethod === 'RAZORPAY' ? 'Total Paid via Razorpay:' : 'Total Paid Online:'}</span>
-            <span className="text-emerald-800 text-base">₹{order.grandTotal}</span>
+            <span>
+              {isCancelled 
+                ? 'Total Amount (Unpaid / Cancelled):' 
+                : isCod 
+                ? 'Total Payable via Cash on Delivery:' 
+                : order.paymentMethod === 'RAZORPAY' 
+                ? 'Total Paid via Razorpay:' 
+                : 'Total Paid Online:'}
+            </span>
+            <span className={isCancelled ? 'text-rose-700 text-base font-bold' : 'text-emerald-800 text-base font-black'}>
+              ₹{order.grandTotal}
+            </span>
           </div>
         </div>
       </div>

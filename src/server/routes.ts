@@ -1943,7 +1943,8 @@ apiRouter.post('/orders/:id/cancel-pending', async (req: AuthenticatedRequest, r
       }
     }
 
-    if (order.paymentStatus === 'PENDING' && order.orderStatus === 'PENDING') {
+    const ADVANCED_STAGES_CANCEL = ['PACKING', 'DISPATCHED', 'DELIVERED'];
+    if (order.paymentStatus !== 'SUCCESS' && !ADVANCED_STAGES_CANCEL.includes((order.orderStatus || '').toUpperCase())) {
       await db.updateOrderStatus(id, 'CANCELLED', undefined, undefined, 'FAILED');
       await db.addPaymentLog({
         merchantTransactionId: order.merchantTransactionId || id,
@@ -1966,7 +1967,8 @@ apiRouter.post('/razorpay/cancel-order', async (req: AuthenticatedRequest, res) 
     const { orderId, reason } = req.body || {};
     if (orderId) {
       const order = await db.getOrderById(orderId);
-      if (order && (order.paymentStatus === 'PENDING' || order.orderStatus === 'PENDING')) {
+      const ADVANCED_STAGES_CANCEL = ['PACKING', 'DISPATCHED', 'DELIVERED'];
+      if (order && order.paymentStatus !== 'SUCCESS' && !ADVANCED_STAGES_CANCEL.includes((order.orderStatus || '').toUpperCase())) {
         await db.updateOrderStatus(orderId, 'CANCELLED', undefined, undefined, 'FAILED');
         await db.addPaymentLog({
           merchantTransactionId: order.merchantTransactionId || orderId,
@@ -1976,6 +1978,7 @@ apiRouter.post('/razorpay/cancel-order', async (req: AuthenticatedRequest, res) 
           checksum: 'PAYMENT_CANCELLED_BY_USER',
           payload: JSON.stringify({ reason: reason || 'Customer closed Razorpay checkout' })
         }).catch(() => {});
+        invalidateBootstrapCache();
       }
     }
     res.json({ success: true, message: 'Cancelled.' });

@@ -686,16 +686,22 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                         <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
                           isWhatsAppOrder(o)
                             ? 'bg-emerald-100 text-emerald-950 border-emerald-300 font-extrabold'
-                            : o.paymentStatus === 'SUCCESS' ? 'bg-emerald-100 text-emerald-900 border-emerald-300 font-extrabold' : o.paymentStatus === 'FAILED' ? 'bg-rose-100 text-rose-900 border-rose-300 font-bold' : 'bg-amber-100 text-amber-900 border-amber-300'
+                            : (o.paymentStatus === 'FAILED' || (o.orderStatus || '').toUpperCase() === 'CANCELLED')
+                            ? 'bg-rose-100 text-rose-900 border-rose-300 font-bold'
+                            : o.paymentStatus === 'SUCCESS' 
+                            ? 'bg-emerald-100 text-emerald-900 border-emerald-300 font-extrabold' 
+                            : 'bg-amber-100 text-amber-900 border-amber-300'
                         }`}>
                           {isWhatsAppOrder(o)
                             ? '💬 WHATSAPP / DIRECT ORDER'
+                            : (o.paymentStatus === 'FAILED' || (o.orderStatus || '').toUpperCase() === 'CANCELLED')
+                            ? (o.paymentMethod === 'RAZORPAY' ? '❌ RAZORPAY (Cancelled / Failed)' : '❌ ORDER CANCELLED')
                             : o.paymentMethod === 'COD' 
                             ? (o.paymentStatus === 'SUCCESS' ? '💵 COD PAID (Cash Collected)' : '⏳ COD PENDING (Pay on Delivery)') 
                             : (o.paymentMethod === 'QR_PAYMENT' || o.paymentMethod === 'UPI_DIRECT')
-                            ? (o.paymentStatus === 'SUCCESS' ? '✅ QR PAID (Verified)' : o.paymentStatus === 'FAILED' ? '❌ QR REJECTED (Unverified)' : '⏳ QR PENDING VERIFICATION')
+                            ? (o.paymentStatus === 'SUCCESS' ? '✅ QR PAID (Verified)' : '⏳ QR PENDING VERIFICATION')
                             : o.paymentMethod === 'RAZORPAY'
-                            ? (o.paymentStatus === 'SUCCESS' ? '⚡ RAZORPAY (Paid)' : '⏳ PAYMENT PENDING')
+                            ? (o.paymentStatus === 'SUCCESS' ? '⚡ RAZORPAY (Paid)' : '⏳ RAZORPAY (Payment Incomplete)')
                             : (o.paymentStatus === 'SUCCESS' ? '✅ ONLINE PAID' : `⏳ ${o.paymentMethod || 'PAYMENT'} PENDING`)}
                         </span>
                       </div>
@@ -709,10 +715,14 @@ export const AccountPage: React.FC<AccountPageProps> = ({
 
                     <div className="flex items-center gap-3 shrink-0">
                       <div className="text-right font-bold space-y-1">
-                        <span className="text-emerald-800 text-sm block font-black">₹{o.grandTotal}</span>
+                        <span className={`text-sm block font-black ${
+                          (o.orderStatus || '').toUpperCase() === 'CANCELLED' || o.paymentStatus === 'FAILED' ? 'text-rose-700' : 'text-emerald-800'
+                        }`}>
+                          ₹{o.grandTotal}
+                        </span>
                         {(() => {
                           const s = (o.orderStatus || '').toUpperCase();
-                          if (s === 'CANCELLED') {
+                          if (s === 'CANCELLED' || o.paymentStatus === 'FAILED') {
                             return (
                               <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full inline-block bg-rose-700 text-white shadow-2xs">
                                 ❌ Cancelled
