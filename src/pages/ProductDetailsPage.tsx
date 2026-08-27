@@ -166,9 +166,6 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
         {/* Details Column */}
         <div className="space-y-6">
           <div className="space-y-2 border-b border-slate-100 pb-4">
-            <span className="text-xs font-mono font-semibold text-slate-400 italic">
-              {product.scientificName}
-            </span>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               {product.name}
             </h1>

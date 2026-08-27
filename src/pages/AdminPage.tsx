@@ -3423,7 +3423,6 @@ const silentRefresh = async (): Promise<boolean> => {
                               <img src={p.images?.[0] || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80'} alt={p.name} className="w-10 h-10 object-cover rounded-lg border shrink-0" />
                               <div>
                                 <p className="font-bold text-slate-900">{p.name}</p>
-                                <p className="text-[10px] text-slate-400 font-mono">{p.scientificName}</p>
                               </div>
                             </td>
                             <td className="py-3 px-3 font-semibold text-emerald-800">{p.tamilName}</td>
@@ -6198,33 +6197,20 @@ const silentRefresh = async (): Promise<boolean> => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Scientific Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={prodForm.scientificName}
-                    onChange={(e) => setProdForm({ ...prodForm, scientificName: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Category *</label>
-                  <select
-                    value={prodForm.categoryId}
-                    onChange={(e) => {
-                      const catObj = categories.find((c) => c.id === e.target.value);
-                      setProdForm({ ...prodForm, categoryId: e.target.value, categoryName: catObj?.name || 'Roses' });
-                    }}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
-                  >
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name} ({c.tamilName})</option>
-                    ))}
-                  </select>
-                </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Category *</label>
+                <select
+                  value={prodForm.categoryId}
+                  onChange={(e) => {
+                    const catObj = categories.find((c) => c.id === e.target.value);
+                    setProdForm({ ...prodForm, categoryId: e.target.value, categoryName: catObj?.name || 'Roses' });
+                  }}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                >
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name} ({c.tamilName})</option>
+                  ))}
+                </select>
               </div>
 
               <div className="grid grid-cols-3 gap-2 sm:gap-3">

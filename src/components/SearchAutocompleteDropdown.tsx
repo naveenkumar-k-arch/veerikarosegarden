@@ -65,13 +65,12 @@ export const SearchAutocompleteDropdown: React.FC<SearchAutocompleteDropdownProp
     const matchName = (p.name || '').toLowerCase().includes(cleanQuery);
     const matchEnglish = (p.englishName || '').toLowerCase().includes(cleanQuery);
     const matchTamil = (p.tamilName || '').toLowerCase().includes(cleanQuery);
-    const matchScientific = (p.scientificName || '').toLowerCase().includes(cleanQuery);
     const matchSku = (p.sku || '').toLowerCase().includes(cleanQuery);
     const matchCategory = (p.categoryName || '').toLowerCase().includes(cleanQuery) || (p.categoryId || '').toLowerCase().includes(cleanQuery);
     const matchDesc = (p.description || '').toLowerCase().includes(cleanQuery);
     const matchTags = Array.isArray(p.tags) && p.tags.some((t) => (t || '').toLowerCase().includes(cleanQuery));
 
-    return matchName || matchEnglish || matchTamil || matchScientific || matchSku || matchCategory || matchDesc || matchTags;
+    return matchName || matchEnglish || matchTamil || matchSku || matchCategory || matchDesc || matchTags;
   });
 
   const previewItems = matchingProducts.slice(0, 6);

@@ -22,7 +22,6 @@ export const PlantCareModal: React.FC<PlantCareModalProps> = ({ product, onClose
             <div>
               <h3 className="font-bold text-lg text-white leading-snug">{product.name}</h3>
               <p className="text-xs text-emerald-300 font-medium">{product.tamilName}</p>
-              <p className="text-[11px] text-emerald-400/80 italic mt-0.5">{product.scientificName}</p>
             </div>
           </div>
           <button
