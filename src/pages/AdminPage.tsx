@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Product, Category, Order, Coupon, Banner, Review, SiteSettings, PaymentLog, FinancialEntry, Combo, PaymentStatus, OrderStatus } from '../types';
-import { LayoutDashboard, Package, ShoppingBag, FolderTree, Tag, Image, Star, Settings as SettingsIcon, ShieldCheck, Plus, Edit, Trash2, Check, X, RefreshCw, Printer, AlertTriangle, Search, Lock, ExternalLink, DollarSign, TrendingUp, TrendingDown, Camera, CreditCard, ChevronDown, User, Phone, MapPin, Upload, MessageSquare, ThumbsUp, Eye, EyeOff, Sparkles, Monitor, Sprout, Menu, LogOut, Truck } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, FolderTree, Tag, Image, Star, Settings as SettingsIcon, ShieldCheck, Plus, Edit, Trash2, Check, X, RefreshCw, Printer, AlertTriangle, Search, Lock, ExternalLink, DollarSign, TrendingUp, TrendingDown, Camera, CreditCard, ChevronDown, User, Phone, MapPin, Upload, MessageSquare, ThumbsUp, Eye, EyeOff, Sparkles, Monitor, Sprout, Menu, LogOut, Truck, Globe } from 'lucide-react';
 
 import { INITIAL_PRODUCTS, INITIAL_CATEGORIES } from '../data/catalogData';
 import { INITIAL_REVIEWS } from '../data/reviewsData';
@@ -3258,11 +3258,11 @@ const silentRefresh = async (): Promise<boolean> => {
                                   <div className="flex items-center gap-1.5 flex-wrap">
                                     {isWA ? (
                                       <span title="Added via WhatsApp" className="inline-flex items-center gap-1 bg-[#25D366] text-white px-2 py-0.5 rounded-md font-black text-[10px] shadow-2xs">
-                                        <WhatsAppIcon className="w-3 h-3 fill-white" /> WA
+                                        <WhatsAppIcon className="w-3 h-3 fill-white" /> WhatsApp
                                       </span>
                                     ) : (
-                                      <span title="Website Order" className="bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded text-[9px] font-bold">
-                                        WEB
+                                      <span title="Placed on Website" className="inline-flex items-center gap-1 bg-blue-600 text-white px-2 py-0.5 rounded-md font-black text-[10px] shadow-2xs">
+                                        <Globe className="w-3 h-3 text-white" /> Website
                                       </span>
                                     )}
                                     <span>{o.id}</span>
@@ -3829,10 +3829,15 @@ const silentRefresh = async (): Promise<boolean> => {
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-mono font-black text-slate-900 text-sm">Order #{o.id}</span>
-                        {isWA && (
+                        {isWA ? (
                           <span className="inline-flex items-center gap-1.5 bg-[#25D366] text-white font-extrabold px-2.5 py-0.5 rounded-full text-[11px] shadow-xs tracking-wide">
                             <WhatsAppIcon className="w-3.5 h-3.5 fill-white" />
                             <span>WhatsApp Order</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 bg-blue-600 text-white font-extrabold px-2.5 py-0.5 rounded-full text-[11px] shadow-xs tracking-wide">
+                            <Globe className="w-3.5 h-3.5 text-white" />
+                            <span>Website Order</span>
                           </span>
                         )}
                         {isOnHold && (

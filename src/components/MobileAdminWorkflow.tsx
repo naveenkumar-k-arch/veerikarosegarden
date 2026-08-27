@@ -39,6 +39,7 @@ import {
   CheckCircle,
   ShoppingBag,
   AlertTriangle,
+  Globe,
   Image as ImageIcon,
   Plus,
   Trash2,
@@ -1709,9 +1710,22 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                       className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-slate-300 active:scale-[0.99] transition-all cursor-pointer space-y-1.5"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-mono font-bold text-xs text-slate-900">
-                          {order.id}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-mono font-bold text-xs text-slate-900">
+                            {order.id}
+                          </span>
+                          {isWhatsAppOrder(order) ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-black bg-emerald-100 text-emerald-950 border border-emerald-300 shadow-2xs">
+                              <WhatsAppIcon size={11} className="fill-[#25D366] shrink-0" />
+                              <span>WhatsApp</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-black bg-blue-50 text-blue-900 border border-blue-200 shadow-2xs">
+                              <Globe className="w-2.5 h-2.5 text-blue-600 shrink-0" />
+                              <span>Website</span>
+                            </span>
+                          )}
+                        </div>
                         <span className="font-extrabold text-sm text-slate-900">
                           ₹{order.grandTotal}
                         </span>
@@ -2233,7 +2247,9 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                     className={`bg-white p-4 rounded-2xl border transition-all cursor-pointer space-y-2.5 ${
                       isOnHold
                         ? 'border-amber-400 bg-amber-50/20 shadow-md ring-1 ring-amber-300'
-                        : 'border-slate-200 shadow-xs hover:border-slate-300 active:scale-[0.99]'
+                        : isWhatsApp
+                        ? 'border-slate-200 border-l-4 border-l-[#25D366] shadow-xs hover:border-slate-300 active:scale-[0.99]'
+                        : 'border-slate-200 border-l-4 border-l-blue-500 shadow-xs hover:border-slate-300 active:scale-[0.99]'
                     }`}
                   >
                     {isOnHold && (
@@ -2257,10 +2273,15 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                         <span className="font-mono font-black text-xs text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
                           {order.id}
                         </span>
-                        {isWhatsApp && (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-black bg-emerald-100 text-emerald-900 border border-emerald-300 shadow-2xs">
-                            <WhatsAppIcon size={12} className="shrink-0" />
-                            <span>WhatsApp</span>
+                        {isWhatsApp ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black bg-emerald-100 text-emerald-950 border border-emerald-400 shadow-2xs">
+                            <WhatsAppIcon size={12} className="fill-[#25D366] shrink-0" />
+                            <span>WhatsApp Order</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black bg-blue-50 text-blue-900 border border-blue-300 shadow-2xs">
+                            <Globe className="w-3 h-3 text-blue-600 shrink-0" />
+                            <span>Website Order</span>
                           </span>
                         )}
                         <span className={`text-[10px] font-black px-2 py-0.5 rounded-md border ${
@@ -2654,9 +2675,20 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             </div>
 
             <div className="flex items-center justify-between py-1 bg-white p-3 rounded-2xl border border-slate-200">
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-xs font-extrabold text-slate-500">Order ID:</span>
                 <span className="text-xs font-mono font-bold text-slate-900">{selectedOrder.id}</span>
+                {isWhatsAppOrder(selectedOrder) ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black bg-emerald-100 text-emerald-950 border border-emerald-400 shadow-2xs">
+                    <WhatsAppIcon size={12} className="fill-[#25D366] shrink-0" />
+                    <span>WhatsApp Order</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black bg-blue-50 text-blue-900 border border-blue-300 shadow-2xs">
+                    <Globe className="w-3 h-3 text-blue-600 shrink-0" />
+                    <span>Website Order</span>
+                  </span>
+                )}
               </div>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-900 border border-emerald-200">
                 {selectedOrder.orderStatus || 'CONFIRMED'}
