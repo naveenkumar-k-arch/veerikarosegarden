@@ -166,7 +166,38 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   const [copiedUtrToast, setCopiedUtrToast] = useState(false);
   
   // 4 Stage Filter + Week-Based & Holding: 'all' | 'week_based' | 'confirmed' | 'packing' | 'dispatched' | 'delivered' | 'holding'
-  const [orderStageFilter, setOrderStageFilter] = useState<'all' | 'week_based' | 'confirmed' | 'packing' | 'dispatched' | 'delivered' | 'holding'>('all');
+  const [orderStageFilter, setOrderStageFilterState] = useState<'all' | 'week_based' | 'confirmed' | 'packing' | 'dispatched' | 'delivered' | 'holding'>(() => {
+    try {
+      if (typeof window !== 'undefined' && window.history.state?.stageFilter) {
+        return window.history.state.stageFilter;
+      }
+      const saved = sessionStorage.getItem('vrg_admin_stage_filter');
+      if (saved && ['all', 'week_based', 'confirmed', 'packing', 'dispatched', 'delivered', 'holding'].includes(saved)) {
+        return saved as any;
+      }
+    } catch {}
+    return 'all';
+  });
+
+  const ordersListScrollPosRef = React.useRef<number>(0);
+  const lastNavigatedOrderIdRef = React.useRef<string | null>(null);
+
+  const setOrderStageFilter = useCallback((stage: 'all' | 'week_based' | 'confirmed' | 'packing' | 'dispatched' | 'delivered' | 'holding') => {
+    setOrderStageFilterState(stage);
+    try {
+      sessionStorage.setItem('vrg_admin_stage_filter', stage);
+    } catch {}
+
+    if (typeof window !== 'undefined' && window.history.state?.vrgAdmin) {
+      try {
+        window.history.replaceState({
+          ...window.history.state,
+          stageFilter: stage
+        }, '', '/admin');
+      } catch {}
+    }
+  }, []);
+
   const [holdingOrderIds, setHoldingOrderIds] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('vrg_holding_order_ids');
@@ -174,13 +205,58 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
     } catch {}
     return [];
   });
-  const [expandedWeeks, setExpandedWeeks] = useState<Record<string, boolean>>({});
-  const [searchQuery, setSearchQuery] = useState('');
+  const [expandedWeeks, setExpandedWeeksState] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = sessionStorage.getItem('vrg_admin_expanded_weeks');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return {};
+  });
+
+  const setExpandedWeeks = useCallback((val: Record<string, boolean> | ((prev: Record<string, boolean>) => Record<string, boolean>)) => {
+    setExpandedWeeksState(prev => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      try {
+        sessionStorage.setItem('vrg_admin_expanded_weeks', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }, []);
+
+  const [searchQuery, setSearchQuery] = useState(() => {
+    try {
+      return sessionStorage.getItem('vrg_admin_search_query') || '';
+    } catch {
+      return '';
+    }
+  });
+
+  const handleSetSearchQuery = useCallback((query: string) => {
+    setSearchQuery(query);
+    try {
+      sessionStorage.setItem('vrg_admin_search_query', query);
+    } catch {}
+  }, []);
+
   // Order Sorting: 'date_desc' (Newest Date First - Default), 'date_asc' (Oldest First), 'price_desc' (Highest Amount First), 'price_asc' (Lowest Amount First)
   const [orderSortBy, setOrderSortBy] = useState<'date_desc' | 'date_asc' | 'price_desc' | 'price_asc'>('date_desc');
 
   // Courier & Date Filter States for Orders
-  const [orderCourierFilter, setOrderCourierFilter] = useState<string>('all');
+  const [orderCourierFilter, setOrderCourierFilterState] = useState<string>(() => {
+    try {
+      return sessionStorage.getItem('vrg_admin_courier_filter') || 'all';
+    } catch {
+      return 'all';
+    }
+  });
+
+  const setOrderCourierFilter = useCallback((courier: string) => {
+    setOrderCourierFilterState(courier);
+    try {
+      sessionStorage.setItem('vrg_admin_courier_filter', courier);
+    } catch {}
+  }, []);
+
   const [orderDatePreset, setOrderDatePreset] = useState<'all' | 'today' | 'yesterday' | 'last_7_days' | 'this_month' | 'custom'>('all');
   const [orderSpecificDate, setOrderSpecificDate] = useState<string>('');
   const [orderStartDate, setOrderStartDate] = useState<string>('');
@@ -600,12 +676,31 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   }, []);
 
   // Centralized Screen Navigation with Browser History Integration
-  const navigateScreen = useCallback((screen: ScreenType, order?: Order | null, replace = false) => {
+  const navigateScreen = useCallback((screen: ScreenType, order?: Order | null, replace = false, newStageFilter?: 'all' | 'week_based' | 'confirmed' | 'packing' | 'dispatched' | 'delivered' | 'holding') => {
+    // If navigating away from orders_list, save scroll position!
+    if (currentScreen === 'orders_list' && screen !== 'orders_list') {
+      ordersListScrollPosRef.current = window.scrollY;
+      try {
+        sessionStorage.setItem('vrg_orders_list_scroll_pos', String(window.scrollY));
+      } catch {}
+    }
+
     closeAllModalsLocally();
     if (order !== undefined) {
       setSelectedOrder(order);
+      if (order && order.id) {
+        lastNavigatedOrderIdRef.current = order.id;
+      }
     }
     setCurrentScreen(screen);
+
+    const effectiveStage = newStageFilter || orderStageFilter;
+    if (newStageFilter) {
+      setOrderStageFilterState(newStageFilter);
+      try {
+        sessionStorage.setItem('vrg_admin_stage_filter', newStageFilter);
+      } catch {}
+    }
 
     // Sync bottom active tab
     if (screen === 'dashboard') setActiveBottomTab('dashboard');
@@ -618,7 +713,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
       page: 'admin',
       adminScreen: screen,
       orderId: order ? order.id : (screen === 'order_details' || screen === 'dispatch_order' || screen === 'order_timeline') ? (order === null ? undefined : selectedOrder?.id) : undefined,
-      stageFilter: orderStageFilter,
+      stageFilter: effectiveStage,
       modal: null
     };
 
@@ -627,7 +722,12 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
     } else {
       window.history.pushState(stateObj, '', '/admin');
     }
-  }, [closeAllModalsLocally, selectedOrder, orderStageFilter]);
+
+    // If navigating into detail screen, scroll to top so user views order details from top
+    if (screen === 'order_details' || screen === 'dispatch_order' || screen === 'order_timeline' || screen === 'dashboard') {
+      window.scrollTo(0, 0);
+    }
+  }, [closeAllModalsLocally, currentScreen, orderStageFilter, selectedOrder]);
 
   // Centralized Modal Open with Browser History Integration
   const openAdminModal = useCallback((
@@ -710,12 +810,38 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
   // Handle Back Navigation from In-App Back Arrows
   const handleGoBack = useCallback((fallbackScreen: ScreenType = 'dashboard') => {
+    if (currentScreen === 'orders_list') {
+      ordersListScrollPosRef.current = window.scrollY;
+      try {
+        sessionStorage.setItem('vrg_orders_list_scroll_pos', String(window.scrollY));
+      } catch {}
+    }
     if (window.history.state && window.history.state.vrgAdmin && window.history.state.adminScreen && window.history.state.adminScreen !== 'dashboard') {
       window.history.back();
     } else {
       navigateScreen(fallbackScreen);
     }
-  }, [navigateScreen]);
+  }, [currentScreen, navigateScreen]);
+
+  // Restore scroll position when returning to orders_list
+  useEffect(() => {
+    if (currentScreen === 'orders_list') {
+      const savedPos = ordersListScrollPosRef.current;
+      if (savedPos > 0) {
+        window.scrollTo({ top: savedPos, behavior: 'instant' as ScrollBehavior });
+        const timeoutId = setTimeout(() => {
+          window.scrollTo({ top: savedPos, behavior: 'instant' as ScrollBehavior });
+          if (lastNavigatedOrderIdRef.current) {
+            const el = document.getElementById(`order-card-${lastNavigatedOrderIdRef.current}`);
+            if (el && Math.abs(window.scrollY - savedPos) > 150) {
+              el.scrollIntoView({ block: 'center', behavior: 'instant' as ScrollBehavior });
+            }
+          }
+        }, 50);
+        return () => clearTimeout(timeoutId);
+      }
+    }
+  }, [currentScreen]);
 
   // Popstate Listener for Mobile Admin Workflow
   useEffect(() => {
@@ -775,14 +901,17 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
         // 4. Synchronize stage filter
         if (state.stageFilter) {
-          setOrderStageFilter(state.stageFilter);
+          setOrderStageFilterState(state.stageFilter);
+          try {
+            sessionStorage.setItem('vrg_admin_stage_filter', state.stageFilter);
+          } catch {}
         }
       }
     };
 
     window.addEventListener('popstate', handleAdminPopState);
     return () => window.removeEventListener('popstate', handleAdminPopState);
-  }, [orders]);
+  }, [orders, currentScreen, orderStageFilter]);
 
   const [settingsSavedToast, setSettingsSavedToast] = useState(false);
 
@@ -1454,8 +1583,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => {
-                  setOrderStageFilter('confirmed');
-                  navigateScreen('orders_list');
+                  navigateScreen('orders_list', null, false, 'confirmed');
                 }}
                 className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-emerald-300 text-left transition-all active:scale-[0.98] cursor-pointer"
               >
@@ -1471,8 +1599,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
               <button
                 onClick={() => {
-                  setOrderStageFilter('packing');
-                  navigateScreen('orders_list');
+                  navigateScreen('orders_list', null, false, 'packing');
                 }}
                 className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-amber-300 text-left transition-all active:scale-[0.98] cursor-pointer"
               >
@@ -1488,8 +1615,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
               <button
                 onClick={() => {
-                  setOrderStageFilter('dispatched');
-                  navigateScreen('orders_list');
+                  navigateScreen('orders_list', null, false, 'dispatched');
                 }}
                 className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-blue-300 text-left transition-all active:scale-[0.98] cursor-pointer"
               >
@@ -1505,8 +1631,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
               <button
                 onClick={() => {
-                  setOrderStageFilter('delivered');
-                  navigateScreen('orders_list');
+                  navigateScreen('orders_list', null, false, 'delivered');
                 }}
                 className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-purple-300 text-left transition-all active:scale-[0.98] cursor-pointer"
               >
@@ -1558,8 +1683,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => {
-                      setOrderStageFilter('all');
-                      navigateScreen('orders_list');
+                      navigateScreen('orders_list', null, false, 'all');
                     }}
                     className="text-[11px] font-black text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-xl flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
                   >
@@ -1713,14 +1837,14 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 type="text"
                 placeholder="Search by Order ID, Customer Name, Phone, Pincode, Courier..."
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
+                onChange={e => handleSetSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-8 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700"
               />
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
               {searchQuery && (
                 <button
                   type="button"
-                  onClick={() => setSearchQuery('')}
+                  onClick={() => handleSetSearchQuery('')}
                   className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-700 p-0.5"
                   title="Clear search"
                 >
@@ -2097,7 +2221,13 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 return (
                   <div
                     key={order.id}
+                    id={`order-card-${order.id}`}
                     onClick={() => {
+                      ordersListScrollPosRef.current = window.scrollY;
+                      lastNavigatedOrderIdRef.current = order.id;
+                      try {
+                        sessionStorage.setItem('vrg_orders_list_scroll_pos', String(window.scrollY));
+                      } catch {}
                       navigateScreen('order_details', order);
                     }}
                     className={`bg-white p-4 rounded-2xl border transition-all cursor-pointer space-y-2.5 ${
@@ -2264,6 +2394,11 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
+                              ordersListScrollPosRef.current = window.scrollY;
+                              lastNavigatedOrderIdRef.current = order.id;
+                              try {
+                                sessionStorage.setItem('vrg_orders_list_scroll_pos', String(window.scrollY));
+                              } catch {}
                               setDispatchForm({
                                 courierName: order.courierName || 'Professional Courier',
                                 awbNumber: order.trackingNumber || '',
@@ -5415,8 +5550,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               
               <button
                 onClick={() => {
-                  setOrderStageFilter('confirmed');
-                  navigateScreen('orders_list');
+                  navigateScreen('orders_list', null, false, 'confirmed');
                 }}
                 className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
               >
@@ -5429,8 +5563,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
               <button
                 onClick={() => {
-                  setOrderStageFilter('packing');
-                  navigateScreen('orders_list');
+                  navigateScreen('orders_list', null, false, 'packing');
                 }}
                 className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
               >
@@ -5443,8 +5576,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
               <button
                 onClick={() => {
-                  setOrderStageFilter('dispatched');
-                  navigateScreen('orders_list');
+                  navigateScreen('orders_list', null, false, 'dispatched');
                 }}
                 className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
               >
@@ -5457,8 +5589,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
               <button
                 onClick={() => {
-                  setOrderStageFilter('delivered');
-                  navigateScreen('orders_list');
+                  navigateScreen('orders_list', null, false, 'delivered');
                 }}
                 className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
               >
@@ -7038,7 +7169,6 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
         <button
           onClick={() => {
-            setOrderStageFilter('confirmed');
             navigateScreen('orders_list');
           }}
           className={`flex flex-col items-center gap-1 transition-colors cursor-pointer relative ${

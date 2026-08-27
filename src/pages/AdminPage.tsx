@@ -122,7 +122,22 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
   const [desktopLabelOrders, setDesktopLabelOrders] = useState<Order[] | null>(null);
   const [showAdminMenuDrawer, setShowAdminMenuDrawer] = useState(false);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'categories' | 'orders' | 'inventory' | 'coupons' | 'banners' | 'reviews' | 'settings' | 'audit' | 'finances' | 'payment_logs'>('dashboard');
-  const [orderFilterStage, setOrderFilterStage] = useState<'all' | 'week_based' | 'pending' | 'packing' | 'dispatched' | 'delivered' | 'holding'>('all');
+  const [orderFilterStage, setOrderFilterStageState] = useState<'all' | 'week_based' | 'pending' | 'packing' | 'dispatched' | 'delivered' | 'holding'>(() => {
+    try {
+      const saved = sessionStorage.getItem('vrg_admin_stage_filter');
+      if (saved && ['all', 'week_based', 'pending', 'confirmed', 'packing', 'dispatched', 'delivered', 'holding'].includes(saved)) {
+        return (saved === 'confirmed' ? 'pending' : saved) as any;
+      }
+    } catch {}
+    return 'all';
+  });
+
+  const setOrderFilterStage = (stage: 'all' | 'week_based' | 'pending' | 'packing' | 'dispatched' | 'delivered' | 'holding') => {
+    setOrderFilterStageState(stage);
+    try {
+      sessionStorage.setItem('vrg_admin_stage_filter', stage === 'pending' ? 'confirmed' : stage);
+    } catch {}
+  };
 
   // Version-controlled persistent cache keys to purge stale order snapshots
   const ADMIN_CACHE_KEY_SESSION = 'vrg_admin_session_cache_v4';
