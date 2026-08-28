@@ -7260,8 +7260,7 @@ class Store {
           let unpackedCourierBranch: string | undefined = undefined;
           let parsedCourierFromNotes: string | undefined = undefined;
           let unpackedItemsSnapshot: OrderItemSnapshot[] | undefined = undefined;
-
-          if (notesStr.startsWith('{') && notesStr.endsWith('}')) {
+            if (notesStr.startsWith('{') && notesStr.endsWith('}')) {
             try {
               const pNotes = JSON.parse(notesStr);
               if (pNotes.proof) unpackedProofUrl = pNotes.proof;
@@ -7342,6 +7341,11 @@ class Store {
           const hasProof = Boolean(unpackedProofUrl);
           const dbOrderStatus = fromPrismaOrderStatus(o.status);
 
+          const calculatedSubtotal = itemsSnapshot.reduce((sum, it) => sum + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
+          const finalSubtotal = calculatedSubtotal > 0 ? calculatedSubtotal : Number(o.subtotal || 0);
+          const packingAndPotCharges = Number(unpackedPackingCharge || 0) + Number(unpackedPotCharge || 0);
+          const finalGrandTotal = finalSubtotal + Number(o.deliveryFee || 0) + packingAndPotCharges - Number(o.discount || 0);
+
           return {
             id: o.id,
             customerName: o.customerName,
@@ -7349,10 +7353,10 @@ class Store {
             customerEmail: o.customerEmail || '',
             shippingAddress: parsedAddress,
             items: itemsSnapshot,
-            subtotal: o.subtotal,
+            subtotal: finalSubtotal,
             discount: o.discount,
             shippingCharge: o.deliveryFee,
-            grandTotal: o.totalAmount,
+            grandTotal: finalGrandTotal,
             orderStatus: dbOrderStatus,
             paymentStatus: o.paymentStatus === 'SUCCESS' ? 'SUCCESS' : o.paymentStatus === 'FAILED' ? 'FAILED' : 'PENDING',
             paymentMethod: ((o as any).paymentMethod === 'RAZORPAY' || (o as any).paymentMethod === 'CARD' || String(o.merchantTransactionId || '').startsWith('MT') || String(o.merchantTransactionId || '').startsWith('order_') || String(o.merchantTransactionId || '').startsWith('pay_')
@@ -7723,6 +7727,11 @@ class Store {
       const hasProof = Boolean(unpackedProofUrl);
       const dbStatus = fromPrismaOrderStatus(o.status);
 
+      const calculatedSubtotal = itemsSnapshot.reduce((sum, it) => sum + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
+      const finalSubtotal = calculatedSubtotal > 0 ? calculatedSubtotal : Number(o.subtotal || 0);
+      const packingAndPotCharges = Number(unpackedPackingCharge || 0) + Number(unpackedPotCharge || 0);
+      const finalGrandTotal = finalSubtotal + Number(o.deliveryFee || 0) + packingAndPotCharges - Number(o.discount || 0);
+
       return {
         id: o.id,
         customerName: o.customerName,
@@ -7730,10 +7739,10 @@ class Store {
         customerEmail: o.customerEmail || '',
         shippingAddress: parsedAddress,
         items: itemsSnapshot,
-        subtotal: o.subtotal,
+        subtotal: finalSubtotal,
         discount: o.discount,
         shippingCharge: o.deliveryFee,
-        grandTotal: o.totalAmount,
+        grandTotal: finalGrandTotal,
         orderStatus: dbStatus,
         paymentStatus: o.paymentStatus === 'SUCCESS' ? 'SUCCESS' : o.paymentStatus === 'FAILED' ? 'FAILED' : 'PENDING',
         paymentMethod: ((o as any).paymentMethod === 'RAZORPAY' || (o as any).paymentMethod === 'CARD'
