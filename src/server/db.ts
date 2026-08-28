@@ -4,6 +4,7 @@ import { Product, Category, Order, Coupon, Banner, Review, SiteSettings, Payment
 
 import { getPrismaClient, executeInTransaction } from './prisma.js';
 import { firestoreSaveOrder, firestoreGetAllOrders, firestoreUpdateOrder, firestoreDeleteOrder } from './firestore.js';
+import { ImmutableOrderVaultService } from './immutableVault.js';
 
 function parseShippingAddress(val: any): any {
   if (!val) return {};
@@ -8064,6 +8065,9 @@ class Store {
 
     // Non-blocking Firestore sync in background
     firestoreSaveOrder(order).catch(() => {});
+
+    // 🔒 Non-blocking append-only immutable vault archive
+    ImmutableOrderVaultService.archiveOrder(order).catch(err => console.warn('ImmutableOrderVault notice:', err?.message));
 
     this.invalidateOrdersCache();
     return order;

@@ -544,3 +544,20 @@ model Combo {
   updatedAt       DateTime @updatedAt
 }
 
+// 🔒 IMMUTABLE COMPRESSED ORDER VAULT (APPEND-ONLY, NO UPDATE / NO DELETE)
+model ImmutableOrderVault {
+  id              String   @id @default(uuid())
+  orderId         String   @unique
+  customerName    String
+  customerPhone   String
+  totalAmount     Float
+  itemCount       Int
+  checksum        String   // Cryptographic SHA-256 verification hash
+  compressedData  String   // Gzip/Deflate Base64 compressed payload (<200 bytes per order)
+  archivedAt      DateTime @default(now())
+
+  @@index([orderId])
+  @@index([customerPhone])
+  @@index([archivedAt])
+}
+
