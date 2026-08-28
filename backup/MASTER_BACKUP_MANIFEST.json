@@ -1,0 +1,14 @@
+{
+  "backupDate": "2026-08-28T17:39:59.169Z",
+  "totalOrders": 161,
+  "totalPlantSaplings": 367,
+  "totalGrossRevenue": 56898,
+  "filesCreated": [
+    "backup/orders_full_backup.json",
+    "backup/orders_manifest.csv",
+    "backup/orders_postgres_dump.sql",
+    "backup/orders_master_archive.json.gz",
+    "backup/reviews_full_backup.json"
+  ],
+  "status": "PERMANENTLY_ARCHIVED_AND_SECURED"
+}
