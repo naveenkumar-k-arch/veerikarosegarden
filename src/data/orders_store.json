@@ -157,7 +157,7 @@
     "items": [
       {
         "productId": "vrg-kalapadi-sapota-plant",
-        "sku": "VRG-KALAPADI",
+        "sku": "VRG-PLANT-1",
         "name": "Kalapadi Sapota (Sweet Chiku)",
         "tamilName": "Kalapadi Sapota (Sweet Chiku)",
         "price": 90,
@@ -167,7 +167,7 @@
       },
       {
         "productId": "combo-1787577752349",
-        "sku": "CMB-17875777",
+        "sku": "VRG-PLANT-2",
         "name": "🌱🍎 WATER APPLE – 3 VARIETY COMBO",
         "tamilName": "🌱🍎 WATER APPLE – 3 VARIETY COMBO",
         "price": 300,
@@ -177,7 +177,7 @@
       },
       {
         "productId": "vrg-pune-red-athi-fig",
-        "sku": "VRG-PUNE-RED",
+        "sku": "VRG-PLANT-3",
         "name": "Pune Red Athi (Fig Plant)",
         "tamilName": "Pune Red Athi (Fig Plant)",
         "price": 100,
@@ -187,7 +187,7 @@
       },
       {
         "productId": "vrg-mul-seetha-soursop-graviola",
-        "sku": "VRG-MUL-SEET",
+        "sku": "VRG-PLANT-4",
         "name": "Mul Seetha (Soursop / Graviola)",
         "tamilName": "Mul Seetha (Soursop / Graviola)",
         "price": 60,
@@ -196,10 +196,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 590,
+    "subtotal": 550,
     "discount": 0,
     "shippingCharge": 120,
-    "grandTotal": 710,
+    "grandTotal": 670,
     "orderStatus": "PACKING",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -211,7 +211,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-27T13:35:39.329Z",
-    "updatedAt": "2026-08-28T16:45:26.946Z"
+    "updatedAt": "2026-08-28T17:06:46.177Z"
   },
   {
     "id": "ORD-1207",
@@ -299,7 +299,7 @@
     "items": [
       {
         "productId": "vrg-jadhi-malli-spanish-jasmine",
-        "sku": "VRG-JADHI-MA",
+        "sku": "VRG-PLANT-1",
         "name": "Jadhi Malli (Spanish / Royal Jasmine)",
         "tamilName": "Jadhi Malli (Spanish / Royal Jasmine)",
         "price": 30,
@@ -309,7 +309,7 @@
       },
       {
         "productId": "combo-1787577752349",
-        "sku": "CMB-17875777",
+        "sku": "VRG-PLANT-2",
         "name": "🌱🍎 WATER APPLE – 3 VARIETY COMBO",
         "tamilName": "🌱🍎 WATER APPLE – 3 VARIETY COMBO",
         "price": 300,
@@ -319,7 +319,7 @@
       },
       {
         "productId": "vrg-marikolunthu-davana",
-        "sku": "VRG-MARIKOLU",
+        "sku": "VRG-PLANT-3",
         "name": "Marikolunthu (Davana / Artemisia)",
         "tamilName": "Marikolunthu (Davana / Artemisia)",
         "price": 30,
@@ -329,7 +329,7 @@
       },
       {
         "productId": "vrg-rosemary-culinary-herb",
-        "sku": "VRG-ROSEMARY",
+        "sku": "VRG-PLANT-4",
         "name": "Rosemary (Live Herb Plant)",
         "tamilName": "Rosemary (Live Herb Plant)",
         "price": 30,
@@ -338,10 +338,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 550,
+    "subtotal": 390,
     "discount": 0,
     "shippingCharge": 220,
-    "grandTotal": 770,
+    "grandTotal": 610,
     "orderStatus": "PACKING",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -353,7 +353,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-27T09:08:22.127Z",
-    "updatedAt": "2026-08-28T16:45:27.540Z"
+    "updatedAt": "2026-08-28T17:06:46.371Z"
   },
   {
     "id": "ORD-1202",
@@ -375,7 +375,7 @@
     "items": [
       {
         "productId": "combo-1787635336437",
-        "sku": "CMB-17876353",
+        "sku": "VRG-PLANT-1",
         "name": "Mini beetroot guva",
         "tamilName": "Mini beetroot guva",
         "price": 100,
@@ -385,7 +385,7 @@
       },
       {
         "productId": "combo-1787577752349",
-        "sku": "CMB-17875777",
+        "sku": "VRG-PLANT-2",
         "name": "🌱🍎 WATER APPLE – 3 VARIETY COMBO",
         "tamilName": "🌱🍎 WATER APPLE – 3 VARIETY COMBO",
         "price": 300,
@@ -395,7 +395,7 @@
       },
       {
         "productId": "vrg-kalapadi-sapota-plant",
-        "sku": "VRG-KALAPADI",
+        "sku": "VRG-PLANT-3",
         "name": "Kalapadi Sapota (Sweet Chiku)",
         "tamilName": "Kalapadi Sapota (Sweet Chiku)",
         "price": 90,
@@ -405,7 +405,7 @@
       },
       {
         "productId": "vrg-ramar-seetha-custard-apple",
-        "sku": "VRG-RAMAR-SE",
+        "sku": "VRG-PLANT-4",
         "name": "Ramar Seetha (Red Custard Apple)",
         "tamilName": "Ramar Seetha (Red Custard Apple)",
         "price": 40,
@@ -415,7 +415,7 @@
       },
       {
         "productId": "vrg-changing-rose-confederate",
-        "sku": "VRG-CHANGING",
+        "sku": "VRG-PLANT-5",
         "name": "Changing Rose (Confederate Rose)",
         "tamilName": "Changing Rose (Confederate Rose)",
         "price": 140,
@@ -425,7 +425,7 @@
       },
       {
         "productId": "vrg-nmk-golden-sapota",
-        "sku": "VRG-NMK-GOLD",
+        "sku": "VRG-PLANT-6",
         "name": "NMK Golden Sapota",
         "tamilName": "NMK Golden Sapota",
         "price": 100,
@@ -434,10 +434,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 0,
+    "subtotal": 770,
     "discount": 0,
     "shippingCharge": 160,
-    "grandTotal": 160,
+    "grandTotal": 930,
     "orderStatus": "PACKING",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -449,7 +449,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-27T07:29:04.821Z",
-    "updatedAt": "2026-08-28T16:45:26.651Z"
+    "updatedAt": "2026-08-28T17:06:46.561Z"
   },
   {
     "id": "ORD-1201",
@@ -471,7 +471,7 @@
     "items": [
       {
         "productId": "vrg-chamba-red-fruit",
-        "sku": "VRG-CHAMBA-R",
+        "sku": "VRG-PLANT-1",
         "name": "Chamba Red (Wax Apple)",
         "tamilName": "Chamba Red (Wax Apple)",
         "price": 100,
@@ -483,7 +483,7 @@
     "subtotal": 100,
     "discount": 0,
     "shippingCharge": 60,
-    "grandTotal": 160,
+    "grandTotal": 170,
     "orderStatus": "PACKING",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -497,7 +497,7 @@
     "courierDistrict": "Tirunelveli",
     "courierBranch": "Tirunelveli Junction Central Mega Hub",
     "createdAt": "2026-08-27T07:17:09.124Z",
-    "updatedAt": "2026-08-28T16:45:30.141Z"
+    "updatedAt": "2026-08-28T17:06:46.748Z"
   },
   {
     "id": "ORD-1199",
@@ -651,7 +651,7 @@
     "items": [
       {
         "productId": "vrg-vasambu-sweet-flag",
-        "sku": "VRG-VASAMBU-",
+        "sku": "VRG-PLANT-1",
         "name": "Vasambu (Sweet Flag / Baje)",
         "tamilName": "Vasambu (Sweet Flag / Baje)",
         "price": 80,
@@ -661,7 +661,7 @@
       },
       {
         "productId": "vrg-margo-koster-red-rose",
-        "sku": "VRG-MARGO-KO",
+        "sku": "VRG-PLANT-2",
         "name": "Margo Koster Red Rose",
         "tamilName": "Margo Koster Red Rose",
         "price": 120,
@@ -671,7 +671,7 @@
       },
       {
         "productId": "vrg-mul-seetha-soursop-graviola",
-        "sku": "VRG-MUL-SEET",
+        "sku": "VRG-PLANT-3",
         "name": "Mul Seetha (Soursop / Graviola)",
         "tamilName": "Mul Seetha (Soursop / Graviola)",
         "price": 60,
@@ -681,7 +681,7 @@
       },
       {
         "productId": "vrg-aavaram-poo-tanners-cassia",
-        "sku": "VRG-AAVARAM-",
+        "sku": "VRG-PLANT-4",
         "name": "Aavaram Poo (Tanner's Cassia)",
         "tamilName": "Aavaram Poo (Tanner's Cassia)",
         "price": 50,
@@ -690,10 +690,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 60,
+    "subtotal": 310,
     "discount": 0,
     "shippingCharge": 160,
-    "grandTotal": 220,
+    "grandTotal": 470,
     "orderStatus": "PACKING",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -705,7 +705,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-26T19:09:33.395Z",
-    "updatedAt": "2026-08-28T16:45:27.045Z"
+    "updatedAt": "2026-08-28T17:06:46.935Z"
   },
   {
     "id": "ORD-1195",
@@ -813,7 +813,7 @@
     "items": [
       {
         "productId": "prod-1787052694949",
-        "sku": "VRG-17870526",
+        "sku": "VRG-PLANT-1",
         "name": "Mini beetroot guva",
         "tamilName": "Mini beetroot guva",
         "price": 100,
@@ -823,7 +823,7 @@
       },
       {
         "productId": "prod-1787027251095",
-        "sku": "VRG-17870272",
+        "sku": "VRG-PLANT-2",
         "name": "strawberry",
         "tamilName": "strawberry",
         "price": 110,
@@ -833,7 +833,7 @@
       },
       {
         "productId": "vrg-naatu-paneer-rose",
-        "sku": "VRG-NAATU-PA",
+        "sku": "VRG-PLANT-3",
         "name": "Naatu Rose (Country Paneer Rose)",
         "tamilName": "Naatu Rose (Country Paneer Rose)",
         "price": 70,
@@ -843,7 +843,7 @@
       },
       {
         "productId": "vrg-yellow-miniature-rose",
-        "sku": "VRG-YELLOW-M",
+        "sku": "VRG-PLANT-4",
         "name": "Yellow Miniature Rose",
         "tamilName": "Yellow Miniature Rose",
         "price": 80,
@@ -853,7 +853,7 @@
       },
       {
         "productId": "vrg-pavazha-malli-coral-jasmine",
-        "sku": "VRG-PAVAZHA-",
+        "sku": "VRG-PLANT-5",
         "name": "Pavazha Malli (Coral Jasmine / Parijat)",
         "tamilName": "Pavazha Malli (Coral Jasmine / Parijat)",
         "price": 40,
@@ -862,10 +862,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 320,
+    "subtotal": 400,
     "discount": 0,
     "shippingCharge": 160,
-    "grandTotal": 480,
+    "grandTotal": 560,
     "orderStatus": "PACKING",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -877,7 +877,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-26T18:01:07.470Z",
-    "updatedAt": "2026-08-28T16:45:27.958Z"
+    "updatedAt": "2026-08-28T17:06:47.120Z"
   },
   {
     "id": "ORD-1193",
@@ -899,7 +899,7 @@
     "items": [
       {
         "productId": "vrg-pune-red-athi-fig",
-        "sku": "VRG-PUNE-RED",
+        "sku": "VRG-PLANT-1",
         "name": "Pune Red Athi (Fig Plant)",
         "tamilName": "Pune Red Athi (Fig Plant)",
         "price": 140,
@@ -909,7 +909,7 @@
       },
       {
         "productId": "prod-1787027251095",
-        "sku": "VRG-17870272",
+        "sku": "VRG-PLANT-2",
         "name": "strawberry",
         "tamilName": "strawberry",
         "price": 110,
@@ -919,7 +919,7 @@
       },
       {
         "productId": "vrg-purple-hibiscus",
-        "sku": "VRG-PURPLE-H",
+        "sku": "VRG-PLANT-3",
         "name": "Purple Hibiscus",
         "tamilName": "Purple Hibiscus",
         "price": 140,
@@ -929,7 +929,7 @@
       },
       {
         "productId": "vrg-teddy-bear-terracotta-rose",
-        "sku": "VRG-TEDDY-BE",
+        "sku": "VRG-PLANT-4",
         "name": "Teddy Bear Rose (Terracotta Brown)",
         "tamilName": "Teddy Bear Rose (Terracotta Brown)",
         "price": 140,
@@ -938,10 +938,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 590,
+    "subtotal": 530,
     "discount": 0,
     "shippingCharge": 200,
-    "grandTotal": 790,
+    "grandTotal": 730,
     "orderStatus": "PACKING",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -953,7 +953,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-26T16:43:53.001Z",
-    "updatedAt": "2026-08-28T16:45:28.697Z"
+    "updatedAt": "2026-08-28T17:06:47.308Z"
   },
   {
     "id": "ORD-1192",
@@ -975,7 +975,7 @@
     "items": [
       {
         "productId": "combo-1787635336437",
-        "sku": "CMB-17876353",
+        "sku": "VRG-PLANT-1",
         "name": "Mini beetroot guva",
         "tamilName": "Mini beetroot guva",
         "price": 100,
@@ -984,10 +984,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 400,
+    "subtotal": 100,
     "discount": 0,
     "shippingCharge": 60,
-    "grandTotal": 460,
+    "grandTotal": 160,
     "orderStatus": "PACKING",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -999,7 +999,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-26T16:09:58.684Z",
-    "updatedAt": "2026-08-28T16:45:27.333Z"
+    "updatedAt": "2026-08-28T17:06:47.495Z"
   },
   {
     "id": "ORD-1191",
@@ -1113,7 +1113,7 @@
     "items": [
       {
         "productId": "vrg-pkm-1-moringa-plant",
-        "sku": "VRG-PKM-1-MO",
+        "sku": "VRG-PLANT-1",
         "name": "PKM 1 Moringa (Drumstick Tree)",
         "tamilName": "PKM 1 Moringa (Drumstick Tree)",
         "price": 30,
@@ -1123,7 +1123,7 @@
       },
       {
         "productId": "vrg-kamala-orange-mandarin",
-        "sku": "VRG-KAMALA-O",
+        "sku": "VRG-PLANT-2",
         "name": "Kamala Orange (Mandarin Orange)",
         "tamilName": "Kamala Orange (Mandarin Orange)",
         "price": 100,
@@ -1133,7 +1133,7 @@
       },
       {
         "productId": "vrg-ramar-seetha-custard-apple",
-        "sku": "VRG-RAMAR-SE",
+        "sku": "VRG-PLANT-3",
         "name": "Ramar Seetha (Red Custard Apple)",
         "tamilName": "Ramar Seetha (Red Custard Apple)",
         "price": 40,
@@ -1143,7 +1143,7 @@
       },
       {
         "productId": "vrg-pkm-1-market-lemon",
-        "sku": "VRG-PKM-1-MA",
+        "sku": "VRG-PLANT-4",
         "name": "PKM 1 Market Lemon",
         "tamilName": "PKM 1 Market Lemon",
         "price": 90,
@@ -1153,7 +1153,7 @@
       },
       {
         "productId": "vrg-kalapadi-sapota-plant",
-        "sku": "VRG-KALAPADI",
+        "sku": "VRG-PLANT-5",
         "name": "Kalapadi Sapota (Sweet Chiku)",
         "tamilName": "Kalapadi Sapota (Sweet Chiku)",
         "price": 90,
@@ -1162,10 +1162,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 0,
+    "subtotal": 350,
     "discount": 0,
     "shippingCharge": 60,
-    "grandTotal": 60,
+    "grandTotal": 425,
     "orderStatus": "PACKING",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -1179,7 +1179,7 @@
     "courierDistrict": "Chennai",
     "courierBranch": "Ambattur OT / Industrial Estate Hub",
     "createdAt": "2026-08-26T10:22:36.259Z",
-    "updatedAt": "2026-08-28T16:45:26.547Z"
+    "updatedAt": "2026-08-28T17:06:47.682Z"
   },
   {
     "id": "ORD-1186",
@@ -1201,7 +1201,7 @@
     "items": [
       {
         "productId": "vrg-creeper-jackie-rose",
-        "sku": "VRG-CREEPER-",
+        "sku": "VRG-PLANT-1",
         "name": "Creeper Jackie Rose",
         "tamilName": "Creeper Jackie Rose",
         "price": 110,
@@ -1211,7 +1211,7 @@
       },
       {
         "productId": "vrg-alfred-sisley-striped-rose",
-        "sku": "VRG-ALFRED-S",
+        "sku": "VRG-PLANT-2",
         "name": "Alfred Sisley Rose",
         "tamilName": "Alfred Sisley Rose",
         "price": 90,
@@ -1221,7 +1221,7 @@
       },
       {
         "productId": "vrg-margo-koster-pink-rose",
-        "sku": "VRG-MARGO-KO",
+        "sku": "VRG-PLANT-3",
         "name": "Margo Koster Pink Rose",
         "tamilName": "Margo Koster Pink Rose",
         "price": 120,
@@ -1231,7 +1231,7 @@
       },
       {
         "productId": "vrg-british-queen-rose",
-        "sku": "VRG-BRITISH-",
+        "sku": "VRG-PLANT-4",
         "name": "British Queen Rose",
         "tamilName": "British Queen Rose",
         "price": 100,
@@ -1241,7 +1241,7 @@
       },
       {
         "productId": "vrg-baby-romantica-creeper-rose",
-        "sku": "VRG-BABY-ROM",
+        "sku": "VRG-PLANT-5",
         "name": "Baby Romantica Creeper Rose",
         "tamilName": "Baby Romantica Creeper Rose",
         "price": 120,
@@ -1251,7 +1251,7 @@
       },
       {
         "productId": "vrg-pink-creeper-rose-bush",
-        "sku": "VRG-PINK-CRE",
+        "sku": "VRG-PLANT-6",
         "name": "Pink Creeper Rose",
         "tamilName": "Pink Creeper Rose",
         "price": 100,
@@ -1260,10 +1260,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 550,
+    "subtotal": 640,
     "discount": 0,
     "shippingCharge": 260,
-    "grandTotal": 810,
+    "grandTotal": 900,
     "orderStatus": "PACKING",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -1275,7 +1275,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-26T10:06:50.531Z",
-    "updatedAt": "2026-08-28T16:45:27.074Z"
+    "updatedAt": "2026-08-28T17:06:47.867Z"
   },
   {
     "id": "ORD-1185",
@@ -1297,7 +1297,7 @@
     "items": [
       {
         "productId": "vrg-blue-sangu-poo-aparajita",
-        "sku": "VRG-BLUE-SAN",
+        "sku": "VRG-PLANT-1",
         "name": "Blue Sangu Poo (Aparajita / Butterfly Pea)",
         "tamilName": "Blue Sangu Poo (Aparajita / Butterfly Pea)",
         "price": 30,
@@ -1307,7 +1307,7 @@
       },
       {
         "productId": "combo-1787635336437",
-        "sku": "CMB-17876353",
+        "sku": "VRG-PLANT-2",
         "name": "Mini beetroot guva",
         "tamilName": "Mini beetroot guva",
         "price": 100,
@@ -1316,10 +1316,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 1380,
+    "subtotal": 260,
     "discount": 0,
     "shippingCharge": 480,
-    "grandTotal": 1860,
+    "grandTotal": 740,
     "orderStatus": "PACKING",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -1331,7 +1331,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-26T09:02:39.787Z",
-    "updatedAt": "2026-08-28T16:45:27.491Z"
+    "updatedAt": "2026-08-28T17:06:48.052Z"
   },
   {
     "id": "ORD-1184",
@@ -1465,7 +1465,7 @@
     "items": [
       {
         "productId": "vrg-kalapadi-sapota-plant",
-        "sku": "VRG-KALAPADI",
+        "sku": "VRG-PLANT-1",
         "name": "Kalapadi Sapota (Sweet Chiku)",
         "tamilName": "Kalapadi Sapota (Sweet Chiku)",
         "price": 90,
@@ -1475,7 +1475,7 @@
       },
       {
         "productId": "vrg-miracle-fruit-seedling",
-        "sku": "VRG-MIRACLE-",
+        "sku": "VRG-PLANT-2",
         "name": "Miracle Fruit Plant (Seedling)",
         "tamilName": "Miracle Fruit Plant (Seedling)",
         "price": 150,
@@ -1485,7 +1485,7 @@
       },
       {
         "productId": "prod-1787052694949",
-        "sku": "VRG-17870526",
+        "sku": "VRG-PLANT-3",
         "name": "Mini beetroot guva",
         "tamilName": "Mini beetroot guva",
         "price": 100,
@@ -1494,10 +1494,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 100,
+    "subtotal": 340,
     "discount": 0,
     "shippingCharge": 260,
-    "grandTotal": 360,
+    "grandTotal": 600,
     "orderStatus": "PACKING",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -1509,7 +1509,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-26T01:35:17.588Z",
-    "updatedAt": "2026-08-28T16:45:28.041Z"
+    "updatedAt": "2026-08-28T17:06:48.240Z"
   },
   {
     "id": "ORD-1180",
@@ -1653,7 +1653,7 @@
     "items": [
       {
         "productId": "combo-1787635336437",
-        "sku": "CMB-17876353",
+        "sku": "VRG-PLANT-1",
         "name": "Mini beetroot guva",
         "tamilName": "Mini beetroot guva",
         "price": 100,
@@ -1662,10 +1662,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 0,
+    "subtotal": 100,
     "discount": 0,
     "shippingCharge": 60,
-    "grandTotal": 60,
+    "grandTotal": 160,
     "orderStatus": "DELIVERED",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -1677,7 +1677,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-25T07:26:34.149Z",
-    "updatedAt": "2026-08-28T16:45:25.671Z"
+    "updatedAt": "2026-08-28T17:06:48.426Z"
   },
   {
     "id": "ORD-1176",
@@ -1897,7 +1897,7 @@
     "items": [
       {
         "productId": "vrg-aavaram-poo-tanners-cassia",
-        "sku": "VRG-AAVARAM-",
+        "sku": "VRG-PLANT-1",
         "name": "Aavaram Poo (Tanner's Cassia)",
         "tamilName": "Aavaram Poo (Tanner's Cassia)",
         "price": 50,
@@ -1907,7 +1907,7 @@
       },
       {
         "productId": "vrg-pavazha-malli-coral-jasmine",
-        "sku": "VRG-PAVAZHA-",
+        "sku": "VRG-PLANT-2",
         "name": "Pavazha Malli (Coral Jasmine / Parijat)",
         "tamilName": "Pavazha Malli (Coral Jasmine / Parijat)",
         "price": 40,
@@ -1917,7 +1917,7 @@
       },
       {
         "productId": "vrg-blue-sangu-poo-aparajita",
-        "sku": "VRG-BLUE-SAN",
+        "sku": "VRG-PLANT-3",
         "name": "Blue Sangu Poo (Aparajita / Butterfly Pea)",
         "tamilName": "Blue Sangu Poo (Aparajita / Butterfly Pea)",
         "price": 30,
@@ -1927,7 +1927,7 @@
       },
       {
         "productId": "vrg-mint-thulasi-basil",
-        "sku": "VRG-MINT-THU",
+        "sku": "VRG-PLANT-4",
         "name": "Mint Thulasi (Mint Scented Basil)",
         "tamilName": "Mint Thulasi (Mint Scented Basil)",
         "price": 30,
@@ -1936,10 +1936,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 100,
+    "subtotal": 150,
     "discount": 0,
     "shippingCharge": 140,
-    "grandTotal": 240,
+    "grandTotal": 290,
     "orderStatus": "PACKING",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -1951,7 +1951,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-24T16:59:17.929Z",
-    "updatedAt": "2026-08-28T16:45:26.912Z"
+    "updatedAt": "2026-08-28T17:06:48.611Z"
   },
   {
     "id": "ORD-1171",
@@ -2111,7 +2111,7 @@
     "items": [
       {
         "productId": "vrg-ramar-malli-jasmine",
-        "sku": "VRG-RAMAR-MA",
+        "sku": "VRG-PLANT-1",
         "name": "Ramar Malli (Divine Jasmine)",
         "tamilName": "Ramar Malli (Divine Jasmine)",
         "price": 40,
@@ -2121,7 +2121,7 @@
       },
       {
         "productId": "vrg-pachai-mullai-jasmine",
-        "sku": "VRG-PACHAI-M",
+        "sku": "VRG-PLANT-2",
         "name": "Pachai Mullai (Green Jasmine)",
         "tamilName": "Pachai Mullai (Green Jasmine)",
         "price": 50,
@@ -2131,7 +2131,7 @@
       },
       {
         "productId": "vrg-mint-thulasi-basil",
-        "sku": "VRG-MINT-THU",
+        "sku": "VRG-PLANT-3",
         "name": "Mint Thulasi (Mint Scented Basil)",
         "tamilName": "Mint Thulasi (Mint Scented Basil)",
         "price": 30,
@@ -2141,7 +2141,7 @@
       },
       {
         "productId": "vrg-nagathali-snake-plant",
-        "sku": "VRG-NAGATHAL",
+        "sku": "VRG-PLANT-4",
         "name": "Nagathali (Snake Repellent Plant)",
         "tamilName": "Nagathali (Snake Repellent Plant)",
         "price": 30,
@@ -2150,10 +2150,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 50,
+    "subtotal": 150,
     "discount": 0,
     "shippingCharge": 200,
-    "grandTotal": 250,
+    "grandTotal": 350,
     "orderStatus": "DELIVERED",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -2165,7 +2165,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-24T12:12:37.809Z",
-    "updatedAt": "2026-08-28T16:45:27.087Z"
+    "updatedAt": "2026-08-28T17:06:48.797Z"
   },
   {
     "id": "ORD-1166",
@@ -2467,7 +2467,7 @@
     "items": [
       {
         "productId": "vrg-pkm-1-moringa-plant",
-        "sku": "VRG-PKM-1-MO",
+        "sku": "VRG-PLANT-1",
         "name": "PKM 1 Moringa (Drumstick Tree)",
         "tamilName": "PKM 1 Moringa (Drumstick Tree)",
         "price": 30,
@@ -2476,10 +2476,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 390,
+    "subtotal": 30,
     "discount": 0,
     "shippingCharge": 140,
-    "grandTotal": 530,
+    "grandTotal": 170,
     "orderStatus": "PACKING",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -2491,7 +2491,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-23T19:01:21.718Z",
-    "updatedAt": "2026-08-28T16:45:26.996Z"
+    "updatedAt": "2026-08-28T17:06:48.983Z"
   },
   {
     "id": "ORD-1156",
@@ -2662,7 +2662,7 @@
     "items": [
       {
         "productId": "combo-1787127554276",
-        "sku": "CMB-17871275",
+        "sku": "VRG-PLANT-1",
         "name": "Mini beetroot guva",
         "tamilName": "Mini beetroot guva",
         "price": 100,
@@ -2672,7 +2672,7 @@
       },
       {
         "productId": "vrg-ramar-seetha-custard-apple",
-        "sku": "VRG-RAMAR-SE",
+        "sku": "VRG-PLANT-2",
         "name": "Ramar Seetha (Red Custard Apple)",
         "tamilName": "Ramar Seetha (Red Custard Apple)",
         "price": 40,
@@ -2682,7 +2682,7 @@
       },
       {
         "productId": "vrg-miracle-fruit-seedling",
-        "sku": "VRG-MIRACLE-",
+        "sku": "VRG-PLANT-3",
         "name": "Miracle Fruit Plant (Seedling)",
         "tamilName": "Miracle Fruit Plant (Seedling)",
         "price": 150,
@@ -2692,7 +2692,7 @@
       },
       {
         "productId": "vrg-peanut-butter-fruit-plant",
-        "sku": "VRG-PEANUT-B",
+        "sku": "VRG-PLANT-4",
         "name": "Peanut Butter Fruit Plant",
         "tamilName": "Peanut Butter Fruit Plant",
         "price": 140,
@@ -2701,10 +2701,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 100,
+    "subtotal": 430,
     "discount": 0,
     "shippingCharge": 220,
-    "grandTotal": 320,
+    "grandTotal": 650,
     "orderStatus": "DELIVERED",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -2716,7 +2716,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-23T14:50:33.382Z",
-    "updatedAt": "2026-08-28T16:45:26.958Z"
+    "updatedAt": "2026-08-28T17:06:49.169Z"
   },
   {
     "id": "ORD-1152",
@@ -2784,7 +2784,7 @@
     "items": [
       {
         "productId": "combo-1787321846424",
-        "sku": "CMB-17873218",
+        "sku": "VRG-PLANT-1",
         "name": "🌱🍎 WATER APPLE – 3 VARIETY COMBO OFFER! 🔥",
         "tamilName": "🌱🍎 WATER APPLE – 3 VARIETY COMBO OFFER! 🔥",
         "price": 300,
@@ -2794,7 +2794,7 @@
       },
       {
         "productId": "combo-1787127554276",
-        "sku": "CMB-17871275",
+        "sku": "VRG-PLANT-2",
         "name": "Mini beetroot guva",
         "tamilName": "Mini beetroot guva",
         "price": 100,
@@ -2803,10 +2803,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 0,
+    "subtotal": 400,
     "discount": 0,
     "shippingCharge": 80,
-    "grandTotal": 80,
+    "grandTotal": 480,
     "orderStatus": "DELIVERED",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -2818,7 +2818,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-23T09:30:35.043Z",
-    "updatedAt": "2026-08-28T16:45:30.918Z"
+    "updatedAt": "2026-08-28T17:06:49.355Z"
   },
   {
     "id": "ORD-1148",
@@ -3130,7 +3130,7 @@
     "items": [
       {
         "productId": "vrg-red-water-apple-plant",
-        "sku": "VRG-RED-WATE",
+        "sku": "VRG-PLANT-1",
         "name": "Red Water Apple Plant",
         "tamilName": "Red Water Apple Plant",
         "price": 90,
@@ -3139,10 +3139,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 400,
+    "subtotal": 90,
     "discount": 0,
     "shippingCharge": 140,
-    "grandTotal": 540,
+    "grandTotal": 230,
     "orderStatus": "DELIVERED",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -3154,7 +3154,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-23T04:47:43.983Z",
-    "updatedAt": "2026-08-28T16:45:26.681Z"
+    "updatedAt": "2026-08-28T17:06:49.541Z"
   },
   {
     "id": "ORD-1141",
@@ -3564,7 +3564,7 @@
     "items": [
       {
         "productId": "vrg-orchid-rose",
-        "sku": "VRG-ORCHID-R",
+        "sku": "VRG-PLANT-1",
         "name": "Orchid Rose (Free shipping)",
         "tamilName": "Orchid Rose (Free shipping)",
         "price": 150,
@@ -3574,7 +3574,7 @@
       },
       {
         "productId": "vrg-baby-romantica-creeper-rose",
-        "sku": "VRG-BABY-ROM",
+        "sku": "VRG-PLANT-2",
         "name": "Baby Romantica Creeper Rose",
         "tamilName": "Baby Romantica Creeper Rose",
         "price": 120,
@@ -3584,7 +3584,7 @@
       },
       {
         "productId": "vrg-margo-koster-pink-rose",
-        "sku": "VRG-MARGO-KO",
+        "sku": "VRG-PLANT-3",
         "name": "Margo Koster Pink Rose",
         "tamilName": "Margo Koster Pink Rose",
         "price": 120,
@@ -3594,7 +3594,7 @@
       },
       {
         "productId": "vrg-margo-koster-red-rose",
-        "sku": "VRG-MARGO-KO",
+        "sku": "VRG-PLANT-4",
         "name": "Margo Koster Red Rose",
         "tamilName": "Margo Koster Red Rose",
         "price": 120,
@@ -3604,7 +3604,7 @@
       },
       {
         "productId": "vrg-pink-fairy-polyantha-rose",
-        "sku": "VRG-PINK-FAI",
+        "sku": "VRG-PLANT-5",
         "name": "Pink Fairy Rose (Polyantha)",
         "tamilName": "Pink Fairy Rose (Polyantha)",
         "price": 100,
@@ -3613,10 +3613,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 490,
+    "subtotal": 610,
     "discount": 0,
     "shippingCharge": 300,
-    "grandTotal": 790,
+    "grandTotal": 910,
     "orderStatus": "DELIVERED",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -3628,7 +3628,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-22T13:58:28.771Z",
-    "updatedAt": "2026-08-28T16:45:29.256Z"
+    "updatedAt": "2026-08-28T17:06:49.724Z"
   },
   {
     "id": "ORD-1130",
@@ -3808,7 +3808,7 @@
     "items": [
       {
         "productId": "combo-1787127554276",
-        "sku": "CMB-17871275",
+        "sku": "VRG-PLANT-1",
         "name": "Mini beetroot guva",
         "tamilName": "Mini beetroot guva",
         "price": 100,
@@ -3818,7 +3818,7 @@
       },
       {
         "productId": "vrg-black-grapes-vine",
-        "sku": "VRG-BLACK-GR",
+        "sku": "VRG-PLANT-2",
         "name": "Grape (Live Plant)",
         "tamilName": "Grape (Live Plant)",
         "price": 30,
@@ -3828,7 +3828,7 @@
       },
       {
         "productId": "vrg-chamba-red-fruit",
-        "sku": "VRG-CHAMBA-R",
+        "sku": "VRG-PLANT-3",
         "name": "Chamba Red (Wax Apple)",
         "tamilName": "Chamba Red (Wax Apple)",
         "price": 100,
@@ -3837,10 +3837,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 100,
+    "subtotal": 230,
     "discount": 0,
     "shippingCharge": 120,
-    "grandTotal": 220,
+    "grandTotal": 350,
     "orderStatus": "DELIVERED",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -3852,7 +3852,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-22T10:18:15.672Z",
-    "updatedAt": "2026-08-28T16:45:26.405Z"
+    "updatedAt": "2026-08-28T17:06:49.911Z"
   },
   {
     "id": "ORD-1120",
@@ -4104,7 +4104,7 @@
     "items": [
       {
         "productId": "vrg-marikolunthu-davana",
-        "sku": "VRG-MARIKOLU",
+        "sku": "VRG-PLANT-1",
         "name": "Marikolunthu (Davana / Artemisia)",
         "tamilName": "Marikolunthu (Davana / Artemisia)",
         "price": 30,
@@ -4114,7 +4114,7 @@
       },
       {
         "productId": "combo-1786878791522",
-        "sku": "CMB-17868787",
+        "sku": "VRG-PLANT-2",
         "name": "Mysore malli or madars malli",
         "tamilName": "Mysore malli or madars malli",
         "price": 120,
@@ -4124,7 +4124,7 @@
       },
       {
         "productId": "vrg-panneer-pushpam-plant",
-        "sku": "VRG-PANNEER-",
+        "sku": "VRG-PLANT-3",
         "name": "Panneer Pushpam Plant",
         "tamilName": "Panneer Pushpam Plant",
         "price": 140,
@@ -4133,10 +4133,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 140,
+    "subtotal": 290,
     "discount": 0,
     "shippingCharge": 100,
-    "grandTotal": 240,
+    "grandTotal": 390,
     "orderStatus": "DELIVERED",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -4148,7 +4148,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-22T07:56:07.367Z",
-    "updatedAt": "2026-08-28T16:45:26.879Z"
+    "updatedAt": "2026-08-28T17:06:50.095Z"
   },
   {
     "id": "ORD-1113",
@@ -4216,7 +4216,7 @@
     "items": [
       {
         "productId": "vrg-chamba-red-fruit",
-        "sku": "VRG-CHAMBA-R",
+        "sku": "VRG-PLANT-1",
         "name": "Chamba Red (Wax Apple)",
         "tamilName": "Chamba Red (Wax Apple)",
         "price": 100,
@@ -4226,7 +4226,7 @@
       },
       {
         "productId": "combo-1787321846424",
-        "sku": "CMB-17873218",
+        "sku": "VRG-PLANT-2",
         "name": "🌱🍎 WATER APPLE – 3 VARIETY COMBO OFFER! 🔥",
         "tamilName": "🌱🍎 WATER APPLE – 3 VARIETY COMBO OFFER! 🔥",
         "price": 300,
@@ -4235,10 +4235,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 430,
+    "subtotal": 400,
     "discount": 0,
     "shippingCharge": 80,
-    "grandTotal": 510,
+    "grandTotal": 480,
     "orderStatus": "PACKING",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -4250,7 +4250,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-22T07:37:08.454Z",
-    "updatedAt": "2026-08-28T16:45:28.438Z"
+    "updatedAt": "2026-08-28T17:06:50.281Z"
   },
   {
     "id": "ORD-1109",
@@ -4456,7 +4456,7 @@
     "items": [
       {
         "productId": "vrg-white-water-apple-plant",
-        "sku": "VRG-WHITE-WA",
+        "sku": "VRG-PLANT-1",
         "name": "White Water Apple Plant",
         "tamilName": "White Water Apple Plant",
         "price": 90,
@@ -4466,7 +4466,7 @@
       },
       {
         "productId": "vrg-pkm-1-market-lemon",
-        "sku": "VRG-PKM-1-MA",
+        "sku": "VRG-PLANT-2",
         "name": "PKM 1 Market Lemon",
         "tamilName": "PKM 1 Market Lemon",
         "price": 90,
@@ -4476,7 +4476,7 @@
       },
       {
         "productId": "vrg-green-water-apple-plant",
-        "sku": "VRG-GREEN-WA",
+        "sku": "VRG-PLANT-3",
         "name": "Green Water Apple Plant",
         "tamilName": "Green Water Apple Plant",
         "price": 90,
@@ -4486,7 +4486,7 @@
       },
       {
         "productId": "vrg-mul-seetha-soursop-graviola",
-        "sku": "VRG-MUL-SEET",
+        "sku": "VRG-PLANT-4",
         "name": "Mul Seetha (Soursop / Graviola)",
         "tamilName": "Mul Seetha (Soursop / Graviola)",
         "price": 60,
@@ -4496,7 +4496,7 @@
       },
       {
         "productId": "vrg-kamala-orange-mandarin",
-        "sku": "VRG-KAMALA-O",
+        "sku": "VRG-PLANT-5",
         "name": "Kamala Orange (Mandarin Orange)",
         "tamilName": "Kamala Orange (Mandarin Orange)",
         "price": 100,
@@ -4506,7 +4506,7 @@
       },
       {
         "productId": "vrg-chamba-red-fruit",
-        "sku": "VRG-CHAMBA-R",
+        "sku": "VRG-PLANT-6",
         "name": "Chamba Red (Wax Apple)",
         "tamilName": "Chamba Red (Wax Apple)",
         "price": 100,
@@ -4516,7 +4516,7 @@
       },
       {
         "productId": "vrg-ramar-seetha-custard-apple",
-        "sku": "VRG-RAMAR-SE",
+        "sku": "VRG-PLANT-7",
         "name": "Ramar Seetha (Red Custard Apple)",
         "tamilName": "Ramar Seetha (Red Custard Apple)",
         "price": 40,
@@ -4525,10 +4525,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 390,
+    "subtotal": 570,
     "discount": 0,
     "shippingCharge": 200,
-    "grandTotal": 590,
+    "grandTotal": 770,
     "orderStatus": "DELIVERED",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -4540,7 +4540,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-22T06:00:40.285Z",
-    "updatedAt": "2026-08-28T16:45:25.973Z"
+    "updatedAt": "2026-08-28T17:06:50.466Z"
   },
   {
     "id": "ORD-1103",
@@ -4924,7 +4924,7 @@
     "items": [
       {
         "productId": "vrg-jadhi-malli-spanish-jasmine",
-        "sku": "VRG-JADHI-MA",
+        "sku": "VRG-PLANT-1",
         "name": "Jadhi Malli (Spanish / Royal Jasmine)",
         "tamilName": "Jadhi Malli (Spanish / Royal Jasmine)",
         "price": 30,
@@ -4934,7 +4934,7 @@
       },
       {
         "productId": "combo-1786968264680",
-        "sku": "CMB-17869682",
+        "sku": "VRG-PLANT-2",
         "name": "Fairy rose",
         "tamilName": "Fairy rose",
         "price": 200,
@@ -4944,7 +4944,7 @@
       },
       {
         "productId": "vrg-mint-thulasi-basil",
-        "sku": "VRG-MINT-THU",
+        "sku": "VRG-PLANT-3",
         "name": "Mint Thulasi (Mint Scented Basil)",
         "tamilName": "Mint Thulasi (Mint Scented Basil)",
         "price": 30,
@@ -4954,7 +4954,7 @@
       },
       {
         "productId": "vrg-vetrilai-betel-leaf-vine",
-        "sku": "VRG-VETRILAI",
+        "sku": "VRG-PLANT-4",
         "name": "Vetrilai (Betel Leaf Vine)",
         "tamilName": "Vetrilai (Betel Leaf Vine)",
         "price": 50,
@@ -4964,7 +4964,7 @@
       },
       {
         "productId": "combo-1786878791522",
-        "sku": "CMB-17868787",
+        "sku": "VRG-PLANT-5",
         "name": "Mysore malli or madars malli",
         "tamilName": "Mysore malli or madars malli",
         "price": 120,
@@ -4974,7 +4974,7 @@
       },
       {
         "productId": "vrg-button-pink-rose",
-        "sku": "VRG-BUTTON-P",
+        "sku": "VRG-PLANT-6",
         "name": "Button Pink Rose",
         "tamilName": "Button Pink Rose",
         "price": 80,
@@ -4983,10 +4983,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 400,
+    "subtotal": 510,
     "discount": 0,
     "shippingCharge": 120,
-    "grandTotal": 520,
+    "grandTotal": 645,
     "orderStatus": "PACKING",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -5000,7 +5000,7 @@
     "courierDistrict": "Salem",
     "courierBranch": "Salem Main Hub (Shevapet)",
     "createdAt": "2026-08-21T11:20:02.368Z",
-    "updatedAt": "2026-08-28T16:45:28.225Z"
+    "updatedAt": "2026-08-28T17:06:50.655Z"
   },
   {
     "id": "ORD-1095",
@@ -5115,7 +5115,7 @@
     "items": [
       {
         "productId": "vrg-pearl-orange-miniature-rose",
-        "sku": "VRG-PEARL-OR",
+        "sku": "VRG-PLANT-1",
         "name": "Pearl Orange Miniature Rose",
         "tamilName": "Pearl Orange Miniature Rose",
         "price": 80,
@@ -5125,7 +5125,7 @@
       },
       {
         "productId": "vrg-nagathali-snake-plant",
-        "sku": "VRG-NAGATHAL",
+        "sku": "VRG-PLANT-2",
         "name": "Nagathali (Snake Repellent Plant)",
         "tamilName": "Nagathali (Snake Repellent Plant)",
         "price": 30,
@@ -5135,7 +5135,7 @@
       },
       {
         "productId": "combo-1787127554276",
-        "sku": "CMB-17871275",
+        "sku": "VRG-PLANT-3",
         "name": "Mini beetroot guva",
         "tamilName": "Mini beetroot guva",
         "price": 100,
@@ -5145,7 +5145,7 @@
       },
       {
         "productId": "vrg-panneer-leaf-omavalli",
-        "sku": "VRG-PANNEER-",
+        "sku": "VRG-PLANT-4",
         "name": "Panneer Leaf (Omavalli / Mexican Mint)",
         "tamilName": "Panneer Leaf (Omavalli / Mexican Mint)",
         "price": 30,
@@ -5155,7 +5155,7 @@
       },
       {
         "productId": "vrg-aavaram-poo-tanners-cassia",
-        "sku": "VRG-AAVARAM-",
+        "sku": "VRG-PLANT-5",
         "name": "Aavaram Poo (Tanner's Cassia)",
         "tamilName": "Aavaram Poo (Tanner's Cassia)",
         "price": 50,
@@ -5164,10 +5164,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 100,
+    "subtotal": 290,
     "discount": 0,
     "shippingCharge": 260,
-    "grandTotal": 360,
+    "grandTotal": 550,
     "orderStatus": "DELIVERED",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -5180,7 +5180,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-21T06:32:53.863Z",
-    "updatedAt": "2026-08-28T16:45:28.518Z"
+    "updatedAt": "2026-08-28T17:06:50.841Z"
   },
   {
     "id": "ORD-1090",
@@ -5202,7 +5202,7 @@
     "items": [
       {
         "productId": "vrg-mul-seetha-soursop-graviola",
-        "sku": "VRG-MUL-SEET",
+        "sku": "VRG-PLANT-1",
         "name": "Mul Seetha (Soursop / Graviola)",
         "tamilName": "Mul Seetha (Soursop / Graviola)",
         "price": 60,
@@ -5212,7 +5212,7 @@
       },
       {
         "productId": "prod-1787052694949",
-        "sku": "VRG-17870526",
+        "sku": "VRG-PLANT-2",
         "name": "Mini beetroot guva",
         "tamilName": "Mini beetroot guva",
         "price": 100,
@@ -5221,10 +5221,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 360,
+    "subtotal": 160,
     "discount": 0,
     "shippingCharge": 120,
-    "grandTotal": 480,
+    "grandTotal": 280,
     "orderStatus": "PACKING",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -5236,7 +5236,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-21T06:20:55.167Z",
-    "updatedAt": "2026-08-28T16:45:30.525Z"
+    "updatedAt": "2026-08-28T17:06:51.027Z"
   },
   {
     "id": "ORD-1089",
@@ -5362,7 +5362,7 @@
     "items": [
       {
         "productId": "combo-1786878791522",
-        "sku": "CMB-17868787",
+        "sku": "VRG-PLANT-1",
         "name": "Mini beetroot guva",
         "tamilName": "Mini beetroot guva",
         "price": 87,
@@ -5371,10 +5371,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 174,
+    "subtotal": 87,
     "discount": 0,
     "shippingCharge": 0,
-    "grandTotal": 174,
+    "grandTotal": 102,
     "orderStatus": "PACKING",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -5388,7 +5388,7 @@
     "courierDistrict": "Salem",
     "courierBranch": "Salem Main Hub (Shevapet)",
     "createdAt": "2026-08-20T16:42:42.267Z",
-    "updatedAt": "2026-08-28T16:45:29.886Z"
+    "updatedAt": "2026-08-28T17:06:51.214Z"
   },
   {
     "id": "ORD-1085",
@@ -5410,7 +5410,7 @@
     "items": [
       {
         "productId": "combo-1786968264680",
-        "sku": "CMB-17869682",
+        "sku": "VRG-PLANT-1",
         "name": "Fairy rose",
         "tamilName": "Fairy rose",
         "price": 200,
@@ -5419,10 +5419,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 0,
+    "subtotal": 200,
     "discount": 0,
     "shippingCharge": 0,
-    "grandTotal": 0,
+    "grandTotal": 200,
     "orderStatus": "DELIVERED",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -5434,7 +5434,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-20T15:37:58.815Z",
-    "updatedAt": "2026-08-28T16:45:27.903Z"
+    "updatedAt": "2026-08-28T17:06:51.401Z"
   },
   {
     "id": "ORD-1083",
@@ -6550,8 +6550,8 @@
     },
     "items": [
       {
-        "productId": "prod-1787052694949",
-        "sku": "VRG-MINIBEET",
+        "productId": "combo-1786878791522",
+        "sku": "VRG-PLANT-1",
         "name": "Mini beetroot guva",
         "tamilName": "Mini beetroot guva",
         "price": 100,
@@ -6560,8 +6560,8 @@
         "image": "/products/double-delight.jpeg"
       },
       {
-        "productId": "vrg-kamala-orange-mandarin",
-        "sku": "VRG-KAMALAOR",
+        "productId": "combo-1786878791522",
+        "sku": "VRG-PLANT-2",
         "name": "Kamala Orange (Mandarin Orange)",
         "tamilName": "Kamala Orange (Mandarin Orange)",
         "price": 100,
@@ -6570,8 +6570,8 @@
         "image": "/products/double-delight.jpeg"
       },
       {
-        "productId": "vrg-egg-fruit-canistel-plant",
-        "sku": "VRG-EGGFRUIT",
+        "productId": "combo-1786878791522",
+        "sku": "VRG-PLANT-3",
         "name": "Egg Fruit Plant (Canistel)",
         "tamilName": "Egg Fruit Plant (Canistel)",
         "price": 150,
@@ -6580,8 +6580,8 @@
         "image": "/products/double-delight.jpeg"
       },
       {
-        "productId": "vrg-black-grapes-vine",
-        "sku": "VRG-GRAPELIV",
+        "productId": "combo-1786878791522",
+        "sku": "VRG-PLANT-4",
         "name": "Grape (Live Plant)",
         "tamilName": "Grape (Live Plant)",
         "price": 30,
@@ -6590,10 +6590,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 580,
+    "subtotal": 380,
     "discount": 0,
     "shippingCharge": 120,
-    "grandTotal": 700,
+    "grandTotal": 500,
     "orderStatus": "DELIVERED",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -6605,7 +6605,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-19T09:45:03.468Z",
-    "updatedAt": "2026-08-28T16:50:13.965Z"
+    "updatedAt": "2026-08-28T17:06:51.775Z"
   },
   {
     "id": "ORD-1054",
@@ -6625,7 +6625,7 @@
     "items": [
       {
         "productId": "combo-1786878791522",
-        "sku": "CMB-17868787",
+        "sku": "VRG-PLANT-1",
         "name": "Mysore Malli Jasmine Plant",
         "tamilName": "Mysore Malli Jasmine Plant",
         "price": 160,
@@ -6634,10 +6634,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 0,
+    "subtotal": 160,
     "discount": 0,
     "shippingCharge": 0,
-    "grandTotal": 0,
+    "grandTotal": 160,
     "orderStatus": "DELIVERED",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -6649,7 +6649,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-19T09:34:00.000Z",
-    "updatedAt": "2026-08-28T16:45:28.194Z"
+    "updatedAt": "2026-08-28T17:06:51.961Z"
   },
   {
     "id": "ORD-1053",
@@ -7040,8 +7040,8 @@
     },
     "items": [
       {
-        "productId": "vrg-kamala-orange-mandarin",
-        "sku": "VRG-KAMALAOR",
+        "productId": "combo-1786878791522",
+        "sku": "VRG-PLANT-1",
         "name": "Kamala Orange (Mandarin Orange)",
         "tamilName": "Kamala Orange (Mandarin Orange)",
         "price": 100,
@@ -7050,8 +7050,8 @@
         "image": "/products/double-delight.jpeg"
       },
       {
-        "productId": "vrg-pavazha-malli-coral-jasmine",
-        "sku": "VRG-PAVAZHAM",
+        "productId": "combo-1786878791522",
+        "sku": "VRG-PLANT-2",
         "name": "Pavazha Malli (Coral Jasmine / Parijat)",
         "tamilName": "Pavazha Malli (Coral Jasmine / Parijat)",
         "price": 40,
@@ -7060,10 +7060,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 340,
+    "subtotal": 140,
     "discount": 0,
     "shippingCharge": 80,
-    "grandTotal": 420,
+    "grandTotal": 220,
     "orderStatus": "DELIVERED",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -7075,7 +7075,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-19T06:25:29.044Z",
-    "updatedAt": "2026-08-28T16:50:19.812Z"
+    "updatedAt": "2026-08-28T17:06:52.148Z"
   },
   {
     "id": "ORD-1037",
@@ -7284,8 +7284,8 @@
     },
     "items": [
       {
-        "productId": "vrg-red-cascade-climber-rose",
-        "sku": "VRG-REDCASCA",
+        "productId": "combo-1786878791522",
+        "sku": "VRG-PLANT-1",
         "name": "Red Cascade Climber Rose",
         "tamilName": "Red Cascade Climber Rose",
         "price": 90,
@@ -7294,8 +7294,8 @@
         "image": "/products/double-delight.jpeg"
       },
       {
-        "productId": "vrg-pink-creeper-rose-bush",
-        "sku": "VRG-PINKCREE",
+        "productId": "combo-1786878791522",
+        "sku": "VRG-PLANT-2",
         "name": "Pink Creeper Rose",
         "tamilName": "Pink Creeper Rose",
         "price": 100,
@@ -7304,10 +7304,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 270,
+    "subtotal": 190,
     "discount": 0,
     "shippingCharge": 0,
-    "grandTotal": 270,
+    "grandTotal": 190,
     "orderStatus": "DELIVERED",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -7319,7 +7319,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-18T10:42:35.738Z",
-    "updatedAt": "2026-08-28T16:50:23.082Z"
+    "updatedAt": "2026-08-28T17:06:52.334Z"
   },
   {
     "id": "ORD-1025",
@@ -7338,8 +7338,8 @@
     },
     "items": [
       {
-        "productId": "vrg-ranakalli-miracle-leaf",
-        "sku": "VRG-RANAKALL",
+        "productId": "combo-1786878791522",
+        "sku": "VRG-PLANT-1",
         "name": "Ranakalli (Miracle Leaf / Katakataka)",
         "tamilName": "Ranakalli (Miracle Leaf / Katakataka)",
         "price": 50,
@@ -7348,10 +7348,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 180,
+    "subtotal": 100,
     "discount": 0,
     "shippingCharge": 0,
-    "grandTotal": 180,
+    "grandTotal": 100,
     "orderStatus": "DELIVERED",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -7363,7 +7363,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-18T06:33:36.313Z",
-    "updatedAt": "2026-08-28T16:50:23.909Z"
+    "updatedAt": "2026-08-28T17:06:52.521Z"
   },
   {
     "id": "ORD-1022",
@@ -7470,8 +7470,8 @@
     },
     "items": [
       {
-        "productId": "vrg-ramar-seetha-custard-apple",
-        "sku": "VRG-RAMARSEE",
+        "productId": "combo-1786878791522",
+        "sku": "VRG-PLANT-1",
         "name": "Ramar Seetha (Red Custard Apple)",
         "tamilName": "Ramar Seetha (Red Custard Apple)",
         "price": 40,
@@ -7480,8 +7480,8 @@
         "image": "/products/double-delight.jpeg"
       },
       {
-        "productId": "vrg-kalapadi-sapota-plant",
-        "sku": "VRG-KALAPADI",
+        "productId": "combo-1786878791522",
+        "sku": "VRG-PLANT-2",
         "name": "Kalapadi Sapota (Sweet Chiku)",
         "tamilName": "Kalapadi Sapota (Sweet Chiku)",
         "price": 90,
@@ -7490,8 +7490,8 @@
         "image": "/products/double-delight.jpeg"
       },
       {
-        "productId": "vrg-chamba-red-fruit",
-        "sku": "VRG-CHAMBARE",
+        "productId": "combo-1786878791522",
+        "sku": "VRG-PLANT-3",
         "name": "Chamba Red (Wax Apple)",
         "tamilName": "Chamba Red (Wax Apple)",
         "price": 100,
@@ -7500,10 +7500,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 330,
+    "subtotal": 230,
     "discount": 0,
     "shippingCharge": 0,
-    "grandTotal": 330,
+    "grandTotal": 230,
     "orderStatus": "DELIVERED",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -7515,7 +7515,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-17T06:07:45.515Z",
-    "updatedAt": "2026-08-28T16:50:26.366Z"
+    "updatedAt": "2026-08-28T17:06:52.709Z"
   },
   {
     "id": "ORD-1018",
@@ -7579,7 +7579,7 @@
     "items": [
       {
         "productId": "combo-1786878791522",
-        "sku": "VRG-MYSOREMA",
+        "sku": "VRG-PLANT-1",
         "name": "Mysore malli or madars malli",
         "tamilName": "Mysore malli or madars malli",
         "price": 120,
@@ -7588,8 +7588,8 @@
         "image": "/products/double-delight.jpeg"
       },
       {
-        "productId": "vrg-jadhi-malli-spanish-jasmine",
-        "sku": "VRG-JADHIMAL",
+        "productId": "combo-1786878791522",
+        "sku": "VRG-PLANT-2",
         "name": "Jadhi Malli (Spanish / Royal Jasmine)",
         "tamilName": "Jadhi Malli (Spanish / Royal Jasmine)",
         "price": 30,
@@ -7598,8 +7598,8 @@
         "image": "/products/double-delight.jpeg"
       },
       {
-        "productId": "vrg-raja-malli-10-layer-jasmine",
-        "sku": "VRG-RAJAMALL",
+        "productId": "combo-1786878791522",
+        "sku": "VRG-PLANT-3",
         "name": "Raja Malli (10 Layer Jasmine)",
         "tamilName": "Raja Malli (10 Layer Jasmine)",
         "price": 50,
@@ -7608,8 +7608,8 @@
         "image": "/products/double-delight.jpeg"
       },
       {
-        "productId": "vrg-naatu-paneer-rose",
-        "sku": "VRG-NAATUROS",
+        "productId": "combo-1786878791522",
+        "sku": "VRG-PLANT-4",
         "name": "Naatu Rose (Country Paneer Rose)",
         "tamilName": "Naatu Rose (Country Paneer Rose)",
         "price": 70,
@@ -7618,8 +7618,8 @@
         "image": "/products/double-delight.jpeg"
       },
       {
-        "productId": "vrg-apple-red-rose",
-        "sku": "VRG-APPLERED",
+        "productId": "combo-1786878791522",
+        "sku": "VRG-PLANT-5",
         "name": "Apple Red Rose",
         "tamilName": "Apple Red Rose",
         "price": 80,
@@ -7628,8 +7628,8 @@
         "image": "/products/double-delight.jpeg"
       },
       {
-        "productId": "vrg-orange-jadiga-rose",
-        "sku": "VRG-ORANGEJA",
+        "productId": "combo-1786878791522",
+        "sku": "VRG-PLANT-6",
         "name": "Orange Jadiga Rose",
         "tamilName": "Orange Jadiga Rose",
         "price": 80,
@@ -7638,8 +7638,8 @@
         "image": "/products/double-delight.jpeg"
       },
       {
-        "productId": "vrg-button-pink-rose",
-        "sku": "VRG-BUTTONPI",
+        "productId": "combo-1786878791522",
+        "sku": "VRG-PLANT-7",
         "name": "Button Pink Rose",
         "tamilName": "Button Pink Rose",
         "price": 80,
@@ -7648,8 +7648,8 @@
         "image": "/products/double-delight.jpeg"
       },
       {
-        "productId": "vrg-pink-creeper-rose-bush",
-        "sku": "VRG-PINKCREE",
+        "productId": "combo-1786878791522",
+        "sku": "VRG-PLANT-8",
         "name": "Pink Creeper Rose",
         "tamilName": "Pink Creeper Rose",
         "price": 100,
@@ -7658,8 +7658,8 @@
         "image": "/products/double-delight.jpeg"
       },
       {
-        "productId": "vrg-pachai-mullai-jasmine",
-        "sku": "VRG-PACHAIMU",
+        "productId": "combo-1786878791522",
+        "sku": "VRG-PLANT-9",
         "name": "Pachai Mullai (Green Jasmine)",
         "tamilName": "Pachai Mullai (Green Jasmine)",
         "price": 50,
@@ -7668,10 +7668,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 1100,
+    "subtotal": 860,
     "discount": 0,
     "shippingCharge": 0,
-    "grandTotal": 1100,
+    "grandTotal": 860,
     "orderStatus": "DELIVERED",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -7683,7 +7683,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-16T18:53:38.065Z",
-    "updatedAt": "2026-08-28T16:50:28.001Z"
+    "updatedAt": "2026-08-28T17:06:52.895Z"
   },
   {
     "id": "ORD-1011",
@@ -7702,8 +7702,8 @@
     },
     "items": [
       {
-        "productId": "vrg-pink-fairy-polyantha-rose",
-        "sku": "VRG-PINKFAIR",
+        "productId": "combo-1786878791522",
+        "sku": "VRG-PLANT-1",
         "name": "Pink Fairy Rose (Polyantha)",
         "tamilName": "Pink Fairy Rose (Polyantha)",
         "price": 100,
@@ -7712,8 +7712,8 @@
         "image": "/products/double-delight.jpeg"
       },
       {
-        "productId": "vrg-orchid-rose",
-        "sku": "VRG-ORCHIDRO",
+        "productId": "combo-1786878791522",
+        "sku": "VRG-PLANT-2",
         "name": "Orchid Rose (Free shipping)",
         "tamilName": "Orchid Rose (Free shipping)",
         "price": 150,
@@ -7722,8 +7722,8 @@
         "image": "/products/double-delight.jpeg"
       },
       {
-        "productId": "vrg-mini-eden-climbing-rose",
-        "sku": "VRG-MINIEDEN",
+        "productId": "combo-1786878791522",
+        "sku": "VRG-PLANT-3",
         "name": "Mini Eden Rose (Romantic Climber)",
         "tamilName": "Mini Eden Rose (Romantic Climber)",
         "price": 120,
@@ -7732,10 +7732,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 670,
+    "subtotal": 370,
     "discount": 0,
     "shippingCharge": 0,
-    "grandTotal": 670,
+    "grandTotal": 370,
     "orderStatus": "DELIVERED",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -7747,7 +7747,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-16T16:30:33.109Z",
-    "updatedAt": "2026-08-28T16:50:28.821Z"
+    "updatedAt": "2026-08-28T17:06:53.083Z"
   },
   {
     "id": "ORD-1010",
@@ -7810,8 +7810,8 @@
     },
     "items": [
       {
-        "productId": "combo-1786876625168",
-        "sku": "VRG-BIRTHDAY",
+        "productId": "combo-1786878791522",
+        "sku": "VRG-PLANT-1",
         "name": "Birthday Party Rose",
         "tamilName": "Birthday Party Rose",
         "price": 80,
@@ -7820,10 +7820,10 @@
         "image": "/products/double-delight.jpeg"
       }
     ],
-    "subtotal": 180,
+    "subtotal": 80,
     "discount": 0,
     "shippingCharge": 0,
-    "grandTotal": 180,
+    "grandTotal": 80,
     "orderStatus": "DELIVERED",
     "paymentStatus": "SUCCESS",
     "paymentMethod": "RAZORPAY",
@@ -7835,7 +7835,7 @@
     "packingOption": "STANDARD",
     "packingCharge": 0,
     "createdAt": "2026-08-16T12:16:45.342Z",
-    "updatedAt": "2026-08-28T16:50:29.682Z"
+    "updatedAt": "2026-08-28T17:06:53.269Z"
   },
   {
     "id": "ORD-1009",
