@@ -1,1 +1,98 @@
-[]
+[
+  {
+    "id": "combo-1787127554276",
+    "title": "Mini beetroot guva",
+    "badge": "Special Offer",
+    "comboPrice": 450,
+    "originalPrice": 600,
+    "discountPercent": 25,
+    "rating": 4.8,
+    "productIds": [],
+    "description": "Mini beetroot guva",
+    "isActive": true
+  },
+  {
+    "id": "combo-1786968264680",
+    "title": "Fairy rose",
+    "badge": "Special Offer",
+    "comboPrice": 450,
+    "originalPrice": 600,
+    "discountPercent": 25,
+    "rating": 4.8,
+    "productIds": [],
+    "description": "Fairy rose",
+    "isActive": true
+  },
+  {
+    "id": "combo-1786873534914",
+    "title": "Calcutta rose and apple Red rose",
+    "badge": "Special Offer",
+    "comboPrice": 450,
+    "originalPrice": 600,
+    "discountPercent": 25,
+    "rating": 4.8,
+    "productIds": [],
+    "description": "Calcutta rose and apple Red rose",
+    "isActive": true
+  },
+  {
+    "id": "combo-1786878791522",
+    "title": "Mysore malli or madars malli",
+    "badge": "Special Offer",
+    "comboPrice": 450,
+    "originalPrice": 600,
+    "discountPercent": 25,
+    "rating": 4.8,
+    "productIds": [],
+    "description": "Mysore malli or madars malli",
+    "isActive": true
+  },
+  {
+    "id": "combo-1786876625168",
+    "title": "Birthday Party Rose",
+    "badge": "Special Offer",
+    "comboPrice": 450,
+    "originalPrice": 600,
+    "discountPercent": 25,
+    "rating": 4.8,
+    "productIds": [],
+    "description": "Birthday Party Rose",
+    "isActive": true
+  },
+  {
+    "id": "combo-1787577752349",
+    "title": "🌱🍎 WATER APPLE – 3 VARIETY COMBO",
+    "badge": "Best Seller Combo",
+    "comboPrice": 300,
+    "originalPrice": 450,
+    "discountPercent": 25,
+    "rating": 4.9,
+    "productIds": [],
+    "description": "🌱🍎 WATER APPLE – 3 VARIETY COMBO - Special live plant combo pack",
+    "isActive": true
+  },
+  {
+    "id": "combo-1787321846424",
+    "title": "🌱🍎 WATER APPLE – 3 VARIETY COMBO OFFER! 🔥",
+    "badge": "Best Seller Combo",
+    "comboPrice": 300,
+    "originalPrice": 450,
+    "discountPercent": 25,
+    "rating": 4.9,
+    "productIds": [],
+    "description": "🌱🍎 WATER APPLE – 3 VARIETY COMBO OFFER! 🔥 - Special live plant combo pack",
+    "isActive": true
+  },
+  {
+    "id": "combo-1787635336437",
+    "title": "Mini beetroot guva",
+    "badge": "Best Seller Combo",
+    "comboPrice": 100,
+    "originalPrice": 250,
+    "discountPercent": 25,
+    "rating": 4.9,
+    "productIds": [],
+    "description": "Mini beetroot guva - Special live plant combo pack",
+    "isActive": true
+  }
+]
