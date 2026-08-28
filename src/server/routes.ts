@@ -55,9 +55,7 @@ export const invalidateBootstrapCache = () => {
 // ================= PRODUCT ROUTES =================
 apiRouter.get('/products', async (req, res) => {
   try {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
+    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
     const { category, categoryId, search, minPrice, maxPrice, featured, bestSeller, sort, sortBy } = req.query;
     const resolvedCat = (categoryId || category) ? String(categoryId || category) : undefined;
     const resolvedSort = (sortBy || sort) ? String(sortBy || sort) : undefined;
@@ -79,9 +77,7 @@ apiRouter.get('/products', async (req, res) => {
 
 apiRouter.get('/products/:id', async (req, res) => {
   try {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
+    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
     const product = await db.getProductById(req.params.id);
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found' });
@@ -158,9 +154,7 @@ apiRouter.post('/products/delete', requireAdmin, handleDeleteProductRoute);
 // ================= CATEGORY ROUTES =================
 apiRouter.get('/categories', async (req, res) => {
   try {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
+    res.setHeader('Cache-Control', 'public, max-age=120, s-maxage=600, stale-while-revalidate=1200');
     const { onlyFeatured, showAll } = req.query;
     const isFeaturedOnly = onlyFeatured === 'true';
     const isShowAll = showAll === 'true';
