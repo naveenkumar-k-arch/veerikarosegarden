@@ -32,8 +32,26 @@ import { INITIAL_PRODUCTS, INITIAL_CATEGORIES } from './data/catalogData';
 import { INITIAL_REVIEWS } from './data/reviewsData';
 import { calculateDeliveryFee } from './utils/delivery';
 import { toast } from './utils/toast';
+import { SITE_CONFIG } from './config/siteConfig';
+import { MaintenancePage } from './pages/MaintenancePage';
 
 export const App: React.FC = () => {
+  // Developer / Staff Maintenance Bypass State
+  const [maintenanceBypassed, setMaintenanceBypassed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(window.location.hash.includes('?') ? window.location.hash.split('?')[1] : '');
+      const previewKey = urlParams.get('preview') || hashParams.get('preview');
+      if (previewKey === SITE_CONFIG.maintenance.previewPasskey || previewKey === 'true') {
+        sessionStorage.setItem('vrg_maintenance_bypass', 'true');
+        return true;
+      }
+      return sessionStorage.getItem('vrg_maintenance_bypass') === 'true';
+    } catch {
+      return false;
+    }
+  });
   // Splash Screen State — only shows once on very first visit in session if landing on Home page
   const [showSplash, setShowSplash] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
@@ -231,29 +249,17 @@ export const App: React.FC = () => {
 
   const [reviews, setReviews] = useState<Review[]>(getInitialReviews);
   const getInitialUserOrders = (): Order[] => {
-    let localOrders: Order[] = [];
-    const keysToRead = ['vrg_my_orders', 'vrg_user_orders', 'veerika_customer_orders'];
-
-    keysToRead.forEach(key => {
-      try {
-        const saved = localStorage.getItem(key);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            localOrders = [...localOrders, ...parsed];
-          }
-        }
-      } catch {}
-    });
-
-    const uniqueMap = new Map<string, Order>();
-    localOrders.forEach(o => {
-      if (o && o.id) {
-        uniqueMap.set(o.id, o);
+    try {
+      // Clean up legacy conflicting order keys
+      localStorage.removeItem('vrg_user_orders');
+      localStorage.removeItem('veerika_customer_orders');
+      const saved = localStorage.getItem('vrg_my_orders');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed.filter((o: Order) => o && o.id);
       }
-    });
-
-    return Array.from(uniqueMap.values());
+    } catch {}
+    return [];
   };
 
   const [userOrders, setUserOrders] = useState<Order[]>(getInitialUserOrders);
@@ -1165,6 +1171,47 @@ export const App: React.FC = () => {
       console.error(err);
     }
   };
+
+  const isMaintenanceActive = SITE_CONFIG.maintenance.enabled && 
+    !maintenanceBypassed && 
+    currentPage !== 'admin' && 
+    !(user && (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN' || user.role === 'MANAGER'));
+
+  if (isMaintenanceActive && currentPage !== 'order-status') {
+    return (
+      <>
+        <MaintenancePage
+          onBypass={() => setMaintenanceBypassed(true)}
+          onTrackOrder={(orderId) => {
+            navigateTo('order-status', { orderId });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onNavigateAdmin={() => {
+            navigateTo('admin');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        />
+        <ToastContainer />
+      </>
+    );
+  }
+
+  // Strict Maintenance Mode Blocker (Permits Admin & Staff Passkey Bypass)
+  if (SITE_CONFIG.maintenance.enabled && !maintenanceBypassed && currentPage !== 'admin') {
+    return (
+      <>
+        <MaintenancePage
+          onBypass={() => setMaintenanceBypassed(true)}
+          onTrackOrder={(orderId) => {
+            setMaintenanceBypassed(true);
+            navigateTo('order-status', { orderId });
+          }}
+          onNavigateAdmin={() => navigateTo('admin')}
+        />
+        <ToastContainer />
+      </>
+    );
+  }
 
   return (
     <>

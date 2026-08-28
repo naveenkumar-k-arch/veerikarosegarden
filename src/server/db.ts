@@ -7096,7 +7096,8 @@ class Store {
           potCharge: order.potCharge || 0,
           courierName: order.courierName || null,
           courierDistrict: order.courierDistrict || null,
-          courierBranch: order.courierBranch || null
+          courierBranch: order.courierBranch || null,
+          itemsSnapshot: order.items
         });
 
         // 1 single batch query to check existing products
@@ -7247,26 +7248,7 @@ class Store {
             ...parseShippingAddress(o.shippingAddress)
           };
 
-          const itemsSnapshot: OrderItemSnapshot[] = o.items.map(i => {
-            const rawId = (i.productId || 'PLANT').trim();
-            const isComboItem = rawId.toLowerCase().startsWith('combo-') || rawId.toLowerCase().startsWith('vrg-combo-');
-            const cleanSku = isComboItem
-              ? `CMB-${rawId.replace(/^combo-|^vrg-combo-/i, '').slice(0, 8).toUpperCase()}`
-              : `VRG-${rawId.replace(/^vrg-|^prod-/i, '').slice(0, 8).toUpperCase()}`;
-
-            return {
-              productId: i.productId,
-              sku: cleanSku,
-              name: i.productName || 'Nursery Plant',
-              tamilName: i.productName || 'நார்சரி செடி',
-              price: i.price,
-              mrp: i.price,
-              quantity: i.quantity,
-              image: '/products/double-delight.jpeg'
-            };
-          });
-
-          // Unpack paymentProofUrl, transactionId, packing and courier options from notes
+          // Unpack paymentProofUrl, transactionId, packing and courier options, and itemsSnapshot from notes
           const notesStr = (o as any).notes || '';
           let unpackedProofUrl: string | undefined = undefined;
           let unpackedTxnId: string | undefined = undefined;
@@ -7277,6 +7259,7 @@ class Store {
           let unpackedCourierDistrict: string | undefined = undefined;
           let unpackedCourierBranch: string | undefined = undefined;
           let parsedCourierFromNotes: string | undefined = undefined;
+          let unpackedItemsSnapshot: OrderItemSnapshot[] | undefined = undefined;
 
           if (notesStr.startsWith('{') && notesStr.endsWith('}')) {
             try {
@@ -7290,6 +7273,9 @@ class Store {
               if (pNotes.courierName) parsedCourierFromNotes = pNotes.courierName;
               if (pNotes.courierDistrict) unpackedCourierDistrict = pNotes.courierDistrict;
               if (pNotes.courierBranch) unpackedCourierBranch = pNotes.courierBranch;
+              if (pNotes.itemsSnapshot && Array.isArray(pNotes.itemsSnapshot) && pNotes.itemsSnapshot.length > 0) {
+                unpackedItemsSnapshot = pNotes.itemsSnapshot;
+              }
             } catch {}
           } else if (notesStr.includes('|||PROOF|||')) {
             const proofMatch = notesStr.split('|||PROOF|||')[1]?.split('|||TXNID|||')[0];
@@ -7300,6 +7286,27 @@ class Store {
             const txnMatch = notesStr.split('|||TXNID|||')[1];
             if (txnMatch) unpackedTxnId = txnMatch.trim();
           }
+
+          const itemsSnapshot: OrderItemSnapshot[] = (unpackedItemsSnapshot && unpackedItemsSnapshot.length > 0)
+            ? unpackedItemsSnapshot
+            : o.items.map(i => {
+                const rawId = (i.productId || 'PLANT').trim();
+                const isComboItem = rawId.toLowerCase().startsWith('combo-') || rawId.toLowerCase().startsWith('vrg-combo-');
+                const cleanSku = isComboItem
+                  ? `CMB-${rawId.replace(/^combo-|^vrg-combo-/i, '').slice(0, 8).toUpperCase()}`
+                  : `VRG-${rawId.replace(/^vrg-|^prod-/i, '').slice(0, 8).toUpperCase()}`;
+
+                return {
+                  productId: i.productId,
+                  sku: cleanSku,
+                  name: i.productName || 'Nursery Plant',
+                  tamilName: i.productName || 'நார்சரி செடி',
+                  price: i.price,
+                  mrp: i.price,
+                  quantity: i.quantity,
+                  image: '/products/double-delight.jpeg'
+                };
+              });
 
           const rawTracking = (o as any).trackingNumber || '';
           let parsedCourier: string | undefined = parsedCourierFromNotes;
@@ -7398,48 +7405,55 @@ class Store {
       }).catch(() => {});
     }
 
-    // Helper: order stage progression weight (0: PENDING, 1: CONFIRMED, 2: PACKING, 3: DISPATCHED, 4: DELIVERED)
-    const getStageWeight = (s?: string | null): number => {
-      const st = String(s || '').toUpperCase().trim();
-      if (st === 'DELIVERED' || st === 'COMPLETED') return 4;
-      if (st === 'DISPATCHED' || st === 'OUT_FOR_DELIVERY' || st === 'SHIPPED' || st === 'COURIER' || st === 'IN_TRANSIT') return 3;
-      if (st === 'PACKING' || st === 'PACKED' || st === 'PROCESSING') return 2;
-      if (st === 'CONFIRMED' || st === 'PAID') return 1;
-      return 0;
-    };
-
-    // Priority order: in-memory updated orders first, then global buffer, database, disk/bundled, firestore, defaults
-    // CRITICAL: dbOrders are always authoritative - we mark them so they never get overwritten by disk/defaults
+    // Strict priority & immutability:
+    // Live dbOrders from Neon PostgreSQL are authoritative and must NEVER have items mutated by disk/seed
     const deletedOrderIds = loadDiskDeletedOrders();
-    const dbOrderIds = new Set(dbOrders.map(o => o.id).filter(Boolean));
-    const allCombined = [...this.memoryOrders, ...gBuffer, ...dbOrders, ...diskOrders, ...fsOrders, ...defOrders];
     const uniqueMap = new Map<string, Order>();
-    allCombined.forEach(o => {
+
+    // 1. Insert authoritative dbOrders first
+    dbOrders.forEach(o => {
+      if (o && o.id && !deletedOrderIds.has(o.id) && !deletedOrderIds.has(o.merchantTransactionId || '')) {
+        uniqueMap.set(o.id, o);
+      }
+    });
+
+    // 2. Insert fresh in-memory orders (only update dynamic status/tracking if already in DB, or add if new)
+    [...this.memoryOrders, ...gBuffer].forEach(o => {
       if (o && o.id && !deletedOrderIds.has(o.id) && !deletedOrderIds.has(o.merchantTransactionId || '')) {
         const existing = uniqueMap.get(o.id);
         if (!existing) {
           uniqueMap.set(o.id, o);
         } else {
-          // Compare updatedAt timestamps to pick the fresher record
+          // If in DB, preserve DB items and total, only update live dynamic status if memory is fresher
           const existingTime = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
           const incomingTime = o.updatedAt ? new Date(o.updatedAt).getTime() : 0;
-          const fresher = incomingTime >= existingTime ? o : existing;
-          const older = incomingTime >= existingTime ? existing : o;
-
-          uniqueMap.set(o.id, {
-            ...older,
-            ...fresher,
-            orderStatus: fresher.orderStatus || older.orderStatus,
-            paymentStatus: (fresher.paymentStatus === 'SUCCESS' || older.paymentStatus === 'SUCCESS') ? 'SUCCESS' : (fresher.paymentStatus || older.paymentStatus),
-            paymentMethod: (fresher.paymentMethod === 'RAZORPAY' || older.paymentMethod === 'RAZORPAY') ? 'RAZORPAY' : (fresher.paymentMethod || older.paymentMethod),
-            trackingNumber: fresher.trackingNumber || older.trackingNumber,
-            courierName: fresher.courierName || older.courierName,
-            paymentProofUrl: fresher.paymentProofUrl || older.paymentProofUrl,
-            deliveryNotes: fresher.deliveryNotes || (older as any).deliveryNotes
-          });
+          if (incomingTime >= existingTime) {
+            uniqueMap.set(o.id, {
+              ...existing,
+              orderStatus: o.orderStatus || existing.orderStatus,
+              paymentStatus: (o.paymentStatus === 'SUCCESS' || existing.paymentStatus === 'SUCCESS') ? 'SUCCESS' : (o.paymentStatus || existing.paymentStatus),
+              trackingNumber: o.trackingNumber || existing.trackingNumber,
+              courierName: o.courierName || existing.courierName,
+              paymentProofUrl: o.paymentProofUrl || existing.paymentProofUrl,
+              deliveryNotes: o.deliveryNotes || (existing as any).deliveryNotes,
+              updatedAt: o.updatedAt || existing.updatedAt
+            });
+          }
         }
       }
     });
+
+    // 3. Fallback diskOrders & fsOrders ONLY when DB has 0 orders, or for unique non-colliding legacy orders
+    if (dbOrders.length === 0) {
+      [...diskOrders, ...fsOrders, ...defOrders].forEach(o => {
+        if (o && o.id && !deletedOrderIds.has(o.id) && !deletedOrderIds.has(o.merchantTransactionId || '')) {
+          if (!uniqueMap.has(o.id)) {
+            uniqueMap.set(o.id, o);
+          }
+        }
+      });
+    }
+
     const result = Array.from(uniqueMap.values()).filter(o => {
       if (!o || !o.id || deletedOrderIds.has(o.id) || deletedOrderIds.has(o.merchantTransactionId)) {
         return false;
@@ -7490,7 +7504,8 @@ class Store {
           courierDistrict: order.courierDistrict,
           courierBranch: order.courierBranch,
           txnId: order.transactionId || order.merchantTransactionId || '',
-          proof: order.paymentProofUrl
+          proof: order.paymentProofUrl,
+          itemsSnapshot: order.items
         };
 
         const existingInDb = await prisma.order.findUnique({
@@ -7636,25 +7651,6 @@ class Store {
         ...parseShippingAddress(o.shippingAddress)
       };
 
-      const itemsSnapshot: OrderItemSnapshot[] = o.items.map(i => {
-        const rawId = (i.productId || 'PLANT').trim();
-        const isComboItem = rawId.toLowerCase().startsWith('combo-') || rawId.toLowerCase().startsWith('vrg-combo-');
-        const cleanSku = i.product?.sku || (isComboItem
-          ? `CMB-${rawId.replace(/^combo-|^vrg-combo-/i, '').slice(0, 8).toUpperCase()}`
-          : `VRG-${rawId.replace(/^vrg-|^prod-/i, '').slice(0, 8).toUpperCase()}`);
-
-        return {
-          productId: i.productId,
-          sku: cleanSku,
-          name: i.productName || i.product?.name || 'Nursery Plant',
-          tamilName: i.product?.nameTamil || i.productName || 'நார்சரி செடி',
-          price: i.price,
-          mrp: i.product?.originalPrice || i.price,
-          quantity: i.quantity,
-          image: i.product?.image || '/products/double-delight.jpeg'
-        };
-      });
-
       // Unpack notes
       const notesStr = (o as any).notes || '';
       let unpackedProofUrl: string | undefined = undefined;
@@ -7666,6 +7662,7 @@ class Store {
       let unpackedCourierDistrict: string | undefined = undefined;
       let unpackedCourierBranch: string | undefined = undefined;
       let parsedCourierFromNotes: string | undefined = undefined;
+      let unpackedItemsSnapshot: OrderItemSnapshot[] | undefined = undefined;
 
       if (notesStr.startsWith('{') && notesStr.endsWith('}')) {
         try {
@@ -7679,6 +7676,9 @@ class Store {
           if (pNotes.courierName) parsedCourierFromNotes = pNotes.courierName;
           if (pNotes.courierDistrict) unpackedCourierDistrict = pNotes.courierDistrict;
           if (pNotes.courierBranch) unpackedCourierBranch = pNotes.courierBranch;
+          if (pNotes.itemsSnapshot && Array.isArray(pNotes.itemsSnapshot) && pNotes.itemsSnapshot.length > 0) {
+            unpackedItemsSnapshot = pNotes.itemsSnapshot;
+          }
         } catch {}
       } else if (notesStr.includes('|||PROOF|||')) {
         const proofMatch = notesStr.split('|||PROOF|||')[1]?.split('|||TXNID|||')[0];
@@ -7689,6 +7689,27 @@ class Store {
         const txnMatch = notesStr.split('|||TXNID|||')[1];
         if (txnMatch) unpackedTxnId = txnMatch.trim();
       }
+
+      const itemsSnapshot: OrderItemSnapshot[] = (unpackedItemsSnapshot && unpackedItemsSnapshot.length > 0)
+        ? unpackedItemsSnapshot
+        : o.items.map(i => {
+            const rawId = (i.productId || 'PLANT').trim();
+            const isComboItem = rawId.toLowerCase().startsWith('combo-') || rawId.toLowerCase().startsWith('vrg-combo-');
+            const cleanSku = (isComboItem
+              ? `CMB-${rawId.replace(/^combo-|^vrg-combo-/i, '').slice(0, 8).toUpperCase()}`
+              : `VRG-${rawId.replace(/^vrg-|^prod-/i, '').slice(0, 8).toUpperCase()}`);
+
+            return {
+              productId: i.productId,
+              sku: cleanSku,
+              name: i.productName || 'Nursery Plant',
+              tamilName: i.productName || 'நார்சரி செடி',
+              price: i.price,
+              mrp: i.price,
+              quantity: i.quantity,
+              image: '/products/double-delight.jpeg'
+            };
+          });
 
       const rawTracking = (o as any).trackingNumber || '';
       let parsedCourier: string | undefined = parsedCourierFromNotes;
@@ -8003,7 +8024,10 @@ class Store {
             status: toPrismaOrderStatus(order.orderStatus) as any,
             paymentStatus: order.paymentStatus === 'SUCCESS' ? 'SUCCESS' : 'PENDING',
             paymentMethod: (order.paymentMethod === 'COD' ? 'COD' : order.paymentMethod === 'PHONEPE' ? 'PHONEPE' : 'UPI') as any,
-            notes: order.notes || '',
+            notes: JSON.stringify({
+              note: order.notes || '',
+              itemsSnapshot: items
+            }),
             trackingNumber: order.trackingNumber || null,
             items: {
               create: items.map(it => ({
@@ -8129,7 +8153,8 @@ class Store {
           potCharge: updatedOrder.potCharge || 0,
           courierName: updatedOrder.courierName || null,
           courierDistrict: updatedOrder.courierDistrict || null,
-          courierBranch: updatedOrder.courierBranch || null
+          courierBranch: updatedOrder.courierBranch || null,
+          itemsSnapshot: updatedItems
         });
 
         await prisma.order.updateMany({

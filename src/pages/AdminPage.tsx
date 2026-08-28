@@ -1853,12 +1853,20 @@ const silentRefresh = async (): Promise<boolean> => {
       return;
     }
 
-    // Parse the pasteable plants text
+    // Parse the pasteable plants text (Strict newline splitting ONLY)
     const rawPlantsText = (whatsAppOrderForm.plantsText || '').trim();
     let parsedItems: any[] = [];
 
-    if (rawPlantsText) {
-      const lines = rawPlantsText.split(/[\n,;]+/).map(l => l.trim()).filter(Boolean);
+    const originalPlantsText = (editingOrder?.items && editingOrder.items.length > 0)
+      ? editingOrder.items.map(it => `${(it.quantity && it.quantity > 1) ? it.quantity + 'x ' : ''}${it.name || (it as any).productName || 'Plant'}`).join('\n').trim()
+      : '';
+
+    // If editing existing order and plantsText was unchanged, keep authentic existing items snapshot!
+    if (editingOrder && editingOrder.items && editingOrder.items.length > 0 && rawPlantsText === originalPlantsText) {
+      parsedItems = editingOrder.items;
+    } else if (rawPlantsText) {
+      // Split STRICTLY on newlines (\n) - NEVER split on commas or semicolons!
+      const lines = rawPlantsText.split(/\r?\n+/).map(l => l.trim()).filter(Boolean);
       parsedItems = lines.map((line, idx) => {
         let cleanName = line.replace(/^\d+[\.\)\-]\s*/, '').trim();
         let qty = 1;
@@ -1871,7 +1879,9 @@ const silentRefresh = async (): Promise<boolean> => {
           productId: `custom-wa-${Date.now()}-${idx}`,
           sku: `WA-${idx + 1}`,
           name: cleanName || `Ordered Plant ${idx + 1}`,
+          tamilName: cleanName || `நர்சரி செடி ${idx + 1}`,
           price: Number(whatsAppOrderForm.grandTotal || 0) / (lines.length || 1),
+          mrp: Number(whatsAppOrderForm.grandTotal || 0) / (lines.length || 1),
           quantity: qty,
           image: '/products/double-delight.jpeg'
         };
@@ -1883,7 +1893,9 @@ const silentRefresh = async (): Promise<boolean> => {
         productId: `custom-wa-${Date.now()}-0`,
         sku: 'WA-1',
         name: 'Ordered Plants (WhatsApp / Offline)',
+        tamilName: 'நர்சரி செடிகள்',
         price: Number(whatsAppOrderForm.grandTotal || 0),
+        mrp: Number(whatsAppOrderForm.grandTotal || 0),
         quantity: 1,
         image: '/products/double-delight.jpeg'
       }];

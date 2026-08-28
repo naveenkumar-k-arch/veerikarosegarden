@@ -92,15 +92,12 @@ async function startServer() {
     });
   });
 
-  // Dynamic robots.txt endpoint
+  // Dynamic robots.txt endpoint (Maintenance lockdown mode)
   app.get('/robots.txt', (req, res) => {
     res.type('text/plain');
     res.send(`User-agent: *
-Allow: /
-Disallow: /admin
-Disallow: /api/
-
-Sitemap: ${req.protocol}://${req.get('host')}/sitemap.xml`);
+Disallow: /
+`);
   });
 
   // Dynamic sitemap.xml endpoint

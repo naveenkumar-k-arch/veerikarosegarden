@@ -16,7 +16,7 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
   const getInitialOrder = (): Order | null => {
     try {
       const cleanTarget = (orderId || '').toLowerCase().trim();
-      const keys = ['vrg_my_orders', 'vrg_orders', 'veerika_customer_orders', 'veerika_admin_orders'];
+      const keys = ['vrg_my_orders', 'vrg_orders'];
       for (const k of keys) {
         const raw = localStorage.getItem(k);
         if (raw) {
@@ -48,11 +48,23 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
       const data = await res.json();
       if (data.success && data.order) {
         setOrder(data.order);
+        try {
+          const raw = localStorage.getItem('vrg_my_orders');
+          const list = raw ? JSON.parse(raw) : [];
+          if (Array.isArray(list)) {
+            const idx = list.findIndex((o: any) => o.id === data.order.id || o.merchantTransactionId === data.order.merchantTransactionId);
+            if (idx >= 0) {
+              list[idx] = data.order;
+            } else {
+              list.unshift(data.order);
+            }
+            localStorage.setItem('vrg_my_orders', JSON.stringify(list));
+          }
+        } catch {}
       } else if (res.status === 404 || (data && !data.success)) {
         setOrder(null);
         // Clear from local caches
-        const keys = ['vrg_my_orders', 'vrg_orders', 'veerika_customer_orders', 'veerika_admin_orders'];
-        keys.forEach(k => {
+        ['vrg_my_orders', 'vrg_orders'].forEach(k => {
           try {
             const raw = localStorage.getItem(k);
             if (raw) {
