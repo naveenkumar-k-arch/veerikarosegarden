@@ -39,7 +39,7 @@ apiRouter.get('/health', async (req, res) => {
     status: 'ok',
     service: 'Veerika Rose Garden E-Commerce API',
     databaseConnected: prismaConnected,
-    databaseEngine: prismaConnected ? 'Neon PostgreSQL (Prisma ORM)' : 'Database Unavailable',
+    databaseEngine: prismaConnected ? 'Supabase PostgreSQL (Prisma ORM)' : 'Database Inactive',
     environment: process.env.NODE_ENV || 'development',
     timestamp: new Date().toISOString()
   });
