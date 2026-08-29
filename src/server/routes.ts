@@ -3,6 +3,8 @@ import { db } from './db.js';
 import { PhonePeService } from './phonepe.js';
 import { RazorpayService } from './razorpay.js';
 import { authRouter } from './routes/authRoutes.js';
+import { whatsappRouter, triggerOrderStageWhatsApp } from './routes/whatsappRoutes.js';
+import { getOrderStage } from '../utils/orderStages.js';
 import {
   parseAuthUser,
   requireAuth,
@@ -29,8 +31,9 @@ apiRouter.use(express.json({ limit: '15mb' }));
 apiRouter.use(express.urlencoded({ extended: true, limit: '15mb' }));
 apiRouter.use(parseAuthUser);
 
-// Mount Production Auth Router
+// Mount Production Auth & WhatsApp Routers
 apiRouter.use('/auth', authRouter);
+apiRouter.use('/whatsapp', whatsappRouter);
 
 // ================= HEALTH CHECK =================
 apiRouter.get('/health', async (req, res) => {
@@ -1454,6 +1457,16 @@ apiRouter.put('/admin/orders/:id/status', requireAdmin, async (req: Authenticate
     const { orderStatus, trackingNumber, courierName, paymentStatus, paymentProofUrl, deliveryNotes } = req.body;
     const order = await db.updateOrderStatus(req.params.id, orderStatus, trackingNumber, courierName, paymentStatus, paymentProofUrl, deliveryNotes);
     invalidateBootstrapCache();
+
+    // Trigger WhatsApp notification for this order stage asynchronously
+    if (order && orderStatus) {
+      const stage = getOrderStage(orderStatus);
+      triggerOrderStageWhatsApp(order, stage, {
+        courierName: courierName || order.courierName,
+        trackingNumber: trackingNumber || order.trackingNumber
+      }).catch(err => console.warn('[WhatsApp auto-trigger error]:', err?.message));
+    }
+
     res.json({ success: true, order, message: 'Order status updated successfully' });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });

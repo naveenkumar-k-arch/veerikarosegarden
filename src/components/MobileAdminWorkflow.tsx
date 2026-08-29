@@ -68,6 +68,7 @@ import {
   ClipboardList
 } from 'lucide-react';
 import { A4LabelSheetPrint } from './A4LabelSheetPrint';
+import { WhatsAppAutomationHub } from './WhatsAppAutomationHub';
 
 export interface MobileAdminWorkflowProps {
   orders: Order[];
@@ -124,6 +125,7 @@ export type ScreenType =
   | 'settings'
   | 'audit'
   | 'customers'
+  | 'whatsapp_automation'
   | 'menu_drawer';
 
 export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
@@ -1851,13 +1853,13 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => navigateScreen('orders_list', null, false, 'all', 'whatsapp')}
+                  onClick={() => navigateScreen('whatsapp_automation')}
                   className="admin-quick-action-btn flex flex-col items-center gap-1.5 cursor-pointer group"
                 >
-                  <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center group-hover:bg-blue-100 group-active:scale-95 transition-all shadow-2xs">
-                    <ClipboardList className="w-5 h-5 text-blue-600" />
+                  <div className="w-12 h-12 rounded-2xl bg-[#E7FFDB] border border-emerald-200 flex items-center justify-center group-hover:bg-emerald-100 group-active:scale-95 transition-all shadow-2xs text-[#25D366]">
+                    <QrCode className="w-5 h-5 text-emerald-800" />
                   </div>
-                  <span className="text-[10px] font-bold text-slate-700 text-center leading-tight">Offline<br/>Order</span>
+                  <span className="text-[10px] font-bold text-emerald-950 text-center leading-tight">Auto WA<br/>QR Link</span>
                 </button>
                 <button
                   onClick={() => navigateScreen('products')}
@@ -1886,6 +1888,30 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                   </div>
                   <span className="text-[10px] font-bold text-slate-700 text-center leading-tight">Sales<br/>Report</span>
                 </button>
+              </div>
+            </div>
+
+            {/* WhatsApp 4-Stage Automation Status Card on Dashboard */}
+            <div
+              onClick={() => navigateScreen('whatsapp_automation')}
+              className="bg-gradient-to-r from-emerald-950 via-emerald-900 to-teal-950 text-white p-3.5 rounded-3xl shadow-xs border border-emerald-700/50 flex items-center justify-between cursor-pointer group hover:shadow-md transition-all active:scale-[0.99]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-[#25D366] text-white flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+                  <QrCode className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-black tracking-tight">WhatsApp 4-Stage Automation</span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                  </div>
+                  <p className="text-[10px] text-emerald-200 font-medium mt-0.5">
+                    QR Linked • Auto-sends on Confirmed, Packing, Dispatched & Delivered
+                  </p>
+                </div>
+              </div>
+              <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-white group-hover:bg-white/20 transition-colors">
+                <ChevronRight className="w-4 h-4" />
               </div>
             </div>
 
@@ -6067,6 +6093,13 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
           </div>
         )}
 
+        {/* ========================================================= */}
+        {/* WHATSAPP AUTOMATION & QR CODE HUB SCREEN                  */}
+        {/* ========================================================= */}
+        {currentScreen === 'whatsapp_automation' && (
+          <WhatsAppAutomationHub onClose={() => handleGoBack('dashboard')} />
+        )}
+
       </main>
 
       {/* ========================================================= */}
@@ -6185,6 +6218,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               )}
 
               {[
+                { screen: 'whatsapp_automation', label: '📲 WhatsApp 4-Stage Automation (QR)', icon: <QrCode className="w-4 h-4 text-[#25D366]" /> },
                 { screen: 'generate_labels', label: `🖨️ Dispatch Label Sheets (A4)`, icon: <Printer className="w-4 h-4 text-emerald-700" /> },
                 { screen: 'products', label: `🌿 Products Catalog (${products.length})`, icon: <Package className="w-4 h-4 text-emerald-700" /> },
                 { screen: 'combos', label: `🎁 Plant Combos & Offers (${combos.length})`, icon: <Sparkles className="w-4 h-4 text-amber-500" /> },
