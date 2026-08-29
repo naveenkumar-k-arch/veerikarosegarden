@@ -88,3 +88,40 @@ export function sanitizePdfText(text: string | null | undefined, fallback = ''):
 
   return str || fallback;
 }
+
+/**
+ * Sanitizes plant names for dispatch labels, explicitly stripping any
+ * botanical/scientific names in parentheses or brackets (e.g. `(Rosa damascena)`),
+ * "Scientific Name:" prefixes, and non-printable characters.
+ */
+export function cleanPlantLabelName(rawName: string | null | undefined, fallback = 'Rose Plant Sapling'): string {
+  if (!rawName) return fallback;
+  let name = String(rawName);
+
+  // 1. Remove "Scientific Name: ..." or "Botanical Name: ..."
+  name = name.replace(/(scientific|botanical)\s*name\s*[:\-]?\s*[^,;()]+/gi, '');
+
+  // 2. Remove botanical genus/species in parentheses or brackets e.g. "(Rosa damascena)", "(Rosa indica)", etc.
+  name = name.replace(/\s*\([a-z\s.\-]{3,40}\)/gi, (match) => {
+    const lower = match.toLowerCase();
+    if (/rosa|jasmin|hibisc|plumer|adeni|bougain|ficus|dracaen|sansev|chrysanth|ixora|murraya|tabernae|allamanda|nerium/i.test(lower)) {
+      return '';
+    }
+    if (/^\s*\([A-Z][a-z]+\s+[a-z]+(\s+[a-z]+)?\)$/.test(match.trim())) {
+      return '';
+    }
+    return match;
+  });
+
+  // 3. Remove standalone scientific names if present
+  name = name.replace(/\b(Rosa|Hibiscus|Jasminum|Adenium|Plumeria|Bougainvillea|Ficus)\s+[a-z]+(\s+[a-z]+)?\b/gi, (match) => {
+    // If the whole string is just the scientific name, keep it sanitized, otherwise strip if alongside common name
+    if (match.trim() === name.trim()) return match;
+    return '';
+  });
+
+  // 4. Sanitize with standard PDF sanitizer
+  const sanitized = sanitizePdfText(name, fallback);
+  return sanitized;
+}
+

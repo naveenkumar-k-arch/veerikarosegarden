@@ -1,6 +1,6 @@
 import * as jspdfPkg from 'jspdf';
 import { Order } from '../../types.js';
-import { sanitizePdfText } from '../../utils/textSanitizer.js';
+import { sanitizePdfText, cleanPlantLabelName } from '../../utils/textSanitizer.js';
 
 const jsPDFClass: any = (jspdfPkg as any).jsPDF || (jspdfPkg as any).default || jspdfPkg;
 
@@ -338,7 +338,7 @@ export function generateDispatchLabelsPdf(
           // Check if there is enough space for another item or if we should print the overflow summary
           if (!isLast && itemY + (itemLineHeight * 2) + itemSpacing > itemBoxY + itemBoxH - 3.5) {
             // Print current item (1 line)
-            const cleanItemName = sanitizePdfText(item.name, 'Nursery Plant Sapling');
+            const cleanItemName = cleanPlantLabelName(item.name, 'Rose Plant Sapling');
             const itemText = `${cleanItemName}${item.quantity > 1 ? ` (${item.quantity})` : ''}`;
             const splitItem = pdf.splitTextToSize(itemText, itemBoxW - 4);
             pdf.text(splitItem[0] || itemText, itemBoxX + 2.5, itemY);
@@ -354,7 +354,7 @@ export function generateDispatchLabelsPdf(
           }
 
           if (itemY <= itemBoxY + itemBoxH - 3) {
-            const cleanItemName = sanitizePdfText(item.name, 'Nursery Plant Sapling');
+            const cleanItemName = cleanPlantLabelName(item.name, 'Rose Plant Sapling');
             const itemText = `${cleanItemName}${item.quantity > 1 ? ` (${item.quantity})` : ''}`;
             const splitItem = pdf.splitTextToSize(itemText, itemBoxW - 4);
             const maxLines = itemCount > 8 ? 1 : 2;
@@ -364,7 +364,7 @@ export function generateDispatchLabelsPdf(
           }
         }
       } else {
-        pdf.text('Nursery Plant Sapling', itemBoxX + 2.5, itemY);
+        pdf.text('Rose Plant Sapling', itemBoxX + 2.5, itemY);
       }
     });
   });

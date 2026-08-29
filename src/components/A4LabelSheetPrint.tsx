@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Order } from '../types';
 import { Sprout, Printer, ArrowLeft, Download, Loader2, CheckCircle2 } from 'lucide-react';
 import * as jspdfPkg from 'jspdf';
-import { sanitizePdfText } from '../utils/textSanitizer';
+import { sanitizePdfText, cleanPlantLabelName } from '../utils/textSanitizer';
 
 const jsPDFClass: any = (jspdfPkg as any).jsPDF || (jspdfPkg as any).default || jspdfPkg;
 
@@ -371,7 +371,7 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
               // Check if there is enough space for another item or if we should print the overflow summary
               if (!isLast && itemY + (itemLineHeight * 2) + itemSpacing > itemBoxY + itemBoxH - 3.5) {
                 // Print current item (1 line)
-                const cleanItemName = sanitizePdfText(item.name, 'Nursery Plant Sapling');
+                const cleanItemName = cleanPlantLabelName(item.name, 'Rose Plant Sapling');
                 const itemText = `${cleanItemName}${item.quantity > 1 ? ` (${item.quantity})` : ''}`;
                 const splitItem = pdf.splitTextToSize(itemText, itemBoxW - 4);
                 pdf.text(splitItem[0] || itemText, itemBoxX + 2.5, itemY);
@@ -387,7 +387,7 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
               }
 
               if (itemY <= itemBoxY + itemBoxH - 3) {
-                const cleanItemName = sanitizePdfText(item.name, 'Nursery Plant Sapling');
+                const cleanItemName = cleanPlantLabelName(item.name, 'Rose Plant Sapling');
                 const itemText = `${cleanItemName}${item.quantity > 1 ? ` (${item.quantity})` : ''}`;
                 const splitItem = pdf.splitTextToSize(itemText, itemBoxW - 4);
                 const maxLines = itemCount > 8 ? 1 : 2;
@@ -397,7 +397,7 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
               }
             }
           } else {
-            pdf.text('Nursery Plant Sapling', itemBoxX + 2.5, itemY);
+            pdf.text('Rose Plant Sapling', itemBoxX + 2.5, itemY);
           }
         });
       });
@@ -632,7 +632,7 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
                               <>
                                 {displayItems.map((item, idx) => (
                                   <p key={idx} className="truncate">
-                                    • {item.name}{item.quantity > 1 ? ` (${item.quantity})` : ''}
+                                    • {cleanPlantLabelName(item.name, 'Rose Plant')}{item.quantity > 1 ? ` (${item.quantity})` : ''}
                                   </p>
                                 ))}
                                 {remaining > 0 && (
@@ -642,7 +642,7 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
                                 )}
                               </>
                             ) : (
-                              <p>Nursery Plant Sapling</p>
+                              <p>Rose Plant Sapling</p>
                             )}
                           </div>
                         );
