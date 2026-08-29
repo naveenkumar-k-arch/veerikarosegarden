@@ -1643,28 +1643,30 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
           <div className="space-y-4 animate-in fade-in duration-150 relative pb-6">
 
             {/* ─── 1. Sales Summary Card ─── */}
-            <div className="admin-sales-card bg-gradient-to-br from-[#14532d] via-[#166534] to-[#15803d] text-white p-5 rounded-3xl shadow-lg relative overflow-hidden">
+            <div className="admin-sales-card bg-gradient-to-br from-[#14532d] via-[#166534] to-[#15803d] text-white p-5 rounded-3xl shadow-lg relative">
               {/* Decorative SVG curve line with glowing dot matching screenshot */}
-              <svg className="absolute right-3 top-8 w-48 h-24 pointer-events-none" viewBox="0 0 200 90" fill="none">
-                <path
-                  d="M0 65 Q 40 60, 70 45 T 120 40 T 170 15 T 195 12"
-                  stroke="rgba(255,255,255,0.4)"
-                  strokeWidth="2.5"
-                  fill="none"
-                />
-                <path
-                  d="M0 65 Q 40 60, 70 45 T 120 40 T 170 15 T 195 12 L 195 90 L 0 90 Z"
-                  fill="url(#greenGradient)"
-                  opacity="0.25"
-                />
-                <defs>
-                  <linearGradient id="greenGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#ffffff" stopOpacity="0.4"/>
-                    <stop offset="100%" stopColor="#ffffff" stopOpacity="0"/>
-                  </linearGradient>
-                </defs>
-                <circle cx="195" cy="12" r="4" fill="#ffffff" filter="drop-shadow(0 0 4px rgba(255,255,255,0.9))" />
-              </svg>
+              <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
+                <svg className="absolute right-3 top-8 w-48 h-24 pointer-events-none" viewBox="0 0 200 90" fill="none">
+                  <path
+                    d="M0 65 Q 40 60, 70 45 T 120 40 T 170 15 T 195 12"
+                    stroke="rgba(255,255,255,0.4)"
+                    strokeWidth="2.5"
+                    fill="none"
+                  />
+                  <path
+                    d="M0 65 Q 40 60, 70 45 T 120 40 T 170 15 T 195 12 L 195 90 L 0 90 Z"
+                    fill="url(#greenGradient)"
+                    opacity="0.25"
+                  />
+                  <defs>
+                    <linearGradient id="greenGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#ffffff" stopOpacity="0.4"/>
+                      <stop offset="100%" stopColor="#ffffff" stopOpacity="0"/>
+                    </linearGradient>
+                  </defs>
+                  <circle cx="195" cy="12" r="4" fill="#ffffff" filter="drop-shadow(0 0 4px rgba(255,255,255,0.9))" />
+                </svg>
+              </div>
               
               <div className="flex items-center justify-between relative z-10">
                 <span className="text-[11px] font-bold text-emerald-200 uppercase tracking-wider">
@@ -1672,24 +1674,54 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 </span>
                 <div className="relative">
                   <button
-                    onClick={() => setShowSalesPeriodDropdown(!showSalesPeriodDropdown)}
-                    className="text-[11px] bg-emerald-800/80 hover:bg-emerald-800 px-3 py-1 rounded-full font-bold flex items-center gap-1.5 cursor-pointer transition-colors border border-emerald-700/50"
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setShowSalesPeriodDropdown(prev => !prev);
+                    }}
+                    className="text-[11px] bg-emerald-800/90 hover:bg-emerald-800 active:scale-95 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5 cursor-pointer transition-all border border-emerald-600/60 shadow-xs"
                   >
                     <span>{salesPeriod === 'this_month' ? 'This Month' : salesPeriod === 'last_month' ? 'Last Month' : salesPeriod === 'this_week' ? 'This Week' : 'All Time'}</span>
                     <ChevronDown className="w-3.5 h-3.5 opacity-80" />
                   </button>
+                  
                   {showSalesPeriodDropdown && (
-                    <div className="absolute right-0 top-8 bg-white text-slate-800 rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 min-w-[140px]">
-                      {([['this_week', 'This Week'], ['this_month', 'This Month'], ['last_month', 'Last Month'], ['all_time', 'All Time']] as const).map(([key, label]) => (
-                        <button
-                          key={key}
-                          onClick={() => { setSalesPeriod(key); setShowSalesPeriodDropdown(false); }}
-                          className={`w-full text-left px-3.5 py-2 text-xs font-semibold hover:bg-emerald-50 transition-colors cursor-pointer ${salesPeriod === key ? 'text-emerald-700 bg-emerald-50 font-bold' : 'text-slate-700'}`}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
+                    <>
+                      {/* Click-away backdrop overlay */}
+                      <div
+                        className="fixed inset-0 z-40 bg-transparent"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowSalesPeriodDropdown(false);
+                        }}
+                      />
+                      <div className="absolute right-0 top-full mt-1.5 bg-white text-slate-800 rounded-2xl shadow-2xl border border-slate-200 py-1 z-50 min-w-[150px] overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                        {([['this_week', 'This Week'], ['this_month', 'This Month'], ['last_month', 'Last Month'], ['all_time', 'All Time']] as const).map(([key, label]) => {
+                          const isSelected = salesPeriod === key;
+                          return (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setSalesPeriod(key);
+                                setShowSalesPeriodDropdown(false);
+                              }}
+                              className={`w-full text-left px-3.5 py-2.5 text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer active:bg-emerald-100 ${
+                                isSelected
+                                  ? 'text-emerald-800 bg-emerald-50 font-bold'
+                                  : 'text-slate-700 hover:bg-slate-50'
+                              }`}
+                            >
+                              <span>{label}</span>
+                              {isSelected && <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
                   )}
                 </div>
               </div>

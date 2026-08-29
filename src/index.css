@@ -1352,6 +1352,7 @@ body {
   height: 100%;
   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
   animation: admin-card-shine 4s ease-in-out infinite;
+  pointer-events: none;
 }
 
 @keyframes admin-card-shine {
