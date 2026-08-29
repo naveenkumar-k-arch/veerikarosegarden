@@ -6193,6 +6193,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               )}
 
               {[
+                { screen: 'generate_labels', label: `🖨️ Dispatch Label Sheets (A4)`, icon: <Printer className="w-4 h-4 text-emerald-700" /> },
                 { screen: 'products', label: `🌿 Products Catalog (${products.length})`, icon: <Package className="w-4 h-4 text-emerald-700" /> },
                 { screen: 'combos', label: `🎁 Plant Combos & Offers (${combos.length})`, icon: <Sparkles className="w-4 h-4 text-amber-500" /> },
                 { screen: 'categories', label: `📁 Categories (${categories.length})`, icon: <FolderTree className="w-4 h-4 text-emerald-700" /> },

@@ -301,23 +301,68 @@ export function generateDispatchLabelsPdf(
       pdf.setLineWidth(0.3);
       pdf.rect(itemBoxX, itemBoxY, itemBoxW, itemBoxH, 'S');
 
-      // Plants List
-      let itemY = itemBoxY + 5.2;
+      // Plants List with Dynamic Adaptive Sizing for 10+ Items
+      const totalPlantCount = order.items?.reduce((sum, i) => sum + (i.quantity || 1), 0) || 0;
+      const itemCount = order.items?.length || 0;
+
+      let itemFontSize = 11;
+      let itemLineHeight = 4.2;
+      let itemSpacing = 1.2;
+
+      if (itemCount > 12) {
+        itemFontSize = 7.2;
+        itemLineHeight = 2.8;
+        itemSpacing = 0.6;
+      } else if (itemCount > 8) {
+        itemFontSize = 8.2;
+        itemLineHeight = 3.2;
+        itemSpacing = 0.8;
+      } else if (itemCount > 5) {
+        itemFontSize = 9.5;
+        itemLineHeight = 3.6;
+        itemSpacing = 1.0;
+      }
+
       pdf.setTextColor(0, 0, 0);
       pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(11);
+      pdf.setFontSize(itemFontSize);
+
+      let itemY = itemBoxY + (itemFontSize > 9 ? 5.0 : 4.2);
 
       if (order.items && order.items.length > 0) {
-        order.items.forEach((item) => {
-          if (itemY <= itemBoxY + itemBoxH - 4) {
+        for (let i = 0; i < order.items.length; i++) {
+          const item = order.items[i];
+          const isLast = i === order.items.length - 1;
+          const remainingAfterThis = order.items.length - (i + 1);
+
+          // Check if there is enough space for another item or if we should print the overflow summary
+          if (!isLast && itemY + (itemLineHeight * 2) + itemSpacing > itemBoxY + itemBoxH - 3.5) {
+            // Print current item (1 line)
             const cleanItemName = sanitizePdfText(item.name, 'Nursery Plant Sapling');
             const itemText = `${cleanItemName}${item.quantity > 1 ? ` (${item.quantity})` : ''}`;
             const splitItem = pdf.splitTextToSize(itemText, itemBoxW - 4);
-            const linesToPrint = splitItem.slice(0, 2);
-            pdf.text(linesToPrint, itemBoxX + 2.5, itemY);
-            itemY += (linesToPrint.length * 4.4) + 1.5;
+            pdf.text(splitItem[0] || itemText, itemBoxX + 2.5, itemY);
+            itemY += itemLineHeight + itemSpacing;
+
+            // Print summary tag for remaining items
+            if (remainingAfterThis > 0 && itemY <= itemBoxY + itemBoxH - 2.5) {
+              pdf.setFont('helvetica', 'bold');
+              pdf.setFontSize(Math.max(itemFontSize - 0.5, 7.0));
+              pdf.text(`+ ${remainingAfterThis} more (${totalPlantCount} Total Plants)`, itemBoxX + 2.5, itemY);
+            }
+            break;
           }
-        });
+
+          if (itemY <= itemBoxY + itemBoxH - 3) {
+            const cleanItemName = sanitizePdfText(item.name, 'Nursery Plant Sapling');
+            const itemText = `${cleanItemName}${item.quantity > 1 ? ` (${item.quantity})` : ''}`;
+            const splitItem = pdf.splitTextToSize(itemText, itemBoxW - 4);
+            const maxLines = itemCount > 8 ? 1 : 2;
+            const linesToPrint = splitItem.slice(0, maxLines);
+            pdf.text(linesToPrint, itemBoxX + 2.5, itemY);
+            itemY += (linesToPrint.length * itemLineHeight) + itemSpacing;
+          }
+        }
       } else {
         pdf.text('Nursery Plant Sapling', itemBoxX + 2.5, itemY);
       }
