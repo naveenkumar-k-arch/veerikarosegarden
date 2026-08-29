@@ -1,3 +1,5 @@
+import { parseFullAddress } from './addressUtils';
+
 export type OrderStage = 'confirmed' | 'packing' | 'dispatched' | 'delivered';
 
 /**
@@ -137,40 +139,23 @@ export function generateOrderWhatsAppMessage(
   }
 ): string {
   const stage = stageInput || getOrderStage(order.orderStatus);
-  const customerName = order.customerName || order.shippingAddress?.fullName || 'Valued Customer';
-  const origin = extra?.origin || (typeof window !== 'undefined' ? window.location.origin : 'https://veerikarosegarden.com');
+  const parsedAddr = parseFullAddress(order.shippingAddress, order.customerName, order.customerPhone);
+  const customerName = parsedAddr.fullName || order.customerName || 'Valued Customer';
+  const origin = extra?.origin || (typeof window !== 'undefined' ? window.location.origin : 'https://www.vrgnursery.in');
   const trackingUrl = `${origin}/#/order-status/${order.id}`;
 
   if (stage === 'confirmed') {
-    const rawAddr = order.shippingAddress;
-    let addressStr = 'N/A';
-    let pincodeStr = 'N/A';
-    let phoneStr = order.customerPhone || 'N/A';
-
-    if (rawAddr) {
-      if (typeof rawAddr === 'string') {
-        addressStr = rawAddr;
-      } else {
-        const parts = [
-          rawAddr.addressLine1,
-          rawAddr.addressLine2,
-          rawAddr.city,
-          rawAddr.district,
-          rawAddr.state
-        ].filter(Boolean);
-        addressStr = parts.join(', ') || rawAddr.address || 'N/A';
-        pincodeStr = rawAddr.pincode || rawAddr.postalCode || 'N/A';
-        if (rawAddr.phone && phoneStr === 'N/A') {
-          phoneStr = rawAddr.phone;
-        }
-      }
-    }
+    const addressStr = parsedAddr.fullAddressString || 'N/A';
+    const pincodeStr = parsedAddr.pincode || 'N/A';
+    const phoneStr = parsedAddr.phone || order.customerPhone || 'N/A';
+    const altPhone = parsedAddr.alternatePhone;
+    const fullPhoneDisplay = altPhone && altPhone !== phoneStr ? `${phoneStr} (Alt: ${altPhone})` : phoneStr;
 
     const itemsSummary = order.items && order.items.length > 0
       ? order.items.map((it: any) => `${it.name || it.title || 'Plant'} (Qty: ${it.quantity || 1})`).join(', ')
       : 'Live Plants & Saplings';
 
-    const rawOpt = (order.serviceType || order.deliveryOption || order.potOption || rawAddr?.deliveryOption || '').toString().toUpperCase();
+    const rawOpt = (order.serviceType || order.deliveryOption || order.potOption || (typeof order.shippingAddress === 'object' ? order.shippingAddress?.deliveryOption : '') || '').toString().toUpperCase();
     let serviceTypeStr = 'Full Soil / Ready Soil / Matured Parcel Service';
     if (rawOpt.includes('6INCH')) serviceTypeStr = 'Full Soil (6 Inch Pot)';
     else if (rawOpt.includes('8INCH')) serviceTypeStr = 'Full Soil (8 Inch Pot)';
@@ -183,9 +168,11 @@ export function generateOrderWhatsAppMessage(
       ``,
       `ORDER CONFIRMATION`,
       ``,
+      `Customer Name: ${customerName}`,
+      ``,
       `Address: ${addressStr}`,
       ``,
-      `Phone Number: ${phoneStr}`,
+      `Phone Number: ${fullPhoneDisplay}`,
       ``,
       `Pincode: ${pincodeStr}`,
       ``,
@@ -214,7 +201,7 @@ export function generateOrderWhatsAppMessage(
 
   if (stage === 'packing') {
     return [
-      `🌹 veerika ROSE COTTON 🌹`,
+      `🌹 VEERIKA ROSE GARDEN 🌹`,
       ``,
       `📦 PACKING UPDATE`,
       ``,
@@ -224,17 +211,21 @@ export function generateOrderWhatsAppMessage(
       ``,
       `📍 Dispatch Update: We will share the dispatch confirmation and Tracking ID once your order has been dispatched.`,
       ``,
-      `Thank you for your order! ❤️`
+      `Thank you for your order! ❤️`,
+      ``,
+      `🌹 VEERIKA ROSE GARDEN 🌹`
     ].join('\n');
   }
 
   if (stage === 'dispatched') {
     const awb = extra?.trackingNumber || order.trackingNumber || 'Shared upon courier scan';
+    const courierPartner = extra?.courierName || order.courierName || 'Professional Courier';
     return [
       `🌹 VEERIKA ROSE GARDEN 🌹`,
       ``,
       `📦 ORDER DISPATCHED / ஆர்டர் அனுப்பப்பட்டது`,
       ``,
+      `🚚 Courier Partner / கூரியர்: ${courierPartner}`,
       `🔎 Tracking ID / டிராக்கிங் ஐடி: ${awb}`,
       ``,
       `🔗 Track Your Order / ஆர்டரை Track செய்ய:`,
@@ -246,11 +237,11 @@ export function generateOrderWhatsAppMessage(
       `You can track your parcel using the above Tracking ID through the tracking link.`,
       `மேலே கொடுக்கப்பட்டுள்ள Tracking ID மற்றும் Tracking Link மூலம் உங்கள் Parcel-ஐ Track செய்யலாம்.`,
       ``,
-      `📦 Professional Courier – General Reminder / பொதுவான நினைவூட்டல்:`,
+      `📦 ${courierPartner} – General Reminder / பொதுவான நினைவூட்டல்:`,
       ``,
-      `⚠️ If you don't receive the parcel within 2 working days, please contact your nearby Professional Courier office or check the tracking website.`,
+      `⚠️ If you don't receive the parcel within 2 working days, please contact your nearby ${courierPartner} office or check the tracking website.`,
       ``,
-      `⚠️ உங்களுடைய Parcel 2 வேலை நாட்களுக்குள் கிடைக்கவில்லை என்றால், அருகில் உள்ள Professional Courier Office-ஐ அணுகவும் அல்லது Tracking Website-ல் Check செய்யவும்.`,
+      `⚠️ உங்களுடைய Parcel 2 வேலை நாட்களுக்குள் கிடைக்கவில்லை என்றால், அருகில் உள்ள ${courierPartner} Office-ஐ அணுகவும் அல்லது Tracking Website-ல் Check செய்யவும்.`,
       ``,
       `📹 UNBOXING VIDEO MUST`,
       `📹 Parcel-ஐ Open செய்யும்போது Unboxing Video கட்டாயம் எடுக்கவும்.`,

@@ -1656,10 +1656,11 @@ const silentRefresh = async (): Promise<boolean> => {
     } catch {}
   };
 
-  // Send WhatsApp Customer Alert (Strict 7-line message)
+  // Send WhatsApp Customer Alert (Strict notification template)
   const handleSendWhatsAppUpdate = (o: Order) => {
-    const phoneClean = (o.customerPhone || '').replace(/[^0-9]/g, '');
-    const targetPhone = phoneClean.length === 10 ? '91' + phoneClean : phoneClean;
+    const rawPhone = o.customerPhone || (typeof o.shippingAddress === 'object' ? o.shippingAddress?.phone : '') || '';
+    const phoneClean = rawPhone.replace(/[^0-9]/g, '');
+    const targetPhone = phoneClean.length === 10 ? '91' + phoneClean : (phoneClean.startsWith('91') ? phoneClean : `91${phoneClean}`);
     const stage = getOrderStage(o.orderStatus);
     const msg = generateOrderWhatsAppMessage(o, stage);
     window.open(`https://wa.me/${targetPhone}?text=${encodeURIComponent(msg)}`, '_blank');

@@ -3,6 +3,7 @@ import { Order, Product, Category, Review, Coupon, Banner, Combo, FinancialEntry
 import { processLocalImageFile, processMultipleImageFiles } from '../utils/imageUpload';
 import { toast } from '../utils/toast';
 import { getOrderStage, STAGE_CONFIG, OrderStage, generateOrderWhatsAppMessage, isWhatsAppOrder } from '../utils/orderStages';
+import { parseFullAddress, formatAddress as formatFullAddress } from '../utils/addressUtils';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import {
   Sprout,
@@ -1155,18 +1156,9 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
     }
   };
 
-  const formatAddress = (address: any) => {
+  const formatAddress = (address: any, fallbackName = '', fallbackPhone = '') => {
     if (!address) return 'No delivery address recorded';
-    if (typeof address === 'string') return address;
-    const parts = [
-      address.houseNo,
-      address.street,
-      address.villageTown,
-      address.district,
-      address.state,
-      address.pincode
-    ].filter(Boolean);
-    return parts.length > 0 ? parts.join(', ') : 'Address not specified';
+    return formatFullAddress(address, fallbackName, fallbackPhone);
   };
 
   // WhatsApp Message Generator (Strict 7-line template for each stage)
@@ -7155,8 +7147,17 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               </button>
             </div>
 
-            <div className="bg-[#E7FFDB] p-3.5 rounded-2xl border border-[#d2f3be] text-xs font-sans text-slate-800 whitespace-pre-wrap max-h-60 overflow-y-auto leading-relaxed shadow-inner">
-              {whatsAppModal.message}
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-slate-700 flex items-center justify-between">
+                <span>Message Preview (Editable)</span>
+                <span className="text-[10px] text-emerald-700 font-semibold">✨ Full Address Included</span>
+              </label>
+              <textarea
+                rows={11}
+                value={whatsAppModal.message}
+                onChange={e => setWhatsAppModal({ ...whatsAppModal, message: e.target.value })}
+                className="w-full bg-[#E7FFDB] p-3 rounded-2xl border border-[#bbf0a2] text-xs font-sans text-slate-900 leading-relaxed shadow-inner focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium resize-none"
+              />
             </div>
 
             <div className="space-y-2">
