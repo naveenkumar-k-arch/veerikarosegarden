@@ -1,14 +1,15 @@
 import { Router, Request, Response } from 'express';
 import { generateOrderWhatsAppMessage, getOrderStage } from '../../utils/orderStages.js';
+import {
+  initWhatsAppSocket,
+  getWhatsAppSessionInfo,
+  sendWhatsAppFromLinkedDevice,
+  disconnectWhatsAppDevice
+} from '../whatsappClient.js';
 
 export const whatsappRouter = Router();
 
 export interface WhatsAppConfig {
-  provider: 'DIRECT_LINK' | 'ULTRAMSG' | 'EVOLUTION' | 'GREEN_API' | 'META_CLOUD';
-  instanceId?: string;
-  apiToken?: string;
-  apiEndpoint?: string;
-  senderPhone?: string;
   autoSendConfirmed: boolean;
   autoSendPacking: boolean;
   autoSendDispatched: boolean;
@@ -17,8 +18,6 @@ export interface WhatsAppConfig {
 }
 
 let config: WhatsAppConfig = {
-  provider: 'DIRECT_LINK',
-  senderPhone: '917200826129',
   autoSendConfirmed: true,
   autoSendPacking: true,
   autoSendDispatched: true,
@@ -33,102 +32,93 @@ interface DispatchLog {
   stage: string;
   recipientPhone: string;
   status: 'SUCCESS' | 'FAILED';
-  provider: string;
+  senderPhone?: string;
   error?: string;
 }
 
 const logs: DispatchLog[] = [];
 
 /**
- * Dispatch message via connected Gateway API
+ * GET /api/whatsapp/status
+ * Returns real live multi-device session status, linked phone, and QR code
  */
-async function dispatchViaGateway(phone: string, text: string): Promise<{ success: boolean; error?: string }> {
+whatsappRouter.get('/status', async (_req: Request, res: Response) => {
   try {
-    const cleanPhone = phone.replace(/[^0-9]/g, '');
-    const to = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+    const session = getWhatsAppSessionInfo();
 
-    if (config.provider === 'ULTRAMSG' && config.instanceId && config.apiToken) {
-      const url = `https://api.ultramsg.com/${config.instanceId}/messages/chat`;
-      const params = new URLSearchParams();
-      params.append('token', config.apiToken);
-      params.append('to', to);
-      params.append('body', text);
-
-      const resp = await fetch(url, { method: 'POST', body: params });
-      const resData = await resp.json().catch(() => ({}));
-      if (resData.sent === 'true' || resData.id) return { success: true };
-      return { success: false, error: resData.error || resData.message || 'UltraMsg delivery failed' };
-    }
-
-    if (config.provider === 'EVOLUTION' && config.apiEndpoint && config.instanceId && config.apiToken) {
-      const endpoint = `${config.apiEndpoint.replace(/\/+$/, '')}/message/sendText/${config.instanceId}`;
-      const resp = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': config.apiToken
-        },
-        body: JSON.stringify({
-          number: to,
-          text: text,
-          options: { delay: 1200, presence: 'composing' }
-        })
-      });
-      if (resp.ok) return { success: true };
-      return { success: false, error: `Evolution API returned ${resp.status}` };
-    }
-
-    if (config.provider === 'GREEN_API' && config.instanceId && config.apiToken) {
-      const endpoint = `https://api.green-api.com/waInstance${config.instanceId}/sendMessage/${config.apiToken}`;
-      const resp = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chatId: `${to}@c.us`,
-          message: text
-        })
-      });
-      if (resp.ok) return { success: true };
-      return { success: false, error: `Green API returned ${resp.status}` };
-    }
-
-    // Default Direct Link provider
-    return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message };
+    res.json({
+      success: true,
+      status: session.status,
+      connectedPhone: session.connectedPhone,
+      connectedName: session.connectedName,
+      qrCodeDataUrl: session.qrCodeDataUrl,
+      qrExpiresAt: session.qrExpiresAt,
+      lastConnectedAt: session.lastConnectedAt,
+      lastError: session.lastError,
+      autoSendConfirmed: config.autoSendConfirmed,
+      autoSendPacking: config.autoSendPacking,
+      autoSendDispatched: config.autoSendDispatched,
+      autoSendDelivered: config.autoSendDelivered,
+      autoOpenWhatsAppWeb: config.autoOpenWhatsAppWeb,
+      logsCount: logs.length
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
   }
-}
+});
 
 /**
- * GET /api/whatsapp/status
+ * POST /api/whatsapp/qr
+ * Requests a real multi-device pairing QR code from WhatsApp servers
  */
-whatsappRouter.get('/status', (_req: Request, res: Response) => {
-  res.json({
-    success: true,
-    provider: config.provider,
-    senderPhone: config.senderPhone,
-    instanceId: config.instanceId,
-    autoSendConfirmed: config.autoSendConfirmed,
-    autoSendPacking: config.autoSendPacking,
-    autoSendDispatched: config.autoSendDispatched,
-    autoSendDelivered: config.autoSendDelivered,
-    autoOpenWhatsAppWeb: config.autoOpenWhatsAppWeb,
-    isGatewayConfigured: Boolean(config.instanceId && config.apiToken),
-    logsCount: logs.length
-  });
+whatsappRouter.post('/qr', async (_req: Request, res: Response) => {
+  try {
+    const session = await initWhatsAppSocket(true);
+
+    // Wait a brief moment for QR code event to fire if connecting
+    if (session.status === 'CONNECTING' && !session.qrCodeDataUrl) {
+      await new Promise(r => setTimeout(r, 1500));
+    }
+
+    const updatedSession = getWhatsAppSessionInfo();
+
+    res.json({
+      success: true,
+      status: updatedSession.status,
+      qrCodeDataUrl: updatedSession.qrCodeDataUrl,
+      qrExpiresAt: updatedSession.qrExpiresAt,
+      connectedPhone: updatedSession.connectedPhone,
+      message: 'Scan the QR code with WhatsApp > Linked Devices > Link a Device'
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * POST /api/whatsapp/disconnect
+ * Unlinks the connected WhatsApp device and clears credentials
+ */
+whatsappRouter.post('/disconnect', async (_req: Request, res: Response) => {
+  try {
+    await disconnectWhatsAppDevice();
+    res.json({
+      success: true,
+      status: 'DISCONNECTED',
+      message: 'WhatsApp device unlinked successfully.'
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 /**
  * POST /api/whatsapp/settings
+ * Updates automation stage toggles
  */
 whatsappRouter.post('/settings', (req: Request, res: Response) => {
   try {
     const {
-      provider,
-      instanceId,
-      apiToken,
-      apiEndpoint,
-      senderPhone,
       autoSendConfirmed,
       autoSendPacking,
       autoSendDispatched,
@@ -136,11 +126,6 @@ whatsappRouter.post('/settings', (req: Request, res: Response) => {
       autoOpenWhatsAppWeb
     } = req.body;
 
-    if (provider) config.provider = provider;
-    if (instanceId !== undefined) config.instanceId = instanceId;
-    if (apiToken !== undefined) config.apiToken = apiToken;
-    if (apiEndpoint !== undefined) config.apiEndpoint = apiEndpoint;
-    if (senderPhone !== undefined) config.senderPhone = senderPhone;
     if (autoSendConfirmed !== undefined) config.autoSendConfirmed = Boolean(autoSendConfirmed);
     if (autoSendPacking !== undefined) config.autoSendPacking = Boolean(autoSendPacking);
     if (autoSendDispatched !== undefined) config.autoSendDispatched = Boolean(autoSendDispatched);
@@ -150,7 +135,7 @@ whatsappRouter.post('/settings', (req: Request, res: Response) => {
     res.json({
       success: true,
       config,
-      message: 'WhatsApp settings saved successfully!'
+      message: 'WhatsApp automation preferences saved successfully!'
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -159,6 +144,7 @@ whatsappRouter.post('/settings', (req: Request, res: Response) => {
 
 /**
  * POST /api/whatsapp/send
+ * Sends a real WhatsApp message from the linked device
  */
 whatsappRouter.post('/send', async (req: Request, res: Response) => {
   try {
@@ -171,7 +157,8 @@ whatsappRouter.post('/send', async (req: Request, res: Response) => {
     const targetPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
     const directUrl = `https://wa.me/${targetPhone}?text=${encodeURIComponent(message)}`;
 
-    const dispatchResult = await dispatchViaGateway(targetPhone, message);
+    const session = getWhatsAppSessionInfo();
+    const sendResult = await sendWhatsAppFromLinkedDevice(targetPhone, message);
 
     const logEntry: DispatchLog = {
       id: `WAL_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
@@ -179,23 +166,26 @@ whatsappRouter.post('/send', async (req: Request, res: Response) => {
       orderId,
       stage,
       recipientPhone: targetPhone,
-      provider: config.provider,
-      status: dispatchResult.success ? 'SUCCESS' : 'FAILED',
-      error: dispatchResult.error
+      senderPhone: session.connectedPhone,
+      status: sendResult.success ? 'SUCCESS' : 'FAILED',
+      error: sendResult.error
     };
 
     logs.unshift(logEntry);
     if (logs.length > 100) logs.pop();
 
     res.json({
-      success: true,
-      status: dispatchResult.success ? 'SENT' : 'DISPATCH_QUEUED',
+      success: sendResult.success,
+      status: sendResult.success ? 'SENT_VIA_LINKED_DEVICE' : 'DISPATCH_PENDING',
       recipientPhone: targetPhone,
       directUrl,
+      senderPhone: session.connectedPhone,
       logId: logEntry.id,
       timestamp: logEntry.timestamp,
-      error: dispatchResult.error,
-      message: 'WhatsApp notification processed successfully'
+      error: sendResult.error,
+      message: sendResult.success
+        ? `Message sent directly from linked WhatsApp (+${session.connectedPhone || 'Admin'})`
+        : sendResult.error
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -210,7 +200,7 @@ whatsappRouter.get('/logs', (_req: Request, res: Response) => {
 });
 
 /**
- * Trigger order stage WhatsApp notification
+ * Trigger order stage WhatsApp notification directly from linked device
  */
 export async function triggerOrderStageWhatsApp(
   order: any,
@@ -233,7 +223,8 @@ export async function triggerOrderStageWhatsApp(
     const msg = generateOrderWhatsAppMessage(order, stage, extra);
     const directUrl = `https://wa.me/${targetPhone}?text=${encodeURIComponent(msg)}`;
 
-    const dispatchRes = await dispatchViaGateway(targetPhone, msg);
+    const session = getWhatsAppSessionInfo();
+    const sendRes = await sendWhatsAppFromLinkedDevice(targetPhone, msg);
 
     const logEntry: DispatchLog = {
       id: `WAL_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
@@ -241,19 +232,20 @@ export async function triggerOrderStageWhatsApp(
       orderId: order.id,
       stage,
       recipientPhone: targetPhone,
-      provider: config.provider,
-      status: dispatchRes.success ? 'SUCCESS' : 'FAILED',
-      error: dispatchRes.error
+      senderPhone: session.connectedPhone,
+      status: sendRes.success ? 'SUCCESS' : 'FAILED',
+      error: sendRes.error
     };
 
     logs.unshift(logEntry);
     if (logs.length > 100) logs.pop();
 
     return {
-      success: true,
+      success: sendRes.success,
       logId: logEntry.id,
       stage,
       targetPhone,
+      senderPhone: session.connectedPhone,
       directUrl,
       message: msg
     };
