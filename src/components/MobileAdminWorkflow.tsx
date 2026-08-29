@@ -1194,7 +1194,27 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
     if (!phone) return;
     const cleanPhone = phone.startsWith('91') ? phone : `91${phone}`;
     const msg = generateWhatsAppMessage(order, stage);
-    const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
+    const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`;
+
+    try {
+      const a = document.createElement('a');
+      a.href = waUrl;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch {}
+
+    openAdminModal('whatsapp', {
+      modal: {
+        open: true,
+        stage,
+        order,
+        message: msg,
+        phone: cleanPhone
+      }
+    });
 
     fetch('/api/whatsapp/send', {
       method: 'POST',
@@ -1206,10 +1226,6 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
         stage
       })
     }).catch(() => {});
-
-    try {
-      window.open(waUrl, '_blank');
-    } catch {}
   };
 
   const handleCopyMessage = () => {
