@@ -7,6 +7,7 @@ import makeWASocket, {
 import QRCode from 'qrcode';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import pino from 'pino';
 
 export interface WhatsAppSessionInfo {
@@ -24,10 +25,16 @@ let currentStatus: WhatsAppSessionInfo = {
   status: 'DISCONNECTED'
 };
 
-const AUTH_DIR = path.join(process.cwd(), '.whatsapp_auth');
+const AUTH_DIR = path.join(os.tmpdir(), '.whatsapp_auth');
 
-if (!fs.existsSync(AUTH_DIR)) {
-  fs.mkdirSync(AUTH_DIR, { recursive: true });
+function ensureAuthDir() {
+  try {
+    if (!fs.existsSync(AUTH_DIR)) {
+      fs.mkdirSync(AUTH_DIR, { recursive: true });
+    }
+  } catch (e) {
+    console.warn('ensureAuthDir error:', e);
+  }
 }
 
 const logger = pino({ level: 'silent' });
@@ -36,6 +43,8 @@ const logger = pino({ level: 'silent' });
  * Initialize WhatsApp Multi-Device Socket connection
  */
 export async function initWhatsAppSocket(forceNew: boolean = false): Promise<WhatsAppSessionInfo> {
+  ensureAuthDir();
+
   if (forceNew && fs.existsSync(AUTH_DIR)) {
     try {
       if (sock) {
@@ -43,7 +52,7 @@ export async function initWhatsAppSocket(forceNew: boolean = false): Promise<Wha
         sock = null;
       }
       fs.rmSync(AUTH_DIR, { recursive: true, force: true });
-      fs.mkdirSync(AUTH_DIR, { recursive: true });
+      ensureAuthDir();
     } catch (e) {
       console.warn('Error clearing auth directory:', e);
     }
@@ -103,8 +112,10 @@ export async function initWhatsAppSocket(forceNew: boolean = false): Promise<Wha
           currentStatus.connectedName = undefined;
           currentStatus.qrCodeDataUrl = undefined;
           try {
-            fs.rmSync(AUTH_DIR, { recursive: true, force: true });
-            fs.mkdirSync(AUTH_DIR, { recursive: true });
+            if (fs.existsSync(AUTH_DIR)) {
+              fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+              ensureAuthDir();
+            }
           } catch {}
         } else if (shouldReconnect) {
           currentStatus.status = 'CONNECTING';
@@ -157,7 +168,6 @@ export async function sendWhatsAppFromLinkedDevice(
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
     if (!sock || currentStatus.status !== 'CONNECTED') {
-      // If not connected yet, try initializing
       await initWhatsAppSocket();
       if (!sock || currentStatus.status !== 'CONNECTED') {
         return {
@@ -200,7 +210,7 @@ export async function disconnectWhatsAppDevice(): Promise<void> {
     };
     if (fs.existsSync(AUTH_DIR)) {
       fs.rmSync(AUTH_DIR, { recursive: true, force: true });
-      fs.mkdirSync(AUTH_DIR, { recursive: true });
+      ensureAuthDir();
     }
   } catch (e) {
     console.error('Error disconnecting WhatsApp:', e);
