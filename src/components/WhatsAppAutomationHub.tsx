@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  QrCode,
   CheckCircle2,
   AlertCircle,
   RefreshCw,
@@ -14,9 +13,12 @@ import {
   Sparkles,
   Eye,
   Activity,
-  LogOut,
+  Globe,
+  Key,
+  ExternalLink,
   Zap,
-  Radio
+  Lock,
+  MessageSquare
 } from 'lucide-react';
 import { toast } from '../utils/toast';
 import { generateOrderWhatsAppMessage } from '../utils/orderStages';
@@ -27,31 +29,26 @@ export interface WhatsAppAutomationHubProps {
 
 export const WhatsAppAutomationHub: React.FC<WhatsAppAutomationHubProps> = ({ onClose }) => {
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'qr_pair' | 'triggers' | 'logs'>('qr_pair');
+  const [activeTab, setActiveTab] = useState<'meta_setup' | 'triggers' | 'logs'>('meta_setup');
   const [previewStage, setPreviewStage] = useState<'confirmed' | 'packing' | 'dispatched' | 'delivered' | null>(null);
 
-  // Connection State
-  const [status, setStatus] = useState<'DISCONNECTED' | 'QR_READY' | 'CONNECTING' | 'CONNECTED'>('DISCONNECTED');
-  const [connectedPhone, setConnectedPhone] = useState<string | null>(null);
-  const [connectedName, setConnectedName] = useState<string | null>(null);
-  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
-  const [countdown, setCountdown] = useState(60);
+  // Meta Cloud API State
+  const [isConfigured, setIsConfigured] = useState(false);
+  const [phoneNumberId, setPhoneNumberId] = useState('');
+  const [accessToken, setAccessToken] = useState('');
+  const [businessAccountId, setBusinessAccountId] = useState('');
 
-  // Preferences
+  // 4-Stage Preferences
   const [autoSendConfirmed, setAutoSendConfirmed] = useState(true);
   const [autoSendPacking, setAutoSendPacking] = useState(true);
   const [autoSendDispatched, setAutoSendDispatched] = useState(true);
   const [autoSendDelivered, setAutoSendDelivered] = useState(true);
-  const [autoOpenWhatsAppWeb, setAutoOpenWhatsAppWeb] = useState(false);
 
-  // Test Message
+  // Test Message State
   const [testPhone, setTestPhone] = useState('7200826129');
-  const [testMessage, setTestMessage] = useState('🌸 Hello from Veerika Rose Garden! This is a real test message sent directly from our linked WhatsApp account.');
+  const [testMessage, setTestMessage] = useState('🌸 Hello from Veerika Rose Garden! This is a test message from your Official Meta WhatsApp Cloud API.');
   const [showTestModal, setShowTestModal] = useState(false);
-  const [showDisconnectModal, setShowDisconnectModal] = useState(false);
   const [logs, setLogs] = useState<any[]>([]);
-
-  const pollTimerRef = useRef<any>(null);
 
   const sampleOrder = {
     id: 'ORD-1218',
@@ -83,17 +80,12 @@ export const WhatsAppAutomationHub: React.FC<WhatsAppAutomationHubProps> = ({ on
       const res = await fetch('/api/whatsapp/status');
       if (res.ok) {
         const data = await res.json();
-        setStatus(data.status);
-        setConnectedPhone(data.connectedPhone || null);
-        setConnectedName(data.connectedName || null);
-        if (data.qrCodeDataUrl) {
-          setQrCodeDataUrl(data.qrCodeDataUrl);
-        }
-        if (data.autoSendConfirmed !== undefined) setAutoSendConfirmed(data.autoSendConfirmed);
-        if (data.autoSendPacking !== undefined) setAutoSendPacking(data.autoSendPacking);
-        if (data.autoSendDispatched !== undefined) setAutoSendDispatched(data.autoSendDispatched);
-        if (data.autoSendDelivered !== undefined) setAutoSendDelivered(data.autoSendDelivered);
-        if (data.autoOpenWhatsAppWeb !== undefined) setAutoOpenWhatsAppWeb(data.autoOpenWhatsAppWeb);
+        setIsConfigured(data.isConfigured);
+        if (data.metaPhoneNumberId) setPhoneNumberId(data.metaPhoneNumberId);
+        setAutoSendConfirmed(data.autoSendConfirmed ?? true);
+        setAutoSendPacking(data.autoSendPacking ?? true);
+        setAutoSendDispatched(data.autoSendDispatched ?? true);
+        setAutoSendDelivered(data.autoSendDelivered ?? true);
       }
     } catch {}
   };
@@ -108,78 +100,39 @@ export const WhatsAppAutomationHub: React.FC<WhatsAppAutomationHubProps> = ({ on
     } catch {}
   };
 
-  // Poll status while connecting or waiting for scan
   useEffect(() => {
     fetchStatus();
     fetchLogs();
-
-    pollTimerRef.current = setInterval(() => {
-      fetchStatus();
-    }, 2500);
-
-    return () => {
-      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-    };
   }, []);
 
-  // Request fresh real QR Code
-  const handleGenerateQr = async () => {
-    setLoading(true);
-    setCountdown(60);
-    try {
-      const res = await fetch('/api/whatsapp/qr', { method: 'POST' });
-      const data = await res.json();
-      if (data.qrCodeDataUrl) {
-        setQrCodeDataUrl(data.qrCodeDataUrl);
-        setStatus('QR_READY');
-        toast.success('Live WhatsApp Web QR code generated! Scan in WhatsApp app.', 'QR Code Ready');
-      } else {
-        toast.info('Connecting to WhatsApp socket... please wait 2 seconds and refresh.', 'Connecting');
-      }
-    } catch (e) {
-      toast.error('Failed to generate WhatsApp QR code', 'Error');
-    } finally {
-      setLoading(false);
+  const handleSaveMetaSettings = async () => {
+    if (!phoneNumberId.trim() || !accessToken.trim()) {
+      toast.error('Please enter both Phone Number ID and Access Token', 'Missing Credentials');
+      return;
     }
-  };
-
-  // Disconnect & Unlink
-  const handleDisconnect = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/whatsapp/disconnect', { method: 'POST' });
-      if (res.ok) {
-        setStatus('DISCONNECTED');
-        setConnectedPhone(null);
-        setConnectedName(null);
-        setQrCodeDataUrl(null);
-        setShowDisconnectModal(false);
-        toast.success('WhatsApp device unlinked successfully!', 'Unlinked');
-      }
-    } catch {
-      toast.error('Failed to unlink WhatsApp device', 'Error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Save Settings
-  const handleSaveSettings = async () => {
     setLoading(true);
     try {
       const res = await fetch('/api/whatsapp/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          provider: 'META_CLOUD',
+          metaPhoneNumberId: phoneNumberId,
+          metaAccessToken: accessToken,
+          metaBusinessAccountId: businessAccountId,
           autoSendConfirmed,
           autoSendPacking,
           autoSendDispatched,
-          autoSendDelivered,
-          autoOpenWhatsAppWeb
+          autoSendDelivered
         })
       });
+      const data = await res.json();
       if (res.ok) {
-        toast.success('WhatsApp automation preferences saved!', 'Saved');
+        setIsConfigured(true);
+        toast.success('Meta WhatsApp Cloud API credentials saved!', '✅ Active');
+        fetchStatus();
+      } else {
+        toast.error(data.error || 'Failed to save Meta settings', 'Error');
       }
     } catch {
       toast.error('Network error saving settings', 'Error');
@@ -188,10 +141,9 @@ export const WhatsAppAutomationHub: React.FC<WhatsAppAutomationHubProps> = ({ on
     }
   };
 
-  // Send Test Message
   const handleSendTestMessage = async () => {
     if (!testPhone.trim() || !testMessage.trim()) {
-      toast.error('Please enter phone and message text', 'Missing Info');
+      toast.error('Please enter recipient phone number', 'Missing Info');
       return;
     }
     setLoading(true);
@@ -209,12 +161,12 @@ export const WhatsAppAutomationHub: React.FC<WhatsAppAutomationHubProps> = ({ on
       if (data.success) {
         setShowTestModal(false);
         fetchLogs();
-        toast.success(`Message sent directly from your linked WhatsApp to +91 ${testPhone}!`, '✅ Message Sent');
+        toast.success(`Message delivered automatically to +91 ${testPhone} via Meta Cloud API!`, '🚀 Message Sent');
       } else {
-        toast.error(data.error || 'Failed to send message via linked WhatsApp', 'Delivery Failed');
+        toast.error(data.error || 'Failed to send test message via Meta API', 'Meta API Error');
       }
     } catch {
-      toast.error('Failed to dispatch message', 'Error');
+      toast.error('Failed to dispatch test message', 'Network Error');
     } finally {
       setLoading(false);
     }
@@ -222,27 +174,21 @@ export const WhatsAppAutomationHub: React.FC<WhatsAppAutomationHubProps> = ({ on
 
   return (
     <div className="bg-slate-50 min-h-screen text-slate-800 pb-20">
-      {/* Top Header */}
+      {/* Header */}
       <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 py-3 shadow-xs">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-2xl bg-[#25D366] text-white flex items-center justify-center shadow-xs">
-              <QrCode className="w-5 h-5" />
+              <MessageSquare className="w-5 h-5" />
             </div>
             <div>
               <h1 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-1.5">
-                <span>WhatsApp Multi-Device Link</span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                  status === 'CONNECTED'
-                    ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
-                    : status === 'QR_READY'
-                    ? 'bg-amber-100 text-amber-900 border-amber-300 animate-pulse'
-                    : 'bg-slate-100 text-slate-700 border-slate-300'
-                }`}>
-                  {status === 'CONNECTED' ? '🟢 Linked & Ready' : status === 'QR_READY' ? '🟡 QR Ready to Scan' : '⚪ Not Linked'}
+                <span>Official Meta WhatsApp Cloud API</span>
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300">
+                  1,000 Free Msgs/Mo
                 </span>
               </h1>
-              <p className="text-[11px] text-slate-500 font-medium">Link your phone's WhatsApp to send automated order stage messages</p>
+              <p className="text-[11px] text-slate-500 font-medium">100% automated background sending for Confirmed, Packing, Dispatched & Delivered</p>
             </div>
           </div>
 
@@ -258,16 +204,16 @@ export const WhatsAppAutomationHub: React.FC<WhatsAppAutomationHubProps> = ({ on
       </header>
 
       <main className="max-w-4xl mx-auto p-4 space-y-4">
-        {/* Tabs */}
+        {/* Navigation Tabs */}
         <div className="grid grid-cols-3 gap-1 bg-slate-200/70 p-1 rounded-2xl">
           <button
-            onClick={() => setActiveTab('qr_pair')}
+            onClick={() => setActiveTab('meta_setup')}
             className={`py-2 px-3 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-              activeTab === 'qr_pair' ? 'bg-white text-emerald-950 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              activeTab === 'meta_setup' ? 'bg-white text-emerald-950 shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Smartphone className="w-3.5 h-3.5" />
-            <span>Device Link (QR)</span>
+            <Key className="w-3.5 h-3.5" />
+            <span>Meta API Setup</span>
           </button>
 
           <button
@@ -295,107 +241,131 @@ export const WhatsAppAutomationHub: React.FC<WhatsAppAutomationHubProps> = ({ on
         </div>
 
         {/* ========================================================= */}
-        {/* TAB 1: DEVICE LINK (QR CODE)                              */}
+        {/* TAB 1: META CLOUD API SETUP                                */}
         {/* ========================================================= */}
-        {activeTab === 'qr_pair' && (
+        {activeTab === 'meta_setup' && (
           <div className="space-y-4 animate-in fade-in duration-150">
-            {/* Status Card */}
-            {status === 'CONNECTED' ? (
-              <div className="p-5 bg-gradient-to-br from-emerald-900 via-emerald-950 to-teal-950 text-white rounded-3xl shadow-md space-y-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-[#25D366] text-white flex items-center justify-center shadow-xs shrink-0">
-                      <CheckCircle2 className="w-7 h-7" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Device Status</span>
-                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 border border-emerald-500/40">
-                          Active Companion Device
-                        </span>
-                      </div>
-                      <h2 className="text-base font-black text-white mt-0.5">
-                        +{connectedPhone || 'Linked WhatsApp'}
-                      </h2>
-                      <p className="text-xs text-emerald-200/80">{connectedName || 'Veerika Rose Garden Support'}</p>
-                    </div>
+            {/* Status Hero Card */}
+            <div className="p-5 bg-gradient-to-br from-emerald-900 via-emerald-950 to-teal-950 text-white rounded-3xl shadow-md space-y-3">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-[#25D366] text-white flex items-center justify-center shadow-xs shrink-0">
+                    <Zap className="w-6 h-6" />
                   </div>
-
-                  <button
-                    onClick={() => setShowDisconnectModal(true)}
-                    className="py-2 px-3 bg-rose-600/80 hover:bg-rose-600 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                    <span>Unlink Device</span>
-                  </button>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Engine Status</span>
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${
+                        isConfigured
+                          ? 'bg-emerald-400/20 text-emerald-300 border-emerald-500/40'
+                          : 'bg-amber-400/20 text-amber-300 border-amber-500/40'
+                      }`}>
+                        {isConfigured ? '🟢 Meta Cloud API Configured' : '🟡 Enter Meta Credentials Below'}
+                      </span>
+                    </div>
+                    <h2 className="text-base font-black text-white mt-0.5">
+                      100% Automated Background WhatsApp Dispatch
+                    </h2>
+                  </div>
                 </div>
 
-                <div className="p-3 bg-emerald-900/60 rounded-2xl border border-emerald-700/50 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs text-emerald-100">
-                    <Radio className="w-4 h-4 text-[#25D366] animate-pulse" />
-                    <span>All order stage updates are sent directly from this phone number in the background!</span>
-                  </div>
+                <button
+                  onClick={() => setShowTestModal(true)}
+                  className="py-2 px-3 bg-[#25D366] hover:bg-[#1EBE5D] text-white font-black text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Send Test</span>
+                </button>
+              </div>
 
-                  <button
-                    onClick={() => setShowTestModal(true)}
-                    className="py-1.5 px-3 bg-[#25D366] hover:bg-[#1EBE5D] text-white font-black text-xs rounded-xl shadow-xs cursor-pointer shrink-0"
-                  >
-                    Send Test
-                  </button>
+              <p className="text-xs text-emerald-100/90 leading-relaxed">
+                When you click <b>"→ Packing"</b>, <b>"Dispatched"</b>, <b>"Delivered"</b>, or <b>"Confirmed"</b> in Manage Orders, the official Meta API automatically sends the WhatsApp message straight to the customer's phone in the background.
+              </p>
+            </div>
+
+            {/* Meta Credentials Form */}
+            <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-900">Meta WhatsApp Cloud API Credentials</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Enter your free Meta Developer credentials.</p>
+                </div>
+                <a
+                  href="https://developers.facebook.com/apps/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="py-1.5 px-3 bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold text-xs rounded-xl border border-blue-200 flex items-center gap-1 cursor-pointer"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  <span>Meta Developer Portal</span>
+                </a>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">
+                    Phone Number ID <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={phoneNumberId}
+                    onChange={e => setPhoneNumberId(e.target.value)}
+                    placeholder="e.g. 104829102938491"
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-mono font-bold"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">Found under WhatsApp &gt; API Setup &gt; Phone number ID in Meta Developer Portal.</p>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">
+                    System User / Permanent Access Token <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    value={accessToken}
+                    onChange={e => setAccessToken(e.target.value)}
+                    placeholder="EAABw..."
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-mono font-bold"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">Permanent access token from Meta Business Manager.</p>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">
+                    WhatsApp Business Account ID (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={businessAccountId}
+                    onChange={e => setBusinessAccountId(e.target.value)}
+                    placeholder="e.g. 192837465019283"
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-mono font-bold"
+                  />
                 </div>
               </div>
-            ) : (
-              <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-4">
-                <div className="text-center space-y-1">
-                  <h3 className="text-base font-black text-slate-900">Link WhatsApp Account</h3>
-                  <p className="text-xs text-slate-500 max-w-md mx-auto">
-                    Scan this QR code using your WhatsApp mobile app to link your WhatsApp number as a companion device.
-                  </p>
-                </div>
 
-                {/* QR Code Container */}
-                <div className="flex flex-col items-center justify-center p-6 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
-                  {qrCodeDataUrl ? (
-                    <div className="relative p-3 bg-white rounded-2xl shadow-md border border-slate-200">
-                      <img
-                        src={qrCodeDataUrl}
-                        alt="WhatsApp Pairing QR Code"
-                        className="w-64 h-64 object-contain rounded-xl"
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-64 h-64 bg-slate-100 rounded-2xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center p-4 text-center space-y-2">
-                      <QrCode className="w-12 h-12 text-slate-400 stroke-[1.5]" />
-                      <p className="text-xs text-slate-500 font-medium">
-                        Click the button below to generate a live WhatsApp pairing QR code.
-                      </p>
-                    </div>
-                  )}
+              <button
+                disabled={loading}
+                onClick={handleSaveMetaSettings}
+                className="w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs rounded-2xl shadow-md cursor-pointer flex items-center justify-center gap-2"
+              >
+                {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                <span>Save & Activate Meta WhatsApp Cloud API</span>
+              </button>
+            </div>
 
-                  <button
-                    disabled={loading}
-                    onClick={handleGenerateQr}
-                    className="py-3 px-6 bg-[#25D366] hover:bg-[#1EBE5D] disabled:opacity-50 text-white font-black text-xs rounded-2xl shadow-md flex items-center gap-2 cursor-pointer transition-all active:scale-95"
-                  >
-                    {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
-                    <span>{qrCodeDataUrl ? 'Regenerate Live QR Code' : 'Generate WhatsApp QR Code'}</span>
-                  </button>
-                </div>
-
-                {/* Instructions */}
-                <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 space-y-2 text-xs text-emerald-950">
-                  <h4 className="font-extrabold flex items-center gap-1.5">
-                    <Smartphone className="w-4 h-4 text-emerald-700" />
-                    <span>How to Link in 3 Steps:</span>
-                  </h4>
-                  <ol className="list-decimal list-inside space-y-1 text-[11px] font-medium text-emerald-900 leading-relaxed">
-                    <li>Open <b>WhatsApp</b> on your phone.</li>
-                    <li>Tap <b>Settings (or 3 dots Menu) &gt; Linked Devices &gt; Link a Device</b>.</li>
-                    <li>Point your phone's camera at the QR code above. It will link instantly!</li>
-                  </ol>
-                </div>
-              </div>
-            )}
+            {/* Quick 3-Step Setup Guide */}
+            <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 space-y-2 text-xs text-emerald-950">
+              <h4 className="font-extrabold flex items-center gap-1.5">
+                <Smartphone className="w-4 h-4 text-emerald-700" />
+                <span>How to Get Free Meta WhatsApp Cloud API in 3 Steps:</span>
+              </h4>
+              <ol className="list-decimal list-inside space-y-1.5 text-[11px] font-medium text-emerald-900 leading-relaxed">
+                <li>Go to <b>developers.facebook.com</b> &gt; Log in &gt; Click <b>Create App</b> &gt; Select <b>Other &gt; Business</b>.</li>
+                <li>Add the <b>WhatsApp</b> product to your app.</li>
+                <li>Go to <b>WhatsApp &gt; API Setup</b>, copy your <b>Phone Number ID</b> and <b>Temporary or Permanent Access Token</b>, and paste them above!</li>
+              </ol>
+            </div>
           </div>
         )}
 
@@ -410,7 +380,7 @@ export const WhatsAppAutomationHub: React.FC<WhatsAppAutomationHubProps> = ({ on
                 <span>4-Stage Order Automation Toggles</span>
               </h3>
               <p className="text-[11px] text-slate-500 font-medium">
-                When you move an order between stages in <b>Manage Orders</b>, WhatsApp messages will be sent automatically from your linked device.
+                Choose which order stage changes trigger automatic WhatsApp messages to customers.
               </p>
             </div>
 
@@ -545,15 +515,6 @@ export const WhatsAppAutomationHub: React.FC<WhatsAppAutomationHubProps> = ({ on
                 </button>
               </div>
             </div>
-
-            <button
-              disabled={loading}
-              onClick={handleSaveSettings}
-              className="w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs rounded-2xl shadow-md cursor-pointer flex items-center justify-center gap-2 mt-4"
-            >
-              {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-              <span>Save Trigger Preferences</span>
-            </button>
           </div>
         )}
 
@@ -564,22 +525,22 @@ export const WhatsAppAutomationHub: React.FC<WhatsAppAutomationHubProps> = ({ on
           <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-xs space-y-3 animate-in fade-in duration-150">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-xs font-black text-slate-900">Automated Dispatch Audit Log</h3>
-                <p className="text-[11px] text-slate-500">Real-time record of messages sent from your linked WhatsApp</p>
+                <h3 className="text-xs font-black text-slate-900">Meta API Dispatch Audit Log</h3>
+                <p className="text-[11px] text-slate-500">Real-time delivery status of automated Meta Cloud WhatsApp messages</p>
               </div>
               <button
                 onClick={fetchLogs}
                 className="p-1.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-600 cursor-pointer flex items-center gap-1 text-xs font-bold"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
-                <span>Refresh Log</span>
+                <span>Refresh</span>
               </button>
             </div>
 
             {logs.length === 0 ? (
               <div className="p-8 text-center text-slate-400 space-y-2">
                 <Activity className="w-8 h-8 mx-auto stroke-[1.5]" />
-                <p className="text-xs font-medium">No automated WhatsApp messages dispatched yet in this session.</p>
+                <p className="text-xs font-medium">No automated messages dispatched yet in this session.</p>
               </div>
             ) : (
               <div className="divide-y divide-slate-100 text-xs max-h-96 overflow-y-auto">
@@ -616,34 +577,7 @@ export const WhatsAppAutomationHub: React.FC<WhatsAppAutomationHubProps> = ({ on
         )}
       </main>
 
-      {/* Disconnect Modal */}
-      {showDisconnectModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-5 space-y-3">
-            <h3 className="font-black text-sm text-slate-900">Unlink WhatsApp Account?</h3>
-            <p className="text-xs text-slate-600">
-              Are you sure you want to unlink +{connectedPhone}? Automated order stage messages will stop sending until you scan a new QR code.
-            </p>
-            <div className="grid grid-cols-2 gap-2 pt-2">
-              <button
-                disabled={loading}
-                onClick={handleDisconnect}
-                className="py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl cursor-pointer"
-              >
-                Yes, Unlink
-              </button>
-              <button
-                onClick={() => setShowDisconnectModal(false)}
-                className="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl cursor-pointer"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Template Preview Modal */}
+      {/* Preview Modal */}
       {previewStage && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
           <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden border border-slate-200 p-5 space-y-3">
@@ -673,7 +607,7 @@ export const WhatsAppAutomationHub: React.FC<WhatsAppAutomationHubProps> = ({ on
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
           <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden border border-slate-200 p-5 space-y-3">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-              <h3 className="font-black text-xs text-slate-900">Send Test via Linked WhatsApp</h3>
+              <h3 className="font-black text-xs text-slate-900">Send Test WhatsApp Message (Meta API)</h3>
               <button onClick={() => setShowTestModal(false)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>

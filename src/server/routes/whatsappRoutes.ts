@@ -1,15 +1,13 @@
 import { Router, Request, Response } from 'express';
 import { generateOrderWhatsAppMessage, getOrderStage } from '../../utils/orderStages.js';
-import {
-  initWhatsAppSocket,
-  getWhatsAppSessionInfo,
-  sendWhatsAppFromLinkedDevice,
-  disconnectWhatsAppDevice
-} from '../whatsappClient.js';
 
 export const whatsappRouter = Router();
 
 export interface WhatsAppConfig {
+  provider: 'META_CLOUD' | 'DIRECT_LINK';
+  metaPhoneNumberId?: string;
+  metaAccessToken?: string;
+  metaBusinessAccountId?: string;
   autoSendConfirmed: boolean;
   autoSendPacking: boolean;
   autoSendDispatched: boolean;
@@ -18,11 +16,15 @@ export interface WhatsAppConfig {
 }
 
 let config: WhatsAppConfig = {
+  provider: 'META_CLOUD',
+  metaPhoneNumberId: process.env.META_WA_PHONE_NUMBER_ID || '',
+  metaAccessToken: process.env.META_WA_ACCESS_TOKEN || '',
+  metaBusinessAccountId: process.env.META_WA_BUSINESS_ACCOUNT_ID || '',
   autoSendConfirmed: true,
   autoSendPacking: true,
   autoSendDispatched: true,
   autoSendDelivered: true,
-  autoOpenWhatsAppWeb: true
+  autoOpenWhatsAppWeb: false
 };
 
 interface DispatchLog {
@@ -32,29 +34,94 @@ interface DispatchLog {
   stage: string;
   recipientPhone: string;
   status: 'SUCCESS' | 'FAILED';
-  senderPhone?: string;
+  provider: string;
+  messageId?: string;
   error?: string;
 }
 
 const logs: DispatchLog[] = [];
 
 /**
+ * Send WhatsApp message via Official Meta WhatsApp Cloud API
+ */
+async function sendViaMetaCloudApi(
+  recipientPhone: string,
+  messageText: string
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  try {
+    const phoneNumberId = config.metaPhoneNumberId || process.env.META_WA_PHONE_NUMBER_ID;
+    const accessToken = config.metaAccessToken || process.env.META_WA_ACCESS_TOKEN;
+
+    if (!phoneNumberId || !accessToken) {
+      return {
+        success: false,
+        error: 'Meta WhatsApp Cloud API credentials not configured. Please enter Phone Number ID & Access Token in Admin Settings.'
+      };
+    }
+
+    const cleanPhone = recipientPhone.replace(/[^0-9]/g, '');
+    const to = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+
+    const url = `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`;
+    const payload = {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: to,
+      type: 'text',
+      text: {
+        preview_url: true,
+        body: messageText
+      }
+    };
+
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await resp.json().catch(() => ({}));
+
+    if (resp.ok && data.messages?.[0]?.id) {
+      return {
+        success: true,
+        messageId: data.messages[0].id
+      };
+    }
+
+    const errDetail = data.error?.message || data.error?.error_user_msg || `Meta API Error (${resp.status})`;
+    return {
+      success: false,
+      error: errDetail
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || 'Failed to send WhatsApp message via Meta Cloud API'
+    };
+  }
+}
+
+/**
  * GET /api/whatsapp/status
- * Returns real live multi-device session status, linked phone, and QR code
+ * Returns current Meta Cloud API integration status
  */
 whatsappRouter.get('/status', async (_req: Request, res: Response) => {
   try {
-    const session = getWhatsAppSessionInfo();
+    const isConfigured = Boolean(
+      (config.metaPhoneNumberId || process.env.META_WA_PHONE_NUMBER_ID) &&
+      (config.metaAccessToken || process.env.META_WA_ACCESS_TOKEN)
+    );
 
     res.json({
       success: true,
-      status: session.status,
-      connectedPhone: session.connectedPhone,
-      connectedName: session.connectedName,
-      qrCodeDataUrl: session.qrCodeDataUrl,
-      qrExpiresAt: session.qrExpiresAt,
-      lastConnectedAt: session.lastConnectedAt,
-      lastError: session.lastError,
+      provider: config.provider,
+      isConfigured,
+      metaPhoneNumberId: config.metaPhoneNumberId || (process.env.META_WA_PHONE_NUMBER_ID ? '••••••••' + process.env.META_WA_PHONE_NUMBER_ID.slice(-4) : ''),
+      hasAccessToken: Boolean(config.metaAccessToken || process.env.META_WA_ACCESS_TOKEN),
       autoSendConfirmed: config.autoSendConfirmed,
       autoSendPacking: config.autoSendPacking,
       autoSendDispatched: config.autoSendDispatched,
@@ -68,57 +135,16 @@ whatsappRouter.get('/status', async (_req: Request, res: Response) => {
 });
 
 /**
- * POST /api/whatsapp/qr
- * Requests a real multi-device pairing QR code from WhatsApp servers
- */
-whatsappRouter.post('/qr', async (_req: Request, res: Response) => {
-  try {
-    const session = await initWhatsAppSocket(true);
-
-    // Wait a brief moment for QR code event to fire if connecting
-    if (session.status === 'CONNECTING' && !session.qrCodeDataUrl) {
-      await new Promise(r => setTimeout(r, 1500));
-    }
-
-    const updatedSession = getWhatsAppSessionInfo();
-
-    res.json({
-      success: true,
-      status: updatedSession.status,
-      qrCodeDataUrl: updatedSession.qrCodeDataUrl,
-      qrExpiresAt: updatedSession.qrExpiresAt,
-      connectedPhone: updatedSession.connectedPhone,
-      message: 'Scan the QR code with WhatsApp > Linked Devices > Link a Device'
-    });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-/**
- * POST /api/whatsapp/disconnect
- * Unlinks the connected WhatsApp device and clears credentials
- */
-whatsappRouter.post('/disconnect', async (_req: Request, res: Response) => {
-  try {
-    await disconnectWhatsAppDevice();
-    res.json({
-      success: true,
-      status: 'DISCONNECTED',
-      message: 'WhatsApp device unlinked successfully.'
-    });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-/**
  * POST /api/whatsapp/settings
- * Updates automation stage toggles
+ * Save Meta Cloud API credentials & stage toggles
  */
 whatsappRouter.post('/settings', (req: Request, res: Response) => {
   try {
     const {
+      provider,
+      metaPhoneNumberId,
+      metaAccessToken,
+      metaBusinessAccountId,
       autoSendConfirmed,
       autoSendPacking,
       autoSendDispatched,
@@ -126,6 +152,10 @@ whatsappRouter.post('/settings', (req: Request, res: Response) => {
       autoOpenWhatsAppWeb
     } = req.body;
 
+    if (provider) config.provider = provider;
+    if (metaPhoneNumberId !== undefined) config.metaPhoneNumberId = metaPhoneNumberId.trim();
+    if (metaAccessToken !== undefined) config.metaAccessToken = metaAccessToken.trim();
+    if (metaBusinessAccountId !== undefined) config.metaBusinessAccountId = metaBusinessAccountId.trim();
     if (autoSendConfirmed !== undefined) config.autoSendConfirmed = Boolean(autoSendConfirmed);
     if (autoSendPacking !== undefined) config.autoSendPacking = Boolean(autoSendPacking);
     if (autoSendDispatched !== undefined) config.autoSendDispatched = Boolean(autoSendDispatched);
@@ -134,8 +164,15 @@ whatsappRouter.post('/settings', (req: Request, res: Response) => {
 
     res.json({
       success: true,
-      config,
-      message: 'WhatsApp automation preferences saved successfully!'
+      config: {
+        provider: config.provider,
+        isConfigured: Boolean(config.metaPhoneNumberId && config.metaAccessToken),
+        autoSendConfirmed: config.autoSendConfirmed,
+        autoSendPacking: config.autoSendPacking,
+        autoSendDispatched: config.autoSendDispatched,
+        autoSendDelivered: config.autoSendDelivered
+      },
+      message: 'Official Meta WhatsApp Cloud API settings saved successfully!'
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -144,7 +181,7 @@ whatsappRouter.post('/settings', (req: Request, res: Response) => {
 
 /**
  * POST /api/whatsapp/send
- * Sends a real WhatsApp message from the linked device
+ * Sends a real WhatsApp message using Meta Cloud API
  */
 whatsappRouter.post('/send', async (req: Request, res: Response) => {
   try {
@@ -155,10 +192,9 @@ whatsappRouter.post('/send', async (req: Request, res: Response) => {
 
     const cleanPhone = String(phone).replace(/[^0-9]/g, '');
     const targetPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
-    const directUrl = `https://wa.me/${targetPhone}?text=${encodeURIComponent(message)}`;
+    const directUrl = `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encodeURIComponent(message)}`;
 
-    const session = getWhatsAppSessionInfo();
-    const sendResult = await sendWhatsAppFromLinkedDevice(targetPhone, message);
+    const sendResult = await sendViaMetaCloudApi(targetPhone, message);
 
     const logEntry: DispatchLog = {
       id: `WAL_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
@@ -166,7 +202,8 @@ whatsappRouter.post('/send', async (req: Request, res: Response) => {
       orderId,
       stage,
       recipientPhone: targetPhone,
-      senderPhone: session.connectedPhone,
+      provider: 'META_CLOUD_API',
+      messageId: sendResult.messageId,
       status: sendResult.success ? 'SUCCESS' : 'FAILED',
       error: sendResult.error
     };
@@ -176,15 +213,15 @@ whatsappRouter.post('/send', async (req: Request, res: Response) => {
 
     res.json({
       success: sendResult.success,
-      status: sendResult.success ? 'SENT_VIA_LINKED_DEVICE' : 'DISPATCH_PENDING',
+      status: sendResult.success ? 'SENT_VIA_META_CLOUD_API' : 'FAILED',
       recipientPhone: targetPhone,
       directUrl,
-      senderPhone: session.connectedPhone,
+      messageId: sendResult.messageId,
       logId: logEntry.id,
       timestamp: logEntry.timestamp,
       error: sendResult.error,
       message: sendResult.success
-        ? `Message sent directly from linked WhatsApp (+${session.connectedPhone || 'Admin'})`
+        ? `Message sent automatically to +${targetPhone} via Official Meta WhatsApp Cloud API!`
         : sendResult.error
     });
   } catch (err: any) {
@@ -200,7 +237,7 @@ whatsappRouter.get('/logs', (_req: Request, res: Response) => {
 });
 
 /**
- * Trigger order stage WhatsApp notification directly from linked device
+ * Trigger order stage WhatsApp notification directly in the background
  */
 export async function triggerOrderStageWhatsApp(
   order: any,
@@ -221,10 +258,9 @@ export async function triggerOrderStageWhatsApp(
     const cleanPhone = rawPhone.replace(/[^0-9]/g, '');
     const targetPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
     const msg = generateOrderWhatsAppMessage(order, stage, extra);
-    const directUrl = `https://wa.me/${targetPhone}?text=${encodeURIComponent(msg)}`;
+    const directUrl = `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encodeURIComponent(msg)}`;
 
-    const session = getWhatsAppSessionInfo();
-    const sendRes = await sendWhatsAppFromLinkedDevice(targetPhone, msg);
+    const sendRes = await sendViaMetaCloudApi(targetPhone, msg);
 
     const logEntry: DispatchLog = {
       id: `WAL_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
@@ -232,7 +268,8 @@ export async function triggerOrderStageWhatsApp(
       orderId: order.id,
       stage,
       recipientPhone: targetPhone,
-      senderPhone: session.connectedPhone,
+      provider: 'META_CLOUD_API',
+      messageId: sendRes.messageId,
       status: sendRes.success ? 'SUCCESS' : 'FAILED',
       error: sendRes.error
     };
@@ -245,12 +282,12 @@ export async function triggerOrderStageWhatsApp(
       logId: logEntry.id,
       stage,
       targetPhone,
-      senderPhone: session.connectedPhone,
+      messageId: sendRes.messageId,
       directUrl,
       message: msg
     };
   } catch (err: any) {
-    console.warn('[WhatsApp AutoSend Error]:', err.message);
+    console.warn('[Meta WhatsApp AutoSend Error]:', err.message);
     return null;
   }
 }
