@@ -1,12 +1,9 @@
 /**
  * Address Parsing & Formatting Utilities
  * 
- * Provides robust parsing and full address string generation for:
- * - WhatsApp notifications (Order Confirmation, Packing, Dispatch, Delivered)
- * - Admin order views, search, and invoice tables
- * - Delivery partner shipping labels
- * 
- * Handles Objects, JSON strings, plain text strings, and all property aliases.
+ * Preserves 100% exact, unmodified customer & admin delivery addresses.
+ * No modifications, no artificial labels (e.g. no '(Landmark: )' or 'PIN: ' injections).
+ * Whatever text is entered is displayed exactly as given.
  */
 
 export interface ParsedAddress {
@@ -25,49 +22,63 @@ export interface ParsedAddress {
 }
 
 /**
- * Parses any raw address (Object, JSON string, or plain text) into a structured ParsedAddress object.
+ * Parses any raw address (Object, JSON string, or plain text) into a ParsedAddress object.
+ * Always prioritizes the exact, raw full address string without modifications.
  */
 export function parseFullAddress(rawAddr: any, fallbackName = '', fallbackPhone = ''): ParsedAddress {
   let addrObj: any = {};
 
   if (!rawAddr) {
-    addrObj = {};
-  } else if (typeof rawAddr === 'object') {
-    addrObj = rawAddr;
-  } else if (typeof rawAddr === 'string') {
+    return {
+      fullName: fallbackName.trim(),
+      phone: fallbackPhone.trim(),
+      alternatePhone: '',
+      houseNo: '',
+      street: '',
+      landmark: '',
+      villageTown: '',
+      district: '',
+      state: 'Tamil Nadu',
+      pincode: '',
+      addressType: 'Home',
+      fullAddressString: 'Address not specified'
+    };
+  }
+
+  if (typeof rawAddr === 'string') {
     const trimmed = rawAddr.trim();
     if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('"{') && trimmed.endsWith('}"'))) {
       try {
         const unescaped = trimmed.startsWith('"{') ? JSON.parse(trimmed) : trimmed;
         addrObj = typeof unescaped === 'string' ? JSON.parse(unescaped) : unescaped;
       } catch {
-        addrObj = { street: trimmed };
+        addrObj = { fullAddress: trimmed };
       }
     } else {
-      // Plain text address - extract 6-digit Indian pincode if present
+      // Plain text address - return exactly as entered by user
       const pinMatch = trimmed.match(/\b\d{6}\b/);
       const extractedPin = pinMatch ? pinMatch[0] : '';
       
-      // Clean string
-      const cleanText = trimmed.replace(/\s+/g, ' ').trim();
       return {
         fullName: fallbackName.trim(),
         phone: fallbackPhone.trim(),
         alternatePhone: '',
         houseNo: '',
-        street: cleanText,
+        street: trimmed,
         landmark: '',
         villageTown: '',
         district: '',
         state: 'Tamil Nadu',
         pincode: extractedPin,
         addressType: 'Home',
-        fullAddressString: cleanText
+        fullAddressString: trimmed
       };
     }
+  } else if (typeof rawAddr === 'object') {
+    addrObj = rawAddr;
   }
 
-  // Extract all property aliases
+  // Extract fullName & phone with fallback support
   const fullName = String(
     addrObj.fullName ||
     addrObj.name ||
@@ -161,20 +172,28 @@ export function parseFullAddress(rawAddr: any, fallbackName = '', fallbackPhone 
 
   const addressType = String(addrObj.addressType || 'Home').trim();
 
-  // Construct complete formatted full address without dropping any components
-  const parts = [
-    houseNo,
-    street,
-    landmark ? `(Landmark: ${landmark})` : '',
-    villageTown,
-    district,
-    state,
-    pincode ? `PIN: ${pincode}` : ''
-  ].filter(Boolean);
+  // 1. If explicit fullAddress was provided (e.g. from Add Order or WhatsApp paste), use it 100% exact!
+  const explicitFullAddress = String(addrObj.fullAddress || addrObj.address || '').trim();
 
-  const fullAddressString = parts.length > 0
-    ? parts.join(', ')
-    : (typeof rawAddr === 'string' ? rawAddr : 'Address not specified');
+  let fullAddressString = '';
+  if (explicitFullAddress) {
+    fullAddressString = explicitFullAddress;
+  } else {
+    // 2. Otherwise join components cleanly without artificial prefixes
+    const parts = [
+      houseNo,
+      street,
+      landmark,
+      villageTown,
+      district,
+      state,
+      pincode
+    ].filter(Boolean);
+
+    fullAddressString = parts.length > 0
+      ? parts.join(', ')
+      : (typeof rawAddr === 'string' ? rawAddr : 'Address not specified');
+  }
 
   return {
     fullName,
@@ -193,7 +212,7 @@ export function parseFullAddress(rawAddr: any, fallbackName = '', fallbackPhone 
 }
 
 /**
- * Returns a clean, human-readable full address string.
+ * Returns the exact, human-readable full address string without modifications.
  */
 export function formatAddress(address: any, fallbackName = '', fallbackPhone = ''): string {
   if (!address) return 'No delivery address recorded';

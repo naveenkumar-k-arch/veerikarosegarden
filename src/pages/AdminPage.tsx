@@ -1916,9 +1916,9 @@ const silentRefresh = async (): Promise<boolean> => {
         phone: whatsAppOrderForm.customerPhone.trim(),
         fullAddress: rawAddress,
         houseNo: whatsAppOrderForm.houseNo || '',
-        street: whatsAppOrderForm.street || '',
-        villageTown: whatsAppOrderForm.villageTown || rawAddress.slice(0, 40),
-        district: whatsAppOrderForm.district || 'Tamil Nadu',
+        street: rawAddress,
+        villageTown: whatsAppOrderForm.villageTown || '',
+        district: whatsAppOrderForm.district || '',
         state: whatsAppOrderForm.state.trim() || 'Tamil Nadu',
         pincode: extractedPincode,
         addressType: 'Home'

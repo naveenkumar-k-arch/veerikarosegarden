@@ -3,103 +3,22 @@ import { Order } from '../types';
 import { Sprout, Printer, ArrowLeft, Download, Loader2, CheckCircle2 } from 'lucide-react';
 import * as jspdfPkg from 'jspdf';
 import { sanitizePdfText, cleanPlantLabelName } from '../utils/textSanitizer';
+import { parseFullAddress } from '../utils/addressUtils';
 
 const jsPDFClass: any = (jspdfPkg as any).jsPDF || (jspdfPkg as any).default || jspdfPkg;
 
 const parseLabelCustomerInfo = (order: Order) => {
-  let rawAddr: any = order.shippingAddress;
-  let name = order.customerName || (order.shippingAddress as any)?.fullName || 'Valued Customer';
-  let phone = order.customerPhone || (order.shippingAddress as any)?.phone || '';
-  let pincode = '';
-
-  if (typeof rawAddr === 'string') {
-    try {
-      const parsed = JSON.parse(rawAddr);
-      if (parsed && typeof parsed === 'object') {
-        rawAddr = parsed;
-      }
-    } catch {
-      // keep string
-    }
-  }
-
-  if (rawAddr && typeof rawAddr === 'object') {
-    name = rawAddr.fullName || order.customerName || name;
-    phone = rawAddr.phone || order.customerPhone || phone;
-    pincode = rawAddr.pincode ? String(rawAddr.pincode).trim() : '';
-
-    const rawParts = [
-      rawAddr.houseNo ? `${rawAddr.houseNo}` : '',
-      rawAddr.street,
-      rawAddr.villageTown,
-      rawAddr.district,
-      rawAddr.state
-    ].filter(Boolean);
-
-    const uniqueParts: string[] = [];
-    for (const p of rawParts) {
-      const trimmed = String(p).trim();
-      if (trimmed && (!uniqueParts.length || uniqueParts[uniqueParts.length - 1].toLowerCase() !== trimmed.toLowerCase())) {
-        const cleanPart = pincode ? trimmed.replace(new RegExp(`[\\-\\s,]*${pincode}\\b`, 'ig'), '').trim() : trimmed;
-        if (cleanPart && (!uniqueParts.length || uniqueParts[uniqueParts.length - 1].toLowerCase() !== cleanPart.toLowerCase())) {
-          uniqueParts.push(cleanPart);
-        }
-      }
-    }
-
-    let cleanAddress = uniqueParts.join(', ');
-    if (!pincode) {
-      const pinMatch = cleanAddress.match(/\b([1-9][0-9]{5})\b/);
-      if (pinMatch) {
-        pincode = pinMatch[1];
-        cleanAddress = cleanAddress.replace(new RegExp(`[\\-\\s,]*${pincode}\\b`, 'ig'), '').trim();
-      }
-    }
-
-    cleanAddress = sanitizePdfText(cleanAddress, 'Address details on order');
-    const sanitizedName = sanitizePdfText(name, 'Valued Customer');
-    const sanitizedPhone = sanitizePdfText(phone);
-    const sanitizedPincode = sanitizePdfText(pincode);
-
-    return {
-      name: sanitizedName,
-      cleanAddress: cleanAddress.startsWith('No') || cleanAddress.startsWith('Door') || cleanAddress.startsWith('Address')
-        ? cleanAddress
-        : `Address ${cleanAddress}`,
-      pincode: sanitizedPincode,
-      phone: sanitizedPhone
-    };
-  }
-
-  // If string address
-  let strAddr = String(rawAddr || '').trim();
-  const pinMatch = strAddr.match(/\b([1-9][0-9]{5})\b/);
-  if (pinMatch) {
-    pincode = pinMatch[1];
-    strAddr = strAddr.replace(new RegExp(`[\\-\\s,]*${pincode}\\b`, 'ig'), ' ');
-  }
-
-  const cleanStr = strAddr
-    .replace(/^(full\s*)?address\s*[:\-]?\s*/i, '')
-    .replace(/^name\s*:\s*[^,]+,\s*(address\s*:\s*)?/i, '')
-    .replace(/(phone|mobile|mob|contact)\s*[:\-]?\s*\+?[0-9\s\-]+/gi, '')
-    .replace(/\s+,/g, ',')
-    .replace(/,\s*,/g, ',')
-    .trim()
-    .replace(/^,+\s*|,+\s*$/g, '');
-
-  const sanitizedAddress = sanitizePdfText(cleanStr, 'Address details on order');
-  const sanitizedName = sanitizePdfText(name, 'Valued Customer');
-  const sanitizedPhone = sanitizePdfText(phone);
-  const sanitizedPincode = sanitizePdfText(pincode);
+  const parsed = parseFullAddress(order.shippingAddress, order.customerName, order.customerPhone);
+  const name = sanitizePdfText(parsed.fullName || order.customerName || 'Valued Customer', 'Valued Customer');
+  const phone = sanitizePdfText(parsed.phone || order.customerPhone || '');
+  const pincode = sanitizePdfText(parsed.pincode || '');
+  const cleanAddress = sanitizePdfText(parsed.fullAddressString || 'Address details on order', 'Address details on order');
 
   return {
-    name: sanitizedName,
-    cleanAddress: sanitizedAddress.startsWith('No') || sanitizedAddress.startsWith('Door') || sanitizedAddress.startsWith('Address')
-      ? sanitizedAddress
-      : `Address ${sanitizedAddress}`,
-    pincode: sanitizedPincode,
-    phone: sanitizedPhone
+    name,
+    cleanAddress,
+    pincode,
+    phone
   };
 };
 
