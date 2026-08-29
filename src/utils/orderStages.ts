@@ -1,4 +1,4 @@
-import { parseFullAddress } from './addressUtils';
+import { parseFullAddress } from './addressUtils.js';
 
 export type OrderStage = 'confirmed' | 'packing' | 'dispatched' | 'delivered';
 

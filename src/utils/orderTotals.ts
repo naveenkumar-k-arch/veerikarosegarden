@@ -1,5 +1,5 @@
 import { CartItem } from '../types';
-import { calculateDeliveryFee } from './delivery';
+import { calculateDeliveryFee } from './delivery.js';
 
 export interface OrderTotalsInput {
   items: CartItem[];
