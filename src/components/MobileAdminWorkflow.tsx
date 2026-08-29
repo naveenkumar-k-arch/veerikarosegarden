@@ -59,7 +59,12 @@ import {
   CheckCheck,
   Filter,
   RotateCcw,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Bell,
+  Users,
+  MoreHorizontal,
+  BarChart3,
+  ClipboardList
 } from 'lucide-react';
 import { A4LabelSheetPrint } from './A4LabelSheetPrint';
 
@@ -117,6 +122,7 @@ export type ScreenType =
   | 'finances'
   | 'settings'
   | 'audit'
+  | 'customers'
   | 'menu_drawer';
 
 export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
@@ -157,8 +163,11 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 }) => {
   // Current screen state
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('dashboard');
-  const [activeBottomTab, setActiveBottomTab] = useState<'dashboard' | 'orders' | 'labels' | 'menu'>('dashboard');
+  const [activeBottomTab, setActiveBottomTab] = useState<'dashboard' | 'orders' | 'plants' | 'customers' | 'more'>('dashboard');
   
+  // Dashboard sales period filter
+  const [salesPeriod, setSalesPeriod] = useState<'this_month' | 'last_month' | 'this_week' | 'all_time'>('this_month');
+  const [showSalesPeriodDropdown, setShowSalesPeriodDropdown] = useState(false);
   // Selected order for detail views
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   
@@ -706,8 +715,9 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
     // Sync bottom active tab
     if (screen === 'dashboard') setActiveBottomTab('dashboard');
     else if (screen === 'orders_list' || screen === 'order_details' || screen === 'dispatch_order' || screen === 'order_timeline') setActiveBottomTab('orders');
-    else if (screen === 'generate_labels') setActiveBottomTab('labels');
-    else if (screen === 'menu_drawer') setActiveBottomTab('menu');
+    else if (screen === 'products' || screen === 'generate_labels') setActiveBottomTab('plants');
+    else if (screen === 'customers') setActiveBottomTab('customers');
+    else if (screen === 'menu_drawer') setActiveBottomTab('more');
 
     const stateObj = {
       vrgAdmin: true,
@@ -888,8 +898,9 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
           setCurrentScreen(state.adminScreen);
           if (state.adminScreen === 'dashboard') setActiveBottomTab('dashboard');
           else if (state.adminScreen === 'orders_list' || state.adminScreen === 'order_details' || state.adminScreen === 'dispatch_order' || state.adminScreen === 'order_timeline') setActiveBottomTab('orders');
-          else if (state.adminScreen === 'generate_labels') setActiveBottomTab('labels');
-          else if (state.adminScreen === 'menu_drawer') setActiveBottomTab('menu');
+          else if (state.adminScreen === 'products' || state.adminScreen === 'generate_labels') setActiveBottomTab('plants');
+          else if (state.adminScreen === 'customers') setActiveBottomTab('customers');
+          else if (state.adminScreen === 'menu_drawer') setActiveBottomTab('more');
         }
 
         // 3. Synchronize selected order
@@ -961,6 +972,74 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
     const totalRevenue = paidOrders.reduce((sum, o) => sum + (o.grandTotal || 0), 0);
     const lowStockCount = products.filter(p => (p.stock || 0) <= 15).length;
 
+    // Monthly/Period stats for the new dashboard
+    const now = new Date();
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+    const thisWeekStart = new Date(now);
+    thisWeekStart.setDate(now.getDate() - now.getDay());
+    thisWeekStart.setHours(0, 0, 0, 0);
+
+    const getOrderDate = (o: Order) => new Date(o.createdAt);
+
+    const thisMonthPaidOrders = paidOrders.filter(o => getOrderDate(o) >= thisMonthStart);
+    const lastMonthPaidOrders = paidOrders.filter(o => {
+      const d = getOrderDate(o);
+      return d >= lastMonthStart && d <= lastMonthEnd;
+    });
+    const thisWeekPaidOrders = paidOrders.filter(o => getOrderDate(o) >= thisWeekStart);
+
+    const thisMonthRevenue = thisMonthPaidOrders.reduce((s, o) => s + (o.grandTotal || 0), 0);
+    const lastMonthRevenue = lastMonthPaidOrders.reduce((s, o) => s + (o.grandTotal || 0), 0);
+    const thisWeekRevenue = thisWeekPaidOrders.reduce((s, o) => s + (o.grandTotal || 0), 0);
+    const revenueChangePercent = lastMonthRevenue > 0
+      ? Math.round(((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100)
+      : thisMonthRevenue > 0 ? 100 : 0;
+
+    // Period-specific order counts
+    const thisMonthOrders = activeOrders.filter(o => getOrderDate(o) >= thisMonthStart);
+    const thisWeekOrders = activeOrders.filter(o => getOrderDate(o) >= thisWeekStart);
+    const lastMonthOrders = activeOrders.filter(o => {
+      const d = getOrderDate(o);
+      return d >= lastMonthStart && d <= lastMonthEnd;
+    });
+
+    // Unique customers
+    const getUniqueCustomers = (orderList: Order[]) => {
+      const phones = new Set<string>();
+      orderList.forEach(o => {
+        const ph = o.customerPhone || o.shippingAddress?.phone || '';
+        if (ph) phones.add(ph);
+      });
+      return phones.size;
+    };
+    const newCustomersThisMonth = getUniqueCustomers(thisMonthOrders);
+    const uniqueCustomerCount = getUniqueCustomers(orders);
+
+    // Average rating
+    const avgRating = reviews.length > 0
+      ? (reviews.reduce((s, r) => s + (r.rating || 0), 0) / reviews.length).toFixed(1)
+      : '0';
+
+    // Period-specific display values
+    let periodRevenue = thisMonthRevenue;
+    let periodOrderCount = thisMonthOrders.length;
+    let periodCustomers = newCustomersThisMonth;
+    if (salesPeriod === 'last_month') {
+      periodRevenue = lastMonthRevenue;
+      periodOrderCount = lastMonthOrders.length;
+      periodCustomers = getUniqueCustomers(lastMonthOrders);
+    } else if (salesPeriod === 'this_week') {
+      periodRevenue = thisWeekRevenue;
+      periodOrderCount = thisWeekOrders.length;
+      periodCustomers = getUniqueCustomers(thisWeekOrders);
+    } else if (salesPeriod === 'all_time') {
+      periodRevenue = totalRevenue;
+      periodOrderCount = orders.length;
+      periodCustomers = uniqueCustomerCount;
+    }
+
     return {
       confirmedCount: confirmedOrders.length,
       packingCount: packingOrders.length,
@@ -968,9 +1047,20 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
       deliveredCount: deliveredOrders.length,
       totalCount: orders.length,
       totalRevenue,
-      lowStockCount
+      lowStockCount,
+      // New dashboard stats
+      thisMonthRevenue,
+      lastMonthRevenue,
+      thisWeekRevenue,
+      revenueChangePercent,
+      newCustomersThisMonth,
+      uniqueCustomerCount,
+      avgRating,
+      periodRevenue,
+      periodOrderCount,
+      periodCustomers
     };
-  }, [orders, products]);
+  }, [orders, products, reviews, salesPeriod]);
 
   // Formatters
   const formatDate = (dateStr?: string) => {
@@ -1503,30 +1593,9 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-800 pb-20">
       
-      {/* Top Mobile Unified Header */}
+      {/* Top Mobile Unified Header — Redesigned */}
       <header className="bg-white border-b border-slate-200/90 px-4 py-3 sticky top-0 z-30 flex items-center justify-between shadow-2xs">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-800 shrink-0">
-            <Sprout className="w-5 h-5 text-emerald-700" />
-          </div>
-          <div>
-            <span className="text-base font-black tracking-wider text-emerald-900 uppercase">
-              VRG NURSERY
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {onOpenAddWhatsAppOrder && (
-            <button
-              type="button"
-              onClick={onOpenAddWhatsAppOrder}
-              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
-            >
-              <WhatsAppIcon size={14} className="fill-white shrink-0" />
-              <span>+ Add Order</span>
-            </button>
-          )}
+        <div className="flex items-center gap-3">
           <button
             onClick={() => navigateScreen('menu_drawer')}
             className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-700 hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
@@ -1535,6 +1604,32 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
           >
             <Menu className="w-5 h-5 text-slate-800" />
           </button>
+          <div>
+            <h1 className="text-base font-extrabold text-slate-900 leading-tight">
+              Welcome, {adminUser?.name?.split(' ')[0] || 'Admin'} 👋
+            </h1>
+            <p className="text-[11px] text-slate-500 font-medium leading-tight">
+              Here's what's happening in your nursery today
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigateScreen('orders_list', null, false, 'confirmed')}
+            className="relative w-9 h-9 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition-all cursor-pointer active:scale-95"
+            aria-label="Notifications"
+          >
+            <Bell className="w-[18px] h-[18px] text-slate-700" />
+            {stats.confirmedCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full bg-emerald-600 text-white text-[9px] font-bold flex items-center justify-center px-1">
+                {stats.confirmedCount}
+              </span>
+            )}
+          </button>
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-600 to-emerald-800 flex items-center justify-center text-white text-xs font-black shadow-sm shrink-0">
+            {(adminUser?.name || 'A').charAt(0).toUpperCase()}
+          </div>
         </div>
       </header>
 
@@ -1545,153 +1640,300 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
         {/* 1. DASHBOARD SCREEN                                        */}
         {/* ========================================================= */}
         {currentScreen === 'dashboard' && (
-          <div className="space-y-4 animate-in fade-in duration-150">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-extrabold text-slate-900">Admin Dashboard</h2>
-              {adminUser && (
-                <span className="text-[11px] font-bold bg-emerald-100 text-emerald-900 px-2.5 py-0.5 rounded-full">
-                  Admin: {adminUser.name?.split(' ')[0] || 'Admin'}
+          <div className="space-y-4 animate-in fade-in duration-150 relative pb-6">
+
+            {/* ─── 1. Sales Summary Card ─── */}
+            <div className="admin-sales-card bg-gradient-to-br from-[#14532d] via-[#166534] to-[#15803d] text-white p-5 rounded-3xl shadow-lg relative overflow-hidden">
+              {/* Decorative SVG curve line with glowing dot matching screenshot */}
+              <svg className="absolute right-3 top-8 w-48 h-24 pointer-events-none" viewBox="0 0 200 90" fill="none">
+                <path
+                  d="M0 65 Q 40 60, 70 45 T 120 40 T 170 15 T 195 12"
+                  stroke="rgba(255,255,255,0.4)"
+                  strokeWidth="2.5"
+                  fill="none"
+                />
+                <path
+                  d="M0 65 Q 40 60, 70 45 T 120 40 T 170 15 T 195 12 L 195 90 L 0 90 Z"
+                  fill="url(#greenGradient)"
+                  opacity="0.25"
+                />
+                <defs>
+                  <linearGradient id="greenGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#ffffff" stopOpacity="0.4"/>
+                    <stop offset="100%" stopColor="#ffffff" stopOpacity="0"/>
+                  </linearGradient>
+                </defs>
+                <circle cx="195" cy="12" r="4" fill="#ffffff" filter="drop-shadow(0 0 4px rgba(255,255,255,0.9))" />
+              </svg>
+              
+              <div className="flex items-center justify-between relative z-10">
+                <span className="text-[11px] font-bold text-emerald-200 uppercase tracking-wider">
+                  TOTAL SALES <span className="text-emerald-300 font-normal">({salesPeriod === 'this_month' ? 'This Month' : salesPeriod === 'last_month' ? 'Last Month' : salesPeriod === 'this_week' ? 'This Week' : 'All Time'})</span>
                 </span>
-              )}
-            </div>
-
-            {/* Quick Overview Summary Banner */}
-            <div className="bg-[#14532d] text-white p-4 rounded-3xl shadow-xs space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-emerald-200 uppercase tracking-wider">Total Farm Sales</span>
-                <span className="text-[11px] bg-emerald-800/80 px-2 py-0.5 rounded-full font-bold">Live Data</span>
-              </div>
-              <p className="text-3xl font-black">₹{stats.totalRevenue.toLocaleString('en-IN')}</p>
-              <div className="flex items-center justify-between text-xs pt-1 text-emerald-100 border-t border-emerald-800/60">
-                <span>📦 Total Orders: <strong>{orders.length}</strong></span>
-                <span>🌿 Total Plants: <strong>{products.length}</strong></span>
-              </div>
-            </div>
-
-            {/* Prominent WhatsApp / Offline Order Creator Button */}
-            {onOpenAddWhatsAppOrder && (
-              <button
-                type="button"
-                onClick={onOpenAddWhatsAppOrder}
-                className="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 active:scale-98 text-white font-extrabold text-xs rounded-2xl shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer"
-              >
-                <WhatsAppIcon size={16} className="fill-white shrink-0" />
-                <span>+ Add WhatsApp / Offline Order</span>
-              </button>
-            )}
-
-            {/* 4 Status KPI Metric Cards (2x2 Grid) */}
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => {
-                  navigateScreen('orders_list', null, false, 'confirmed');
-                }}
-                className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-emerald-300 text-left transition-all active:scale-[0.98] cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-600">Order Confirmed</span>
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                </div>
-                <span className="text-2xl font-black text-emerald-700 block mt-1">
-                  {stats.confirmedCount}
-                </span>
-                <span className="text-[10px] text-slate-400 font-medium">Ready for packing</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  navigateScreen('orders_list', null, false, 'packing');
-                }}
-                className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-amber-300 text-left transition-all active:scale-[0.98] cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-600">Nursery Packing</span>
-                  <Box className="w-4 h-4 text-amber-500" />
-                </div>
-                <span className="text-2xl font-black text-amber-600 block mt-1">
-                  {stats.packingCount}
-                </span>
-                <span className="text-[10px] text-slate-400 font-medium">In packaging</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  navigateScreen('orders_list', null, false, 'dispatched');
-                }}
-                className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-blue-300 text-left transition-all active:scale-[0.98] cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-600">Courier Dispatched</span>
-                  <Truck className="w-4 h-4 text-blue-600" />
-                </div>
-                <span className="text-2xl font-black text-blue-600 block mt-1">
-                  {stats.dispatchedCount}
-                </span>
-                <span className="text-[10px] text-slate-400 font-medium">With tracking link</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  navigateScreen('orders_list', null, false, 'delivered');
-                }}
-                className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-purple-300 text-left transition-all active:scale-[0.98] cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-600">Delivered</span>
-                  <CheckCircle className="w-4 h-4 text-purple-600" />
-                </div>
-                <span className="text-2xl font-black text-purple-700 block mt-1">
-                  {stats.deliveredCount}
-                </span>
-                <span className="text-[10px] text-slate-400 font-medium">Completed orders</span>
-              </button>
-            </div>
-
-            {/* Quick Shortcuts Grid */}
-            <div className="grid grid-cols-3 gap-2 text-center text-xs font-bold">
-              <button
-                onClick={() => navigateScreen('products')}
-                className="p-3 bg-white border border-slate-200 rounded-2xl hover:border-emerald-400 active:scale-95 transition-all shadow-xs cursor-pointer flex flex-col items-center gap-1"
-              >
-                <Package className="w-5 h-5 text-emerald-700" />
-                <span>Plants ({products.length})</span>
-              </button>
-
-              <button
-                onClick={() => navigateScreen('categories')}
-                className="p-3 bg-white border border-slate-200 rounded-2xl hover:border-emerald-400 active:scale-95 transition-all shadow-xs cursor-pointer flex flex-col items-center gap-1"
-              >
-                <FolderTree className="w-5 h-5 text-emerald-700" />
-                <span>Categories</span>
-              </button>
-
-              <button
-                onClick={() => navigateScreen('reviews')}
-                className="p-3 bg-white border border-slate-200 rounded-2xl hover:border-emerald-400 active:scale-95 transition-all shadow-xs cursor-pointer flex flex-col items-center gap-1"
-              >
-                <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
-                <span>Reviews ({reviews.length})</span>
-              </button>
-            </div>
-
-            {/* Recent Orders Section */}
-            <div className="space-y-3 pt-1">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">Recent Orders</h3>
-                  <p className="text-[10px] text-slate-400 font-medium">Real-time nursery order updates</p>
-                </div>
-                <div className="flex items-center gap-2">
+                <div className="relative">
                   <button
-                    onClick={() => {
-                      navigateScreen('orders_list', null, false, 'all');
-                    }}
-                    className="text-[11px] font-black text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-xl flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+                    onClick={() => setShowSalesPeriodDropdown(!showSalesPeriodDropdown)}
+                    className="text-[11px] bg-emerald-800/80 hover:bg-emerald-800 px-3 py-1 rounded-full font-bold flex items-center gap-1.5 cursor-pointer transition-colors border border-emerald-700/50"
                   >
-                    <SlidersHorizontal className="w-3 h-3 text-emerald-700" />
-                    <span>Filter & Search ({orders.length})</span>
+                    <span>{salesPeriod === 'this_month' ? 'This Month' : salesPeriod === 'last_month' ? 'Last Month' : salesPeriod === 'this_week' ? 'This Week' : 'All Time'}</span>
+                    <ChevronDown className="w-3.5 h-3.5 opacity-80" />
                   </button>
+                  {showSalesPeriodDropdown && (
+                    <div className="absolute right-0 top-8 bg-white text-slate-800 rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 min-w-[140px]">
+                      {([['this_week', 'This Week'], ['this_month', 'This Month'], ['last_month', 'Last Month'], ['all_time', 'All Time']] as const).map(([key, label]) => (
+                        <button
+                          key={key}
+                          onClick={() => { setSalesPeriod(key); setShowSalesPeriodDropdown(false); }}
+                          className={`w-full text-left px-3.5 py-2 text-xs font-semibold hover:bg-emerald-50 transition-colors cursor-pointer ${salesPeriod === key ? 'text-emerald-700 bg-emerald-50 font-bold' : 'text-slate-700'}`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
+              </div>
+
+              <p className="text-3xl font-extrabold tracking-tight mt-1.5 relative z-10">
+                ₹{stats.periodRevenue.toLocaleString('en-IN')}
+              </p>
+              
+              <div className="flex items-center gap-1.5 mt-1.5 relative z-10">
+                <span className="text-[11px] font-bold flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-800/60 text-emerald-200 border border-emerald-700/40">
+                  <TrendingUp className="w-3 h-3 text-emerald-300" />
+                  <span>{stats.revenueChangePercent >= 0 ? '↑' : '↓'} {Math.abs(stats.revenueChangePercent)}% vs last month</span>
+                </span>
+              </div>
+
+              {/* 4 KPI Pills */}
+              <div className="grid grid-cols-4 gap-2 mt-4 pt-3.5 border-t border-emerald-700/40 relative z-10">
+                <div className="flex flex-col items-center text-center">
+                  <div className="flex items-center gap-1.5">
+                    <ShoppingBag className="w-4 h-4 text-emerald-300 stroke-[2.2]" />
+                    <span className="text-lg font-black leading-none">{stats.periodOrderCount}</span>
+                  </div>
+                  <span className="text-[9px] text-emerald-200/90 font-medium mt-1">Total Orders</span>
+                </div>
+                <div className="flex flex-col items-center text-center">
+                  <div className="flex items-center gap-1.5">
+                    <Sprout className="w-4 h-4 text-emerald-300 stroke-[2.2]" />
+                    <span className="text-lg font-black leading-none">{products.length}</span>
+                  </div>
+                  <span className="text-[9px] text-emerald-200/90 font-medium mt-1">Total Plants</span>
+                </div>
+                <div className="flex flex-col items-center text-center">
+                  <div className="flex items-center gap-1.5">
+                    <Users className="w-4 h-4 text-emerald-300 stroke-[2.2]" />
+                    <span className="text-lg font-black leading-none">{stats.periodCustomers}</span>
+                  </div>
+                  <span className="text-[9px] text-emerald-200/90 font-medium mt-1">New Customers</span>
+                </div>
+                <div className="flex flex-col items-center text-center">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-lg font-black leading-none">{stats.avgRating}</span>
+                    <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                  </div>
+                  <span className="text-[9px] text-emerald-200/90 font-medium mt-1">Avg. Rating</span>
+                </div>
+              </div>
+            </div>
+
+            {/* ─── 2. Quick Action Buttons ─── */}
+            <div className="bg-white rounded-3xl p-3.5 border border-slate-100 shadow-xs">
+              <div className="flex items-start justify-around">
+                {onOpenAddWhatsAppOrder && (
+                  <button
+                    onClick={onOpenAddWhatsAppOrder}
+                    className="admin-quick-action-btn flex flex-col items-center gap-1.5 cursor-pointer group"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center group-hover:bg-emerald-100 group-active:scale-95 transition-all shadow-2xs">
+                      <WhatsAppIcon size={20} className="fill-[#25D366] shrink-0" />
+                    </div>
+                    <span className="text-[10px] font-bold text-slate-700 text-center leading-tight">WhatsApp<br/>Order</span>
+                  </button>
+                )}
+                {onOpenAddWhatsAppOrder && (
+                  <button
+                    onClick={onOpenAddWhatsAppOrder}
+                    className="admin-quick-action-btn flex flex-col items-center gap-1.5 cursor-pointer group"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center group-hover:bg-blue-100 group-active:scale-95 transition-all shadow-2xs">
+                      <ClipboardList className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <span className="text-[10px] font-bold text-slate-700 text-center leading-tight">Offline<br/>Order</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => navigateScreen('products')}
+                  className="admin-quick-action-btn flex flex-col items-center gap-1.5 cursor-pointer group"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center group-hover:bg-orange-100 group-active:scale-95 transition-all shadow-2xs">
+                    <Box className="w-5 h-5 text-orange-600" />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-700 text-center leading-tight">Add<br/>Plant</span>
+                </button>
+                <button
+                  onClick={() => navigateScreen('categories')}
+                  className="admin-quick-action-btn flex flex-col items-center gap-1.5 cursor-pointer group"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center group-hover:bg-purple-100 group-active:scale-95 transition-all shadow-2xs">
+                    <Tag className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-700 text-center leading-tight">Add<br/>Category</span>
+                </button>
+                <button
+                  onClick={() => navigateScreen('finances')}
+                  className="admin-quick-action-btn flex flex-col items-center gap-1.5 cursor-pointer group"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-teal-50 border border-teal-100 flex items-center justify-center group-hover:bg-teal-100 group-active:scale-95 transition-all shadow-2xs">
+                    <BarChart3 className="w-5 h-5 text-teal-600" />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-700 text-center leading-tight">Sales<br/>Report</span>
+                </button>
+              </div>
+            </div>
+
+            {/* ─── 3. Order Statuses Section ─── */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">ORDER STATUSES</h3>
+                <button
+                  onClick={() => navigateScreen('orders_list', null, false, 'all')}
+                  className="text-xs font-bold text-emerald-700 hover:text-emerald-900 cursor-pointer flex items-center gap-0.5"
+                >
+                  <span>View All</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {/* Order Confirmed */}
+                <button
+                  onClick={() => navigateScreen('orders_list', null, false, 'confirmed')}
+                  className="admin-status-card bg-white p-3 rounded-2xl border border-slate-100 shadow-xs hover:border-emerald-300 text-left transition-all active:scale-[0.97] cursor-pointer flex flex-col justify-between relative overflow-hidden"
+                >
+                  <div>
+                    <div className="w-7 h-7 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 mb-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    </div>
+                    <span className="text-2xl font-black text-slate-900 block leading-tight">{stats.confirmedCount}</span>
+                    <span className="text-[11px] font-bold text-slate-800 block mt-1 leading-tight">Order Confirmed</span>
+                    <span className="text-[9px] text-slate-400 font-medium block mt-0.5">Ready for packing</span>
+                  </div>
+                  <div className="w-full h-1 bg-emerald-500 rounded-full mt-2.5" />
+                </button>
+
+                {/* Nursery Packing */}
+                <button
+                  onClick={() => navigateScreen('orders_list', null, false, 'packing')}
+                  className="admin-status-card bg-white p-3 rounded-2xl border border-slate-100 shadow-xs hover:border-orange-300 text-left transition-all active:scale-[0.97] cursor-pointer flex flex-col justify-between relative overflow-hidden"
+                >
+                  <div>
+                    <div className="w-7 h-7 rounded-full bg-orange-50 flex items-center justify-center text-orange-600 mb-2">
+                      <Box className="w-4 h-4 text-orange-500" />
+                    </div>
+                    <span className="text-2xl font-black text-slate-900 block leading-tight">{stats.packingCount}</span>
+                    <span className="text-[11px] font-bold text-slate-800 block mt-1 leading-tight">Nursery Packing</span>
+                    <span className="text-[9px] text-slate-400 font-medium block mt-0.5">In packaging</span>
+                  </div>
+                  <div className="w-full h-1 bg-orange-500 rounded-full mt-2.5" />
+                </button>
+
+                {/* Courier Dispatched */}
+                <button
+                  onClick={() => navigateScreen('orders_list', null, false, 'dispatched')}
+                  className="admin-status-card bg-white p-3 rounded-2xl border border-slate-100 shadow-xs hover:border-blue-300 text-left transition-all active:scale-[0.97] cursor-pointer flex flex-col justify-between relative overflow-hidden"
+                >
+                  <div>
+                    <div className="w-7 h-7 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 mb-2">
+                      <Truck className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <span className="text-2xl font-black text-slate-900 block leading-tight">{stats.dispatchedCount}</span>
+                    <span className="text-[11px] font-bold text-slate-800 block mt-1 leading-tight">Courier Dispatched</span>
+                    <span className="text-[9px] text-slate-400 font-medium block mt-0.5">With tracking link</span>
+                  </div>
+                  <div className="w-full h-1 bg-blue-500 rounded-full mt-2.5" />
+                </button>
+
+                {/* Delivered */}
+                <button
+                  onClick={() => navigateScreen('orders_list', null, false, 'delivered')}
+                  className="admin-status-card bg-white p-3 rounded-2xl border border-slate-100 shadow-xs hover:border-purple-300 text-left transition-all active:scale-[0.97] cursor-pointer flex flex-col justify-between relative overflow-hidden"
+                >
+                  <div>
+                    <div className="w-7 h-7 rounded-full bg-purple-50 flex items-center justify-center text-purple-600 mb-2">
+                      <CheckCheck className="w-4 h-4 text-purple-600" />
+                    </div>
+                    <span className="text-2xl font-black text-slate-900 block leading-tight">{stats.deliveredCount}</span>
+                    <span className="text-[11px] font-bold text-slate-800 block mt-1 leading-tight">Delivered</span>
+                    <span className="text-[9px] text-slate-400 font-medium block mt-0.5">Completed orders</span>
+                  </div>
+                  <div className="w-full h-1 bg-purple-500 rounded-full mt-2.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* ─── 4. Quick Overview Section ─── */}
+            <div className="bg-white rounded-3xl p-4 border border-slate-100 shadow-xs space-y-3">
+              <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider px-0.5">QUICK OVERVIEW</h3>
+              <div className="grid grid-cols-4 gap-2">
+                <button
+                  onClick={() => navigateScreen('products')}
+                  className="flex flex-col items-center text-center p-2 rounded-2xl hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
+                >
+                  <div className="w-9 h-9 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 mb-1.5">
+                    <Sprout className="w-4 h-4 text-emerald-600" />
+                  </div>
+                  <span className="text-base font-black text-slate-900 block leading-tight">{products.length}</span>
+                  <span className="text-[10px] font-medium text-slate-500 block leading-tight mt-0.5">Total Plants</span>
+                  <span className="text-[9px] font-bold text-emerald-600 mt-0.5">Live</span>
+                </button>
+                <button
+                  onClick={() => navigateScreen('categories')}
+                  className="flex flex-col items-center text-center p-2 rounded-2xl hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
+                >
+                  <div className="w-9 h-9 rounded-full bg-orange-50 flex items-center justify-center text-orange-600 mb-1.5">
+                    <FolderTree className="w-4 h-4 text-orange-600" />
+                  </div>
+                  <span className="text-base font-black text-slate-900 block leading-tight">{categories.length}</span>
+                  <span className="text-[10px] font-medium text-slate-500 block leading-tight mt-0.5">Categories</span>
+                  <span className="text-[9px] font-bold text-orange-600 mt-0.5">Active</span>
+                </button>
+                <button
+                  onClick={() => navigateScreen('reviews')}
+                  className="flex flex-col items-center text-center p-2 rounded-2xl hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
+                >
+                  <div className="w-9 h-9 rounded-full bg-purple-50 flex items-center justify-center text-purple-600 mb-1.5">
+                    <Star className="w-4 h-4 text-purple-600" />
+                  </div>
+                  <span className="text-base font-black text-slate-900 block leading-tight">{reviews.length}</span>
+                  <span className="text-[10px] font-medium text-slate-500 block leading-tight mt-0.5">Reviews</span>
+                  <span className="text-[9px] font-bold text-purple-600 mt-0.5">New</span>
+                </button>
+                <button
+                  onClick={() => navigateScreen('customers')}
+                  className="flex flex-col items-center text-center p-2 rounded-2xl hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
+                >
+                  <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 mb-1.5">
+                    <Users className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <span className="text-base font-black text-slate-900 block leading-tight">{stats.periodCustomers}</span>
+                  <span className="text-[10px] font-medium text-slate-500 block leading-tight mt-0.5">Customers</span>
+                  <span className="text-[9px] font-bold text-blue-600 mt-0.5">This Month</span>
+                </button>
+              </div>
+            </div>
+
+            {/* ─── 5. Recent Orders Section ─── */}
+            <div className="space-y-2.5 pt-1">
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">RECENT ORDERS</h3>
+                <button
+                  onClick={() => navigateScreen('orders_list', null, false, 'all')}
+                  className="text-[11px] font-bold text-emerald-800 hover:text-emerald-950 flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <span>Filter & Search</span>
+                  <SlidersHorizontal className="w-3 h-3 text-emerald-700" />
+                </button>
               </div>
 
               <div className="space-y-2.5">
@@ -1700,98 +1942,97 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                   const isPacking = stage === 'packing';
                   const isDispatched = stage === 'dispatched';
                   const isDelivered = stage === 'delivered';
+                  const totalItems = order.items?.reduce((s, i) => s + (i.quantity || 1), 0) || 0;
+                  const firstItemImage = order.items?.[0]?.image || 'https://images.unsplash.com/photo-1518895949257-7621c3c786d7?w=120&auto=format&fit=crop&q=80';
+                  const phone = order.customerPhone || order.shippingAddress?.phone || '';
 
                   return (
                     <div
                       key={order.id}
-                      onClick={() => {
-                        navigateScreen('order_details', order);
-                      }}
-                      className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-slate-300 active:scale-[0.99] transition-all cursor-pointer space-y-1.5"
+                      onClick={() => navigateScreen('order_details', order)}
+                      className="admin-order-card bg-white p-3.5 rounded-2xl border border-slate-100 shadow-xs hover:border-slate-300 active:scale-[0.99] transition-all cursor-pointer flex items-center gap-3.5"
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-mono font-bold text-xs text-slate-900">
-                            {order.id}
-                          </span>
-                          {isWhatsAppOrder(order) ? (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-black bg-emerald-100 text-emerald-950 border border-emerald-300 shadow-2xs">
-                              <WhatsAppIcon size={11} className="fill-[#25D366] shrink-0" />
-                              <span>WhatsApp</span>
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-black bg-blue-50 text-blue-900 border border-blue-200 shadow-2xs">
-                              <Globe className="w-2.5 h-2.5 text-blue-600 shrink-0" />
-                              <span>Website</span>
-                            </span>
-                          )}
-                        </div>
-                        <span className="font-extrabold text-sm text-slate-900">
-                          ₹{order.grandTotal}
-                        </span>
+                      {/* Left: Product Thumbnail */}
+                      <div className="w-14 h-14 rounded-2xl overflow-hidden border border-slate-100 shadow-2xs shrink-0 bg-slate-100">
+                        <img
+                          src={firstItemImage}
+                          alt="Plant"
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          onError={(e: any) => {
+                            e.currentTarget.src = 'https://images.unsplash.com/photo-1518895949257-7621c3c786d7?w=120&auto=format&fit=crop&q=80';
+                          }}
+                        />
                       </div>
 
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-slate-700 truncate">
+                      {/* Middle: Order ID + Customer + Phone */}
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-mono font-black text-xs text-slate-900">{order.id}</span>
+                          <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-md ${
+                            order.paymentStatus === 'SUCCESS' ? 'bg-emerald-100 text-emerald-800' : order.paymentStatus === 'FAILED' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-900'
+                          }`}>
+                            {order.paymentStatus === 'SUCCESS' ? 'Paid' : order.paymentStatus === 'FAILED' ? 'Failed' : 'Pending'}
+                          </span>
+                        </div>
+
+                        <p className="text-xs font-black text-slate-800 uppercase tracking-tight truncate">
                           {order.customerName || order.shippingAddress?.fullName || 'Customer'}
-                        </span>
-                        <span className="text-[11px] text-slate-400 font-medium shrink-0">
-                          {formatDate(order.createdAt)}
-                        </span>
+                        </p>
+
+                        <div className="flex items-center gap-1 text-[11px] text-slate-500 font-medium">
+                          <Phone className="w-3 h-3 text-slate-400 shrink-0" />
+                          <span className="truncate">{phone || '—'}</span>
+                        </div>
                       </div>
 
-                      <div className="flex items-center justify-between pt-1 flex-wrap gap-1">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                            isDelivered
-                              ? 'bg-purple-100 text-purple-900 border border-purple-200'
-                              : isDispatched
-                              ? 'bg-blue-100 text-blue-900 border border-blue-200'
-                              : isPacking
-                              ? 'bg-amber-100 text-amber-900 border border-amber-200'
-                              : 'bg-emerald-100 text-emerald-900 border border-emerald-200'
-                          }`}>
-                            {isDelivered ? 'Delivered' : isDispatched ? 'Courier Dispatched' : isPacking ? 'Nursery Packing' : 'Order Confirmed'}
+                      {/* Right: Price + Date + Status + Chevron */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="text-right space-y-0.5">
+                          <span className="font-black text-sm text-slate-900 block leading-tight">
+                            ₹{order.grandTotal}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-medium block leading-tight">
+                            {formatDate(order.createdAt)}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-medium block leading-tight">
+                            {totalItems} {totalItems === 1 ? 'Plant' : 'Plants'}
                           </span>
 
-                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                            order.paymentStatus === 'SUCCESS' ? 'bg-emerald-100 text-emerald-900' : order.paymentStatus === 'FAILED' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-900'
-                          }`}>
-                            {order.paymentStatus === 'SUCCESS' ? '✓ Paid' : order.paymentStatus === 'FAILED' ? '✗ Failed' : '⏳ Pending'}
-                          </span>
-
-                          {(order.paymentMethod === 'RAZORPAY' || order.paymentMethod === 'PHONEPE') && (
-                            <span className="text-[9px] font-bold bg-emerald-50 text-emerald-900 px-1.5 py-0.5 rounded border border-emerald-200">
-                              ⚡ Auto-Verified
+                          <div className="pt-1 flex flex-col items-end gap-0.5">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg inline-block ${
+                              isDelivered
+                                ? 'bg-purple-100 text-purple-800'
+                                : isDispatched
+                                ? 'bg-blue-100 text-blue-800'
+                                : isPacking
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-emerald-100 text-emerald-800'
+                            }`}>
+                              {isDelivered ? 'Delivered' : isDispatched ? 'Courier Dispatched' : isPacking ? 'Nursery Packing' : 'Order Confirmed'}
                             </span>
-                          )}
 
-                          {(order.paymentProofUrl || order.paymentMethod === 'QR_PAYMENT' || order.paymentMethod === 'UPI_DIRECT') && (
-                            <span className="text-[9px] font-bold bg-indigo-50 text-indigo-900 px-1.5 py-0.5 rounded border border-indigo-200">
-                              📸 QR Manual
-                            </span>
-                          )}
+                            {(order.paymentMethod === 'RAZORPAY' || order.paymentMethod === 'PHONEPE') && (
+                              <span className="text-[9px] font-bold text-amber-600 flex items-center gap-0.5">
+                                ⚡ Auto-Verified
+                              </span>
+                            )}
+
+                            {isDispatched && order.trackingNumber && (
+                              <span className="text-[9px] font-medium text-blue-600">
+                                Tracking ID : {order.trackingNumber}
+                              </span>
+                            )}
+
+                            {isDelivered && (
+                              <span className="text-[9px] font-medium text-slate-400">
+                                Delivered on {formatDate(order.updatedAt)}
+                              </span>
+                            )}
+                          </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          {order.paymentProofUrl && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openAdminModal('proof', { order });
-                              }}
-                              className="text-[10px] bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-2 py-0.5 rounded-md flex items-center gap-1 cursor-pointer"
-                            >
-                              <Camera className="w-3 h-3" />
-                              <span>Receipt</span>
-                            </button>
-                          )}
-                          <span className="text-[11px] text-emerald-800 font-bold flex items-center gap-0.5">
-                            <span>Manage</span>
-                            <ChevronRight className="w-3 h-3" />
-                          </span>
-                        </div>
+                        <ChevronRight className="w-4 h-4 text-emerald-700 opacity-60" />
                       </div>
                     </div>
                   );
@@ -1804,7 +2045,31 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                   </div>
                 )}
               </div>
+
+              {/* View All Orders link */}
+              {orders.length > 0 && (
+                <button
+                  onClick={() => navigateScreen('orders_list', null, false, 'all')}
+                  className="w-full text-center text-xs font-bold text-emerald-700 hover:text-emerald-900 py-2 cursor-pointer transition-colors flex items-center justify-center gap-1"
+                >
+                  <span>View All Orders</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
+
+            {/* Floating Action Button */}
+            <button
+              type="button"
+              onClick={() => {
+                toast.success('Refreshing nursery dashboard data...', 'Refreshed');
+                if (typeof window !== 'undefined') window.location.reload();
+              }}
+              aria-label="Refresh data"
+              className="fixed right-5 bottom-20 z-30 w-12 h-12 rounded-full bg-[#14532d] hover:bg-[#166534] active:scale-95 text-white flex items-center justify-center shadow-lg shadow-emerald-900/30 transition-all cursor-pointer"
+            >
+              <RefreshCw className="w-5 h-5 text-white" />
+            </button>
           </div>
         )}
 
@@ -5531,6 +5796,124 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             </div>
           </div>
         )}
+        {/* ========================================================= */}
+        {/* CUSTOMERS SCREEN                                            */}
+        {/* ========================================================= */}
+        {currentScreen === 'customers' && (
+          <div className="space-y-4 animate-in fade-in duration-150">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleGoBack('dashboard')}
+                  className="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-700 transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                <div>
+                  <h2 className="text-base font-extrabold text-slate-900">Customers</h2>
+                  <p className="text-[10px] text-slate-400 font-medium">
+                    {stats.uniqueCustomerCount} unique customers from orders
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search by name or phone..."
+                className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-emerald-400 shadow-xs"
+                onChange={(e) => {
+                  const el = e.target;
+                  // Store search query in dataset
+                  el.closest('[data-customers-container]')?.setAttribute('data-search', el.value.toLowerCase());
+                  el.closest('[data-customers-container]')?.querySelectorAll('[data-customer-card]').forEach((card: any) => {
+                    const name = card.getAttribute('data-name') || '';
+                    const phone = card.getAttribute('data-phone') || '';
+                    const q = el.value.toLowerCase();
+                    card.style.display = (!q || name.includes(q) || phone.includes(q)) ? '' : 'none';
+                  });
+                }}
+              />
+            </div>
+
+            {/* Customer list */}
+            <div className="space-y-2" data-customers-container>
+              {(() => {
+                // Aggregate customers from orders
+                const customerMap = new Map<string, { name: string; phone: string; orderCount: number; totalSpent: number; lastOrderDate: string }>();
+                orders.forEach(o => {
+                  const ph = o.customerPhone || o.shippingAddress?.phone || '';
+                  if (!ph) return;
+                  const existing = customerMap.get(ph);
+                  if (existing) {
+                    existing.orderCount++;
+                    existing.totalSpent += (o.grandTotal || 0);
+                    if (o.createdAt > existing.lastOrderDate) {
+                      existing.lastOrderDate = o.createdAt;
+                      existing.name = o.customerName || o.shippingAddress?.fullName || existing.name;
+                    }
+                  } else {
+                    customerMap.set(ph, {
+                      name: o.customerName || o.shippingAddress?.fullName || 'Customer',
+                      phone: ph,
+                      orderCount: 1,
+                      totalSpent: o.grandTotal || 0,
+                      lastOrderDate: o.createdAt || ''
+                    });
+                  }
+                });
+                const customerList = Array.from(customerMap.values()).sort((a, b) => b.lastOrderDate.localeCompare(a.lastOrderDate));
+                
+                if (customerList.length === 0) {
+                  return (
+                    <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-2">
+                      <Users className="w-8 h-8 text-slate-300 mx-auto" />
+                      <p className="text-xs font-bold text-slate-500">No customer data available</p>
+                    </div>
+                  );
+                }
+
+                return customerList.map((c) => (
+                  <div
+                    key={c.phone}
+                    data-customer-card
+                    data-name={c.name.toLowerCase()}
+                    data-phone={c.phone}
+                    className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-sm font-black shrink-0">
+                        {c.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-bold text-slate-900 truncate">{c.name}</span>
+                          <span className="text-xs font-extrabold text-emerald-700">₹{c.totalSpent.toLocaleString('en-IN')}</span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[11px] text-slate-500 font-medium flex items-center gap-1">
+                            <Phone className="w-3 h-3" /> {c.phone}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
+                            {c.orderCount} {c.orderCount === 1 ? 'Order' : 'Orders'}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-medium">
+                            Last: {formatDate(c.lastOrderDate)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+          </div>
+        )}
 
       </main>
 
@@ -7186,13 +7569,11 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
       {/* ========================================================= */}
       {/* 19. BOTTOM NAVIGATION BAR                                  */}
       {/* ========================================================= */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-6 py-2 flex items-center justify-between shadow-lg max-w-lg mx-auto">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-4 py-2 flex items-center justify-around shadow-lg max-w-lg mx-auto">
         <button
-          onClick={() => {
-            navigateScreen('dashboard');
-          }}
-          className={`flex flex-col items-center gap-1 transition-colors cursor-pointer ${
-            activeBottomTab === 'dashboard' && currentScreen === 'dashboard' ? 'text-[#14532d] font-bold' : 'text-slate-500 font-medium'
+          onClick={() => navigateScreen('dashboard')}
+          className={`flex flex-col items-center gap-0.5 transition-colors cursor-pointer min-w-[48px] ${
+            activeBottomTab === 'dashboard' ? 'text-[#14532d] font-bold' : 'text-slate-400 font-medium'
           }`}
         >
           <LayoutDashboard className="w-5 h-5" />
@@ -7200,14 +7581,12 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
         </button>
 
         <button
-          onClick={() => {
-            navigateScreen('orders_list');
-          }}
-          className={`flex flex-col items-center gap-1 transition-colors cursor-pointer relative ${
-            currentScreen === 'orders_list' || currentScreen === 'order_details' ? 'text-[#14532d] font-bold' : 'text-slate-500 font-medium'
+          onClick={() => navigateScreen('orders_list')}
+          className={`flex flex-col items-center gap-0.5 transition-colors cursor-pointer relative min-w-[48px] ${
+            activeBottomTab === 'orders' ? 'text-[#14532d] font-bold' : 'text-slate-400 font-medium'
           }`}
         >
-          <Calendar className="w-5 h-5" />
+          <ShoppingBag className="w-5 h-5" />
           <span className="text-[10px]">Orders</span>
           {stats.confirmedCount > 0 && (
             <span className="absolute -top-1 right-1 w-2 h-2 rounded-full bg-emerald-500" />
@@ -7215,27 +7594,33 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
         </button>
 
         <button
-          onClick={() => {
-            navigateScreen('generate_labels');
-          }}
-          className={`flex flex-col items-center gap-1 transition-colors cursor-pointer ${
-            currentScreen === 'generate_labels' ? 'text-[#14532d] font-bold' : 'text-slate-500 font-medium'
+          onClick={() => navigateScreen('products')}
+          className={`flex flex-col items-center gap-0.5 transition-colors cursor-pointer min-w-[48px] ${
+            activeBottomTab === 'plants' ? 'text-[#14532d] font-bold' : 'text-slate-400 font-medium'
           }`}
         >
-          <FileText className="w-5 h-5" />
-          <span className="text-[10px]">Label Sheet</span>
+          <Sprout className="w-5 h-5" />
+          <span className="text-[10px]">Plants</span>
         </button>
 
         <button
-          onClick={() => {
-            navigateScreen('menu_drawer');
-          }}
-          className={`flex flex-col items-center gap-1 transition-colors cursor-pointer ${
-            currentScreen === 'menu_drawer' ? 'text-[#14532d] font-bold' : 'text-slate-500 font-medium'
+          onClick={() => navigateScreen('customers')}
+          className={`flex flex-col items-center gap-0.5 transition-colors cursor-pointer min-w-[48px] ${
+            activeBottomTab === 'customers' ? 'text-[#14532d] font-bold' : 'text-slate-400 font-medium'
           }`}
         >
-          <Menu className="w-5 h-5" />
-          <span className="text-[10px]">Menu</span>
+          <Users className="w-5 h-5" />
+          <span className="text-[10px]">Customers</span>
+        </button>
+
+        <button
+          onClick={() => navigateScreen('menu_drawer')}
+          className={`flex flex-col items-center gap-0.5 transition-colors cursor-pointer min-w-[48px] ${
+            activeBottomTab === 'more' ? 'text-[#14532d] font-bold' : 'text-slate-400 font-medium'
+          }`}
+        >
+          <MoreHorizontal className="w-5 h-5" />
+          <span className="text-[10px]">More</span>
         </button>
       </nav>
     </div>
