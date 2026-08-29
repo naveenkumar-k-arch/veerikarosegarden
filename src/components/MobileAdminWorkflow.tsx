@@ -251,6 +251,36 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   // Order Sorting: 'date_desc' (Newest Date First - Default), 'date_asc' (Oldest First), 'price_desc' (Highest Amount First), 'price_asc' (Lowest Amount First)
   const [orderSortBy, setOrderSortBy] = useState<'date_desc' | 'date_asc' | 'price_desc' | 'price_asc'>('date_desc');
 
+  // Order Source Filter: 'all' | 'whatsapp' | 'website'
+  const [orderSourceFilter, setOrderSourceFilterState] = useState<'all' | 'whatsapp' | 'website'>(() => {
+    try {
+      if (typeof window !== 'undefined' && window.history.state?.sourceFilter) {
+        return window.history.state.sourceFilter;
+      }
+      const saved = sessionStorage.getItem('vrg_admin_source_filter');
+      if (saved && ['all', 'whatsapp', 'website'].includes(saved)) {
+        return saved as any;
+      }
+    } catch {}
+    return 'all';
+  });
+
+  const setOrderSourceFilter = useCallback((source: 'all' | 'whatsapp' | 'website') => {
+    setOrderSourceFilterState(source);
+    try {
+      sessionStorage.setItem('vrg_admin_source_filter', source);
+    } catch {}
+
+    if (typeof window !== 'undefined' && window.history.state?.vrgAdmin) {
+      try {
+        window.history.replaceState({
+          ...window.history.state,
+          sourceFilter: source
+        }, '', '/admin');
+      } catch {}
+    }
+  }, []);
+
   // Courier & Date Filter States for Orders
   const [orderCourierFilter, setOrderCourierFilterState] = useState<string>(() => {
     try {
@@ -686,7 +716,13 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   }, []);
 
   // Centralized Screen Navigation with Browser History Integration
-  const navigateScreen = useCallback((screen: ScreenType, order?: Order | null, replace = false, newStageFilter?: 'all' | 'week_based' | 'confirmed' | 'packing' | 'dispatched' | 'delivered' | 'holding') => {
+  const navigateScreen = useCallback((
+    screen: ScreenType,
+    order?: Order | null,
+    replace = false,
+    newStageFilter?: 'all' | 'week_based' | 'confirmed' | 'packing' | 'dispatched' | 'delivered' | 'holding',
+    newSourceFilter?: 'all' | 'whatsapp' | 'website'
+  ) => {
     // If navigating away from orders_list, save scroll position!
     if (currentScreen === 'orders_list' && screen !== 'orders_list') {
       ordersListScrollPosRef.current = window.scrollY;
@@ -712,6 +748,14 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
       } catch {}
     }
 
+    const effectiveSource = newSourceFilter || orderSourceFilter;
+    if (newSourceFilter) {
+      setOrderSourceFilterState(newSourceFilter);
+      try {
+        sessionStorage.setItem('vrg_admin_source_filter', newSourceFilter);
+      } catch {}
+    }
+
     // Sync bottom active tab
     if (screen === 'dashboard') setActiveBottomTab('dashboard');
     else if (screen === 'orders_list' || screen === 'order_details' || screen === 'dispatch_order' || screen === 'order_timeline') setActiveBottomTab('orders');
@@ -725,6 +769,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
       adminScreen: screen,
       orderId: order ? order.id : (screen === 'order_details' || screen === 'dispatch_order' || screen === 'order_timeline') ? (order === null ? undefined : selectedOrder?.id) : undefined,
       stageFilter: effectiveStage,
+      sourceFilter: effectiveSource,
       modal: null
     };
 
@@ -738,7 +783,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
     if (screen === 'order_details' || screen === 'dispatch_order' || screen === 'order_timeline' || screen === 'dashboard') {
       window.scrollTo(0, 0);
     }
-  }, [closeAllModalsLocally, currentScreen, orderStageFilter, selectedOrder]);
+  }, [closeAllModalsLocally, currentScreen, orderStageFilter, orderSourceFilter, selectedOrder]);
 
   // Centralized Modal Open with Browser History Integration
   const openAdminModal = useCallback((
@@ -918,12 +963,20 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             sessionStorage.setItem('vrg_admin_stage_filter', state.stageFilter);
           } catch {}
         }
+
+        // 5. Synchronize source filter
+        if (state.sourceFilter) {
+          setOrderSourceFilterState(state.sourceFilter);
+          try {
+            sessionStorage.setItem('vrg_admin_source_filter', state.sourceFilter);
+          } catch {}
+        }
       }
     };
 
     window.addEventListener('popstate', handleAdminPopState);
     return () => window.removeEventListener('popstate', handleAdminPopState);
-  }, [orders, currentScreen, orderStageFilter]);
+  }, [orders, currentScreen, orderStageFilter, orderSourceFilter]);
 
   const [settingsSavedToast, setSettingsSavedToast] = useState(false);
 
@@ -1040,6 +1093,10 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
       periodCustomers = uniqueCustomerCount;
     }
 
+    // Order counts by channel / source
+    const whatsAppOrdersCount = orders.filter(isWhatsAppOrder).length;
+    const websiteOrdersCount = orders.length - whatsAppOrdersCount;
+
     return {
       confirmedCount: confirmedOrders.length,
       packingCount: packingOrders.length,
@@ -1048,6 +1105,8 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
       totalCount: orders.length,
       totalRevenue,
       lowStockCount,
+      whatsAppOrdersCount,
+      websiteOrdersCount,
       // New dashboard stats
       thisMonthRevenue,
       lastMonthRevenue,
@@ -1263,6 +1322,13 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
       ? orders.filter(o => holdingOrderIds.includes(o.id) || (o as any).isHolding === true)
       : orders.filter(o => (o.orderStatus || '').toUpperCase() !== 'CANCELLED' && o.paymentStatus !== 'FAILED' && getOrderStage(o.orderStatus) === orderStageFilter);
 
+    // 0. Order Source Filter (WhatsApp / Offline vs Website vs All)
+    if (orderSourceFilter === 'whatsapp') {
+      list = list.filter(isWhatsAppOrder);
+    } else if (orderSourceFilter === 'website') {
+      list = list.filter(o => !isWhatsAppOrder(o));
+    }
+
     // 1. Courier Service Filter
     if (orderCourierFilter !== 'all') {
       const targetCourier = orderCourierFilter.toLowerCase().trim();
@@ -1356,6 +1422,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   }, [
     orders,
     orderStageFilter,
+    orderSourceFilter,
     holdingOrderIds,
     orderCourierFilter,
     orderDatePreset,
@@ -1775,28 +1842,31 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             {/* ─── 2. Quick Action Buttons ─── */}
             <div className="bg-white rounded-3xl p-3.5 border border-slate-100 shadow-xs">
               <div className="flex items-start justify-around">
-                {onOpenAddWhatsAppOrder && (
-                  <button
-                    onClick={onOpenAddWhatsAppOrder}
-                    className="admin-quick-action-btn flex flex-col items-center gap-1.5 cursor-pointer group"
-                  >
-                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center group-hover:bg-emerald-100 group-active:scale-95 transition-all shadow-2xs">
-                      <WhatsAppIcon size={20} className="fill-[#25D366] shrink-0" />
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-700 text-center leading-tight">WhatsApp<br/>Order</span>
-                  </button>
-                )}
-                {onOpenAddWhatsAppOrder && (
-                  <button
-                    onClick={onOpenAddWhatsAppOrder}
-                    className="admin-quick-action-btn flex flex-col items-center gap-1.5 cursor-pointer group"
-                  >
-                    <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center group-hover:bg-blue-100 group-active:scale-95 transition-all shadow-2xs">
-                      <ClipboardList className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-700 text-center leading-tight">Offline<br/>Order</span>
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => navigateScreen('orders_list', null, false, 'all', 'whatsapp')}
+                  className="admin-quick-action-btn flex flex-col items-center gap-1.5 cursor-pointer group"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center group-hover:bg-emerald-100 group-active:scale-95 transition-all shadow-2xs relative">
+                    <WhatsAppIcon size={20} className="fill-[#25D366] shrink-0" />
+                    {stats.whatsAppOrdersCount > 0 && (
+                      <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-emerald-600 text-white text-[9px] font-bold flex items-center justify-center px-1 shadow-xs">
+                        {stats.whatsAppOrdersCount}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-700 text-center leading-tight">WhatsApp<br/>Order</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigateScreen('orders_list', null, false, 'all', 'whatsapp')}
+                  className="admin-quick-action-btn flex flex-col items-center gap-1.5 cursor-pointer group"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center group-hover:bg-blue-100 group-active:scale-95 transition-all shadow-2xs">
+                    <ClipboardList className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-700 text-center leading-tight">Offline<br/>Order</span>
+                </button>
                 <button
                   onClick={() => navigateScreen('products')}
                   className="admin-quick-action-btn flex flex-col items-center gap-1.5 cursor-pointer group"
@@ -2165,6 +2235,62 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 </button>
               )}
             </div>
+
+            {/* Order Channel / Source Filter */}
+            <div className="flex items-center gap-1.5 p-1 bg-slate-200/90 rounded-2xl text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => setOrderSourceFilter('all')}
+                className={`flex-1 py-2 px-2.5 rounded-xl text-center transition-all cursor-pointer ${
+                  orderSourceFilter === 'all'
+                    ? 'bg-white text-slate-900 shadow-sm font-extrabold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                All ({orders.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setOrderSourceFilter('whatsapp')}
+                className={`flex-1 py-2 px-2.5 rounded-xl text-center transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  orderSourceFilter === 'whatsapp'
+                    ? 'bg-emerald-600 text-white shadow-sm font-extrabold'
+                    : 'text-emerald-800 hover:text-emerald-950 bg-emerald-50/70'
+                }`}
+              >
+                <WhatsAppIcon size={14} className={orderSourceFilter === 'whatsapp' ? 'fill-white' : 'fill-[#25D366]'} />
+                <span>WhatsApp ({stats.whatsAppOrdersCount})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setOrderSourceFilter('website')}
+                className={`flex-1 py-2 px-2.5 rounded-xl text-center transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  orderSourceFilter === 'website'
+                    ? 'bg-blue-600 text-white shadow-sm font-extrabold'
+                    : 'text-blue-800 hover:text-blue-950 bg-blue-50/70'
+                }`}
+              >
+                <Globe className="w-3.5 h-3.5" />
+                <span>Website ({stats.websiteOrdersCount})</span>
+              </button>
+            </div>
+
+            {/* Active WhatsApp / Offline Filter Notification Banner */}
+            {orderSourceFilter === 'whatsapp' && (
+              <div className="bg-emerald-50 border border-emerald-200 text-emerald-950 px-3.5 py-2.5 rounded-2xl flex items-center justify-between text-xs font-bold shadow-2xs">
+                <span className="flex items-center gap-2">
+                  <WhatsAppIcon size={15} className="fill-[#25D366] shrink-0" />
+                  <span>Showing WhatsApp / Offline orders ({filteredOrders.length} orders)</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setOrderSourceFilter('all')}
+                  className="text-[11px] text-emerald-800 hover:text-emerald-950 underline font-black cursor-pointer bg-white px-2 py-0.5 rounded-lg border border-emerald-200"
+                >
+                  Show All
+                </button>
+              </div>
+            )}
 
             {/* Order Stage Filter Bar with All + Week Based + 4 Stages + On Hold */}
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar p-1.5 bg-slate-200/90 rounded-2xl">

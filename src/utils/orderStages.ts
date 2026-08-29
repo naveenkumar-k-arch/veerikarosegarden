@@ -363,11 +363,17 @@ export function isWhatsAppOrder(o: any): boolean {
   const id = (o.id || o.orderNumber || '').toString().toUpperCase();
   const txnId = (o.merchantTransactionId || '').toString().toUpperCase();
   const notes = (o.notes || '').toString().toLowerCase();
+  const source = (o.source || o.orderSource || o.channel || '').toString().toUpperCase();
 
   return (
     pm === 'WHATSAPP' ||
     pm === 'OFFLINE' ||
     pm === 'MANUAL' ||
+    source === 'WHATSAPP' ||
+    source === 'OFFLINE' ||
+    source === 'MANUAL' ||
+    o.isWhatsApp === true ||
+    o.isOffline === true ||
     id.startsWith('VRG-WA') ||
     id.startsWith('WA-') ||
     txnId.startsWith('WA_') ||
