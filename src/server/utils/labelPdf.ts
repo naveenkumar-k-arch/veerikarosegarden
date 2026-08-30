@@ -243,10 +243,10 @@ export function generateDispatchLabelsPdf(
       }
 
       // ================= 4. COLUMN 2: "To," CUSTOMER BOX =================
-      const toBoxX = labelX + 58;
-      const toBoxY = ly + 22;
-      const toBoxW = 68;
-      const toBoxH = 54;
+      const toBoxX = labelX + 54;
+      const toBoxY = ly + 16;
+      const toBoxW = 66;
+      const toBoxH = 68;
 
       pdf.setDrawColor(0, 0, 0);
       pdf.setLineWidth(0.3);
@@ -294,7 +294,7 @@ export function generateDispatchLabelsPdf(
       // ================= 5. COLUMN 3: ORDERED PLANTS BOX =================
       const itemBoxX = toBoxX + toBoxW + 4;
       const itemBoxY = ly + 16;
-      const itemBoxW = 56;
+      const itemBoxW = 66;
       const itemBoxH = 68;
 
       pdf.setDrawColor(0, 0, 0);

@@ -195,10 +195,10 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
           }
 
           // ================= 4. COLUMN 2: "To," CUSTOMER BOX =================
-          const toBoxX = labelX + 58;
-          const toBoxY = ly + 22;
-          const toBoxW = 68;
-          const toBoxH = 54;
+          const toBoxX = labelX + 54;
+          const toBoxY = ly + 16;
+          const toBoxW = 66;
+          const toBoxH = 68;
 
           pdf.setDrawColor(0, 0, 0);
           pdf.setLineWidth(0.3);
@@ -246,7 +246,7 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
           // ================= 5. COLUMN 3: ORDERED PLANTS BOX =================
           const itemBoxX = toBoxX + toBoxW + 4;
           const itemBoxY = ly + 16;
-          const itemBoxW = 56;
+          const itemBoxW = 66;
           const itemBoxH = 68;
 
           pdf.setDrawColor(0, 0, 0);
@@ -447,14 +447,16 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
                   </div>
 
                   {/* 2. Subheader row: From : & To, */}
-                  <div className="grid grid-cols-12 gap-2 text-xs font-normal text-black pt-1">
+                  <div className="grid grid-cols-12 gap-3 text-xs font-normal text-black pt-1">
                     <div className="col-span-4">
                       <span>From :</span>
                     </div>
-                    <div className="col-span-5">
+                    <div className="col-span-4">
                       <span>To,</span>
                     </div>
-                    <div className="col-span-3"></div>
+                    <div className="col-span-4">
+                      <span className="font-bold text-[11px] text-slate-700">Ordered Plants:</span>
+                    </div>
                   </div>
 
                   {/* 3. Main Label Content */}
