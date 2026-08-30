@@ -2926,7 +2926,6 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                             onClick={async (e) => {
                               e.stopPropagation();
                               await onUpdateOrderStatus(order.id, 'PACKING');
-                              dispatchStageWhatsApp(order, 'packing');
                             }}
                             className="text-[10px] bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-extrabold px-2.5 py-1 rounded-lg flex items-center gap-1 cursor-pointer shadow-2xs transition-all"
                             title="Move to 2. Packing stage"
@@ -3544,7 +3543,6 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                         const newPayment = 'SUCCESS';
                         setSelectedOrder(prev => prev ? { ...prev, orderStatus: newStatus, paymentStatus: newPayment, updatedAt: new Date().toISOString() } : null);
                         await onUpdateOrderStatus(selectedOrder.id, newStatus, newPayment);
-                        dispatchStageWhatsApp({ ...selectedOrder, orderStatus: newStatus, paymentStatus: newPayment }, 'confirmed');
                       }}
                       className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
                         currentStage === 'confirmed'
@@ -3562,7 +3560,6 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                         const newStatus = 'PACKING';
                         setSelectedOrder(prev => prev ? { ...prev, orderStatus: newStatus, updatedAt: new Date().toISOString() } : null);
                         await onUpdateOrderStatus(selectedOrder.id, newStatus);
-                        dispatchStageWhatsApp({ ...selectedOrder, orderStatus: newStatus }, 'packing');
                       }}
                       className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
                         currentStage === 'packing'
@@ -3600,7 +3597,6 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                         const newStatus = 'DELIVERED';
                         setSelectedOrder(prev => prev ? { ...prev, orderStatus: newStatus, updatedAt: new Date().toISOString() } : null);
                         await onUpdateOrderStatus(selectedOrder.id, newStatus);
-                        dispatchStageWhatsApp({ ...selectedOrder, orderStatus: newStatus }, 'delivered');
                       }}
                       className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
                         currentStage === 'delivered'
