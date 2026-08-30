@@ -781,6 +781,11 @@ export const App: React.FC = () => {
     freeDelivery?: boolean;
     comboProducts?: Product[];
   }) => {
+    try {
+      sessionStorage.removeItem('vrg_checkout_step');
+      localStorage.removeItem('vrg_checkout_step');
+      sessionStorage.removeItem('vrg_placed_order_id');
+    } catch {}
     toast.success(`Added "${product.name}" to cart (${quantity > 1 ? quantity + ' items' : '1 item'})!`, 'Cart Updated');
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
@@ -828,6 +833,11 @@ export const App: React.FC = () => {
 
   // Direct "Buy Now" flow
   const handleBuyNow = (product: Product, quantity = 1) => {
+    try {
+      sessionStorage.removeItem('vrg_checkout_step');
+      localStorage.removeItem('vrg_checkout_step');
+      sessionStorage.removeItem('vrg_placed_order_id');
+    } catch {}
     setCart([{ product, quantity }]);
     navigateTo('checkout');
   };
@@ -967,6 +977,8 @@ export const App: React.FC = () => {
       localStorage.setItem('vrg_my_orders', JSON.stringify([confirmedOrder, ...prev.filter((o: any) => o.id !== confirmedOrder.id)]));
       sessionStorage.removeItem('vrg_checkout_step');
       localStorage.removeItem('vrg_checkout_step');
+      sessionStorage.removeItem('vrg_placed_order_id');
+      sessionStorage.removeItem('vrg_pending_upi_payment');
       localStorage.removeItem('vrg_pending_upi_payment');
       localStorage.removeItem('vrg_pending_razorpay_order');
     } catch {}

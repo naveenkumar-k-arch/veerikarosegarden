@@ -129,12 +129,14 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 }) => {
   const [step, setStep] = useState<number>(() => {
     try {
-      const saved = sessionStorage.getItem('vrg_checkout_step') || localStorage.getItem('vrg_checkout_step');
-      if (saved) {
-        const num = parseInt(saved, 10);
-        if (!isNaN(num) && num >= 1 && num <= 9) {
-          if (num >= 7) return num;
-          if (items.length > 0) return num;
+      if (items.length > 0) {
+        const saved = sessionStorage.getItem('vrg_checkout_step') || localStorage.getItem('vrg_checkout_step');
+        if (saved) {
+          const num = parseInt(saved, 10);
+          // Only restore active in-progress steps (1 to 6) if cart has items. Never restore step >= 7 when opening cart!
+          if (!isNaN(num) && num >= 1 && num <= 6) {
+            return num;
+          }
         }
       }
     } catch {}
@@ -145,10 +147,29 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   const paymentCompletedRef = useRef(false);
   const [hasReturnedFromUpi, setHasReturnedFromUpi] = useState(false);
 
+  // If user has active items in cart and is on step >= 7 (e.g. from previous order), automatically reset to step 1 (Cart Items)
+  useEffect(() => {
+    if (items.length > 0 && step >= 7) {
+      setStep(1);
+      setPlacedOrderId(null);
+      setFetchedOrder(null);
+      try {
+        sessionStorage.removeItem('vrg_checkout_step');
+        localStorage.removeItem('vrg_checkout_step');
+        sessionStorage.removeItem('vrg_placed_order_id');
+      } catch {}
+    }
+  }, [items.length]);
+
   useEffect(() => {
     try {
-      sessionStorage.setItem('vrg_checkout_step', String(step));
-      localStorage.setItem('vrg_checkout_step', String(step));
+      if (step >= 1 && step <= 6) {
+        sessionStorage.setItem('vrg_checkout_step', String(step));
+        localStorage.setItem('vrg_checkout_step', String(step));
+      } else {
+        sessionStorage.removeItem('vrg_checkout_step');
+        localStorage.removeItem('vrg_checkout_step');
+      }
     } catch {}
   }, [step]);
 
@@ -159,8 +180,13 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     setAnimating(true);
     setStep(next);
     try {
-      sessionStorage.setItem('vrg_checkout_step', String(next));
-      localStorage.setItem('vrg_checkout_step', String(next));
+      if (next >= 1 && next <= 6) {
+        sessionStorage.setItem('vrg_checkout_step', String(next));
+        localStorage.setItem('vrg_checkout_step', String(next));
+      } else {
+        sessionStorage.removeItem('vrg_checkout_step');
+        localStorage.removeItem('vrg_checkout_step');
+      }
     } catch {}
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setTimeout(() => {
