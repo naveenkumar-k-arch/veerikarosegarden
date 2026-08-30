@@ -7360,15 +7360,17 @@ class Store {
             grandTotal: finalGrandTotal,
             orderStatus: dbOrderStatus,
             paymentStatus: o.paymentStatus === 'SUCCESS' ? 'SUCCESS' : o.paymentStatus === 'FAILED' ? 'FAILED' : 'PENDING',
-            paymentMethod: ((o as any).paymentMethod === 'RAZORPAY' || (o as any).paymentMethod === 'CARD' || String(o.merchantTransactionId || '').startsWith('MT') || String(o.merchantTransactionId || '').startsWith('order_') || String(o.merchantTransactionId || '').startsWith('pay_')
-              ? 'RAZORPAY'
-              : (o as any).paymentMethod === 'COD' 
-              ? 'COD' 
+            paymentMethod: ((o as any).paymentMethod === 'COD'
+              ? 'COD'
               : (o as any).paymentMethod === 'PHONEPE'
               ? 'PHONEPE'
-              : (hasProof || (o as any).paymentMethod === 'QR_PAYMENT')
+              : ((o as any).paymentMethod === 'UPI' || (o as any).paymentMethod === 'QR_PAYMENT' || hasProof)
               ? 'QR_PAYMENT'
-              : 'RAZORPAY') as PaymentMethod,
+              : ((o as any).paymentMethod === 'CARD' || (o as any).paymentMethod === 'RAZORPAY')
+              ? 'RAZORPAY'
+              : (String(o.merchantTransactionId || '').startsWith('order_') || String(o.merchantTransactionId || '').startsWith('pay_'))
+              ? 'RAZORPAY'
+              : 'COD') as PaymentMethod,
             paymentProofUrl: unpackedProofUrl,
             transactionId: unpackedTxnId || o.merchantTransactionId || '',
             merchantTransactionId: o.merchantTransactionId || '',

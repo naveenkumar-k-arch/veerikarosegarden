@@ -1137,6 +1137,8 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
       }).catch(() => {});
     }
 
+    invalidateBootstrapCache();
+
     res.json({
       success: true,
       order: newOrder,

@@ -1931,7 +1931,7 @@ const silentRefresh = async (): Promise<boolean> => {
         district: whatsAppOrderForm.district || '',
         state: whatsAppOrderForm.state.trim() || 'Tamil Nadu',
         pincode: extractedPincode,
-        addressType: 'Home'
+        addressType: 'Home' as const
       },
       items: parsedItems,
       subtotal: finalTotal,
