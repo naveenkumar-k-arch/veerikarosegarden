@@ -295,11 +295,11 @@ export const ShopPage: React.FC<ShopPageProps> = ({
                 }`}
               >
                 <span>All Categories</span>
-                <span>({allShopProducts.filter(p => p.status === 'ACTIVE').length})</span>
+                <span>({allShopProducts.filter(p => p.status !== 'DISABLED').length})</span>
               </button>
 
               {categories.map((cat) => {
-                const count = allShopProducts.filter((p) => p.status === 'ACTIVE' && isProductInCat(p, cat.id)).length;
+                const count = allShopProducts.filter((p) => p.status !== 'DISABLED' && isProductInCat(p, cat.id)).length;
                 const isSelected = selectedCategory === cat.id || selectedCategory === cat.slug;
                 return (
                   <button
@@ -418,7 +418,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
               {!selectedCategory && !searchQuery && (
                 <div className="block sm:hidden space-y-6 mb-6">
                   {categories.map((cat) => {
-                    const catProds = allShopProducts.filter((p) => p.status === 'ACTIVE' && isProductInCat(p, cat.id));
+                    const catProds = allShopProducts.filter((p) => p.status !== 'DISABLED' && isProductInCat(p, cat.id));
                     if (catProds.length === 0) return null;
                     return (
                       <div key={cat.id} className="space-y-2">

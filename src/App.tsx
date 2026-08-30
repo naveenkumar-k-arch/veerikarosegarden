@@ -177,7 +177,7 @@ export const App: React.FC = () => {
   const [isExpertAdviceOpen, setIsExpertAdviceOpen] = useState<boolean>(false);
 
   // Data Collections State — Fast LocalStorage cache hydrate with background SWR sync
-  const CATALOG_SYNC_VERSION = 'vrg_cat_v2026_08_16_102_deduped';
+  const CATALOG_SYNC_VERSION = 'vrg_cat_v2026_08_30_price_sync_v3';
   const [products, setProducts] = useState<Product[]>(() => {
     try {
       if (typeof window !== 'undefined') {
@@ -359,34 +359,55 @@ export const App: React.FC = () => {
     try {
       const ts = Date.now();
       const [pRes, cRes, bRes, rRes] = await Promise.all([
-        fetch(`/api/products?t=${ts}`).then((r) => r.json()).catch(() => null),
-        fetch(`/api/categories?t=${ts}`).then((r) => r.json()).catch(() => null),
-        fetch(`/api/banners?t=${ts}`).then((r) => r.json()).catch(() => null),
-        fetch(`/api/reviews?t=${ts}`).then((r) => r.json()).catch(() => null)
+        fetch(`/api/products?t=${ts}`, { cache: 'no-store' }).then((r) => r.json()).catch(() => null),
+        fetch(`/api/categories?t=${ts}`, { cache: 'no-store' }).then((r) => r.json()).catch(() => null),
+        fetch(`/api/banners?t=${ts}`, { cache: 'no-store' }).then((r) => r.json()).catch(() => null),
+        fetch(`/api/reviews?t=${ts}`, { cache: 'no-store' }).then((r) => r.json()).catch(() => null)
       ]);
 
       if (pRes?.success && Array.isArray(pRes.products)) {
         const deletedSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_products') || '[]'));
         let cleanProds: Product[] = pRes.products.filter((p: Product) => p && !deletedSet.has(p.id) && (!p.sku || !deletedSet.has(p.sku)));
 
-        // Retain only recently saved in-flight pending products from sessionStorage (<90s)
+        // Retain recently saved in-flight pending products from sessionStorage (<90s)
         try {
           const rawPending = sessionStorage.getItem('vrg_pending_saved_products');
           if (rawPending) {
             const arr = JSON.parse(rawPending);
             if (Array.isArray(arr)) {
               const now = Date.now();
-              const serverIds = new Set(cleanProds.map(p => p.id));
-              const serverSkus = new Set(cleanProds.map(p => p.sku));
+              const uniquePendingProducts = new Map<string, Product>();
               arr.forEach((item: any) => {
-                if (item && item.product && item.savedAt && (now - item.savedAt < 90000)) {
+                if (item && item.product && item.product.id && item.savedAt && (now - item.savedAt < 90000)) {
                   if (!deletedSet.has(item.product.id) && (!item.product.sku || !deletedSet.has(item.product.sku))) {
-                    if (!serverIds.has(item.product.id) && (!item.product.sku || !serverSkus.has(item.product.sku))) {
-                      cleanProds.unshift(item.product);
-                      serverIds.add(item.product.id);
-                      if (item.product.sku) serverSkus.add(item.product.sku);
+                    uniquePendingProducts.set(item.product.id, item.product);
+                  }
+                }
+              });
+
+              // Merge edits into existing products
+              const matchedPendingIds = new Set<string>();
+              cleanProds = cleanProds.map(p => {
+                let pending = uniquePendingProducts.get(p.id);
+                if (!pending && p.sku) {
+                  for (const [_, prod] of uniquePendingProducts) {
+                    if (prod.sku === p.sku) {
+                      pending = prod;
+                      break;
                     }
                   }
+                }
+                if (pending) {
+                  matchedPendingIds.add(pending.id);
+                  return { ...p, ...pending };
+                }
+                return p;
+              });
+
+              // Prepend newly added products not yet in server list
+              uniquePendingProducts.forEach((product, id) => {
+                if (!matchedPendingIds.has(id)) {
+                  cleanProds.unshift(product);
                 }
               });
             }
@@ -940,12 +961,25 @@ export const App: React.FC = () => {
     }
   }, [currentPage, selectedProduct, selectedCategory, selectedOrderId, cartCount, categories]);
 
-  // When products list updates from API, resolve selectedProduct if URL points to a product page
+  // When products list updates from API or admin edit, sync selectedProduct
   useEffect(() => {
-    const { page, paramId } = getPageFromUrl(window.location.pathname);
-    if (page === 'product-detail' && paramId) {
-      const match = products.find(p => p.id === paramId || p.sku === paramId);
-      if (match) setSelectedProduct(match);
+    if (selectedProduct) {
+      const match = products.find(p => p.id === selectedProduct.id || (p.sku && p.sku === selectedProduct.sku));
+      if (match && (
+        match.name !== selectedProduct.name ||
+        match.sellingPrice !== selectedProduct.sellingPrice ||
+        match.mrp !== selectedProduct.mrp ||
+        match.stock !== selectedProduct.stock ||
+        match.updatedAt !== selectedProduct.updatedAt
+      )) {
+        setSelectedProduct(match);
+      }
+    } else {
+      const { page, paramId } = getPageFromUrl(window.location.pathname);
+      if (page === 'product-detail' && paramId) {
+        const match = products.find(p => p.id === paramId || p.sku === paramId);
+        if (match) setSelectedProduct(match);
+      }
     }
   }, [products]);
 

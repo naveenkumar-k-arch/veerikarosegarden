@@ -515,15 +515,17 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
         if (d.success && d.settings) {
           setSiteSettings(d.settings);
           const s = d.settings;
-          // Auto-select first genuinely enabled payment method
-          if (s.enableRazorpay) {
+          // Auto-select Razorpay
+          if (s.enableRazorpay !== false) {
             setPaymentMethod('RAZORPAY');
-          } else if (s.enablePhonePe !== false) {
+          } else if (s.enablePhonePe === true) {
             setPaymentMethod('PHONEPE');
-          } else if (s.enableQrPayment !== false) {
+          } else if (s.enableQrPayment === true) {
             setPaymentMethod('QR_PAYMENT');
-          } else if (s.enableCod !== false) {
+          } else if (s.enableCod === true) {
             setPaymentMethod('COD');
+          } else {
+            setPaymentMethod('RAZORPAY');
           }
         }
       })
@@ -574,10 +576,10 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
   const upiDeepLink = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(upiName)}&am=${grandTotal}&cu=INR`;
   const qrCodeUrl = `https://quickchart.io/qr?size=300&text=${encodeURIComponent(`upi://pay?pa=${upiId}&pn=${upiName}&cu=INR`)}`;
 
-  const isPhonePeEnabled = siteSettings ? siteSettings.enablePhonePe !== false : false;
-  const isCodEnabled = siteSettings ? siteSettings.enableCod !== false : true;
-  const isQrEnabled = siteSettings ? siteSettings.enableQrPayment !== false : true;
-  const isRazorpayEnabled = siteSettings ? siteSettings.enableRazorpay === true : false;
+  const isPhonePeEnabled = siteSettings ? siteSettings.enablePhonePe === true : false;
+  const isCodEnabled = siteSettings ? siteSettings.enableCod === true : false;
+  const isQrEnabled = siteSettings ? siteSettings.enableQrPayment === true : false;
+  const isRazorpayEnabled = siteSettings ? siteSettings.enableRazorpay !== false : true;
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 

@@ -1,19 +1,20 @@
-# Robots.txt for Veerika Rose Garden (Maintenance Mode Active)
-# Prevents Google and search engine crawlers from indexing during system updates
+# Robots.txt for Veerika Rose Garden (Official: https://www.vrgnursery.in)
+# Allows Google and all search engines to crawl and index products and categories
 
 User-agent: *
-Disallow: /
-Allow: /logo.png
-Allow: /favicon.ico
-Allow: /favicon-48x48.png
+Allow: /
+Disallow: /admin
+Disallow: /api/admin/
+Disallow: /api/cron/
 
 User-agent: Googlebot
-Disallow: /
-
-User-agent: Googlebot-Image
-Disallow: /
+Allow: /
+Disallow: /admin
+Disallow: /api/admin/
 
 User-agent: Bingbot
-Disallow: /
+Allow: /
+Disallow: /admin
+Disallow: /api/admin/
 
-# Sitemap: https://veerikarosegarden.vercel.app/sitemap.xml
+Sitemap: https://www.vrgnursery.in/sitemap.xml

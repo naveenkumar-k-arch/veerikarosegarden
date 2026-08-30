@@ -58,7 +58,9 @@ export const invalidateBootstrapCache = () => {
 // ================= PRODUCT ROUTES =================
 apiRouter.get('/products', async (req, res) => {
   try {
-    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     const { category, categoryId, search, minPrice, maxPrice, featured, bestSeller, sort, sortBy } = req.query;
     const resolvedCat = (categoryId || category) ? String(categoryId || category) : undefined;
     const resolvedSort = (sortBy || sort) ? String(sortBy || sort) : undefined;
@@ -80,7 +82,9 @@ apiRouter.get('/products', async (req, res) => {
 
 apiRouter.get('/products/:id', async (req, res) => {
   try {
-    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     const product = await db.getProductById(req.params.id);
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found' });
@@ -1021,6 +1025,13 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
         });
       }
 
+      newOrder.merchantTransactionId = rzpRes.razorpayOrderId;
+      (newOrder as any).razorpayOrderId = rzpRes.razorpayOrderId;
+      await db.updateOrderFull(newOrder.id, {
+        merchantTransactionId: rzpRes.razorpayOrderId,
+        transactionId: rzpRes.razorpayOrderId
+      }).catch(() => {});
+
       // Non-blocking payment log in background
       db.addPaymentLog({
         merchantTransactionId: rzpRes.razorpayOrderId || merchantTransactionId,
@@ -1136,6 +1147,8 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
         })
       }).catch(() => {});
     }
+
+    invalidateBootstrapCache();
 
     res.json({
       success: true,
@@ -1398,6 +1411,18 @@ apiRouter.get('/orders/:id', async (req: AuthenticatedRequest, res) => {
         if (!rzpOrderId && order.merchantTransactionId && order.merchantTransactionId.startsWith('order_')) {
           rzpOrderId = order.merchantTransactionId;
         }
+        if (!rzpOrderId && order.merchantTransactionId && (order.merchantTransactionId.startsWith('MT') || order.merchantTransactionId.startsWith('ORD-') || order.merchantTransactionId.startsWith('WA_'))) {
+          try {
+            const authHeader = 'Basic ' + Buffer.from(`${rzpKeyId}:${rzpKeySecret}`).toString('base64');
+            const rRes = await fetch(`https://api.razorpay.com/v1/orders?receipt=${encodeURIComponent(order.merchantTransactionId)}`, {
+              headers: { Authorization: authHeader }
+            });
+            const rData = await rRes.json();
+            if (rRes.ok && Array.isArray(rData.items) && rData.items.length > 0) {
+              rzpOrderId = rData.items[0].id;
+            }
+          } catch {}
+        }
 
         if (rzpOrderId) {
           const checkRes = await RazorpayService.checkOrderPayments(rzpOrderId, rzpKeyId, rzpKeySecret);
@@ -1407,6 +1432,12 @@ apiRouter.get('/orders/:id', async (req: AuthenticatedRequest, res) => {
               ? order.orderStatus
               : 'CONFIRMED';
             const updated = await db.updateOrderStatus(order.id, safeStatus, undefined, undefined, 'SUCCESS');
+            await db.updateOrderFull(order.id, {
+              paymentStatus: 'SUCCESS',
+              orderStatus: safeStatus,
+              merchantTransactionId: rzpOrderId,
+              transactionId: checkRes.paymentId || order.transactionId
+            }).catch(() => {});
             if (updated) order = updated;
             invalidateBootstrapCache();
           }
@@ -1751,24 +1782,37 @@ const handleVerifyRazorpayPayment = async (req: AuthenticatedRequest, res: any) 
     const razorpaySignature = req.body.razorpay_signature || req.body.razorpaySignature || req.body.signature;
     const orderId = req.body.orderId || req.body.order_id || req.body.receipt;
 
-    if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+    if (!razorpayOrderId && !razorpayPaymentId && !orderId) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required Razorpay payment verification parameters (razorpay_order_id, razorpay_payment_id, razorpay_signature).'
+        message: 'Missing required Razorpay payment verification parameters (razorpay_order_id, razorpay_payment_id, orderId).'
       });
     }
 
     const settings = await db.getSettings();
     const keySecret = (settings?.razorpayKeySecret && settings.razorpayKeySecret.trim()) || process.env.RAZORPAY_KEY_SECRET || 'FfkwntR4ygvIapq4ex50ajp0';
+    const keyId = (settings?.razorpayKeyId && settings.razorpayKeyId.trim()) || process.env.RAZORPAY_KEY_ID || 'rzp_live_TQ5xDdZB7QWIn2';
 
     if (!keySecret) {
       return res.status(401).json({ success: false, message: 'Razorpay secret key not configured.' });
     }
 
-    const isValid = RazorpayService.verifySignature(razorpayOrderId, razorpayPaymentId, razorpaySignature, keySecret);
+    let isValid = false;
+    if (razorpayOrderId && razorpayPaymentId && razorpaySignature && razorpaySignature !== 'manual_reconcile') {
+      isValid = RazorpayService.verifySignature(razorpayOrderId, razorpayPaymentId, razorpaySignature, keySecret);
+    }
+    // Fallback directly to Razorpay REST API for orders/payments
+    if (!isValid && razorpayOrderId) {
+      const checkRes = await RazorpayService.checkOrderPayments(razorpayOrderId, keyId, keySecret);
+      isValid = checkRes.success && checkRes.isPaid;
+    }
+    if (!isValid && razorpayPaymentId) {
+      const pCheck = await RazorpayService.checkPaymentById(razorpayPaymentId, keyId, keySecret);
+      isValid = pCheck.success && pCheck.isPaid;
+    }
 
     if (!isValid) {
-      console.warn('[Razorpay Verify] Invalid signature for order:', orderId || razorpayOrderId);
+      console.warn('[Razorpay Verify] Verification failed for order:', orderId || razorpayOrderId || razorpayPaymentId);
       return res.status(400).json({ success: false, message: 'Invalid Razorpay payment signature. Payment verification failed.' });
     }
 
@@ -1778,24 +1822,43 @@ const handleVerifyRazorpayPayment = async (req: AuthenticatedRequest, res: any) 
     // Find order by ID or by razorpayOrderId
     let order = targetOrderId ? await db.getOrderById(targetOrderId) : null;
     if (!order && razorpayOrderId) {
+      order = await db.getOrderById(razorpayOrderId);
+    }
+    if (!order && razorpayPaymentId) {
+      order = await db.getOrderById(razorpayPaymentId);
+    }
+    if (!order) {
       const allOrders = await db.getOrders();
-      order = allOrders.find(o => (o as any).razorpayOrderId === razorpayOrderId || o.merchantTransactionId === razorpayOrderId) || null;
+      order = allOrders.find(o => 
+        (targetOrderId && o.id === targetOrderId) ||
+        (o as any).razorpayOrderId === razorpayOrderId || 
+        o.merchantTransactionId === razorpayOrderId ||
+        o.transactionId === razorpayPaymentId ||
+        o.merchantTransactionId === targetOrderId
+      ) || null;
       if (order) targetOrderId = order.id;
     }
 
-    if (order && targetOrderId) {
+    if (order && (targetOrderId || order.id)) {
+      const finalId = targetOrderId || order.id;
       // Preserve advanced stages — only set CONFIRMED if order is still unconfirmed
       const ADVANCED_STAGES_V = ['PACKING', 'DISPATCHED', 'DELIVERED'];
       const targetStatus = ADVANCED_STAGES_V.includes((order.orderStatus || '').toUpperCase())
         ? order.orderStatus
         : 'CONFIRMED';
-      updatedOrder = await db.updateOrderStatus(targetOrderId, targetStatus, undefined, undefined, 'SUCCESS');
+      updatedOrder = await db.updateOrderStatus(finalId, targetStatus, undefined, undefined, 'SUCCESS');
+      await db.updateOrderFull(finalId, {
+        paymentStatus: 'SUCCESS',
+        orderStatus: targetStatus,
+        transactionId: razorpayPaymentId || order.transactionId,
+        merchantTransactionId: razorpayOrderId || order.merchantTransactionId
+      }).catch(() => {});
       await db.addPaymentLog({
-        merchantTransactionId: order.merchantTransactionId || razorpayPaymentId,
-        orderId: targetOrderId,
+        merchantTransactionId: razorpayOrderId || order.merchantTransactionId || razorpayPaymentId || finalId,
+        orderId: finalId,
         amount: order.grandTotal,
         status: 'SUCCESS',
-        checksum: razorpaySignature,
+        checksum: razorpaySignature || 'RAZORPAY_VERIFIED_REST',
         payload: JSON.stringify({ razorpayOrderId, razorpayPaymentId })
       }).catch(() => {});
       invalidateBootstrapCache();
@@ -1804,8 +1867,8 @@ const handleVerifyRazorpayPayment = async (req: AuthenticatedRequest, res: any) 
     return res.json({
       success: true,
       message: 'Razorpay payment verified successfully!',
-      orderId: targetOrderId || orderId,
-      order: updatedOrder
+      orderId: targetOrderId || (order && order.id),
+      order: updatedOrder || order
     });
   } catch (err: any) {
     console.error('[Razorpay Verify] Error:', err);

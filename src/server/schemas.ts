@@ -103,41 +103,42 @@ export const productSchema = z.object({
 });
 
 export const updateProductSchema = z.object({
-  sku: z.string().optional(),
+  id: z.string().optional().nullable(),
+  sku: z.string().optional().nullable(),
   name: z.string().min(1, 'Product name cannot be empty').max(200).optional(),
-  englishName: z.string().max(200).optional(),
-  tamilName: z.string().max(200).optional(),
-  scientificName: z.string().max(200).optional(),
-  categoryId: z.string().optional(),
-  categoryName: z.string().optional(),
-  description: z.string().optional(),
-  mrp: z.coerce.number().min(0).optional(),
-  sellingPrice: z.coerce.number().min(0, 'Selling price must be >= 0').optional(),
-  discount: z.coerce.number().min(0).max(100).optional(),
-  stock: z.coerce.number().int().min(0).optional(),
-  plantHeight: z.string().optional(),
-  potSize: z.string().optional(),
-  sunlight: z.string().optional(),
-  waterRequirement: z.string().optional(),
-  floweringSeason: z.string().optional(),
+  englishName: z.string().max(200).optional().nullable(),
+  tamilName: z.string().max(200).optional().nullable(),
+  scientificName: z.string().max(200).optional().nullable(),
+  categoryId: z.string().optional().nullable(),
+  categoryName: z.string().optional().nullable(),
+  description: z.string().optional().nullable(),
+  mrp: z.coerce.number().min(0).optional().nullable(),
+  sellingPrice: z.coerce.number().min(0, 'Selling price must be >= 0').optional().nullable(),
+  discount: z.coerce.number().min(0).max(100).optional().nullable(),
+  stock: z.coerce.number().int().min(0).optional().nullable(),
+  plantHeight: z.string().optional().nullable(),
+  potSize: z.string().optional().nullable(),
+  sunlight: z.string().optional().nullable(),
+  waterRequirement: z.string().optional().nullable(),
+  floweringSeason: z.string().optional().nullable(),
   careInstructions: z.union([
     z.object({
-      watering: z.string().optional(),
-      sunlight: z.string().optional(),
-      fertilizer: z.string().optional(),
-      soil: z.string().optional()
+      watering: z.string().optional().nullable(),
+      sunlight: z.string().optional().nullable(),
+      fertilizer: z.string().optional().nullable(),
+      soil: z.string().optional().nullable()
     }),
     z.record(z.string(), z.any())
-  ]).optional(),
-  image: z.string().optional(),
-  imageUrl: z.string().optional(),
-  images: z.array(z.string()).optional(),
-  featured: z.boolean().optional(),
-  bestSeller: z.boolean().optional(),
-  trending: z.boolean().optional(),
-  tags: z.array(z.string()).optional(),
-  status: z.enum(['ACTIVE', 'INACTIVE', 'ARCHIVED']).optional()
-});
+  ]).optional().nullable(),
+  image: z.string().optional().nullable(),
+  imageUrl: z.string().optional().nullable(),
+  images: z.array(z.string()).optional().nullable(),
+  featured: z.boolean().optional().nullable(),
+  bestSeller: z.boolean().optional().nullable(),
+  trending: z.boolean().optional().nullable(),
+  tags: z.array(z.string()).optional().nullable(),
+  status: z.enum(['ACTIVE', 'INACTIVE', 'ARCHIVED']).optional().nullable()
+}).passthrough();
 
 export const reviewSchema = z.object({
   productId: z.string().min(1),

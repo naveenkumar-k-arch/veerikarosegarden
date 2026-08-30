@@ -190,9 +190,9 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
               {product.mrp > product.sellingPrice && (
                 <span className="text-base text-slate-400 line-through">₹{product.mrp}</span>
               )}
-              {product.discount > 0 && (
+              {((product.discount > 0) || (product.mrp > product.sellingPrice)) && (
                 <span className="bg-rose-600 text-white font-bold text-xs px-2.5 py-0.5 rounded-full">
-                  Save {product.discount}%
+                  Save {product.discount > 0 ? product.discount : Math.round(((product.mrp - product.sellingPrice) / product.mrp) * 100)}%
                 </span>
               )}
             </div>

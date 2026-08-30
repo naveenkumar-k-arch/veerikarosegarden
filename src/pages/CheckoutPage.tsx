@@ -433,12 +433,12 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           setSiteSettings(d.settings);
           const s = d.settings;
           setPaymentMethod(prev => {
-            if (prev) return prev;
-            if (s.enableRazorpay) return 'RAZORPAY';
-            if (s.enablePhonePe !== false) return 'PHONEPE';
-            if (s.enableQrPayment !== false) return 'QR_PAYMENT';
-            if (s.enableCod !== false) return 'COD';
-            return null;
+            if (prev === 'RAZORPAY') return 'RAZORPAY';
+            if (s.enableRazorpay !== false) return 'RAZORPAY';
+            if (s.enablePhonePe === true) return 'PHONEPE';
+            if (s.enableQrPayment === true) return 'QR_PAYMENT';
+            if (s.enableCod === true) return 'COD';
+            return 'RAZORPAY';
           });
         }
       })
@@ -1479,7 +1479,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
               {/* Payment Methods */}
               <div className="space-y-3">
                 {/* 1. Razorpay */}
-                {siteSettings?.enableRazorpay && (
+                {(siteSettings?.enableRazorpay !== false) && (
                   <div
                     onClick={() => setPaymentMethod('RAZORPAY')}
                     className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
@@ -1514,7 +1514,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 )}
 
                 {/* 2. PhonePe */}
-                {siteSettings?.enablePhonePe !== false && (
+                {siteSettings?.enablePhonePe === true && (
                   <div
                     onClick={() => setPaymentMethod('PHONEPE')}
                     className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
@@ -1549,7 +1549,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 )}
 
                 {/* 3. Scan QR Code Payment */}
-                {siteSettings?.enableQrPayment !== false && (
+                {siteSettings?.enableQrPayment === true && (
                   <div
                     onClick={() => setPaymentMethod('QR_PAYMENT')}
                     className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
@@ -1584,7 +1584,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 )}
 
                 {/* 4. COD */}
-                {siteSettings?.enableCod && (
+                {siteSettings?.enableCod === true && (
                   <div
                     onClick={() => setPaymentMethod('COD')}
                     className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
@@ -1773,41 +1773,32 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
               {/* Order Items & Breakdown */}
               <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-2.5 text-xs">
-                {fetchedOrder ? (
-                  <>
-                    {fetchedOrder.items.map((item: any, idx: number) => (
-                      <div key={idx} className="flex justify-between items-center py-1.5 border-b border-slate-100 last:border-none">
-                        <span className="font-bold text-slate-800">{item.name} × {item.quantity}</span>
-                        <span className="font-extrabold text-slate-900">₹{item.price * item.quantity}</span>
-                      </div>
-                    ))}
-                    <div className="flex justify-between pt-2">
-                      <span className="text-slate-600">Subtotal</span>
-                      <span className="font-bold text-slate-900">₹{fetchedOrder.subtotal}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">Courier Delivery</span>
-                      <span className="font-bold text-slate-900">
-                        {fetchedOrder.courierName || 'ST Courier'} ({fetchedOrder.shippingCharge === 0 ? 'FREE' : `₹${fetchedOrder.shippingCharge}`})
-                      </span>
-                    </div>
-                    {Boolean(fetchedOrder.packingCharge) && (
-                      <div className="flex justify-between text-emerald-800 font-bold">
-                        <span>Protective Packaging</span>
-                        <span>+₹{fetchedOrder.packingCharge} ({fetchedOrder.packingOption === 'EXTRA_SECURE' ? 'Extra Secure' : 'Max Protection'})</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between text-base font-black text-slate-900 pt-2 border-t border-slate-200">
-                      <span>Grand Total</span>
-                      <span className="text-emerald-800">₹{fetchedOrder.grandTotal}</span>
-                    </div>
-                  </>
-                ) : (
-                  <div className="py-4 text-center">
-                    <div className="w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto" />
-                    <p className="text-xs text-slate-500 mt-2">Loading order summary...</p>
+                {(fetchedOrder?.items || items.map(i => ({ name: i.product.name, price: i.product.sellingPrice, quantity: i.quantity }))).map((item: any, idx: number) => (
+                  <div key={idx} className="flex justify-between items-center py-1.5 border-b border-slate-100 last:border-none">
+                    <span className="font-bold text-slate-800">{item.name || item.productName} × {item.quantity}</span>
+                    <span className="font-extrabold text-slate-900">₹{(item.price || 0) * (item.quantity || 1)}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between pt-2">
+                  <span className="text-slate-600">Subtotal</span>
+                  <span className="font-bold text-slate-900">₹{fetchedOrder?.subtotal ?? subtotal}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Courier Delivery</span>
+                  <span className="font-bold text-slate-900">
+                    {fetchedOrder?.courierName || courierPartner || 'Standard Courier'} ({(fetchedOrder?.shippingCharge ?? shippingCharge) === 0 ? 'FREE' : `₹${fetchedOrder?.shippingCharge ?? shippingCharge}`})
+                  </span>
+                </div>
+                {Boolean(fetchedOrder?.packingCharge ?? packingCharge) && (
+                  <div className="flex justify-between text-emerald-800 font-bold">
+                    <span>Protective Packaging</span>
+                    <span>+₹{fetchedOrder?.packingCharge ?? packingCharge} ({(fetchedOrder?.packingOption || selectedPacking) === 'EXTRA_SECURE' ? 'Extra Secure' : 'Max Protection'})</span>
                   </div>
                 )}
+                <div className="flex justify-between text-base font-black text-slate-900 pt-2 border-t border-slate-200">
+                  <span>Grand Total</span>
+                  <span className="text-emerald-800">₹{fetchedOrder?.grandTotal ?? grandTotal}</span>
+                </div>
               </div>
 
               <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-xs text-emerald-900 font-medium leading-relaxed">

@@ -1049,6 +1049,9 @@ const silentRefresh = async (): Promise<boolean> => {
     const mrp = Number(prodForm.mrp) || Number(prodForm.sellingPrice) || 0;
     const sellingPrice = Number(prodForm.sellingPrice) || 0;
     const autoDiscount = mrp > 0 ? Math.max(0, Math.round(((mrp - sellingPrice) / mrp) * 100)) : 0;
+    const discountVal = (prodForm.discount !== undefined && prodForm.discount !== null && !isNaN(Number(prodForm.discount)))
+      ? Number(prodForm.discount)
+      : autoDiscount;
 
     // Build complete payload with defaults for every optional field
     const payload = {
@@ -1062,7 +1065,7 @@ const silentRefresh = async (): Promise<boolean> => {
       description: prodForm.description || prodForm.name || '',
       mrp,
       sellingPrice,
-      discount: Number(prodForm.discount) ?? autoDiscount,
+      discount: discountVal,
       stock: Number(prodForm.stock) >= 0 ? Number(prodForm.stock) : 25,
       plantHeight: prodForm.plantHeight || '1–2 Feet',
       potSize: prodForm.potSize || '8 Inch Bag',
@@ -1120,12 +1123,10 @@ const silentRefresh = async (): Promise<boolean> => {
       return next;
     });
 
-    if (!isEdit) {
-      savePendingProductToSession(optimisticProd);
-      pendingProductsRef.current.set(tempId, { product: optimisticProd, savedAt: Date.now() });
-    } else {
-      clearPendingProductFromSession(targetId);
-      pendingProductsRef.current.set(targetId, { product: optimisticProd, savedAt: Date.now() });
+    savePendingProductToSession(optimisticProd);
+    pendingProductsRef.current.set(tempId, { product: optimisticProd, savedAt: Date.now() });
+    if (payload.sku) {
+      pendingProductsRef.current.set(payload.sku, { product: optimisticProd, savedAt: Date.now() });
     }
 
     // Instantly close modal and show toast
@@ -1139,34 +1140,42 @@ const silentRefresh = async (): Promise<boolean> => {
     } catch {}
 
     // 2. NON-BLOCKING BACKGROUND DATABASE PERSISTENCE
-    const url = isEdit ? `/api/products/${targetId}` : '/api/products';
+    const url = isEdit ? `/api/products/${encodeURIComponent(targetId)}` : '/api/products';
     const method = isEdit ? 'PUT' : 'POST';
 
     authFetch(url, {
       method,
       body: JSON.stringify(payload)
     })
-      .then(r => r.json().catch(() => null))
-      .then(data => {
+      .then(async r => {
+        const data = await r.json().catch(() => null);
         if (data?.success && data?.product) {
           const serverProd: Product = data.product;
-          if (!isEdit) {
-            savePendingProductToSession(serverProd);
-            pendingProductsRef.current.set(serverProd.id, { product: serverProd, savedAt: Date.now() });
-          } else {
-            clearPendingProductFromSession(serverProd.id);
-            pendingProductsRef.current.set(serverProd.id, { product: serverProd, savedAt: Date.now() });
+          if (tempId !== serverProd.id) {
+            clearPendingProductFromSession(tempId);
+            pendingProductsRef.current.delete(tempId);
           }
+          savePendingProductToSession(serverProd);
+          pendingProductsRef.current.set(serverProd.id, { product: serverProd, savedAt: Date.now() });
+          if (serverProd.sku) {
+            pendingProductsRef.current.set(serverProd.sku, { product: serverProd, savedAt: Date.now() });
+          }
+          let nextList: Product[] = [];
           setProducts(prev => {
-            const next = prev.map(p => (p.id === tempId || p.id === serverProd.id || (serverProd.sku && p.sku === serverProd.sku)) ? { ...p, ...serverProd } : p);
+            const next = prev.map(p => (p.id === targetId || p.id === tempId || p.id === serverProd.id || (serverProd.sku && p.sku === serverProd.sku)) ? { ...p, ...serverProd } : p);
+            nextList = next;
             persistAdminCache(c => ({ ...c, products: next }));
             try {
               localStorage.setItem('vrg_products', JSON.stringify(next));
             } catch {}
             return next;
           });
+          try {
+            window.dispatchEvent(new CustomEvent('vrg_products_updated', { detail: nextList }));
+          } catch {}
         } else if (data && !data.success) {
           console.warn('[Admin Save Notice]', data.message);
+          toast.error(data.message || 'Failed to update product', 'Update Error');
         }
       })
       .catch(err => {
@@ -1931,7 +1940,7 @@ const silentRefresh = async (): Promise<boolean> => {
         district: whatsAppOrderForm.district || '',
         state: whatsAppOrderForm.state.trim() || 'Tamil Nadu',
         pincode: extractedPincode,
-        addressType: 'Home'
+        addressType: 'Home' as const
       },
       items: parsedItems,
       subtotal: finalTotal,
@@ -2422,6 +2431,9 @@ const silentRefresh = async (): Promise<boolean> => {
             const mrp = Number(prod.mrp) || Number(prod.sellingPrice) || 0;
             const sellingPrice = Number(prod.sellingPrice) || 0;
             const autoDiscount = mrp > 0 ? Math.max(0, Math.round(((mrp - sellingPrice) / mrp) * 100)) : 0;
+            const discountVal = (prod.discount !== undefined && prod.discount !== null && !isNaN(Number(prod.discount)))
+              ? Number(prod.discount)
+              : autoDiscount;
             const validImages = Array.isArray(prod.images) && prod.images.filter(Boolean).length
               ? prod.images.filter(Boolean)
               : (prod.imageUrl ? [prod.imageUrl] : ['https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80']);
@@ -2437,7 +2449,7 @@ const silentRefresh = async (): Promise<boolean> => {
               description: prod.description?.trim() || prod.name?.trim() || '',
               mrp: mrp > 0 ? mrp : sellingPrice,
               sellingPrice,
-              discount: prod.discount ?? autoDiscount,
+              discount: discountVal,
               stock: Number(prod.stock) >= 0 ? Number(prod.stock) : 25,
               plantHeight: prod.plantHeight || '1–2 Feet',
               potSize: prod.potSize || '8 Inch Bag',
@@ -2486,12 +2498,10 @@ const silentRefresh = async (): Promise<boolean> => {
               return next;
             });
 
-            if (!isEdit) {
-              savePendingProductToSession(optimisticProd);
-              pendingProductsRef.current.set(tempId, { product: optimisticProd, savedAt: Date.now() });
-            } else {
-              clearPendingProductFromSession(targetId);
-              pendingProductsRef.current.set(targetId, { product: optimisticProd, savedAt: Date.now() });
+            savePendingProductToSession(optimisticProd);
+            pendingProductsRef.current.set(tempId, { product: optimisticProd, savedAt: Date.now() });
+            if (payload.sku) {
+              pendingProductsRef.current.set(payload.sku, { product: optimisticProd, savedAt: Date.now() });
             }
 
             try {
@@ -2499,32 +2509,39 @@ const silentRefresh = async (): Promise<boolean> => {
             } catch {}
 
             // 2. Non-blocking Background Persistence
-            const url = isEdit ? `/api/products/${targetId}` : '/api/products';
+            const url = isEdit ? `/api/products/${encodeURIComponent(targetId)}` : '/api/products';
             const method = isEdit ? 'PUT' : 'POST';
 
             authFetch(url, {
               method,
               body: JSON.stringify(payload)
             })
-              .then(r => r.json().catch(() => null))
-              .then(data => {
+              .then(async r => {
+                const data = await r.json().catch(() => null);
                 if (data?.success && data?.product) {
                   const serverProd = data.product;
-                  if (!isEdit) {
-                    savePendingProductToSession(serverProd);
-                    pendingProductsRef.current.set(serverProd.id, { product: serverProd, savedAt: Date.now() });
-                  } else {
-                    clearPendingProductFromSession(serverProd.id);
-                    pendingProductsRef.current.set(serverProd.id, { product: serverProd, savedAt: Date.now() });
+                  if (tempId !== serverProd.id) {
+                    clearPendingProductFromSession(tempId);
+                    pendingProductsRef.current.delete(tempId);
                   }
+                  savePendingProductToSession(serverProd);
+                  pendingProductsRef.current.set(serverProd.id, { product: serverProd, savedAt: Date.now() });
+                  if (serverProd.sku) {
+                    pendingProductsRef.current.set(serverProd.sku, { product: serverProd, savedAt: Date.now() });
+                  }
+                  let nextList: Product[] = [];
                   setProducts(prev => {
-                    const next = prev.map(p => (p.id === tempId || p.id === serverProd.id || (serverProd.sku && p.sku === serverProd.sku)) ? { ...p, ...serverProd } : p);
+                    const next = prev.map(p => (p.id === targetId || p.id === tempId || p.id === serverProd.id || (serverProd.sku && p.sku === serverProd.sku)) ? { ...p, ...serverProd } : p);
+                    nextList = next;
                     persistAdminCache(c => ({ ...c, products: next }));
                     try {
                       localStorage.setItem('vrg_products', JSON.stringify(next));
                     } catch {}
                     return next;
                   });
+                  try {
+                    window.dispatchEvent(new CustomEvent('vrg_products_updated', { detail: nextList }));
+                  } catch {}
                 }
               })
               .catch(e => {

@@ -4,144 +4,144 @@
   
   <!-- Main Home Page -->
   <url>
-    <loc>https://veerikarosegarden.vercel.app/</loc>
-    <lastmod>2026-08-23</lastmod>
+    <loc>https://www.vrgnursery.in/</loc>
+    <lastmod>2026-08-30</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
     <image:image>
-      <image:loc>https://veerikarosegarden.vercel.app/logo.png</image:loc>
+      <image:loc>https://www.vrgnursery.in/logo.png</image:loc>
       <image:title>Veerika Rose Garden Nursery Logo</image:title>
     </image:image>
     <image:image>
-      <image:loc>https://veerikarosegarden.vercel.app/categories/rose-varieties.jpg</image:loc>
+      <image:loc>https://www.vrgnursery.in/categories/rose-varieties.jpg</image:loc>
       <image:title>Live Hybrid Rose Plants Online</image:title>
     </image:image>
   </url>
 
   <!-- Shop All Catalog -->
   <url>
-    <loc>https://veerikarosegarden.vercel.app/shop</loc>
-    <lastmod>2026-08-23</lastmod>
+    <loc>https://www.vrgnursery.in/shop</loc>
+    <lastmod>2026-08-30</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.95</priority>
   </url>
 
   <!-- Combos & Special Offers -->
   <url>
-    <loc>https://veerikarosegarden.vercel.app/?category=cat-combos</loc>
-    <lastmod>2026-08-23</lastmod>
+    <loc>https://www.vrgnursery.in/?category=cat-combos</loc>
+    <lastmod>2026-08-30</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
 
   <!-- Rose Varieties -->
   <url>
-    <loc>https://veerikarosegarden.vercel.app/?category=cat-rose</loc>
-    <lastmod>2026-08-23</lastmod>
+    <loc>https://www.vrgnursery.in/?category=cat-rose</loc>
+    <lastmod>2026-08-30</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
     <image:image>
-      <image:loc>https://veerikarosegarden.vercel.app/categories/rose-varieties.jpg</image:loc>
+      <image:loc>https://www.vrgnursery.in/categories/rose-varieties.jpg</image:loc>
       <image:title>Live Rose Varieties Pennagaram</image:title>
     </image:image>
   </url>
 
   <!-- Rare & Exotic Roses -->
   <url>
-    <loc>https://veerikarosegarden.vercel.app/?category=cat-rare</loc>
-    <lastmod>2026-08-23</lastmod>
+    <loc>https://www.vrgnursery.in/?category=cat-rare</loc>
+    <lastmod>2026-08-30</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
     <image:image>
-      <image:loc>https://veerikarosegarden.vercel.app/categories/exotics-rare-roses.jpg</image:loc>
+      <image:loc>https://www.vrgnursery.in/categories/exotics-rare-roses.jpg</image:loc>
       <image:title>Exotic and Rare Rose Plants</image:title>
     </image:image>
   </url>
 
   <!-- Herbal & Medicinal Plants -->
   <url>
-    <loc>https://veerikarosegarden.vercel.app/?category=cat-herbals</loc>
-    <lastmod>2026-08-23</lastmod>
+    <loc>https://www.vrgnursery.in/?category=cat-herbals</loc>
+    <lastmod>2026-08-30</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
     <image:image>
-      <image:loc>https://veerikarosegarden.vercel.app/categories/herbal-plants.jpg</image:loc>
+      <image:loc>https://www.vrgnursery.in/categories/herbal-plants.jpg</image:loc>
       <image:title>Authentic Herbal &amp; Medicinal Plants</image:title>
     </image:image>
   </url>
 
   <!-- Fruit Plants & Grafted Trees -->
   <url>
-    <loc>https://veerikarosegarden.vercel.app/?category=cat-fruits</loc>
-    <lastmod>2026-08-23</lastmod>
+    <loc>https://www.vrgnursery.in/?category=cat-fruits</loc>
+    <lastmod>2026-08-30</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
     <image:image>
-      <image:loc>https://veerikarosegarden.vercel.app/categories/fruit-plants.jpg</image:loc>
+      <image:loc>https://www.vrgnursery.in/categories/fruit-plants.jpg</image:loc>
       <image:title>Grafted Live Fruit Plants Online India</image:title>
     </image:image>
   </url>
 
   <!-- Fragrant Jasmine Varieties -->
   <url>
-    <loc>https://veerikarosegarden.vercel.app/?category=cat-jasmine</loc>
-    <lastmod>2026-08-23</lastmod>
+    <loc>https://www.vrgnursery.in/?category=cat-jasmine</loc>
+    <lastmod>2026-08-30</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
     <image:image>
-      <image:loc>https://veerikarosegarden.vercel.app/categories/jasmine-varieties.jpg</image:loc>
+      <image:loc>https://www.vrgnursery.in/categories/jasmine-varieties.jpg</image:loc>
       <image:title>Fragrant Jasmine Plants Online</image:title>
     </image:image>
   </url>
 
   <!-- Creeper Roses -->
   <url>
-    <loc>https://veerikarosegarden.vercel.app/?category=cat-creeper</loc>
-    <lastmod>2026-08-23</lastmod>
+    <loc>https://www.vrgnursery.in/?category=cat-creeper</loc>
+    <lastmod>2026-08-30</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
     <image:image>
-      <image:loc>https://veerikarosegarden.vercel.app/categories/creeper-roses.jpg</image:loc>
+      <image:loc>https://www.vrgnursery.in/categories/creeper-roses.jpg</image:loc>
       <image:title>Creeper and Climbing Roses</image:title>
     </image:image>
   </url>
 
   <!-- Miniature Roses -->
   <url>
-    <loc>https://veerikarosegarden.vercel.app/?category=cat-miniature</loc>
-    <lastmod>2026-08-23</lastmod>
+    <loc>https://www.vrgnursery.in/?category=cat-miniature</loc>
+    <lastmod>2026-08-30</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
     <image:image>
-      <image:loc>https://veerikarosegarden.vercel.app/categories/miniature-roses.jpg</image:loc>
+      <image:loc>https://www.vrgnursery.in/categories/miniature-roses.jpg</image:loc>
       <image:title>Miniature Pot Roses</image:title>
     </image:image>
   </url>
 
   <!-- Flowering Plants -->
   <url>
-    <loc>https://veerikarosegarden.vercel.app/?category=cat-flowering</loc>
-    <lastmod>2026-08-23</lastmod>
+    <loc>https://www.vrgnursery.in/?category=cat-flowering</loc>
+    <lastmod>2026-08-30</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
     <image:image>
-      <image:loc>https://veerikarosegarden.vercel.app/categories/flowering-plants.jpg</image:loc>
+      <image:loc>https://www.vrgnursery.in/categories/flowering-plants.jpg</image:loc>
       <image:title>Ornamental Flowering Garden Plants</image:title>
     </image:image>
   </url>
 
   <!-- Order Status & Live Tracking -->
   <url>
-    <loc>https://veerikarosegarden.vercel.app/order-status</loc>
-    <lastmod>2026-08-23</lastmod>
+    <loc>https://www.vrgnursery.in/order-status</loc>
+    <lastmod>2026-08-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <!-- Policies, Shipping & Guarantees -->
   <url>
-    <loc>https://veerikarosegarden.vercel.app/policies</loc>
-    <lastmod>2026-08-23</lastmod>
+    <loc>https://www.vrgnursery.in/policies</loc>
+    <lastmod>2026-08-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
