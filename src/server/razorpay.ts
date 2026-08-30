@@ -130,4 +130,38 @@ export class RazorpayService {
       return { success: false, isPaid: false, message: err.message };
     }
   }
+
+  /**
+   * Fetch payment details directly from Razorpay by Payment ID (pay_...)
+   */
+  static async checkPaymentById(
+    paymentId: string,
+    keyId: string,
+    keySecret: string
+  ): Promise<{ success: boolean; isPaid: boolean; orderId?: string; status?: string; message?: string }> {
+    try {
+      if (!paymentId || !keyId || !keySecret) {
+        return { success: false, isPaid: false, message: 'Missing parameters' };
+      }
+      const authHeader = 'Basic ' + Buffer.from(`${keyId.trim()}:${keySecret.trim()}`).toString('base64');
+      const response = await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(paymentId.trim())}`, {
+        headers: { Authorization: authHeader }
+      });
+      const data = await response.json();
+      if (!response.ok || !data.id) {
+        return { success: false, isPaid: false, message: data.error?.description || 'Failed to fetch payment' };
+      }
+
+      const isPaid = data.status === 'captured' || data.status === 'authorized';
+      return {
+        success: true,
+        isPaid,
+        orderId: data.order_id,
+        status: data.status
+      };
+    } catch (err: any) {
+      console.error('[RazorpayService] Check Payment By ID Exception:', err);
+      return { success: false, isPaid: false, message: err.message };
+    }
+  }
 }
