@@ -164,42 +164,59 @@ export function generateDispatchLabelsPdf(
       pdf.setFontSize(22);
       pdf.text('LIVE   PLANTS   INSIDE', labelX + headerBoxW / 2, greenY + 7.5, { align: 'center' });
 
-      // ================= 2. SUBHEADER ROW: "From :" & "To," =================
+      // ================= 2. SUBHEADER ROW: "From :", "To,", "Ordered Plants:" =================
       const subheaderY = ly + 18.5;
+      const boxTopY = ly + 21;
+      const boxHeight = 64;
+
+      const col1X = labelX;
+      const col1W = 54;
+
+      const toBoxX = col1X + col1W + 4;
+      const toBoxW = 57;
+      const toBoxY = boxTopY;
+      const toBoxH = boxHeight;
+
+      const itemBoxX = toBoxX + toBoxW + 4;
+      const itemBoxW = 65;
+      const itemBoxY = boxTopY;
+      const itemBoxH = boxHeight;
+
       pdf.setTextColor(0, 0, 0);
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(10.5);
-      pdf.text('From :', labelX, subheaderY);
-      pdf.text('To,', labelX + 58, subheaderY);
+      pdf.text('From :', col1X, subheaderY);
+      pdf.text('To,', toBoxX, subheaderY);
+      pdf.text('Ordered Plants:', itemBoxX, subheaderY);
 
       // ================= 3. COLUMN 1: "From :" DETAILS (Yellow Highlights) =================
-      const fromContentY = ly + 22.5;
+      const fromContentY = boxTopY;
 
       // Line 1: VEERIKA ROSE GARDEN
       pdf.setFillColor(255, 255, 0); // Bright Yellow
-      pdf.rect(labelX, fromContentY, 53, 7.5, 'F');
+      pdf.rect(col1X, fromContentY, 52, 7.5, 'F');
       pdf.setTextColor(0, 0, 0);
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(11.5);
-      pdf.text('VEERIKA ROSE GARDEN', labelX + 1, fromContentY + 5.5);
+      pdf.text('VEERIKA ROSE GARDEN', col1X + 1, fromContentY + 5.5);
 
       // Line 2: Dharmapuri
       const line2Y = fromContentY + 9.5;
       pdf.setFillColor(255, 255, 0); // Bright Yellow
-      pdf.rect(labelX, line2Y, 32, 6.2, 'F');
+      pdf.rect(col1X, line2Y, 32, 6.2, 'F');
       pdf.setTextColor(0, 0, 0);
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(11);
-      pdf.text('Dharmapuri', labelX + 1, line2Y + 4.6);
+      pdf.text('Dharmapuri', col1X + 1, line2Y + 4.6);
 
       // Line 3: +91 63812 03534
       const line3Y = line2Y + 8;
       pdf.setFillColor(255, 255, 0); // Bright Yellow
-      pdf.rect(labelX, line3Y, 44, 6.5, 'F');
+      pdf.rect(col1X, line3Y, 44, 6.5, 'F');
       pdf.setTextColor(0, 0, 0);
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(11.5);
-      pdf.text('+91 63812 03534', labelX + 1, line3Y + 4.8);
+      pdf.text('+91 63812 03534', col1X + 1, line3Y + 4.8);
 
       // Line 4: SERVICE & COURIER LOGISTICS DETAILS
       const serviceStartY = line3Y + 9.5;
@@ -219,17 +236,17 @@ export function generateDispatchLabelsPdf(
       pdf.setTextColor(0, 0, 0);
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(9.5);
-      pdf.text(`Service: ${cleanCourier}`, labelX + 1, serviceStartY);
+      pdf.text(`Service: ${cleanCourier}`, col1X + 1, serviceStartY);
 
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(9);
-      pdf.text(`Type: ${cleanPotOption}`, labelX + 1, serviceStartY + 4.6);
+      pdf.text(`Type: ${cleanPotOption}`, col1X + 1, serviceStartY + 4.6);
 
       if (order.packingOption === 'MAX_PROTECTION' || order.packingOption === 'EXTRA_SECURE') {
         const packText = order.packingOption === 'MAX_PROTECTION' ? 'Pack: Max Heavy Guard' : 'Pack: Extra Secure Bubble';
         pdf.setFont('helvetica', 'normal');
         pdf.setFontSize(8.5);
-        pdf.text(packText, labelX + 1, serviceStartY + 9.0);
+        pdf.text(packText, col1X + 1, serviceStartY + 9.0);
       }
 
       if (order.courierBranch || order.courierDistrict) {
@@ -238,16 +255,11 @@ export function generateDispatchLabelsPdf(
           pdf.setFont('helvetica', 'normal');
           pdf.setFontSize(8);
           const branchY = serviceStartY + (order.packingOption === 'MAX_PROTECTION' || order.packingOption === 'EXTRA_SECURE' ? 13.0 : 9.0);
-          pdf.text(`Depot: ${branchText.slice(0, 24)}`, labelX + 1, branchY);
+          pdf.text(`Depot: ${branchText.slice(0, 24)}`, col1X + 1, branchY);
         }
       }
 
       // ================= 4. COLUMN 2: "To," CUSTOMER BOX =================
-      const toBoxX = labelX + 54;
-      const toBoxY = ly + 16;
-      const toBoxW = 66;
-      const toBoxH = 68;
-
       pdf.setDrawColor(0, 0, 0);
       pdf.setLineWidth(0.3);
       pdf.rect(toBoxX, toBoxY, toBoxW, toBoxH, 'S');
@@ -255,7 +267,7 @@ export function generateDispatchLabelsPdf(
       // 1) Customer Name (BOLD)
       pdf.setTextColor(0, 0, 0);
       pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(13);
+      pdf.setFontSize(12.5);
       const nameLines = pdf.splitTextToSize(info.name, toBoxW - 4);
       pdf.text(nameLines, toBoxX + 2.5, toBoxY + 5.2);
 
@@ -264,7 +276,7 @@ export function generateDispatchLabelsPdf(
       // 2) Customer Address (Regular font)
       pdf.setTextColor(0, 0, 0);
       pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(11);
+      pdf.setFontSize(10.5);
       const addrLines = pdf.splitTextToSize(info.cleanAddress, toBoxW - 4);
       const displayAddrLines = addrLines.slice(0, 4);
       pdf.text(displayAddrLines, toBoxX + 2.5, currentY);
@@ -275,7 +287,7 @@ export function generateDispatchLabelsPdf(
       if (info.pincode) {
         pdf.setTextColor(0, 0, 0);
         pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(13);
+        pdf.setFontSize(12.5);
         pdf.text(`PINCODE: ${info.pincode}`, toBoxX + 2.5, currentY);
         currentY += 5.2;
       }
@@ -284,7 +296,7 @@ export function generateDispatchLabelsPdf(
       if (info.phone) {
         pdf.setTextColor(0, 0, 0);
         pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(13);
+        pdf.setFontSize(12.5);
         const phoneFormatted = info.phone.toLowerCase().startsWith('ph') || info.phone.toLowerCase().startsWith('mob')
           ? info.phone
           : `Mob: ${info.phone}`;
@@ -292,11 +304,6 @@ export function generateDispatchLabelsPdf(
       }
 
       // ================= 5. COLUMN 3: ORDERED PLANTS BOX =================
-      const itemBoxX = toBoxX + toBoxW + 4;
-      const itemBoxY = ly + 16;
-      const itemBoxW = 66;
-      const itemBoxH = 68;
-
       pdf.setDrawColor(0, 0, 0);
       pdf.setLineWidth(0.3);
       pdf.rect(itemBoxX, itemBoxY, itemBoxW, itemBoxH, 'S');
