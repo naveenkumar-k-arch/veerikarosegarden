@@ -174,6 +174,25 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   // Selected order for detail views
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   
+  // Real-time synchronization of selectedOrder with latest version from orders prop
+  useEffect(() => {
+    if (selectedOrder) {
+      const latest = orders.find(o => o.id === selectedOrder.id || (o.merchantTransactionId && o.merchantTransactionId === selectedOrder.id));
+      if (latest && (
+        latest.updatedAt !== selectedOrder.updatedAt ||
+        latest.customerName !== selectedOrder.customerName ||
+        latest.customerPhone !== selectedOrder.customerPhone ||
+        latest.grandTotal !== selectedOrder.grandTotal ||
+        latest.items !== selectedOrder.items ||
+        latest.shippingAddress !== selectedOrder.shippingAddress ||
+        latest.courierName !== selectedOrder.courierName ||
+        latest.trackingNumber !== selectedOrder.trackingNumber
+      )) {
+        setSelectedOrder(latest);
+      }
+    }
+  }, [orders]);
+  
   // QR Payment Receipt Zoom Modal State
   const [selectedProofOrder, setSelectedProofOrder] = useState<Order | null>(null);
   const [copiedUtrToast, setCopiedUtrToast] = useState(false);

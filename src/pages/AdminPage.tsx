@@ -587,6 +587,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
   const pendingStockRef = React.useRef<Map<string, number>>(new Map());
   // Track recently-edited order status so auto-poll doesn't overwrite user changes
   const pendingOrderStatusRef = React.useRef<Map<string, { status: string; paymentStatus?: string; courierName?: string; trackingNumber?: string; time: number }>>(new Map());
+  // Track full order updates (address, items, details) to guarantee instant 0ms persistence against background polling
+  const pendingOrderUpdatesRef = React.useRef<Map<string, { order: Order; time: number }>>(new Map());
   // Track recently-saved products so polling doesn't overwrite optimistic state with stale server data
   const pendingProductsRef = React.useRef<Map<string, { product: Product; savedAt: number }>>(new Map());
 
@@ -871,6 +873,14 @@ const silentRefresh = async (): Promise<boolean> => {
         if (Array.isArray(bRes.orders)) {
           const now = Date.now();
           setOrders(bRes.orders.filter((o: Order) => o && o.id).map((apiOrder: Order) => {
+            const pendingFull = pendingOrderUpdatesRef.current.get(apiOrder.id) || (apiOrder.merchantTransactionId ? pendingOrderUpdatesRef.current.get(apiOrder.merchantTransactionId) : undefined);
+            if (pendingFull && now - pendingFull.time < 60000) {
+              return {
+                ...apiOrder,
+                ...pendingFull.order,
+                updatedAt: pendingFull.order.updatedAt || apiOrder.updatedAt
+              };
+            }
             const pending = pendingOrderStatusRef.current.get(apiOrder.id) || (apiOrder.merchantTransactionId ? pendingOrderStatusRef.current.get(apiOrder.merchantTransactionId) : undefined);
             if (pending && now - pending.time < 15000) {
               return {
@@ -1944,10 +1954,24 @@ const silentRefresh = async (): Promise<boolean> => {
         updatedAt: new Date().toISOString()
       };
 
+      pendingOrderUpdatesRef.current.set(orderToEdit.id, { order: updatedOrder, time: Date.now() });
+      if (orderToEdit.merchantTransactionId) {
+        pendingOrderUpdatesRef.current.set(orderToEdit.merchantTransactionId, { order: updatedOrder, time: Date.now() });
+      }
+
       // 1. INSTANT 0ms Optimistic UI Update & Instant Modal Close
       setOrders(prev => {
         const updated = prev.map(o => o.id === orderToEdit.id ? updatedOrder : o);
+        const keysToSave = ['veerika_admin_orders', 'vrg_user_orders', 'veerika_customer_orders', 'vrg_orders', 'vrg_my_orders'];
+        keysToSave.forEach(key => {
+          try { localStorage.setItem(key, JSON.stringify(updated)); } catch {}
+        });
         persistAdminCache(c => ({ ...c, orders: updated }));
+        try {
+          const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
+          cached.orders = updated;
+          localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+        } catch {}
         return updated;
       });
       setShowWhatsAppOrderModal(false);
