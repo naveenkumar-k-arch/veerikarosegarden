@@ -7618,15 +7618,28 @@ class Store {
 
   async getOrderById(id: string): Promise<Order | null> {
     const clean = (id || '').trim().toLowerCase();
-    const memMatch = this.memoryOrders.find(o => 
+    let memMatch = this.memoryOrders.find(o => 
       (o.id && o.id.toLowerCase() === clean) ||
       (o.merchantTransactionId && o.merchantTransactionId.toLowerCase() === clean) ||
       (o.trackingNumber && o.trackingNumber.toLowerCase() === clean)
     );
 
+    if (!memMatch) {
+      const allDisk = loadDiskOrders();
+      memMatch = allDisk.find(o => 
+        (o.id && o.id.toLowerCase() === clean) ||
+        (o.merchantTransactionId && o.merchantTransactionId.toLowerCase() === clean) ||
+        (o.trackingNumber && o.trackingNumber.toLowerCase() === clean)
+      );
+    }
+
+    if (memMatch) {
+      return memMatch;
+    }
+
     const prisma = getPrismaClient();
     if (!prisma) {
-      return memMatch || null;
+      return null;
     }
 
     try {
@@ -8148,87 +8161,87 @@ class Store {
 
     const prisma = getPrismaClient();
     if (prisma) {
-      try {
-        const orderMatch = {
-          OR: [
-            { id: existing.id },
-            { orderNumber: existing.id },
-            { merchantTransactionId: existing.merchantTransactionId }
-          ]
-        };
+      // Execute database persistence asynchronously in background so client response is instant
+      (async () => {
+        try {
+          const orderMatch = {
+            OR: [
+              { id: existing.id },
+              { orderNumber: existing.id },
+              { merchantTransactionId: existing.merchantTransactionId }
+            ]
+          };
 
-        const notesPayload = JSON.stringify({
-          proof: updatedOrder.paymentProofUrl || null,
-          txnId: updatedOrder.transactionId || null,
-          packingOption: updatedOrder.packingOption || 'STANDARD',
-          packingCharge: updatedOrder.packingCharge || 0,
-          potOption: updatedOrder.potOption || null,
-          potCharge: updatedOrder.potCharge || 0,
-          courierName: updatedOrder.courierName || null,
-          courierDistrict: updatedOrder.courierDistrict || null,
-          courierBranch: updatedOrder.courierBranch || null,
-          itemsSnapshot: updatedItems
-        });
+          const notesPayload = JSON.stringify({
+            proof: updatedOrder.paymentProofUrl || null,
+            txnId: updatedOrder.transactionId || null,
+            packingOption: updatedOrder.packingOption || 'STANDARD',
+            packingCharge: updatedOrder.packingCharge || 0,
+            potOption: updatedOrder.potOption || null,
+            potCharge: updatedOrder.potCharge || 0,
+            courierName: updatedOrder.courierName || null,
+            courierDistrict: updatedOrder.courierDistrict || null,
+            courierBranch: updatedOrder.courierBranch || null,
+            itemsSnapshot: updatedItems
+          });
 
-        await prisma.order.updateMany({
-          where: orderMatch,
-          data: {
-            customerName: updatedOrder.customerName,
-            customerPhone: updatedOrder.customerPhone,
-            customerEmail: updatedOrder.customerEmail || null,
-            shippingAddress: addrStr,
-            subtotal: updatedOrder.subtotal,
-            discount: updatedOrder.discount,
-            deliveryFee: updatedOrder.shippingCharge,
-            totalAmount: updatedOrder.grandTotal,
-            status: toPrismaOrderStatus(updatedOrder.orderStatus) as any,
-            paymentStatus: updatedOrder.paymentStatus === 'SUCCESS' ? 'SUCCESS' : 'PENDING',
-            paymentMethod: (updatedOrder.paymentMethod === 'COD' ? 'COD' : updatedOrder.paymentMethod === 'PHONEPE' ? 'PHONEPE' : 'UPI') as any,
-            notes: notesPayload,
-            trackingNumber: updatedOrder.trackingNumber || null
-          }
-        });
-
-        // Permanently persist updated items to Prisma OrderItem table
-        if (updatedItems && updatedItems.length > 0) {
-          const dbOrder = await prisma.order.findFirst({
+          await prisma.order.updateMany({
             where: orderMatch,
-            select: { id: true }
-          }).catch(() => null);
+            data: {
+              customerName: updatedOrder.customerName,
+              customerPhone: updatedOrder.customerPhone,
+              customerEmail: updatedOrder.customerEmail || null,
+              shippingAddress: addrStr,
+              subtotal: updatedOrder.subtotal,
+              discount: updatedOrder.discount,
+              deliveryFee: updatedOrder.shippingCharge,
+              totalAmount: updatedOrder.grandTotal,
+              status: toPrismaOrderStatus(updatedOrder.orderStatus) as any,
+              paymentStatus: updatedOrder.paymentStatus === 'SUCCESS' ? 'SUCCESS' : 'PENDING',
+              paymentMethod: (updatedOrder.paymentMethod === 'COD' ? 'COD' : updatedOrder.paymentMethod === 'PHONEPE' ? 'PHONEPE' : 'UPI') as any,
+              notes: notesPayload,
+              trackingNumber: updatedOrder.trackingNumber || null
+            }
+          });
 
-          if (dbOrder) {
-            const defaultProd = await prisma.product.findFirst({ select: { id: true } }).catch(() => null);
-            const fallbackProdId = defaultProd?.id || 'prod-rose-01';
+          // Bulk-persist updated items to Prisma OrderItem table without N+1 sequential loops
+          if (updatedItems && updatedItems.length > 0) {
+            const dbOrder = await prisma.order.findFirst({
+              where: orderMatch,
+              select: { id: true }
+            }).catch(() => null);
 
-            await prisma.orderItem.deleteMany({
-              where: { orderId: dbOrder.id }
-            }).catch(() => {});
+            if (dbOrder) {
+              const defaultProd = await prisma.product.findFirst({ select: { id: true } }).catch(() => null);
+              const fallbackProdId = defaultProd?.id || 'prod-rose-01';
 
-            for (const it of updatedItems) {
-              let pId = it.productId;
-              if (pId) {
-                const exists = await prisma.product.findUnique({ where: { id: pId }, select: { id: true } }).catch(() => null);
-                if (!exists) pId = fallbackProdId;
-              } else {
-                pId = fallbackProdId;
-              }
+              const pIds = updatedItems.map(i => i.productId).filter(Boolean);
+              const existingProds = await prisma.product.findMany({
+                where: { id: { in: pIds } },
+                select: { id: true }
+              }).catch(() => []);
+              const existingSet = new Set(existingProds.map(p => p.id));
 
-              await prisma.orderItem.create({
-                data: {
+              await prisma.orderItem.deleteMany({
+                where: { orderId: dbOrder.id }
+              }).catch(() => {});
+
+              await prisma.orderItem.createMany({
+                data: updatedItems.map(it => ({
                   orderId: dbOrder.id,
-                  productId: pId,
+                  productId: existingSet.has(it.productId) ? it.productId : fallbackProdId,
                   productName: it.name || it.productName || 'Nursery Plant',
                   price: Number(it.price || 0),
                   quantity: Number(it.quantity || 1),
                   totalPrice: Number(it.price || 0) * Number(it.quantity || 1)
-                }
-              }).catch((e: any) => console.warn('[updateOrderFull] could not insert orderItem:', e?.message || e));
+                }))
+              }).catch((e: any) => console.warn('[updateOrderFull] could not insert orderItems:', e?.message || e));
             }
           }
+        } catch (err: any) {
+          console.error('Prisma updateOrderFull background error:', err?.message || err);
         }
-      } catch (err: any) {
-        console.error('Prisma updateOrderFull error:', err?.message || err);
-      }
+      })().catch(() => {});
     }
 
     // Non-blocking Firestore sync in background

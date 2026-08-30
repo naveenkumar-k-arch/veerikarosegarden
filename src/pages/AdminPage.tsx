@@ -1936,54 +1936,80 @@ const silentRefresh = async (): Promise<boolean> => {
       courierName: whatsAppOrderForm.courierName || 'Professional Courier – Reduced Soil'
     };
 
+    if (editingOrder) {
+      const orderToEdit = editingOrder;
+      const updatedOrder: Order = {
+        ...orderToEdit,
+        ...payload,
+        updatedAt: new Date().toISOString()
+      };
+
+      // 1. INSTANT 0ms Optimistic UI Update & Instant Modal Close
+      setOrders(prev => {
+        const updated = prev.map(o => o.id === orderToEdit.id ? updatedOrder : o);
+        persistAdminCache(c => ({ ...c, orders: updated }));
+        return updated;
+      });
+      setShowWhatsAppOrderModal(false);
+      setEditingOrder(null);
+      toast.success(`Order #${orderToEdit.id} updated successfully!`, 'Order Saved');
+
+      try {
+        window.dispatchEvent(new CustomEvent('orderStatusUpdated', { detail: { orderId: orderToEdit.id } }));
+      } catch {}
+
+      // 2. Non-blocking Background API Sync
+      (async () => {
+        try {
+          let res = await authFetch(`/api/admin/orders/${encodeURIComponent(orderToEdit.id)}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+          }).catch(() => null);
+
+          if (!res || !res.ok) {
+            res = await authFetch('/api/admin/orders/update', {
+              method: 'POST',
+              body: JSON.stringify({ id: orderToEdit.id, ...payload })
+            }).catch(() => null);
+          }
+
+          if (res && res.ok) {
+            const data = await res.json().catch(() => ({}));
+            if (data.order) {
+              setOrders(prev => {
+                const synced = prev.map(o => o.id === orderToEdit.id ? { ...o, ...data.order } : o);
+                persistAdminCache(c => ({ ...c, orders: synced }));
+                return synced;
+              });
+            }
+          }
+        } catch (syncErr) {
+          console.warn('[Background Order Sync Error]:', syncErr);
+        }
+      })();
+      return;
+    }
+
+    // Creating a brand new WhatsApp order
     setWhatsAppOrderSaving(true);
     try {
-      if (editingOrder) {
-        let res = await authFetch(`/api/admin/orders/${encodeURIComponent(editingOrder.id)}`, {
-          method: 'PUT',
-          body: JSON.stringify(payload)
-        }).catch(() => null);
-
-        if (!res || !res.ok) {
-          res = await authFetch('/api/admin/orders/update', {
-            method: 'POST',
-            body: JSON.stringify({ id: editingOrder.id, ...payload })
-          }).catch(() => null);
-        }
-
-        let data: any = {};
-        if (res) data = await res.json().catch(() => ({}));
-        const updatedOrder: Order = data.order || {
-          ...editingOrder,
-          ...payload,
-          updatedAt: new Date().toISOString()
-        };
-
+      const res = await authFetch('/api/admin/orders', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success && data.order) {
         setOrders(prev => {
-          const updated = prev.map(o => o.id === editingOrder.id ? updatedOrder : o);
+          const updated = [data.order, ...prev];
           persistAdminCache(c => ({ ...c, orders: updated }));
           return updated;
         });
-        toast.success(`Order #${editingOrder.id} updated successfully!`, 'Order Saved');
+        toast.success(`WhatsApp order #${data.order.id} added to pipeline!`, 'Order Created');
+        setShowWhatsAppOrderModal(false);
+        setEditingOrder(null);
       } else {
-        const res = await authFetch('/api/admin/orders', {
-          method: 'POST',
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        if (data.success && data.order) {
-          setOrders(prev => {
-            const updated = [data.order, ...prev];
-            persistAdminCache(c => ({ ...c, orders: updated }));
-            return updated;
-          });
-          toast.success(`WhatsApp order #${data.order.id} added to pipeline!`, 'Order Created');
-        } else {
-          throw new Error(data.message || 'Failed to create WhatsApp order');
-        }
+        throw new Error(data.message || 'Failed to create WhatsApp order');
       }
-      setShowWhatsAppOrderModal(false);
-      setEditingOrder(null);
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || 'Failed to save order', 'Save Error');
