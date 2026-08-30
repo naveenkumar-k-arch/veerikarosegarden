@@ -1387,19 +1387,21 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
   // All orders sorted Newest First (for Dashboard & global views)
   const sortedAllOrders = useMemo(() => {
-    return [...orders].sort((a, b) => {
-      const diff = getOrderTime(b) - getOrderTime(a);
-      if (diff !== 0) return diff;
-      return (b.id || '').localeCompare(a.id || '');
-    });
+    return orders
+      .filter(o => (o.orderStatus || '').toUpperCase() !== 'CANCELLED' && o.paymentStatus !== 'FAILED')
+      .sort((a, b) => {
+        const diff = getOrderTime(b) - getOrderTime(a);
+        if (diff !== 0) return diff;
+        return (b.id || '').localeCompare(a.id || '');
+      });
   }, [orders, getOrderTime]);
 
   // Filtered & Sorted Orders Feed
   const filteredOrders = useMemo(() => {
     let list = orderStageFilter === 'all' || orderStageFilter === 'week_based'
-      ? [...orders] 
+      ? orders.filter(o => (o.orderStatus || '').toUpperCase() !== 'CANCELLED' && o.paymentStatus !== 'FAILED') 
       : orderStageFilter === 'holding'
-      ? orders.filter(o => holdingOrderIds.includes(o.id) || (o as any).isHolding === true)
+      ? orders.filter(o => (o.orderStatus || '').toUpperCase() !== 'CANCELLED' && (holdingOrderIds.includes(o.id) || (o as any).isHolding === true))
       : orders.filter(o => (o.orderStatus || '').toUpperCase() !== 'CANCELLED' && o.paymentStatus !== 'FAILED' && getOrderStage(o.orderStatus) === orderStageFilter);
 
     // 0. Order Source Filter (WhatsApp / Offline vs Website vs All)
@@ -6866,7 +6868,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                   />
                 </div>
 
-                <div className="max-h-40 overflow-y-auto space-y-1 p-2 bg-slate-50 rounded-xl border border-slate-200 divide-y divide-slate-100">
+                <div className="max-h-56 overflow-y-auto space-y-1.5 p-2 bg-slate-50 rounded-xl border border-slate-200">
                   {products
                     .filter(p => {
                       if (!comboPlantSearch.trim()) return true;
@@ -6879,46 +6881,98 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                       );
                     })
                     .map(p => {
-                      const isSelected = comboForm.productIds.includes(p.id);
+                      const count = comboForm.productIds.filter(id => id === p.id).length;
+
+                      const updateFormWithIds = (nextIds: string[]) => {
+                        const prodMap = new Map(products.map(prod => [prod.id, prod]));
+                        const selected = nextIds.map(id => prodMap.get(id)).filter(Boolean) as Product[];
+                        const totalMrp = selected.reduce((sum, item) => sum + Number(item.mrp || item.sellingPrice || 0), 0);
+                        const defaultComboPrice = Math.max(49, Math.round(totalMrp * 0.75));
+                        const autoImg = selected[0]?.images?.[0] || comboForm.imageUrl;
+
+                        // Build clean subtitle listing all plants (e.g. "2x Plant A + 1x Plant B")
+                        const countMap = new Map<string, number>();
+                        selected.forEach(s => countMap.set(s.name, (countMap.get(s.name) || 0) + 1));
+                        const autoSubtitle = Array.from(countMap.entries())
+                          .map(([name, qty]) => qty > 1 ? `${qty}x ${name}` : name)
+                          .join(' + ');
+
+                        setComboForm(prev => ({
+                          ...prev,
+                          productIds: nextIds,
+                          originalPrice: totalMrp,
+                          comboPrice: prev.comboPrice === 0 || prev.comboPrice === 399 ? defaultComboPrice : prev.comboPrice,
+                          imageUrl: autoImg || prev.imageUrl,
+                          badge: nextIds.length > 0 ? `${nextIds.length}-IN-1 SPECIAL` : 'COMBO OFFER',
+                          subtitle: autoSubtitle
+                        }));
+                      };
+
+                      const handleAdd = (e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        updateFormWithIds([...comboForm.productIds, p.id]);
+                      };
+
+                      const handleRemove = (e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        const idx = comboForm.productIds.lastIndexOf(p.id);
+                        if (idx !== -1) {
+                          const nextIds = [...comboForm.productIds];
+                          nextIds.splice(idx, 1);
+                          updateFormWithIds(nextIds);
+                        }
+                      };
+
                       return (
-                        <label key={p.id} className={`flex items-center gap-2 p-1.5 rounded-lg cursor-pointer select-none text-xs transition-colors ${isSelected ? 'bg-emerald-50 text-emerald-900 font-bold' : 'hover:bg-white text-slate-700'}`}>
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => {
-                              let nextIds: string[];
-                              if (isSelected) {
-                                nextIds = comboForm.productIds.filter(id => id !== p.id);
-                              } else {
-                                nextIds = [...comboForm.productIds, p.id];
-                              }
+                        <div
+                          key={p.id}
+                          onClick={handleAdd}
+                          className={`flex items-center justify-between p-2 rounded-xl border transition-colors cursor-pointer select-none text-xs ${
+                            count > 0 ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-bold' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-1 mr-2">
+                            <img
+                              src={p.images?.[0] || '/products/double-delight.jpeg'}
+                              alt={p.name}
+                              className="w-8 h-8 rounded-lg object-cover border border-slate-200 shrink-0"
+                            />
+                            <div className="min-w-0">
+                              <p className="truncate font-bold text-xs">{p.name}</p>
+                              <p className="text-[10px] text-slate-500 font-medium">₹{p.sellingPrice} {p.mrp > p.sellingPrice ? <span className="line-through text-slate-400">₹{p.mrp}</span> : null}</p>
+                            </div>
+                          </div>
 
-                              const prodMap = new Map(products.map(prod => [prod.id, prod]));
-                              const selected = nextIds.map(id => prodMap.get(id)).filter(Boolean) as Product[];
-                              const totalMrp = selected.reduce((sum, item) => sum + Number(item.mrp || item.sellingPrice || 0), 0);
-                              const defaultComboPrice = Math.max(49, Math.round(totalMrp * 0.75));
-                              const autoImg = selected[0]?.images?.[0] || comboForm.imageUrl;
-
-                              setComboForm(prev => ({
-                                ...prev,
-                                productIds: nextIds,
-                                originalPrice: totalMrp,
-                                comboPrice: prev.comboPrice === 0 || prev.comboPrice === 399 ? defaultComboPrice : prev.comboPrice,
-                                imageUrl: autoImg || prev.imageUrl,
-                                badge: `${nextIds.length}-IN-1 SPECIAL`,
-                                subtitle: prev.subtitle ? prev.subtitle : selected.map(s => s.name).slice(0, 3).join(' + ')
-                              }));
-                            }}
-                            className="w-4 h-4 text-emerald-700 rounded cursor-pointer"
-                          />
-                          <img
-                            src={p.images?.[0] || '/products/double-delight.jpeg'}
-                            alt={p.name}
-                            className="w-7 h-7 rounded-md object-cover border border-slate-200 shrink-0"
-                          />
-                          <span className="truncate flex-1 font-semibold">{p.name}</span>
-                          <span className="font-mono text-[11px] font-bold text-slate-900 shrink-0">₹{p.sellingPrice}</span>
-                        </label>
+                          <div className="flex items-center gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
+                            {count > 0 ? (
+                              <div className="flex items-center gap-1 bg-white border border-emerald-400 rounded-lg p-0.5 shadow-2xs">
+                                <button
+                                  type="button"
+                                  onClick={handleRemove}
+                                  className="w-6 h-6 rounded bg-rose-50 hover:bg-rose-100 text-rose-700 font-black flex items-center justify-center text-xs active:scale-95 cursor-pointer"
+                                >
+                                  −
+                                </button>
+                                <span className="w-5 text-center font-black text-emerald-900 text-xs">{count}</span>
+                                <button
+                                  type="button"
+                                  onClick={handleAdd}
+                                  className="w-6 h-6 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-black flex items-center justify-center text-xs active:scale-95 cursor-pointer"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={handleAdd}
+                                className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 active:scale-95 text-emerald-800 font-bold text-[11px] rounded-lg border border-emerald-300 flex items-center gap-1 cursor-pointer"
+                              >
+                                <span>+ Add</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       );
                     })}
                 </div>

@@ -300,7 +300,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "mrp": 140,
     "sellingPrice": 99,
     "discount": 29,
-    "stock": 6,
+    "stock": 0,
     "rating": 4.8,
     "reviewCount": 6,
     "images": [
@@ -386,7 +386,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "mrp": 140,
     "sellingPrice": 99,
     "discount": 29,
-    "stock": 25,
+    "stock": 0,
     "rating": 5,
     "reviewCount": 18,
     "images": [
@@ -1289,7 +1289,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "mrp": 60,
     "sellingPrice": 30,
     "discount": 50,
-    "stock": 27,
+    "stock": 0,
     "rating": 5,
     "reviewCount": 18,
     "images": [
@@ -3310,7 +3310,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "mrp": 150,
     "sellingPrice": 110,
     "discount": 27,
-    "stock": 7,
+    "stock": 0,
     "rating": 4.8,
     "reviewCount": 6,
     "images": [
@@ -3353,7 +3353,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "mrp": 170,
     "sellingPrice": 120,
     "discount": 29,
-    "stock": 25,
+    "stock": 0,
     "rating": 5,
     "reviewCount": 18,
     "images": [
@@ -3611,7 +3611,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "mrp": 170,
     "sellingPrice": 120,
     "discount": 29,
-    "stock": 4,
+    "stock": 0,
     "rating": 4.8,
     "reviewCount": 6,
     "images": [

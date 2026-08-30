@@ -2867,9 +2867,9 @@ class Store {
           const dbOrderStatus = fromPrismaOrderStatus(o.status);
 
           const calculatedSubtotal = itemsSnapshot.reduce((sum, it) => sum + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
-          const finalSubtotal = calculatedSubtotal > 0 ? calculatedSubtotal : Number(o.subtotal || 0);
+          const finalSubtotal = Number(o.subtotal) > 0 ? Number(o.subtotal) : (calculatedSubtotal > 0 ? calculatedSubtotal : Number(o.totalAmount || 0));
           const packingAndPotCharges = Number(unpackedPackingCharge || 0) + Number(unpackedPotCharge || 0);
-          const finalGrandTotal = finalSubtotal + Number(o.deliveryFee || 0) + packingAndPotCharges - Number(o.discount || 0);
+          const finalGrandTotal = Number(o.totalAmount) > 0 ? Number(o.totalAmount) : (finalSubtotal + Number(o.deliveryFee || 0) + packingAndPotCharges - Number(o.discount || 0));
 
           return {
             id: o.id,
@@ -2982,18 +2982,17 @@ class Store {
     }
 
     const result = Array.from(uniqueMap.values()).filter(o => {
-      if (!o || !o.id || deletedOrderIds.has(o.id) || deletedOrderIds.has(o.merchantTransactionId)) {
+      if (!o || !o.id || deletedOrderIds.has(o.id) || deletedOrderIds.has(o.merchantTransactionId || '') || deletedOrderIds.has(o.orderNumber || '')) {
+        return false;
+      }
+      // If order was explicitly cancelled or failed, do not show in active admin/operational orders
+      if ((o.orderStatus || '').toUpperCase() === 'CANCELLED' || o.paymentStatus === 'FAILED') {
         return false;
       }
       // For automated online gateways (Razorpay, PhonePe):
       // Only include orders if payment succeeded!
-      // If customer cancelled or did not complete payment, discard from active orders
       const isOnlineGateway = o.paymentMethod === 'RAZORPAY' || o.paymentMethod === 'PHONEPE' || (o.paymentMethod as string) === 'CARD';
       if (isOnlineGateway && o.paymentStatus !== 'SUCCESS') {
-        return false;
-      }
-      // If order was explicitly cancelled and unpaid, do not show
-      if (o.orderStatus === 'CANCELLED' && o.paymentStatus !== 'SUCCESS') {
         return false;
       }
       return true;
@@ -3088,10 +3087,18 @@ class Store {
 
   async deleteOrder(id: string): Promise<boolean> {
     this.invalidateOrdersCache();
+    this.invalidateDashboardStatsCache();
     const clean = (id || '').trim();
     if (clean) {
-      deletedOrderIds.add(clean);
-      saveDiskDeletedOrders(deletedOrderIds);
+      const deletedIds = loadDiskDeletedOrders();
+      deletedIds.add(clean);
+      const target = this.memoryOrders.find(o => o.id === clean || o.merchantTransactionId === clean || (o as any).orderNumber === clean);
+      if (target) {
+        if (target.id) deletedIds.add(target.id);
+        if (target.orderNumber) deletedIds.add(target.orderNumber);
+        if (target.merchantTransactionId) deletedIds.add(target.merchantTransactionId);
+      }
+      saveDiskDeletedOrders(deletedIds);
     }
     this.memoryOrders = this.memoryOrders.filter(o => o.id !== clean && o.merchantTransactionId !== clean && (o as any).orderNumber !== clean);
     
@@ -3264,9 +3271,9 @@ class Store {
       const dbStatus = fromPrismaOrderStatus(o.status);
 
       const calculatedSubtotal = itemsSnapshot.reduce((sum, it) => sum + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
-      const finalSubtotal = calculatedSubtotal > 0 ? calculatedSubtotal : Number(o.subtotal || 0);
+      const finalSubtotal = Number(o.subtotal) > 0 ? Number(o.subtotal) : (calculatedSubtotal > 0 ? calculatedSubtotal : Number(o.totalAmount || 0));
       const packingAndPotCharges = Number(unpackedPackingCharge || 0) + Number(unpackedPotCharge || 0);
-      const finalGrandTotal = finalSubtotal + Number(o.deliveryFee || 0) + packingAndPotCharges - Number(o.discount || 0);
+      const finalGrandTotal = Number(o.totalAmount) > 0 ? Number(o.totalAmount) : (finalSubtotal + Number(o.deliveryFee || 0) + packingAndPotCharges - Number(o.discount || 0));
 
       return {
         id: o.id,

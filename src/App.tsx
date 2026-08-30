@@ -959,6 +959,22 @@ export const App: React.FC = () => {
     if (metaDesc) {
       metaDesc.setAttribute('content', desc);
     }
+
+    const pagePath = getUrlForPage(currentPage, { product: selectedProduct, orderId: selectedOrderId });
+    const canonicalUrl = `https://www.vrgnursery.in${pagePath === '/' ? '/' : pagePath}`;
+    
+    let canonicalLink = document.querySelector('link[rel="canonical"]');
+    if (!canonicalLink) {
+      canonicalLink = document.createElement('link');
+      canonicalLink.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonicalLink);
+    }
+    canonicalLink.setAttribute('href', canonicalUrl);
+
+    const ogUrl = document.querySelector('meta[property="og:url"]');
+    if (ogUrl) {
+      ogUrl.setAttribute('content', canonicalUrl);
+    }
   }, [currentPage, selectedProduct, selectedCategory, selectedOrderId, cartCount, categories]);
 
   // When products list updates from API or admin edit, sync selectedProduct

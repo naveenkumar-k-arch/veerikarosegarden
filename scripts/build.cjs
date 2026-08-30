@@ -17,7 +17,11 @@ try {
   console.log('=== Starting Build Pipeline ===');
   
   console.log('[1/3] Generating Prisma Client...');
-  run('npx prisma generate');
+  try {
+    run('npx prisma generate');
+  } catch (prismaErr) {
+    console.warn('⚠️ Warning: Prisma generate failed (likely Windows file lock), continuing with existing client:', prismaErr.message);
+  }
 
   console.log('\n[2/3] Building Vite Client Assets...');
   run('npx vite build');

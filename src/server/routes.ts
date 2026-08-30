@@ -192,7 +192,7 @@ apiRouter.get('/categories/:slug', async (req, res) => {
       "name": category.name,
       "alternateName": category.tamilName,
       "description": category.description || `${category.name} plants at Veerika Rose Garden`,
-      "url": category.canonicalUrl || `https://veerikarosegarden.com/#/category/${category.slug}`,
+      "url": category.canonicalUrl || `https://www.vrgnursery.in/?category=${category.slug}`,
       "image": category.image,
       "numberOfItems": products.length,
       "itemListElement": products.map((p, idx) => ({
@@ -221,7 +221,7 @@ apiRouter.get('/categories/:slug', async (req, res) => {
         title: category.metaTitle || `${category.name} (${category.tamilName}) - Buy Plants Online | Veerika Rose Garden`,
         description: category.metaDescription || category.description || `Buy high-yield ${category.name} (${category.tamilName}) grafted plants direct from Hosur & Madurai nurseries.`,
         ogImage: category.ogImage || category.image,
-        canonicalUrl: category.canonicalUrl || `https://veerikarosegarden.com/#/category/${category.slug}`,
+        canonicalUrl: category.canonicalUrl || `https://www.vrgnursery.in/?category=${category.slug}`,
         structuredData
       }
     });

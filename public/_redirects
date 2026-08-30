@@ -1,0 +1,19 @@
+# 301 Permanent Canonical Domain Redirects
+http://vrgnursery.in/* https://www.vrgnursery.in/:splat 301!
+https://vrgnursery.in/* https://www.vrgnursery.in/:splat 301!
+http://vrgnursery.netlify.app/* https://www.vrgnursery.in/:splat 301!
+https://vrgnursery.netlify.app/* https://www.vrgnursery.in/:splat 301!
+http://veerikarosegarden.netlify.app/* https://www.vrgnursery.in/:splat 301!
+https://veerikarosegarden.netlify.app/* https://www.vrgnursery.in/:splat 301!
+http://veerikarosegarden.com/* https://www.vrgnursery.in/:splat 301!
+https://veerikarosegarden.com/* https://www.vrgnursery.in/:splat 301!
+http://www.veerikarosegarden.com/* https://www.vrgnursery.in/:splat 301!
+https://www.veerikarosegarden.com/* https://www.vrgnursery.in/:splat 301!
+https://veerikarosegarden.vercel.app/* https://www.vrgnursery.in/:splat 301!
+http://veerikarosegarden.vercel.app/* https://www.vrgnursery.in/:splat 301!
+
+# API Proxy routes for Netlify Functions
+/api/* /.netlify/functions/api/:splat 200!
+
+# SPA Client-side Routing Fallback
+/* /index.html 200

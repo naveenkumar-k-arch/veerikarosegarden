@@ -17,3 +17,6 @@ extract_phones_for_all_orders.cjs
 list_all_supabase_orders.cjs
 matched_user_orders.json
 orders_with_phones.json
+
+# Local Netlify folder
+.netlify

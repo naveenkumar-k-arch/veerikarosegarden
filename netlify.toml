@@ -7,6 +7,81 @@
   node_bundler = "esbuild"
   external_node_modules = ["@prisma/client", "prisma"]
 
+# Force canonical domain: redirect http → https and non-www → www
+[[redirects]]
+  from = "http://vrgnursery.in/*"
+  to = "https://www.vrgnursery.in/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://vrgnursery.in/*"
+  to = "https://www.vrgnursery.in/:splat"
+  status = 301
+  force = true
+
+# Redirect Netlify subdomains to canonical www.vrgnursery.in
+[[redirects]]
+  from = "https://vrgnursery.netlify.app/*"
+  to = "https://www.vrgnursery.in/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://vrgnursery.netlify.app/*"
+  to = "https://www.vrgnursery.in/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://veerikarosegarden.netlify.app/*"
+  to = "https://www.vrgnursery.in/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://veerikarosegarden.netlify.app/*"
+  to = "https://www.vrgnursery.in/:splat"
+  status = 301
+  force = true
+
+# Redirect old and alternate domains
+[[redirects]]
+  from = "https://veerikarosegarden.com/*"
+  to = "https://www.vrgnursery.in/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://veerikarosegarden.com/*"
+  to = "https://www.vrgnursery.in/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://www.veerikarosegarden.com/*"
+  to = "https://www.vrgnursery.in/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://www.veerikarosegarden.com/*"
+  to = "https://www.vrgnursery.in/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://veerikarosegarden.vercel.app/*"
+  to = "https://www.vrgnursery.in/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://veerikarosegarden.vercel.app/*"
+  to = "https://www.vrgnursery.in/:splat"
+  status = 301
+  force = true
+
 # Rewrite /api/* to the serverless function
 [[redirects]]
   from = "/api/*"
@@ -20,14 +95,25 @@
   to = "/index.html"
   status = 200
 
+# Cache assets forever (fingerprinted filenames)
 [[headers]]
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
+# Never cache the HTML shell
 [[headers]]
   for = "/index.html"
   [headers.values]
     Cache-Control = "no-cache, no-store, must-revalidate"
     Pragma = "no-cache"
     Expires = "0"
+
+# Global security + SEO headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(self)"

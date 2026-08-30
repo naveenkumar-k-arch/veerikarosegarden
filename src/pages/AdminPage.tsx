@@ -243,14 +243,20 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
     return INITIAL_CATEGORIES;
   });
   const [orders, setOrders] = useState<Order[]>(() => {
-    try { localStorage.removeItem('vrg_deleted_orders'); } catch {}
+    let deletedOrderSet = new Set<string>();
+    try {
+      const d = localStorage.getItem('vrg_deleted_orders');
+      if (d) deletedOrderSet = new Set(JSON.parse(d));
+    } catch {}
     const list = Array.isArray(initialCache?.orders) ? initialCache.orders : [];
-    return list.filter((o: Order) => o && o.id).sort((a: Order, b: Order) => {
-      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      if (timeB !== timeA) return timeB - timeA;
-      return (b.id || '').localeCompare(a.id || '');
-    });
+    return list
+      .filter((o: Order) => o && o.id && !deletedOrderSet.has(o.id) && !deletedOrderSet.has(o.merchantTransactionId || '') && !deletedOrderSet.has(o.orderNumber || '') && (o.orderStatus || '').toUpperCase() !== 'CANCELLED' && o.paymentStatus !== 'FAILED')
+      .sort((a: Order, b: Order) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        if (timeB !== timeA) return timeB - timeA;
+        return (b.id || '').localeCompare(a.id || '');
+      });
   });
   const [orderSortBy, setOrderSortBy] = useState<'date_desc' | 'date_asc' | 'price_desc' | 'price_asc'>('date_desc');
   const [orderSourceFilter, setOrderSourceFilter] = useState<'all' | 'whatsapp' | 'website'>('all');
@@ -872,27 +878,36 @@ const silentRefresh = async (): Promise<boolean> => {
         if (Array.isArray(bRes.coupons)) setCoupons(bRes.coupons);
         if (Array.isArray(bRes.orders)) {
           const now = Date.now();
-          setOrders(bRes.orders.filter((o: Order) => o && o.id).map((apiOrder: Order) => {
-            const pendingFull = pendingOrderUpdatesRef.current.get(apiOrder.id) || (apiOrder.merchantTransactionId ? pendingOrderUpdatesRef.current.get(apiOrder.merchantTransactionId) : undefined);
-            if (pendingFull && now - pendingFull.time < 60000) {
-              return {
-                ...apiOrder,
-                ...pendingFull.order,
-                updatedAt: pendingFull.order.updatedAt || apiOrder.updatedAt
-              };
-            }
-            const pending = pendingOrderStatusRef.current.get(apiOrder.id) || (apiOrder.merchantTransactionId ? pendingOrderStatusRef.current.get(apiOrder.merchantTransactionId) : undefined);
-            if (pending && now - pending.time < 15000) {
-              return {
-                ...apiOrder,
-                orderStatus: (pending.status as any) || apiOrder.orderStatus,
-                paymentStatus: (pending.paymentStatus as any) || apiOrder.paymentStatus,
-                courierName: pending.courierName || (apiOrder as any).courierName,
-                trackingNumber: pending.trackingNumber || (apiOrder as any).trackingNumber
-              };
-            }
-            return apiOrder;
-          }));
+          let deletedOrderSet = new Set<string>();
+          try {
+            const d = localStorage.getItem('vrg_deleted_orders');
+            if (d) deletedOrderSet = new Set(JSON.parse(d));
+          } catch {}
+          setOrders(
+            bRes.orders
+              .filter((o: Order) => o && o.id && !deletedOrderSet.has(o.id) && !deletedOrderSet.has(o.merchantTransactionId || '') && !deletedOrderSet.has(o.orderNumber || '') && (o.orderStatus || '').toUpperCase() !== 'CANCELLED' && o.paymentStatus !== 'FAILED')
+              .map((apiOrder: Order) => {
+                const pendingFull = pendingOrderUpdatesRef.current.get(apiOrder.id) || (apiOrder.merchantTransactionId ? pendingOrderUpdatesRef.current.get(apiOrder.merchantTransactionId) : undefined);
+                if (pendingFull && now - pendingFull.time < 60000) {
+                  return {
+                    ...apiOrder,
+                    ...pendingFull.order,
+                    updatedAt: pendingFull.order.updatedAt || apiOrder.updatedAt
+                  };
+                }
+                const pending = pendingOrderStatusRef.current.get(apiOrder.id) || (apiOrder.merchantTransactionId ? pendingOrderStatusRef.current.get(apiOrder.merchantTransactionId) : undefined);
+                if (pending && now - pending.time < 15000) {
+                  return {
+                    ...apiOrder,
+                    orderStatus: (pending.status as any) || apiOrder.orderStatus,
+                    paymentStatus: (pending.paymentStatus as any) || apiOrder.paymentStatus,
+                    courierName: pending.courierName || (apiOrder as any).courierName,
+                    trackingNumber: pending.trackingNumber || (apiOrder as any).trackingNumber
+                  };
+                }
+                return apiOrder;
+              })
+          );
         }
         if (Array.isArray(bRes.banners)) setBanners(bRes.banners);
         if (Array.isArray(bRes.reviews)) setReviews(bRes.reviews);
@@ -1417,20 +1432,14 @@ const silentRefresh = async (): Promise<boolean> => {
       localStorage.setItem('vrg_deleted_orders', JSON.stringify(Array.from(deletedSet)));
 
       // 3. Purge from admin caches
+      persistAdminCache(c => ({
+        ...c,
+        orders: Array.isArray(c?.orders) ? c.orders.filter((o: any) => o.id !== orderId && o.merchantTransactionId !== orderId && o.orderNumber !== orderId) : []
+      }));
       const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
       if (Array.isArray(cached.orders)) {
         cached.orders = cached.orders.filter((o: any) => o.id !== orderId && o.merchantTransactionId !== orderId && o.orderNumber !== orderId);
         localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
-      }
-      const pCache = JSON.parse(localStorage.getItem('vrg_admin_persisted_cache') || '{}');
-      if (Array.isArray(pCache.orders)) {
-        pCache.orders = pCache.orders.filter((o: any) => o.id !== orderId && o.merchantTransactionId !== orderId && o.orderNumber !== orderId);
-        localStorage.setItem('vrg_admin_persisted_cache', JSON.stringify(pCache));
-      }
-      const sCache = JSON.parse(sessionStorage.getItem('vrg_admin_session_cache') || '{}');
-      if (Array.isArray(sCache.orders)) {
-        sCache.orders = sCache.orders.filter((o: any) => o.id !== orderId && o.merchantTransactionId !== orderId && o.orderNumber !== orderId);
-        sessionStorage.setItem('vrg_admin_session_cache', JSON.stringify(sCache));
       }
     } catch {}
 
@@ -2711,6 +2720,7 @@ const silentRefresh = async (): Promise<boolean> => {
             if (isEdit) {
               setCombos(prev => {
                 const next = prev.map(c => c.id === comboData.id ? { ...c, ...fullComboItem } : c);
+                persistAdminCache(c => ({ ...c, combos: next }));
                 try {
                   const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
                   cached.combos = next;
@@ -2722,6 +2732,7 @@ const silentRefresh = async (): Promise<boolean> => {
             } else {
               setCombos(prev => {
                 const next = [fullComboItem, ...prev];
+                persistAdminCache(c => ({ ...c, combos: next }));
                 try {
                   const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
                   cached.combos = next;
@@ -2745,6 +2756,7 @@ const silentRefresh = async (): Promise<boolean> => {
 
                 setCombos(prev => {
                   const next = prev.map(c => (c.id === tempId || c.id === data.combo.id || c.id === comboData.id) ? { ...c, ...data.combo } : c);
+                  persistAdminCache(c => ({ ...c, combos: next }));
                   try {
                     const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
                     cached.combos = next;
@@ -2775,6 +2787,7 @@ const silentRefresh = async (): Promise<boolean> => {
             // 2. Instant 0ms optimistic UI & cache removal
             setCombos(prev => {
               const next = prev.filter(c => c.id !== id);
+              persistAdminCache(c => ({ ...c, combos: next }));
               try {
                 const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
                 cached.combos = next;

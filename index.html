@@ -1,123 +1,151 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-    
-    <!-- Synchronous Self-Healing Bootstrap Script for Returning Visitors -->
-    <script>
-      (function() {
-        try {
-          // 1. Unregister any stale legacy service workers from previous versions
-          if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(regs) {
-              for (var i = 0; i < regs.length; i++) { regs[i].unregister(); }
-            }).catch(function() {});
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+
+  <!-- Instant Canonical Domain Redirection (vrgnursery.in) -->
+  <script>
+    (function () {
+      try {
+        var h = window.location.hostname;
+        // Avoid redirecting local dev environments
+        if (h && h !== 'localhost' && h !== '127.0.0.1') {
+          // If accessing via netlify.app, vercel.app, onrender.com, bare apex domain, or old domains
+          if (
+            h.endsWith('.netlify.app') ||
+            h.endsWith('.vercel.app') ||
+            h.endsWith('.onrender.com') ||
+            h === 'vrgnursery.in' ||
+            (h.indexOf('veerikarosegarden') !== -1 && h !== 'www.vrgnursery.in')
+          ) {
+            var target = 'https://www.vrgnursery.in' + window.location.pathname + window.location.search + window.location.hash;
+            window.location.replace(target);
           }
-          // 2. Clear any stale cache storage
-          if ('caches' in window) {
-            caches.keys().then(function(names) {
-              for (var i = 0; i < names.length; i++) { caches.delete(names[i]); }
-            }).catch(function() {});
-          }
-          // 3. Clear conflicting navigation state if user lands on root
-          var path = (window.location.pathname || '/').trim().replace(/\/+$/, '') || '/';
-          if (path === '/' || path === '') {
+        }
+      } catch (e) { }
+    })();
+  </script>
+
+  <!-- Synchronous Self-Healing Bootstrap Script for Returning Visitors -->
+  <script>
+    (function () {
+      try {
+        // 1. Unregister any stale legacy service workers from previous versions
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function (regs) {
+            for (var i = 0; i < regs.length; i++) { regs[i].unregister(); }
+          }).catch(function () { });
+        }
+        // 2. Clear any stale cache storage
+        if ('caches' in window) {
+          caches.keys().then(function (names) {
+            for (var i = 0; i < names.length; i++) { caches.delete(names[i]); }
+          }).catch(function () { });
+        }
+        // 3. Clear conflicting navigation state if user lands on root
+        var path = (window.location.pathname || '/').trim().replace(/\/+$/, '') || '/';
+        if (path === '/' || path === '') {
+          try {
+            sessionStorage.removeItem('vrg_current_page');
+            sessionStorage.removeItem('vrg_selected_product');
+            sessionStorage.removeItem('vrg_selected_order_id');
+          } catch (e) { }
+        }
+        // 4. Validate and sanitize localStorage JSON to prevent fatal React 18 parse crashes
+        var keys = [
+          'vrg_products', 'vrg_categories', 'vrg_banners', 'vrg_reviews',
+          'vrg_combos_cache', 'vrg_deleted_combos', 'vrg_deleted_products',
+          'vrg_deleted_reviews', 'vrg_cart', 'vrg_wishlist', 'vrg_user',
+          'vrg_my_orders', 'vrg_user_orders', 'veerika_customer_orders',
+          'vrg_admin_persisted_cache', 'vrg_admin_bootstrap_cache',
+          'vrg_pending_upi_payment', 'vrg_pending_razorpay_order'
+        ];
+        for (var j = 0; j < keys.length; j++) {
+          var k = keys[j];
+          var val = localStorage.getItem(k);
+          if (val !== null) {
             try {
-              sessionStorage.removeItem('vrg_current_page');
-              sessionStorage.removeItem('vrg_selected_product');
-              sessionStorage.removeItem('vrg_selected_order_id');
-            } catch(e) {}
-          }
-          // 4. Validate and sanitize localStorage JSON to prevent fatal React 18 parse crashes
-          var keys = [
-            'vrg_products', 'vrg_categories', 'vrg_banners', 'vrg_reviews',
-            'vrg_combos_cache', 'vrg_deleted_combos', 'vrg_deleted_products',
-            'vrg_deleted_reviews', 'vrg_cart', 'vrg_wishlist', 'vrg_user',
-            'vrg_my_orders', 'vrg_user_orders', 'veerika_customer_orders',
-            'vrg_admin_persisted_cache', 'vrg_admin_bootstrap_cache',
-            'vrg_pending_upi_payment', 'vrg_pending_razorpay_order'
-          ];
-          for (var j = 0; j < keys.length; j++) {
-            var k = keys[j];
-            var val = localStorage.getItem(k);
-            if (val !== null) {
-              try {
-                if (val === 'undefined' || val === 'null') {
-                  localStorage.removeItem(k);
-                } else {
-                  JSON.parse(val);
-                }
-              } catch(err) {
+              if (val === 'undefined' || val === 'null') {
                 localStorage.removeItem(k);
+              } else {
+                JSON.parse(val);
               }
+            } catch (err) {
+              localStorage.removeItem(k);
             }
           }
-        } catch(e) {}
-      })();
-    </script>
-    
-    <title>VRG Nursery - Veerika Rose Garden | Buy Live Roses, Plants & Fruit Trees Online (வீரிகா ரோஜா கார்டன்)</title>
-    <meta name="description" content="VRG Nursery (Veerika Rose Garden / வீரிகா ரோஜா கார்டன்) is Tamil Nadu's leading live plant nursery offering 50+ authentic hybrid roses, exotic rare cultivars, grafted fruit trees, herbal plants, and organic nursery saplings with secure all-India doorstep delivery. Known as VRG, VGR Nursery, and Veerika Rose Garden." />
-    <meta name="keywords" content="VRG, VRG Nursery, VGR, VGR Nursery, VRG Rose Garden, VRG Plants, VRG Nursery Tamil Nadu, Veerika Rose Garden, Veerika Nursery, Veerika, வீரிகா ரோஜா கார்டன், வீரிகா நர்சரி, விஆர்ஜி நர்சரி, விஆர்ஜி ரோஜா கார்டன், buy rose plants online india, exotic rare roses, black magic rose, juliet rose, double delight rose, live plant nursery tamil nadu, pennagaram nursery, dharmapuri nursery, hybrid roses, fruit tree saplings, medicinal herbal plants, online plant shopping, plant delivery india" />
-    <meta name="author" content="VRG Nursery (Veerika Rose Garden)" />
-    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
-    <meta name="googlebot" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
-    <meta name="bingbot" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
-    <meta name="distribution" content="global" />
-    <meta name="rating" content="general" />
-    <meta name="geo.region" content="IN-TN" />
-    <meta name="geo.placename" content="Pennagaram, Dharmapuri, Tamil Nadu, India" />
-    <meta name="geo.position" content="12.0833;77.9000" />
-    <meta name="ICBM" content="12.0833, 77.9000" />
-    <meta name="theme-color" content="#16a34a" />
-    <meta name="apple-mobile-web-app-title" content="VRG Nursery" />
-    <meta name="application-name" content="VRG Nursery" />
-    
-    <!-- Canonical URL -->
-    <link rel="canonical" href="https://www.vrgnursery.in/" />
+        }
+      } catch (e) { }
+    })();
+  </script>
 
-    <!-- High Performance Network Preconnects & Resource Preloads -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="preconnect" href="https://checkout.razorpay.com" crossorigin />
-    <link rel="dns-prefetch" href="https://api.razorpay.com" />
-    <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
-    <link rel="preload" as="image" href="/logo.png" fetchpriority="high" />
+  <title>VRG Nursery - Veerika Rose Garden | Buy Live Roses, Plants & Fruit Trees Online (வீரிகா ரோஜா கார்டன்)</title>
+  <meta name="description"
+    content="VRG Nursery (Veerika Rose Garden / வீரிகா ரோஜா கார்டன்) is Tamil Nadu's leading live plant nursery offering 50+ authentic hybrid roses, exotic rare cultivars, grafted fruit trees, herbal plants, and organic nursery saplings with secure all-India doorstep delivery. Known as VRG, VGR Nursery, and Veerika Rose Garden." />
+  <meta name="keywords"
+    content="VRG, VRG Nursery, VGR, VGR Nursery, VRG Rose Garden, VRG Plants, VRG Nursery Tamil Nadu, Veerika Rose Garden, Veerika Nursery, Veerika, வீரிகா ரோஜா கார்டன், வீரிகா நர்சரி, விஆர்ஜி நர்சரி, விஆர்ஜி ரோஜா கார்டன், buy rose plants online india, exotic rare roses, black magic rose, juliet rose, double delight rose, live plant nursery tamil nadu, pennagaram nursery, dharmapuri nursery, hybrid roses, fruit tree saplings, medicinal herbal plants, online plant shopping, plant delivery india" />
+  <meta name="author" content="VRG Nursery (Veerika Rose Garden)" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <meta name="googlebot" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <meta name="bingbot" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <meta name="distribution" content="global" />
+  <meta name="rating" content="general" />
+  <meta name="geo.region" content="IN-TN" />
+  <meta name="geo.placename" content="Pennagaram, Dharmapuri, Tamil Nadu, India" />
+  <meta name="geo.position" content="12.0833;77.9000" />
+  <meta name="ICBM" content="12.0833, 77.9000" />
+  <meta name="theme-color" content="#16a34a" />
+  <meta name="apple-mobile-web-app-title" content="VRG Nursery" />
+  <meta name="application-name" content="VRG Nursery" />
 
-    <!-- Favicon & Touch Icons for Google Search Results Snippets & Browsers -->
-    <link rel="icon" href="/favicon.ico" sizes="48x48" />
-    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
-    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png" />
-    <link rel="shortcut icon" href="/favicon.ico" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <link rel="manifest" href="/site.webmanifest" />
-    
-    <!-- Open Graph / Facebook / WhatsApp (Absolute URLs for 100% crawler compatibility) -->
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="VRG Nursery - Veerika Rose Garden" />
-    <meta property="og:url" content="https://www.vrgnursery.in/" />
-    <meta property="og:title" content="VRG Nursery - Buy Live Roses, Rare Varieties & Fruit Trees Online" />
-    <meta property="og:description" content="VRG Nursery (Veerika Rose Garden): Shop 50+ live hybrid roses, rare exotic cultivars (Black Magic, Juliet, Senorita), medicinal herbs, and grafted fruit trees directly from our nursery in Pennagaram, Tamil Nadu. Fast all-India dispatch." />
-    <meta property="og:image" content="https://www.vrgnursery.in/categories/rose-varieties.jpg" />
-    <meta property="og:image:secure_url" content="https://www.vrgnursery.in/categories/rose-varieties.jpg" />
-    <meta property="og:image:type" content="image/jpeg" />
-    <meta property="og:image:width" content="1024" />
-    <meta property="og:image:height" content="1024" />
-    <meta property="og:image:alt" content="VRG Nursery - Veerika Rose Garden Plants Collection" />
-    <meta property="og:locale" content="en_IN" />
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://www.vrgnursery.in/" />
 
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="VRG Nursery - Veerika Rose Garden | Premier Live Plant Nursery" />
-    <meta name="twitter:description" content="Buy authentic live rose plants, rare varieties, fruit saplings & organic fertilizers delivered safely across India by VRG Nursery." />
-    <meta name="twitter:image" content="https://www.vrgnursery.in/categories/rose-varieties.jpg" />
+  <!-- High Performance Network Preconnects & Resource Preloads -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://checkout.razorpay.com" crossorigin />
+  <link rel="dns-prefetch" href="https://api.razorpay.com" />
+  <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
+  <link rel="preload" as="image" href="/logo.png" fetchpriority="high" />
 
-    <!-- Google Structured Data (Schema.org) for Store, Organization, Ratings, FAQs & Sitelinks Search -->
-    <script type="application/ld+json">
+  <!-- Favicon & Touch Icons for Google Search Results Snippets & Browsers -->
+  <link rel="icon" href="/favicon.ico" sizes="48x48" />
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png" />
+  <link rel="shortcut icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/site.webmanifest" />
+
+  <!-- Open Graph / Facebook / WhatsApp (Absolute URLs for 100% crawler compatibility) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="VRG Nursery - Veerika Rose Garden" />
+  <meta property="og:url" content="https://www.vrgnursery.in/" />
+  <meta property="og:title" content="VRG Nursery - Buy Live Roses, Rare Varieties & Fruit Trees Online" />
+  <meta property="og:description"
+    content="VRG Nursery (Veerika Rose Garden): Shop 50+ live hybrid roses, rare exotic cultivars (Black Magic, Juliet, Senorita), medicinal herbs, and grafted fruit trees directly from our nursery in Pennagaram, Tamil Nadu. Fast all-India dispatch." />
+  <meta property="og:image" content="https://www.vrgnursery.in/categories/rose-varieties.jpg" />
+  <meta property="og:image:secure_url" content="https://www.vrgnursery.in/categories/rose-varieties.jpg" />
+  <meta property="og:image:type" content="image/jpeg" />
+  <meta property="og:image:width" content="1024" />
+  <meta property="og:image:height" content="1024" />
+  <meta property="og:image:alt" content="VRG Nursery - Veerika Rose Garden Plants Collection" />
+  <meta property="og:locale" content="en_IN" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="VRG Nursery - Veerika Rose Garden | Premier Live Plant Nursery" />
+  <meta name="twitter:description"
+    content="Buy authentic live rose plants, rare varieties, fruit saplings & organic fertilizers delivered safely across India by VRG Nursery." />
+  <meta name="twitter:image" content="https://www.vrgnursery.in/categories/rose-varieties.jpg" />
+
+  <!-- Google Structured Data (Schema.org) for Store, Organization, Ratings, FAQs & Sitelinks Search -->
+  <script type="application/ld+json">
       [
         {
           "@context": "https://schema.org",
@@ -268,9 +296,11 @@
         }
       ]
     </script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>
