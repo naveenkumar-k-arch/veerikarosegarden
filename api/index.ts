@@ -29,7 +29,7 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "blob:", "https:", "http:", "https://*.razorpay.com"],
-      connectSrc: ["'self'", "https://*.firebaseapp.com", "https://*.googleapis.com", "https://api.qrserver.com", "https://*.neon.tech", "https://api.razorpay.com", "https://lumberjack.razorpay.com"],
+      connectSrc: ["'self'", "https://*.firebaseapp.com", "https://*.googleapis.com", "https://api.qrserver.com", "https://*.neon.tech", "https://*.supabase.co", "https://*.supabase.in", "https://api.razorpay.com", "https://lumberjack.razorpay.com", "https://*.netlify.app"],
       frameSrc: ["'self'", "https://api.razorpay.com", "https://checkout.razorpay.com"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: [],
@@ -52,9 +52,12 @@ const ALLOWED_ORIGINS = new Set([
   // Vercel deployments (main + previews handled by endsWith below)
   'https://veerikarosegarden.vercel.app',
   'https://flower.vercel.app',
+  // Netlify deployments
+  'https://veerikarosegarden.netlify.app',
+  'https://vrgnursery.netlify.app',
   // Render.com deployments
   'https://veerika-rose-garden.onrender.com',
-  // From env (set CLIENT_URL in Vercel/Render dashboard)
+  // From env (set CLIENT_URL in dashboard)
   process.env.CLIENT_URL,
   // Local development
   'http://localhost:3000',
@@ -69,6 +72,8 @@ app.use(cors({
     if (!origin || origin === 'null') return callback(null, true);
     // Allow any *.vercel.app (covers preview deployments like flower-abc123.vercel.app)
     if (origin.endsWith('.vercel.app')) return callback(null, true);
+    // Allow any *.netlify.app (covers Netlify preview/production deployments)
+    if (origin.endsWith('.netlify.app')) return callback(null, true);
     // Allow any *.onrender.com (covers Render.com preview/production deployments)
     if (origin.endsWith('.onrender.com')) return callback(null, true);
     // Allow explicit allowed origins
