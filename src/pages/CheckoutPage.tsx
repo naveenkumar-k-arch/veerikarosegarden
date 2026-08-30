@@ -433,12 +433,12 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           setSiteSettings(d.settings);
           const s = d.settings;
           setPaymentMethod(prev => {
-            if (prev) return prev;
-            if (s.enableRazorpay) return 'RAZORPAY';
-            if (s.enablePhonePe !== false) return 'PHONEPE';
-            if (s.enableQrPayment !== false) return 'QR_PAYMENT';
-            if (s.enableCod !== false) return 'COD';
-            return null;
+            if (prev === 'RAZORPAY') return 'RAZORPAY';
+            if (s.enableRazorpay !== false) return 'RAZORPAY';
+            if (s.enablePhonePe === true) return 'PHONEPE';
+            if (s.enableQrPayment === true) return 'QR_PAYMENT';
+            if (s.enableCod === true) return 'COD';
+            return 'RAZORPAY';
           });
         }
       })
@@ -1479,7 +1479,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
               {/* Payment Methods */}
               <div className="space-y-3">
                 {/* 1. Razorpay */}
-                {siteSettings?.enableRazorpay && (
+                {(siteSettings?.enableRazorpay !== false) && (
                   <div
                     onClick={() => setPaymentMethod('RAZORPAY')}
                     className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
@@ -1514,7 +1514,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 )}
 
                 {/* 2. PhonePe */}
-                {siteSettings?.enablePhonePe !== false && (
+                {siteSettings?.enablePhonePe === true && (
                   <div
                     onClick={() => setPaymentMethod('PHONEPE')}
                     className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
@@ -1549,7 +1549,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 )}
 
                 {/* 3. Scan QR Code Payment */}
-                {siteSettings?.enableQrPayment !== false && (
+                {siteSettings?.enableQrPayment === true && (
                   <div
                     onClick={() => setPaymentMethod('QR_PAYMENT')}
                     className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
@@ -1584,7 +1584,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 )}
 
                 {/* 4. COD */}
-                {siteSettings?.enableCod && (
+                {siteSettings?.enableCod === true && (
                   <div
                     onClick={() => setPaymentMethod('COD')}
                     className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
