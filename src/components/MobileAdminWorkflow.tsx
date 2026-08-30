@@ -166,7 +166,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 }) => {
   // Current screen state
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('dashboard');
-  const [activeBottomTab, setActiveBottomTab] = useState<'dashboard' | 'orders' | 'plants' | 'customers' | 'more'>('dashboard');
+  const [activeBottomTab, setActiveBottomTab] = useState<'dashboard' | 'orders' | 'plants' | 'labels' | 'customers' | 'more'>('dashboard');
   
   // Dashboard sales period filter
   const [salesPeriod, setSalesPeriod] = useState<'this_month' | 'last_month' | 'this_week' | 'all_time'>('this_month');
@@ -763,7 +763,8 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
     // Sync bottom active tab
     if (screen === 'dashboard') setActiveBottomTab('dashboard');
     else if (screen === 'orders_list' || screen === 'order_details' || screen === 'dispatch_order' || screen === 'order_timeline') setActiveBottomTab('orders');
-    else if (screen === 'products' || screen === 'generate_labels') setActiveBottomTab('plants');
+    else if (screen === 'products') setActiveBottomTab('plants');
+    else if (screen === 'generate_labels') setActiveBottomTab('labels');
     else if (screen === 'customers') setActiveBottomTab('customers');
     else if (screen === 'menu_drawer') setActiveBottomTab('more');
 
@@ -947,7 +948,8 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
           setCurrentScreen(state.adminScreen);
           if (state.adminScreen === 'dashboard') setActiveBottomTab('dashboard');
           else if (state.adminScreen === 'orders_list' || state.adminScreen === 'order_details' || state.adminScreen === 'dispatch_order' || state.adminScreen === 'order_timeline') setActiveBottomTab('orders');
-          else if (state.adminScreen === 'products' || state.adminScreen === 'generate_labels') setActiveBottomTab('plants');
+          else if (state.adminScreen === 'products') setActiveBottomTab('plants');
+          else if (state.adminScreen === 'generate_labels') setActiveBottomTab('labels');
           else if (state.adminScreen === 'customers') setActiveBottomTab('customers');
           else if (state.adminScreen === 'menu_drawer') setActiveBottomTab('more');
         }
@@ -6366,6 +6368,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               {[
                 { screen: 'whatsapp_automation', label: '📲 WhatsApp 4-Stage Automation (QR)', icon: <QrCode className="w-4 h-4 text-[#25D366]" /> },
                 { screen: 'generate_labels', label: `🖨️ Dispatch Label Sheets (A4)`, icon: <Printer className="w-4 h-4 text-emerald-700" /> },
+                { screen: 'customers', label: '👥 Customers Directory', icon: <Users className="w-4 h-4 text-blue-600" /> },
                 { screen: 'products', label: `🌿 Products Catalog (${products.length})`, icon: <Package className="w-4 h-4 text-emerald-700" /> },
                 { screen: 'combos', label: `🎁 Plant Combos & Offers (${combos.length})`, icon: <Sparkles className="w-4 h-4 text-amber-500" /> },
                 { screen: 'categories', label: `📁 Categories (${categories.length})`, icon: <FolderTree className="w-4 h-4 text-emerald-700" /> },
@@ -7946,13 +7949,16 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
         </button>
 
         <button
-          onClick={() => navigateScreen('customers')}
-          className={`flex flex-col items-center gap-0.5 transition-colors cursor-pointer min-w-[48px] ${
-            activeBottomTab === 'customers' ? 'text-[#14532d] font-bold' : 'text-slate-400 font-medium'
+          onClick={() => navigateScreen('generate_labels')}
+          className={`flex flex-col items-center gap-0.5 transition-colors cursor-pointer relative min-w-[48px] ${
+            activeBottomTab === 'labels' ? 'text-[#14532d] font-bold' : 'text-slate-400 font-medium'
           }`}
         >
-          <Users className="w-5 h-5" />
-          <span className="text-[10px]">Customers</span>
+          <Printer className="w-5 h-5" />
+          <span className="text-[10px]">Label Sheets</span>
+          {notPrintedOrders.length > 0 && (
+            <span className="absolute -top-1 right-1 w-2 h-2 rounded-full bg-amber-500" />
+          )}
         </button>
 
         <button
