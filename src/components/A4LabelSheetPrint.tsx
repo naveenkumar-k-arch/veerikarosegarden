@@ -170,7 +170,7 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
           pdf.setFontSize(11.5);
           pdf.text('+91 63812 03534', col1X + 1, line3Y + 4.8);
 
-          // Line 4: SERVICE & COURIER LOGISTICS DETAILS
+          // Line 4: SERVICE & COURIER LOGISTICS DETAILS (Strict 50mm clamp)
           const serviceStartY = line3Y + 9.5;
           const cleanCourier = sanitizePdfText(order.courierName || 'Professional Courier', 'Professional Courier');
           
@@ -188,17 +188,20 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
           pdf.setTextColor(0, 0, 0);
           pdf.setFont('helvetica', 'bold');
           pdf.setFontSize(9.5);
-          pdf.text(`Service: ${cleanCourier}`, col1X + 1, serviceStartY);
+          const serviceLines = pdf.splitTextToSize(`Service: ${cleanCourier}`, 50);
+          pdf.text(serviceLines.slice(0, 2), col1X + 1, serviceStartY);
 
+          const nextServiceY = serviceStartY + (serviceLines.length * 4.2) + 0.5;
           pdf.setFont('helvetica', 'bold');
           pdf.setFontSize(9);
-          pdf.text(`Type: ${cleanPotOption}`, col1X + 1, serviceStartY + 4.6);
+          const typeLines = pdf.splitTextToSize(`Type: ${cleanPotOption}`, 50);
+          pdf.text(typeLines[0], col1X + 1, nextServiceY);
 
           if (order.packingOption === 'MAX_PROTECTION' || order.packingOption === 'EXTRA_SECURE') {
             const packText = order.packingOption === 'MAX_PROTECTION' ? 'Pack: Max Heavy Guard' : 'Pack: Extra Secure Bubble';
             pdf.setFont('helvetica', 'normal');
             pdf.setFontSize(8.5);
-            pdf.text(packText, col1X + 1, serviceStartY + 9.0);
+            pdf.text(packText, col1X + 1, nextServiceY + 4.2);
           }
 
           if (order.courierBranch || order.courierDistrict) {
@@ -206,7 +209,7 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
             if (branchText) {
               pdf.setFont('helvetica', 'normal');
               pdf.setFontSize(8);
-              const branchY = serviceStartY + (order.packingOption === 'MAX_PROTECTION' || order.packingOption === 'EXTRA_SECURE' ? 13.0 : 9.0);
+              const branchY = nextServiceY + (order.packingOption === 'MAX_PROTECTION' || order.packingOption === 'EXTRA_SECURE' ? 8.2 : 4.2);
               pdf.text(`Depot: ${branchText.slice(0, 24)}`, col1X + 1, branchY);
             }
           }
@@ -262,66 +265,67 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
 
           const items = order.items || [];
           const itemCount = items.length;
-          const isTwoCol = itemCount > 10;
+          const isTwoCol = itemCount > 8;
 
           if (items.length > 0) {
             if (isTwoCol) {
-              const colW = (itemBoxW - 4) / 2;
+              const colW = (itemBoxW - 6) / 2;
               const leftItems = items.slice(0, Math.ceil(itemCount / 2));
               const rightItems = items.slice(Math.ceil(itemCount / 2));
-              const itemFontSize = itemCount > 20 ? 6.2 : 7.2;
-              const itemLineHeight = itemCount > 20 ? 2.5 : 2.9;
+              const itemFontSize = itemCount > 18 ? 7.8 : 8.8;
+              const itemLineHeight = itemCount > 18 ? 3.2 : 3.8;
 
               pdf.setTextColor(0, 0, 0);
               pdf.setFont('helvetica', 'bold');
               pdf.setFontSize(itemFontSize);
 
               // Render left column
-              let lY = itemBoxY + 4.0;
+              let lY = itemBoxY + 4.5;
               for (const it of leftItems) {
                 if (lY <= itemBoxY + itemBoxH - 2.5) {
                   const cleanName = cleanPlantLabelName(it.name, 'Rose Plant');
                   const itemText = `• ${cleanName}${it.quantity > 1 ? ` (${it.quantity})` : ''}`;
                   const split = pdf.splitTextToSize(itemText, colW);
-                  pdf.text(split[0] || itemText, itemBoxX + 1.5, lY);
+                  pdf.text(split[0] || itemText, itemBoxX + 2.0, lY);
                   lY += itemLineHeight;
                 }
               }
 
               // Render right column
-              let rY = itemBoxY + 4.0;
+              let rY = itemBoxY + 4.5;
               for (const it of rightItems) {
                 if (rY <= itemBoxY + itemBoxH - 2.5) {
                   const cleanName = cleanPlantLabelName(it.name, 'Rose Plant');
                   const itemText = `• ${cleanName}${it.quantity > 1 ? ` (${it.quantity})` : ''}`;
                   const split = pdf.splitTextToSize(itemText, colW);
-                  pdf.text(split[0] || itemText, itemBoxX + colW + 2.5, rY);
+                  pdf.text(split[0] || itemText, itemBoxX + (itemBoxW / 2) + 2.0, rY);
                   rY += itemLineHeight;
                 }
               }
             } else {
-              const itemFontSize = itemCount > 7 ? 8.2 : itemCount > 4 ? 9.5 : 11;
-              const itemLineHeight = itemCount > 7 ? 3.4 : itemCount > 4 ? 4.2 : 5.0;
+              // 1 to 8 plants: large bold font nicely distributed
+              const itemFontSize = itemCount <= 4 ? 11.5 : 10.5;
+              const itemLineHeight = itemCount <= 4 ? 6.5 : 5.2;
 
               pdf.setTextColor(0, 0, 0);
               pdf.setFont('helvetica', 'bold');
               pdf.setFontSize(itemFontSize);
 
-              let itemY = itemBoxY + 4.8;
+              let itemY = itemBoxY + 5.5;
               for (const it of items) {
                 if (itemY <= itemBoxY + itemBoxH - 2.5) {
                   const cleanName = cleanPlantLabelName(it.name, 'Rose Plant');
                   const itemText = `• ${cleanName}${it.quantity > 1 ? ` (${it.quantity})` : ''}`;
-                  const split = pdf.splitTextToSize(itemText, itemBoxW - 3.5);
-                  pdf.text(split[0] || itemText, itemBoxX + 2.0, itemY);
+                  const split = pdf.splitTextToSize(itemText, itemBoxW - 4);
+                  pdf.text(split[0] || itemText, itemBoxX + 2.5, itemY);
                   itemY += itemLineHeight;
                 }
               }
             }
           } else {
             pdf.setFont('helvetica', 'bold');
-            pdf.setFontSize(10);
-            pdf.text('• Rose Plant Sapling', itemBoxX + 2.5, itemBoxY + 5.0);
+            pdf.setFontSize(11);
+            pdf.text('• Rose Plant Sapling', itemBoxX + 2.5, itemBoxY + 6.0);
           }
         });
       });
