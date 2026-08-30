@@ -310,6 +310,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   const [selectedLabelOrderIds, setSelectedLabelOrderIds] = useState<string[]>([]);
   const [showLabelPrintPreview, setShowLabelPrintPreview] = useState(false);
   const [labelFilterTab, setLabelFilterTab] = useState<'all' | 'not_printed' | 'printed'>('all');
+  const [labelSourceFilter, setLabelSourceFilter] = useState<'all' | 'whatsapp' | 'website'>('all');
   const [labelSearchQuery, setLabelSearchQuery] = useState('');
   const [labelCourierFilter, setLabelCourierFilter] = useState<string>('all');
   const [labelSpecificDate, setLabelSpecificDate] = useState<string>('');
@@ -1325,19 +1326,43 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
     }
   }, []);
 
-  // Dynamically extract unique couriers present in orders plus standard 3 carrier options
-  const availableCouriers = useMemo(() => {
-    const standardCouriers = [
-      'Professional Courier – Reduced Soil',
-      'Professional Courier – Full Soil',
-      'Mettur Parcel Service (MSS)'
-    ];
-    const fromOrders = orders
-      .map(o => o.courierName?.trim())
-      .filter((c): c is string => Boolean(c));
-    const set = new Set([...standardCouriers, ...fromOrders]);
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [orders]);
+  // Standard 3 courier options for label sheet generation & orders filter
+  const STANDARD_COURIER_OPTIONS = useMemo(() => [
+    { id: 'mss_mettur', label: 'Mss Mettur parcel service', icon: '📦' },
+    { id: 'prof_reduced', label: 'Professional courier reduce soil', icon: '🌱' },
+    { id: 'prof_full', label: 'Professional courier full soil', icon: '🪴' }
+  ], []);
+
+  const matchesCourierFilter = useCallback((
+    order: { courierName?: string | null; potOption?: string | null; courierPartner?: string | null },
+    filterValue: string
+  ): boolean => {
+    if (!filterValue || filterValue === 'all') return true;
+    const f = filterValue.toLowerCase().trim();
+    const cName = (order.courierName || '').toLowerCase().trim();
+    const pot = (order.potOption || '').toLowerCase().trim();
+    const partner = (order.courierPartner || '').toLowerCase().trim();
+
+    // 1. Mss Mettur parcel service
+    if (f === 'mss_mettur' || f.includes('mettur') || f.includes('mss')) {
+      return cName.includes('mettur') || cName.includes('mss') || partner.includes('mettur') || partner.includes('mss');
+    }
+
+    // 2. Professional courier full soil
+    if (f === 'prof_full' || (f.includes('professional') && f.includes('full')) || f.includes('full soil')) {
+      return cName.includes('full soil') || cName.includes('full') || pot.includes('full_soil') || pot.includes('8inch') || pot.includes('6inch');
+    }
+
+    // 3. Professional courier reduce soil
+    if (f === 'prof_reduced' || (f.includes('professional') && (f.includes('reduce') || f.includes('reduced'))) || f.includes('reduced soil') || f.includes('reduce soil')) {
+      const isMettur = cName.includes('mettur') || cName.includes('mss') || partner.includes('mettur') || partner.includes('mss');
+      const isFullSoil = cName.includes('full soil') || cName.includes('full') || pot.includes('full_soil') || pot.includes('8inch') || pot.includes('6inch');
+      return !isMettur && !isFullSoil;
+    }
+
+    // Fallback: direct substring match
+    return cName.includes(f) || f.includes(cName);
+  }, []);
 
   // All orders sorted Newest First (for Dashboard & global views)
   const sortedAllOrders = useMemo(() => {
@@ -1365,11 +1390,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
     // 1. Courier Service Filter
     if (orderCourierFilter !== 'all') {
-      const targetCourier = orderCourierFilter.toLowerCase().trim();
-      list = list.filter(o => {
-        const oCourier = (o.courierName || 'Professional Courier').toLowerCase().trim();
-        return oCourier.includes(targetCourier) || targetCourier.includes(oCourier);
-      });
+      list = list.filter(o => matchesCourierFilter(o, orderCourierFilter));
     }
 
     // 2. Date Filter
@@ -1459,6 +1480,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
     orderSourceFilter,
     holdingOrderIds,
     orderCourierFilter,
+    matchesCourierFilter,
     orderDatePreset,
     orderSpecificDate,
     orderStartDate,
@@ -1574,12 +1596,15 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   const { notPrintedOrders, printedOrders, displayedLabelOrders } = useMemo(() => {
     let list = [...orders];
 
+    // 0. Filter by Order Source (WhatsApp / Offline vs Website vs All)
+    if (labelSourceFilter === 'whatsapp') {
+      list = list.filter(isWhatsAppOrder);
+    } else if (labelSourceFilter === 'website') {
+      list = list.filter(o => !isWhatsAppOrder(o));
+    }
+
     if (labelCourierFilter !== 'all') {
-      const targetCourier = labelCourierFilter.toLowerCase().trim();
-      list = list.filter(o => {
-        const oCourier = (o.courierName || 'Professional Courier').toLowerCase().trim();
-        return oCourier.includes(targetCourier) || targetCourier.includes(oCourier);
-      });
+      list = list.filter(o => matchesCourierFilter(o, labelCourierFilter));
     }
 
     if (labelSpecificDate) {
@@ -1620,7 +1645,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
       printedOrders: printed,
       displayedLabelOrders: displayed
     };
-  }, [orders, isOrderPrinted, labelFilterTab, labelSearchQuery, labelCourierFilter, labelSpecificDate, getOrderDateKey, getOrderTime]);
+  }, [orders, isOrderPrinted, labelFilterTab, labelSourceFilter, labelSearchQuery, labelCourierFilter, labelSpecificDate, getOrderDateKey, getOrderTime, matchesCourierFilter]);
 
   const selectedLabelOrders = useMemo(() => {
     return orders.filter(o => selectedLabelOrderIds.includes(o.id));
@@ -2401,15 +2426,11 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                       className="w-full pl-8 pr-7 py-2 bg-slate-50 hover:bg-slate-100/80 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700 cursor-pointer appearance-none"
                     >
                       <option value="all">🚚 All Couriers ({orders.length} orders)</option>
-                      {availableCouriers.map(courier => {
-                        const count = orders.filter(o => {
-                          const c = (o.courierName || 'Professional Courier').toLowerCase().trim();
-                          const t = courier.toLowerCase().trim();
-                          return c.includes(t) || t.includes(c);
-                        }).length;
+                      {STANDARD_COURIER_OPTIONS.map(courier => {
+                        const count = orders.filter(o => matchesCourierFilter(o, courier.id)).length;
                         return (
-                          <option key={courier} value={courier}>
-                            {courier} ({count})
+                          <option key={courier.id} value={courier.id}>
+                            {courier.icon} {courier.label} ({count})
                           </option>
                         );
                       })}
@@ -2585,7 +2606,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
                 {orderCourierFilter !== 'all' && (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-white text-emerald-900 border border-emerald-300 rounded-md text-[10px] font-black shadow-2xs">
-                    <span>🚚 {orderCourierFilter}</span>
+                    <span>🚚 {STANDARD_COURIER_OPTIONS.find(c => c.id === orderCourierFilter || c.label.toLowerCase() === orderCourierFilter.toLowerCase())?.label || orderCourierFilter}</span>
                     <button
                       type="button"
                       onClick={() => setOrderCourierFilter('all')}
@@ -4089,6 +4110,76 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               </button>
             </div>
 
+            {/* Order Source Filter: All Sources, WhatsApp / Offline, Website */}
+            <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-200/90 rounded-2xl">
+              <button
+                type="button"
+                onClick={() => setLabelSourceFilter('all')}
+                className={`py-1.5 px-1 rounded-xl text-center transition-all cursor-pointer ${
+                  labelSourceFilter === 'all'
+                    ? 'bg-white text-slate-900 font-extrabold shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900 font-bold'
+                }`}
+              >
+                <span className="block text-[11px] leading-tight truncate">All Sources</span>
+                <span className={`block text-[10px] font-black mt-0.5 ${labelSourceFilter === 'all' ? 'text-slate-900' : 'text-slate-500'}`}>
+                  {orders.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setLabelSourceFilter('whatsapp')}
+                className={`py-1.5 px-1 rounded-xl text-center transition-all cursor-pointer ${
+                  labelSourceFilter === 'whatsapp'
+                    ? 'bg-[#25D366] text-white font-extrabold shadow-sm'
+                    : 'text-emerald-800 hover:text-emerald-950 font-bold bg-white/60'
+                }`}
+              >
+                <span className="inline-flex items-center justify-center gap-1 text-[11px] leading-tight truncate">
+                  <WhatsAppIcon size={11} className={labelSourceFilter === 'whatsapp' ? 'fill-white' : 'fill-[#25D366]'} />
+                  <span>WhatsApp / Offline</span>
+                </span>
+                <span className={`block text-[10px] font-black mt-0.5 ${labelSourceFilter === 'whatsapp' ? 'text-white' : 'text-emerald-800'}`}>
+                  {orders.filter(isWhatsAppOrder).length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setLabelSourceFilter('website')}
+                className={`py-1.5 px-1 rounded-xl text-center transition-all cursor-pointer ${
+                  labelSourceFilter === 'website'
+                    ? 'bg-indigo-600 text-white font-extrabold shadow-sm'
+                    : 'text-indigo-800 hover:text-indigo-950 font-bold bg-white/60'
+                }`}
+              >
+                <span className="inline-flex items-center justify-center gap-1 text-[11px] leading-tight truncate">
+                  <Globe className="w-2.5 h-2.5" />
+                  <span>Website</span>
+                </span>
+                <span className={`block text-[10px] font-black mt-0.5 ${labelSourceFilter === 'website' ? 'text-white' : 'text-indigo-800'}`}>
+                  {orders.filter(o => !isWhatsAppOrder(o)).length}
+                </span>
+              </button>
+            </div>
+
+            {labelSourceFilter === 'whatsapp' && (
+              <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-300 flex items-center justify-between gap-2 text-emerald-950 animate-in fade-in duration-100 shadow-2xs">
+                <div className="flex items-center gap-1.5 text-xs font-black min-w-0">
+                  <WhatsAppIcon size={14} className="fill-[#25D366] shrink-0" />
+                  <span className="truncate">Showing <strong>WhatsApp / Offline Orders</strong> for Labels</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setLabelSourceFilter('all')}
+                  className="text-[10px] font-extrabold text-emerald-800 hover:text-emerald-950 underline shrink-0 cursor-pointer"
+                >
+                  Show All
+                </button>
+              </div>
+            )}
+
             {/* Quick Search & Filters in Labels */}
             <div className="space-y-2">
               <div className="relative">
@@ -4121,9 +4212,14 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                     className="w-full pl-8 pr-7 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700 cursor-pointer appearance-none"
                   >
                     <option value="all">🚚 Filter by Courier (All)</option>
-                    {availableCouriers.map(c => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
+                    {STANDARD_COURIER_OPTIONS.map(c => {
+                      const count = orders.filter(o => matchesCourierFilter(o, c.id)).length;
+                      return (
+                        <option key={c.id} value={c.id}>
+                          {c.icon} {c.label} ({count})
+                        </option>
+                      );
+                    })}
                   </select>
                   <Truck className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5 pointer-events-none" />
                   {labelCourierFilter !== 'all' ? (
@@ -4328,6 +4424,12 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                               <span className="text-xs font-black text-slate-900 font-mono">
                                 #{order.id}
                               </span>
+                              {isWhatsAppOrder(order) && (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-md font-bold text-[9px] bg-[#25D366]/15 text-emerald-900 border border-[#25D366]/30">
+                                  <WhatsAppIcon size={9} className="fill-[#25D366]" />
+                                  <span>WhatsApp / Offline</span>
+                                </span>
+                              )}
                               {order.orderStatus && (
                                 <span className={`text-[9px] px-1.5 py-0.2 rounded-md font-bold uppercase ${
                                   order.orderStatus === 'CONFIRMED' ? 'bg-emerald-100 text-emerald-800' :
