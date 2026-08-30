@@ -3440,12 +3440,10 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                               {item.tamilName}
                             </p>
                           )}
-                          <div className="flex items-center gap-2 mt-1 flex-wrap">
-                            {unitPrice > 0 ? (
-                              <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">
-                                ₹{unitPrice} each
-                              </span>
-                            ) : null}
+                          <p className="text-[11px] font-bold text-slate-500 mt-0.5">
+                            ₹{Number.isInteger(unitPrice) ? unitPrice : Number(unitPrice.toFixed(2))} each
+                          </p>
+                          <div className="flex items-center gap-1 mt-1">
                             {item.sku ? (
                               <span className="text-[9px] font-mono text-slate-400">
                                 {item.sku}
@@ -3460,7 +3458,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                           </span>
                           {lineTotal > 0 ? (
                             <span className="font-black text-emerald-950 text-xs mt-1 block">
-                              ₹{lineTotal}
+                              ₹{Number.isInteger(lineTotal) ? lineTotal : Number(lineTotal.toFixed(2))}
                             </span>
                           ) : (
                             <span className="text-[10px] text-slate-400 mt-1 block">Included</span>
@@ -3479,7 +3477,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 <div className="flex items-center justify-between text-slate-600 text-[11px]">
                   <span>Plants Subtotal:</span>
                   <span className="font-bold text-slate-800">
-                    ₹{selectedOrder.subtotal || selectedOrder.items?.reduce((sum, item) => sum + (Number(item.price || (item as any).sellingPrice || 0) * Number(item.quantity || 1)), 0) || selectedOrder.grandTotal}
+                    ₹{Math.round(selectedOrder.subtotal || selectedOrder.items?.reduce((sum, item) => sum + (Number(item.price || (item as any).sellingPrice || 0) * Number(item.quantity || 1)), 0) || selectedOrder.grandTotal)}
                   </span>
                 </div>
                 {selectedOrder.shippingCharge !== undefined && (
@@ -3489,31 +3487,31 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                       <span>Delivery / Courier Charge:</span>
                     </span>
                     <span className="font-bold text-slate-800">
-                      {selectedOrder.shippingCharge === 0 ? 'FREE' : `₹${selectedOrder.shippingCharge}`}
+                      {selectedOrder.shippingCharge === 0 ? 'FREE' : `₹${Math.round(selectedOrder.shippingCharge)}`}
                     </span>
                   </div>
                 )}
                 {Boolean(selectedOrder.potCharge && selectedOrder.potCharge > 0) && (
                   <div className="flex items-center justify-between text-slate-600 text-[11px]">
                     <span>Soil / Pot Service Charge:</span>
-                    <span className="font-bold text-slate-800">+₹{selectedOrder.potCharge}</span>
+                    <span className="font-bold text-slate-800">+₹{Math.round(selectedOrder.potCharge)}</span>
                   </div>
                 )}
                 {Boolean(selectedOrder.packingCharge && selectedOrder.packingCharge > 0) && (
                   <div className="flex items-center justify-between text-slate-600 text-[11px]">
                     <span>Protective Packaging Charge:</span>
-                    <span className="font-bold text-slate-800">+₹{selectedOrder.packingCharge}</span>
+                    <span className="font-bold text-slate-800">+₹{Math.round(selectedOrder.packingCharge)}</span>
                   </div>
                 )}
                 {Boolean(selectedOrder.discount && selectedOrder.discount > 0) && (
                   <div className="flex items-center justify-between text-emerald-700 text-[11px]">
                     <span>Coupon / Discount {selectedOrder.couponCode ? `(${selectedOrder.couponCode})` : ''}:</span>
-                    <span className="font-black">-₹{selectedOrder.discount}</span>
+                    <span className="font-black">-₹{Math.round(selectedOrder.discount)}</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between text-xs font-black text-slate-900 pt-1.5 border-t border-slate-200">
                   <span>Grand Total:</span>
-                  <span className="text-sm font-black text-emerald-950">₹{selectedOrder.grandTotal}</span>
+                  <span className="text-sm font-black text-emerald-950">₹{Math.round(selectedOrder.grandTotal)}</span>
                 </div>
               </div>
             </div>

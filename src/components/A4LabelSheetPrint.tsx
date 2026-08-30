@@ -244,79 +244,77 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
           }
 
           // ================= 5. COLUMN 3: ORDERED PLANTS BOX =================
-          const itemBoxX = toBoxX + toBoxW + 6;
-          const itemBoxY = ly + 22;
-          const itemBoxW = 52;
-          const itemBoxH = 54;
+          const itemBoxX = toBoxX + toBoxW + 4;
+          const itemBoxY = ly + 16;
+          const itemBoxW = 56;
+          const itemBoxH = 68;
 
           pdf.setDrawColor(0, 0, 0);
           pdf.setLineWidth(0.3);
           pdf.rect(itemBoxX, itemBoxY, itemBoxW, itemBoxH, 'S');
 
-          // Plants List with Dynamic Adaptive Sizing for 10+ Items
-          const totalPlantCount = order.items?.reduce((sum, i) => sum + (i.quantity || 1), 0) || 0;
-          const itemCount = order.items?.length || 0;
+          const items = order.items || [];
+          const itemCount = items.length;
+          const isTwoCol = itemCount > 10;
 
-          let itemFontSize = 11;
-          let itemLineHeight = 4.2;
-          let itemSpacing = 1.2;
+          if (items.length > 0) {
+            if (isTwoCol) {
+              const colW = (itemBoxW - 4) / 2;
+              const leftItems = items.slice(0, Math.ceil(itemCount / 2));
+              const rightItems = items.slice(Math.ceil(itemCount / 2));
+              const itemFontSize = itemCount > 20 ? 6.2 : 7.2;
+              const itemLineHeight = itemCount > 20 ? 2.5 : 2.9;
 
-          if (itemCount > 12) {
-            itemFontSize = 7.2;
-            itemLineHeight = 2.8;
-            itemSpacing = 0.6;
-          } else if (itemCount > 8) {
-            itemFontSize = 8.2;
-            itemLineHeight = 3.2;
-            itemSpacing = 0.8;
-          } else if (itemCount > 5) {
-            itemFontSize = 9.5;
-            itemLineHeight = 3.6;
-            itemSpacing = 1.0;
-          }
+              pdf.setTextColor(0, 0, 0);
+              pdf.setFont('helvetica', 'bold');
+              pdf.setFontSize(itemFontSize);
 
-          pdf.setTextColor(0, 0, 0);
-          pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(itemFontSize);
-
-          let itemY = itemBoxY + (itemFontSize > 9 ? 5.0 : 4.2);
-
-          if (order.items && order.items.length > 0) {
-            for (let i = 0; i < order.items.length; i++) {
-              const item = order.items[i];
-              const isLast = i === order.items.length - 1;
-              const remainingAfterThis = order.items.length - (i + 1);
-
-              // Check if there is enough space for another item or if we should print the overflow summary
-              if (!isLast && itemY + (itemLineHeight * 2) + itemSpacing > itemBoxY + itemBoxH - 3.5) {
-                // Print current item (1 line)
-                const cleanItemName = cleanPlantLabelName(item.name, 'Rose Plant Sapling');
-                const itemText = `${cleanItemName}${item.quantity > 1 ? ` (${item.quantity})` : ''}`;
-                const splitItem = pdf.splitTextToSize(itemText, itemBoxW - 4);
-                pdf.text(splitItem[0] || itemText, itemBoxX + 2.5, itemY);
-                itemY += itemLineHeight + itemSpacing;
-
-                // Print summary tag for remaining items
-                if (remainingAfterThis > 0 && itemY <= itemBoxY + itemBoxH - 2.5) {
-                  pdf.setFont('helvetica', 'bold');
-                  pdf.setFontSize(Math.max(itemFontSize - 0.5, 7.0));
-                  pdf.text(`+ ${remainingAfterThis} more (${totalPlantCount} Total Plants)`, itemBoxX + 2.5, itemY);
+              // Render left column
+              let lY = itemBoxY + 4.0;
+              for (const it of leftItems) {
+                if (lY <= itemBoxY + itemBoxH - 2.5) {
+                  const cleanName = cleanPlantLabelName(it.name, 'Rose Plant');
+                  const itemText = `• ${cleanName}${it.quantity > 1 ? ` (${it.quantity})` : ''}`;
+                  const split = pdf.splitTextToSize(itemText, colW);
+                  pdf.text(split[0] || itemText, itemBoxX + 1.5, lY);
+                  lY += itemLineHeight;
                 }
-                break;
               }
 
-              if (itemY <= itemBoxY + itemBoxH - 3) {
-                const cleanItemName = cleanPlantLabelName(item.name, 'Rose Plant Sapling');
-                const itemText = `${cleanItemName}${item.quantity > 1 ? ` (${item.quantity})` : ''}`;
-                const splitItem = pdf.splitTextToSize(itemText, itemBoxW - 4);
-                const maxLines = itemCount > 8 ? 1 : 2;
-                const linesToPrint = splitItem.slice(0, maxLines);
-                pdf.text(linesToPrint, itemBoxX + 2.5, itemY);
-                itemY += (linesToPrint.length * itemLineHeight) + itemSpacing;
+              // Render right column
+              let rY = itemBoxY + 4.0;
+              for (const it of rightItems) {
+                if (rY <= itemBoxY + itemBoxH - 2.5) {
+                  const cleanName = cleanPlantLabelName(it.name, 'Rose Plant');
+                  const itemText = `• ${cleanName}${it.quantity > 1 ? ` (${it.quantity})` : ''}`;
+                  const split = pdf.splitTextToSize(itemText, colW);
+                  pdf.text(split[0] || itemText, itemBoxX + colW + 2.5, rY);
+                  rY += itemLineHeight;
+                }
+              }
+            } else {
+              const itemFontSize = itemCount > 7 ? 8.2 : itemCount > 4 ? 9.5 : 11;
+              const itemLineHeight = itemCount > 7 ? 3.4 : itemCount > 4 ? 4.2 : 5.0;
+
+              pdf.setTextColor(0, 0, 0);
+              pdf.setFont('helvetica', 'bold');
+              pdf.setFontSize(itemFontSize);
+
+              let itemY = itemBoxY + 4.8;
+              for (const it of items) {
+                if (itemY <= itemBoxY + itemBoxH - 2.5) {
+                  const cleanName = cleanPlantLabelName(it.name, 'Rose Plant');
+                  const itemText = `• ${cleanName}${it.quantity > 1 ? ` (${it.quantity})` : ''}`;
+                  const split = pdf.splitTextToSize(itemText, itemBoxW - 3.5);
+                  pdf.text(split[0] || itemText, itemBoxX + 2.0, itemY);
+                  itemY += itemLineHeight;
+                }
               }
             }
           } else {
-            pdf.text('Rose Plant Sapling', itemBoxX + 2.5, itemY);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(10);
+            pdf.text('• Rose Plant Sapling', itemBoxX + 2.5, itemBoxY + 5.0);
           }
         });
       });
@@ -505,8 +503,8 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
                     </div>
 
                     {/* Middle Column: To Customer Box */}
-                    <div className="col-span-5 border border-black p-2.5 rounded-xs min-h-[140px] flex flex-col justify-start gap-1 text-black">
-                      <div className="space-y-1">
+                    <div className="col-span-4 border border-black p-2 rounded-xs min-h-[155px] flex flex-col justify-start gap-1 text-black">
+                      <div className="space-y-0.5">
                         {/* 1) Customer Name (BOLD) */}
                         <p className="font-black text-sm sm:text-base text-black leading-tight">
                           {info.name}
@@ -516,7 +514,7 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
                           {info.cleanAddress}
                         </p>
                       </div>
-                      <div className="pt-1 space-y-0.5">
+                      <div className="pt-1 space-y-0.5 mt-auto">
                         {/* 3) PINCODE (BOLD - placed right below address) */}
                         {info.pincode && (
                           <p className="font-black text-sm sm:text-base text-black leading-tight">
@@ -534,34 +532,24 @@ export const A4LabelSheetPrint: React.FC<A4LabelSheetPrintProps> = ({
                       </div>
                     </div>
 
-                    {/* Right Column: Ordered Plants Box */}
-                    <div className="col-span-3 border border-black p-2.5 rounded-xs min-h-[140px] flex flex-col justify-start text-black overflow-hidden">
+                    {/* Right Column: Ordered Plants Box (Extended full height & width) */}
+                    <div className="col-span-4 border border-black p-2 rounded-xs min-h-[155px] flex flex-col justify-start text-black overflow-hidden bg-white">
                       {(() => {
                         const items = order.items || [];
-                        const totalQty = items.reduce((s, i) => s + (i.quantity || 1), 0);
                         const count = items.length;
-                        const fontSizeClass = count > 12 ? 'text-[9px] leading-[1.2]' : count > 8 ? 'text-[10px] leading-[1.25]' : count > 5 ? 'text-[11px] leading-tight' : 'text-xs sm:text-sm leading-tight';
-                        const maxDisplay = count > 12 ? 10 : count > 8 ? 8 : 6;
-                        const displayItems = items.slice(0, maxDisplay);
-                        const remaining = count - maxDisplay;
+                        const isTwoCol = count > 8;
+                        const fontSizeClass = count > 18 ? 'text-[7.5px] leading-[1.15]' : count > 12 ? 'text-[8.5px] leading-[1.18]' : count > 6 ? 'text-[9.5px] leading-[1.22]' : 'text-xs leading-tight';
 
                         return (
-                          <div className={`space-y-0.5 font-bold text-black ${fontSizeClass}`}>
+                          <div className={`font-bold text-black ${fontSizeClass} ${isTwoCol ? 'grid grid-cols-2 gap-x-1.5 gap-y-0.5' : 'space-y-0.5'}`}>
                             {items.length > 0 ? (
-                              <>
-                                {displayItems.map((item, idx) => (
-                                  <p key={idx} className="truncate">
-                                    • {cleanPlantLabelName(item.name, 'Rose Plant')}{item.quantity > 1 ? ` (${item.quantity})` : ''}
-                                  </p>
-                                ))}
-                                {remaining > 0 && (
-                                  <p className="font-black text-emerald-950 pt-0.5 border-t border-black/20">
-                                    + {remaining} more ({totalQty} Total Plants)
-                                  </p>
-                                )}
-                              </>
+                              items.map((item, idx) => (
+                                <p key={idx} className="truncate" title={cleanPlantLabelName(item.name, 'Rose Plant')}>
+                                  • {cleanPlantLabelName(item.name, 'Rose Plant')}{item.quantity > 1 ? ` (${item.quantity})` : ''}
+                                </p>
+                              ))
                             ) : (
-                              <p>Rose Plant Sapling</p>
+                              <p>• Rose Plant Sapling</p>
                             )}
                           </div>
                         );
