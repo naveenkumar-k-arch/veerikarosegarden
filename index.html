@@ -5,28 +5,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
 
-  <!-- Instant Canonical Domain Redirection (vrgnursery.in) -->
-  <script>
-    (function () {
-      try {
-        var h = window.location.hostname;
-        // Avoid redirecting local dev environments
-        if (h && h !== 'localhost' && h !== '127.0.0.1') {
-          // If accessing via netlify.app, vercel.app, onrender.com, bare apex domain, or old domains
-          if (
-            h.endsWith('.netlify.app') ||
-            h.endsWith('.vercel.app') ||
-            h.endsWith('.onrender.com') ||
-            h === 'vrgnursery.in' ||
-            (h.indexOf('veerikarosegarden') !== -1 && h !== 'www.vrgnursery.in')
-          ) {
-            var target = 'https://www.vrgnursery.in' + window.location.pathname + window.location.search + window.location.hash;
-            window.location.replace(target);
-          }
-        }
-      } catch (e) { }
-    })();
-  </script>
 
   <!-- Synchronous Self-Healing Bootstrap Script for Returning Visitors -->
   <script>

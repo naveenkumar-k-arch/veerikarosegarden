@@ -2,30 +2,7 @@
   "version": 2,
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "redirects": [
-    {
-      "source": "/(.*)",
-      "has": [
-        {
-          "type": "host",
-          "value": "veerikarosegarden.vercel.app"
-        }
-      ],
-      "destination": "https://www.vrgnursery.in/$1",
-      "permanent": true
-    },
-    {
-      "source": "/(.*)",
-      "has": [
-        {
-          "type": "host",
-          "value": "vrgnursery.in"
-        }
-      ],
-      "destination": "https://www.vrgnursery.in/$1",
-      "permanent": true
-    }
-  ],
+
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index" },
     { "source": "/(.*)", "destination": "/index.html" }
