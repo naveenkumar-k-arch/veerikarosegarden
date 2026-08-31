@@ -1905,6 +1905,10 @@ class Store {
       }
     }
 
+    if (dbCombos.length === 0) {
+      dbCombos = loadDiskCombos();
+    }
+
     // Return strictly active database combos without stale memory seeds
     const rawCombos = dbCombos.filter(c => !deletedComboIds.has(c.id) && !deletedComboIds.has(c.id.toLowerCase()));
 

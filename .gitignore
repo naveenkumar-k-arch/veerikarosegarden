@@ -20,3 +20,5 @@ orders_with_phones.json
 
 # Local Netlify folder
 .netlify
+
+.vercel

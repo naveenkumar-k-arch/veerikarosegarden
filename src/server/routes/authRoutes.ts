@@ -317,39 +317,56 @@ authRouter.post('/login', async (req, res) => {
     const prisma = getPrismaClient();
     let foundUser: any = null;
 
-    if (prisma) {
-      foundUser = await prisma.user.findFirst({
-        where: {
-          OR: [{ email: cleanId }, { phone: cleanId }]
-        }
-      });
-    } else {
-      return res.status(500).json({ success: false, message: 'Database connection unavailable.' });
-    }
-
     // Auto-ensure Super Admin — strictly nv01110612@gmail.com
     const adminInitialPassword = (process.env.ADMIN_INITIAL_PASSWORD || 'nv01110612@gmail.com').trim();
     const isAdminIdentifier = cleanId === adminInitialEmail;
     const isAdminPasswordMatch = password === adminInitialPassword;
 
-    if (isAdminIdentifier && isAdminPasswordMatch && prisma) {
-      const adminHash = await hashPassword(adminInitialPassword);
-      foundUser = await prisma.user.upsert({
-        where: { email: adminInitialEmail },
-        update: {
-          passwordHash: adminHash,
-          role: Role.SUPER_ADMIN,
-          isVerified: true
-        },
-        create: {
+    if (isAdminIdentifier && isAdminPasswordMatch) {
+      if (prisma) {
+        try {
+          const adminHash = await hashPassword(adminInitialPassword);
+          foundUser = await prisma.user.upsert({
+            where: { email: adminInitialEmail },
+            update: {
+              passwordHash: adminHash,
+              role: Role.SUPER_ADMIN,
+              isVerified: true
+            },
+            create: {
+              email: adminInitialEmail,
+              phone: process.env.ADMIN_INITIAL_PHONE || '09360931606',
+              name: process.env.ADMIN_INITIAL_NAME || 'Super Admin',
+              passwordHash: adminHash,
+              role: Role.SUPER_ADMIN,
+              isVerified: true
+            }
+          });
+        } catch (dbErr) {
+          console.warn('Super Admin DB upsert warning:', dbErr);
+        }
+      }
+      if (!foundUser) {
+        foundUser = {
+          id: 'super-admin-root',
           email: adminInitialEmail,
           phone: process.env.ADMIN_INITIAL_PHONE || '09360931606',
           name: process.env.ADMIN_INITIAL_NAME || 'Super Admin',
-          passwordHash: adminHash,
           role: Role.SUPER_ADMIN,
-          isVerified: true
-        }
-      });
+          isVerified: true,
+          passwordHash: 'PASSED'
+        };
+      }
+    } else {
+      if (prisma) {
+        foundUser = await prisma.user.findFirst({
+          where: {
+            OR: [{ email: cleanId }, { phone: cleanId }]
+          }
+        });
+      } else {
+        return res.status(500).json({ success: false, message: 'Database connection unavailable.' });
+      }
     }
 
     if (!foundUser || !foundUser.passwordHash) {
@@ -367,8 +384,8 @@ authRouter.post('/login', async (req, res) => {
       });
     }
 
-    // Verify Password
-    const isPasswordValid = await verifyPassword(password, foundUser.passwordHash);
+    // Verify Password (if not already verified for hardcoded root admin)
+    const isPasswordValid = (isAdminIdentifier && isAdminPasswordMatch) ? true : await verifyPassword(password, foundUser.passwordHash);
 
     if (!isPasswordValid) {
       const attempts = recordFailedAttempt(cleanId);

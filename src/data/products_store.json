@@ -752,7 +752,7 @@
     ],
     "rating": 5,
     "reviewCount": 18,
-    "stock": 23,
+    "stock": 0,
     "plantHeight": "4-8 Feet Climber",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -773,7 +773,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-28T17:55:47.732Z",
-    "updatedAt": "2026-08-30T07:22:38.942Z"
+    "updatedAt": "2026-08-31T13:30:19.214Z"
   },
   {
     "id": "vrg-panneer-pushpam-plant",
@@ -881,7 +881,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 6,
-    "stock": 6,
+    "stock": 0,
     "plantHeight": "4-7 Feet Climber",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -902,7 +902,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-28T17:55:46.707Z",
-    "updatedAt": "2026-08-30T07:22:38.942Z"
+    "updatedAt": "2026-08-31T13:30:19.227Z"
   },
   {
     "id": "vrg-krishnakamalam-violet",
@@ -924,7 +924,7 @@
     ],
     "rating": 5,
     "reviewCount": 18,
-    "stock": 35,
+    "stock": 0,
     "plantHeight": "4-8 Feet Climber",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -945,7 +945,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-28T17:55:46.372Z",
-    "updatedAt": "2026-08-30T07:22:38.942Z"
+    "updatedAt": "2026-08-31T13:30:19.227Z"
   },
   {
     "id": "vrg-krishnakamalam-red",
@@ -967,7 +967,7 @@
     ],
     "rating": 5,
     "reviewCount": 18,
-    "stock": 33,
+    "stock": 0,
     "plantHeight": "4-8 Feet Climber",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -988,7 +988,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-28T17:55:46.010Z",
-    "updatedAt": "2026-08-30T07:22:38.942Z"
+    "updatedAt": "2026-08-31T13:30:19.227Z"
   },
   {
     "id": "vrg-night-queen-jasmine",
@@ -2000,7 +2000,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 6,
-    "stock": 12,
+    "stock": 0,
     "plantHeight": "3-6 Feet Climber",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -2021,7 +2021,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-28T17:55:37.766Z",
-    "updatedAt": "2026-08-30T07:22:38.942Z"
+    "updatedAt": "2026-08-31T13:30:19.227Z"
   },
   {
     "id": "vrg-aavaram-poo-tanners-cassia",
@@ -2172,7 +2172,7 @@
     ],
     "rating": 4.8,
     "reviewCount": 6,
-    "stock": 4,
+    "stock": 0,
     "plantHeight": "1-2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -2193,7 +2193,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-28T17:55:36.352Z",
-    "updatedAt": "2026-08-30T07:22:38.942Z"
+    "updatedAt": "2026-08-31T13:30:19.227Z"
   },
   {
     "id": "vrg-panneer-leaf-omavalli",
@@ -2215,7 +2215,7 @@
     ],
     "rating": 5,
     "reviewCount": 18,
-    "stock": 10,
+    "stock": 0,
     "plantHeight": "1-2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -2236,7 +2236,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-28T17:55:36.012Z",
-    "updatedAt": "2026-08-30T07:22:38.942Z"
+    "updatedAt": "2026-08-31T13:30:19.227Z"
   },
   {
     "id": "vrg-nagathali-snake-plant",
@@ -2387,7 +2387,7 @@
     ],
     "rating": 5,
     "reviewCount": 18,
-    "stock": 16,
+    "stock": 0,
     "plantHeight": "1-2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Requires 4-6 hours direct sunlight.",
@@ -2408,7 +2408,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-28T17:55:34.521Z",
-    "updatedAt": "2026-08-30T07:22:38.942Z"
+    "updatedAt": "2026-08-31T13:30:19.227Z"
   },
   {
     "id": "vrg-raja-malli-10-layer-jasmine",

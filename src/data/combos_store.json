@@ -1,5 +1,77 @@
 [
   {
+    "id": "combo-water-apple-3-variety",
+    "title": "🌱🍎 WATER APPLE – 3 VARIETY COMBO",
+    "subtitle": "Green Water Apple 💚 | Red Water Apple ❤️ | White Water Apple 🤍 — 3 Varieties Combo!",
+    "badge": "Best Seller Combo",
+    "productIds": [
+      "vrg-green-water-apple-plant",
+      "vrg-red-water-apple-plant",
+      "vrg-white-water-apple-plant"
+    ],
+    "originalPrice": 450,
+    "comboPrice": 300,
+    "discountPercent": 33,
+    "imageUrl": "/products/vrg/red-water-apple-plant.png",
+    "freeDelivery": true,
+    "active": true,
+    "description": "Green Water Apple 💚 | Red Water Apple ❤️ | White Water Apple 🤍 — மூணு varieties-யும் ஒரே combo-வில்! 🤩 Just ₹300 Only. FREE SHIPPING (Tamil Nadu Only). Red Soil Packing + Professional Courier. Premium Quality Live Plants.",
+    "order": 1
+  },
+  {
+    "id": "combo-fairy-rose-2-variety",
+    "title": "🌸 FAIRY ROSE – 2 SPECIAL VARIETIES COMBO",
+    "subtitle": "💖 Baby Pink Fairy Rose + 💖 Dark Pink Fairy Rose — 2 Beautiful Varieties!",
+    "badge": "Special Offer",
+    "productIds": [
+      "vrg-pink-fairy-polyantha-rose",
+      "vrg-margo-koster-pink-rose"
+    ],
+    "originalPrice": 350,
+    "comboPrice": 250,
+    "discountPercent": 29,
+    "imageUrl": "/products/vrg/pink-fairy-polyantha-rose.png",
+    "freeDelivery": true,
+    "active": true,
+    "description": "💖 Baby Pink Fairy Rose + 💖 Dark Pink Fairy Rose — 2 Beautiful Varieties – 1 Special Combo! ✨ JUST ₹250 ONLY. FREE SHIPPING (Tamil Nadu Only). Premium Quality Live Plants. Safe & Professional Packing. ⚡ LIMITED STOCK – HURRY UP!",
+    "order": 2
+  },
+  {
+    "id": "combo-orchid-rose-sweet-fragrance",
+    "title": "🌿 SWEET FRAGRANCE ORCHID ROSE SPECIAL OFFER",
+    "subtitle": "🌿 Sweet fragrance • Beautiful blooms • Garden beauty 💕",
+    "badge": "Limited Stock Offer",
+    "productIds": [
+      "vrg-orchid-rose"
+    ],
+    "originalPrice": 220,
+    "comboPrice": 150,
+    "discountPercent": 32,
+    "imageUrl": "/products/vrg/orchid-rose.png",
+    "freeDelivery": true,
+    "active": true,
+    "description": "🌿 Sweet fragrance • Beautiful blooms • Garden beauty 💕 — JUST ₹150/- ONLY. FREE SHIPPING (Tamil Nadu Only). Safe & Professional Nursery Packing. ⚡ LIMITED STOCK ONLY!",
+    "order": 3
+  },
+  {
+    "id": "combo-sunday-rose-seven-days-paneer",
+    "title": "🌹 BEST ON SUNDAY – ROSE COMBO OFFER",
+    "subtitle": "💛 Seven Days Rose + 💖 Paneer Butter Rose — 2 Beautiful Rose Varieties!",
+    "badge": "Sunday Rose Combo",
+    "productIds": [
+      "vrg-7-days-red-rose",
+      "vrg-naatu-paneer-rose"
+    ],
+    "originalPrice": 300,
+    "comboPrice": 200,
+    "discountPercent": 33,
+    "imageUrl": "/products/vrg/7-days-red-rose.png",
+    "freeDelivery": true,
+    "active": true,
+    "description": "💛 Seven Days Rose + 💖 Paneer Butter Rose — 2 Beautiful Rose Varieties – 1 Special Combo! 💰 BOTH PLANTS JUST ₹200. FREE SHIPPING (Tamil Nadu Only). 📦 Professional Packing | Safe Delivery. ⚡ LIMITED STOCK ONLY!",
+    "order": 4
+  },
+  {
     "id": "combo-1787127554276",
     "title": "Mini beetroot guva",
     "badge": "Special Offer",

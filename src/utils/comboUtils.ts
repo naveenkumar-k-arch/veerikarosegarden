@@ -82,8 +82,11 @@ export const comboToProduct = (combo: Combo): Product => {
     reviewCount: 28,
     createdAt: combo.createdAt || new Date().toISOString(),
     updatedAt: combo.updatedAt || new Date().toISOString(),
-    status: 'ACTIVE'
-  };
+    status: 'ACTIVE',
+    freeDelivery: combo.freeDelivery === true,
+    isCombo: true,
+    comboProducts: comboProducts
+  } as any;
 };
 
 export const getCachedActiveCombos = (): Combo[] => {
