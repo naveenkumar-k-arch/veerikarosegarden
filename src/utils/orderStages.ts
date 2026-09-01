@@ -375,3 +375,57 @@ export function isWhatsAppOrder(o: any): boolean {
   );
 }
 
+/**
+ * Strict validator to check if an order should be visible in Admin Panels.
+ * Pending, unpaid checkout attempts, abandoned orders, cancelled, and failed orders are strictly hidden.
+ */
+export function isValidAdminOrder(o: any): boolean {
+  if (!o || !o.id) return false;
+
+  const oStatus = (o.orderStatus || o.status || '').toString().toUpperCase().trim();
+  const pStatus = (o.paymentStatus || '').toString().toUpperCase().trim();
+  const pMethod = (o.paymentMethod || '').toString().toUpperCase().trim();
+  const hasProof = Boolean(o.paymentProofUrl || o.hasPaymentProof);
+
+  // 1. Never show cancelled, failed, or refunded orders in active admin feeds
+  if (oStatus === 'CANCELLED' || pStatus === 'FAILED' || pStatus === 'CANCELLED' || oStatus === 'REFUNDED') {
+    return false;
+  }
+
+  // 2. WhatsApp / Offline orders created by nursery admin are always valid
+  if (isWhatsAppOrder(o)) {
+    return true;
+  }
+
+  // 3. Orders with payment proof uploaded (e.g. manual QR / UPI payment slips) are valid
+  if (hasProof) {
+    return true;
+  }
+
+  // 4. Verified paid orders are valid
+  if (pStatus === 'SUCCESS' || pStatus === 'PAID' || pStatus === 'APPROVED') {
+    return true;
+  }
+
+  // 5. COD orders are only valid if confirmed (not pending unconfirmed checkout)
+  if (pMethod === 'COD') {
+    if (oStatus === 'PENDING' || oStatus === 'PAYMENT_PENDING' || oStatus === 'PAYMENT_INITIATED') {
+      return false;
+    }
+    return true;
+  }
+
+  // 6. Online gateways (Razorpay, PhonePe, UPI) without SUCCESS or proof are pending/unpaid -> STRICTLY HIDE
+  const isOnlineGateway = pMethod === 'RAZORPAY' || pMethod === 'PHONEPE' || pMethod === 'CARD' || pMethod === 'UPI' || pMethod === 'QR_PAYMENT';
+  if (isOnlineGateway && pStatus !== 'SUCCESS' && !hasProof) {
+    return false;
+  }
+
+  // 7. General catch-all: any order still in PENDING status without verified payment is hidden
+  if (pStatus === 'PENDING' || oStatus === 'PENDING' || oStatus === 'PAYMENT_PENDING' || oStatus === 'PAYMENT_INITIATED') {
+    return false;
+  }
+
+  return true;
+}
+

@@ -8,7 +8,7 @@ import { MobileAdminWorkflow } from '../components/MobileAdminWorkflow';
 import { A4LabelSheetPrint } from '../components/A4LabelSheetPrint';
 import { processLocalImageFile, processMultipleImageFiles } from '../utils/imageUpload';
 import { toast } from '../utils/toast';
-import { getOrderStage, STAGE_CONFIG, generateOrderWhatsAppMessage, isWhatsAppOrder } from '../utils/orderStages';
+import { getOrderStage, STAGE_CONFIG, generateOrderWhatsAppMessage, isWhatsAppOrder, isValidAdminOrder } from '../utils/orderStages';
 import { WhatsAppIcon } from '../components/WhatsAppIcon';
 
 
@@ -250,7 +250,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
     } catch {}
     const list = Array.isArray(initialCache?.orders) ? initialCache.orders : [];
     return list
-      .filter((o: Order) => o && o.id && !deletedOrderSet.has(o.id) && !deletedOrderSet.has(o.merchantTransactionId || '') && !deletedOrderSet.has(o.orderNumber || '') && (o.orderStatus || '').toUpperCase() !== 'CANCELLED' && o.paymentStatus !== 'FAILED')
+      .filter((o: Order) => {
+        if (!o || !o.id) return false;
+        if (deletedOrderSet.has(o.id) || deletedOrderSet.has(o.merchantTransactionId || '') || deletedOrderSet.has(o.orderNumber || '')) return false;
+        return isValidAdminOrder(o);
+      })
       .sort((a: Order, b: Order) => {
         const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
@@ -628,7 +632,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
     grandTotal: 140,
     paymentMethod: 'WHATSAPP' as 'WHATSAPP' | 'UPI' | 'GPAY' | 'PHONEPE' | 'COD' | 'BANK_TRANSFER',
     paymentStatus: 'SUCCESS' as PaymentStatus,
-    orderStatus: 'PENDING' as OrderStatus,
+    orderStatus: 'CONFIRMED' as OrderStatus,
     notes: '',
     trackingNumber: '',
     courierName: 'Professional Courier – Reduced Soil'
@@ -885,7 +889,11 @@ const silentRefresh = async (): Promise<boolean> => {
           } catch {}
           setOrders(
             bRes.orders
-              .filter((o: Order) => o && o.id && !deletedOrderSet.has(o.id) && !deletedOrderSet.has(o.merchantTransactionId || '') && !deletedOrderSet.has(o.orderNumber || '') && (o.orderStatus || '').toUpperCase() !== 'CANCELLED' && o.paymentStatus !== 'FAILED')
+              .filter((o: Order) => {
+                if (!o || !o.id) return false;
+                if (deletedOrderSet.has(o.id) || deletedOrderSet.has(o.merchantTransactionId || '') || deletedOrderSet.has(o.orderNumber || '')) return false;
+                return isValidAdminOrder(o);
+              })
               .map((apiOrder: Order) => {
                 const pendingFull = pendingOrderUpdatesRef.current.get(apiOrder.id) || (apiOrder.merchantTransactionId ? pendingOrderUpdatesRef.current.get(apiOrder.merchantTransactionId) : undefined);
                 if (pendingFull && now - pendingFull.time < 60000) {
@@ -946,7 +954,16 @@ const silentRefresh = async (): Promise<boolean> => {
         if (rRes?.success) setReviews(rRes.reviews);
         if (stRes?.success) setSettings(stRes.settings);
         if (ordRes?.success && Array.isArray(ordRes.orders) && ordRes.orders.length > 0) {
-          setOrders(ordRes.orders);
+          let deletedOrderSet = new Set<string>();
+          try {
+            const d = localStorage.getItem('vrg_deleted_orders');
+            if (d) deletedOrderSet = new Set(JSON.parse(d));
+          } catch {}
+          setOrders(ordRes.orders.filter((o: Order) => {
+            if (!o || !o.id) return false;
+            if (deletedOrderSet.has(o.id) || deletedOrderSet.has(o.merchantTransactionId || '') || deletedOrderSet.has(o.orderNumber || '')) return false;
+            return isValidAdminOrder(o);
+          }));
         }
       }
     } catch (err) {
@@ -1823,7 +1840,7 @@ const silentRefresh = async (): Promise<boolean> => {
       grandTotal: 140,
       paymentMethod: 'WHATSAPP',
       paymentStatus: 'SUCCESS',
-      orderStatus: 'PENDING',
+      orderStatus: 'CONFIRMED',
       notes: 'WhatsApp Order',
       trackingNumber: '',
       courierName: 'Professional Courier – Reduced Soil'
@@ -1866,7 +1883,7 @@ const silentRefresh = async (): Promise<boolean> => {
       grandTotal: o.grandTotal || 0,
       paymentMethod: (o.paymentMethod as any) || 'WHATSAPP',
       paymentStatus: o.paymentStatus || 'SUCCESS',
-      orderStatus: o.orderStatus || 'PENDING',
+      orderStatus: o.orderStatus || 'CONFIRMED',
       notes: o.notes || '',
       trackingNumber: (o as any).trackingNumber || '',
       courierName: (o as any).courierName || 'Professional Courier – Reduced Soil'
@@ -1958,7 +1975,7 @@ const silentRefresh = async (): Promise<boolean> => {
       grandTotal: finalTotal,
       paymentMethod: whatsAppOrderForm.paymentMethod || 'WHATSAPP',
       paymentStatus: whatsAppOrderForm.paymentStatus || 'SUCCESS',
-      orderStatus: whatsAppOrderForm.orderStatus || 'PENDING',
+      orderStatus: whatsAppOrderForm.orderStatus || 'CONFIRMED',
       notes: whatsAppOrderForm.notes || '',
       trackingNumber: whatsAppOrderForm.trackingNumber || '',
       courierName: whatsAppOrderForm.courierName || 'Professional Courier – Reduced Soil'
@@ -3761,7 +3778,7 @@ const silentRefresh = async (): Promise<boolean> => {
             };
 
             const filteredBySource = orders.filter(o => {
-              if ((o.orderStatus || '').toUpperCase() === 'CANCELLED' || o.paymentStatus === 'FAILED') return false;
+              if (!isValidAdminOrder(o)) return false;
               if (orderSourceFilter === 'whatsapp') return isWhatsAppOrder(o);
               if (orderSourceFilter === 'website') return !isWhatsAppOrder(o);
               return true;

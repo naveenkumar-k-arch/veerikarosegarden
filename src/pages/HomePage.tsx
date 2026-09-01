@@ -50,7 +50,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   useEffect(() => {
     const fetchCombos = async () => {
       try {
-        const res = await fetch('/api/combos?_t=' + Date.now()).then(r => r.json()).catch(() => null);
+        const res = await fetch('/api/combos').then(r => r.json()).catch(() => null);
         if (res?.success && Array.isArray(res.combos)) {
           const deletedSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_combos') || '[]'));
           const activeCombos = res.combos.filter((c: Combo) => c.active !== false && !deletedSet.has(c.id));

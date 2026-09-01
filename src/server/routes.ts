@@ -4,7 +4,7 @@ import { PhonePeService } from './phonepe.js';
 import { RazorpayService } from './razorpay.js';
 import { authRouter } from './routes/authRoutes.js';
 import { whatsappRouter, triggerOrderStageWhatsApp } from './routes/whatsappRoutes.js';
-import { getOrderStage } from '../utils/orderStages.js';
+import { getOrderStage, isValidAdminOrder } from '../utils/orderStages.js';
 import {
   parseAuthUser,
   requireAuth,
@@ -48,7 +48,7 @@ apiRouter.get('/health', async (req, res) => {
   });
 });
 
-// In-memory bootstrap response cache (15s TTL) — eliminates repeated DB hits from 30s polling
+// In-memory bootstrap response cache (30s TTL) — eliminates repeated DB hits from polling
 let bootstrapCache: { data: any; expiresAt: number } = { data: null, expiresAt: 0 };
 export const invalidateBootstrapCache = () => {
   bootstrapCache.expiresAt = 0;
@@ -58,9 +58,7 @@ export const invalidateBootstrapCache = () => {
 // ================= PRODUCT ROUTES =================
 apiRouter.get('/products', async (req, res) => {
   try {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
+    res.setHeader('Cache-Control', 'public, max-age=120, s-maxage=600, stale-while-revalidate=1800');
     const { category, categoryId, search, minPrice, maxPrice, featured, bestSeller, sort, sortBy } = req.query;
     const resolvedCat = (categoryId || category) ? String(categoryId || category) : undefined;
     const resolvedSort = (sortBy || sort) ? String(sortBy || sort) : undefined;
@@ -82,9 +80,7 @@ apiRouter.get('/products', async (req, res) => {
 
 apiRouter.get('/products/:id', async (req, res) => {
   try {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
+    res.setHeader('Cache-Control', 'public, max-age=120, s-maxage=600, stale-while-revalidate=1800');
     const product = await db.getProductById(req.params.id);
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found' });
@@ -634,7 +630,7 @@ apiRouter.post('/admin/coupons/:id/update', requireAdmin, handleUpdateCoupon);
 // ================= COMBOS & OFFERS =================
 apiRouter.get('/combos', async (req, res) => {
   try {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Cache-Control', 'public, max-age=120, s-maxage=600, stale-while-revalidate=1800');
     const combos = await db.getCombos();
     res.json({ success: true, count: combos.length, combos });
   } catch (error: any) {
@@ -854,7 +850,8 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
           quantity: validQty,
           image: matchedCombo.imageUrl || matchedCombo.products?.[0]?.images?.[0] || '',
           freeDelivery: matchedCombo.freeDelivery === true,
-          isCombo: true
+          isCombo: true,
+          comboProducts: matchedCombo.products || []
         });
         continue;
       }
@@ -889,7 +886,9 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
         price: verifiedPrice,
         mrp: dbProduct.mrp,
         quantity: validQty,
-        image: (dbProduct.images && dbProduct.images.length > 0) ? dbProduct.images[0] : ''
+        image: (dbProduct.images && dbProduct.images.length > 0) ? dbProduct.images[0] : '',
+        freeDelivery: (dbProduct as any).freeDelivery === true,
+        isCombo: false
       });
     }
 
@@ -909,10 +908,18 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
       }
     }
 
+    // Total actual plant count expanding combo bundle items
+    const totalPlantCount = verifiedItems.reduce((sum, i) => {
+      const isCombo = i.isCombo || (i.productId && String(i.productId).startsWith('combo-'));
+      const bundleCount = (i.comboProducts && i.comboProducts.length > 0)
+        ? i.comboProducts.length
+        : 1;
+      return sum + (isCombo ? bundleCount * i.quantity : i.quantity);
+    }, 0);
+
     // Server-side Pot Charge calculation (potOption is strictly for 6_INCH / 8_INCH potted plants)
     const rawPot = req.body.potOption;
     const potOption = (rawPot === '6_INCH' || rawPot === '8_INCH') ? rawPot : 'NONE';
-    const totalPlantCount = verifiedItems.reduce((sum, i) => sum + i.quantity, 0);
     const potUnitFee = potOption === '6_INCH' ? 99 : potOption === '8_INCH' ? 199 : 0;
     const potCharge = (req.body.potCharge !== undefined && !isNaN(Number(req.body.potCharge)))
       ? Math.max(0, Number(req.body.potCharge))
@@ -932,26 +939,32 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
     // Server-side Shipping Charge calculation
     const targetState = shippingAddress?.state || 'Tamil Nadu';
     const inTN = isTamilNadu(targetState);
-    const allItemsHaveFreeDelivery = inTN && verifiedItems.length > 0 && verifiedItems.every(i => i.freeDelivery === true);
-    let shippingCharge = 0;
-    if (req.body.shippingCharge !== undefined && !isNaN(Number(req.body.shippingCharge)) && inTN && allItemsHaveFreeDelivery) {
-      shippingCharge = 0;
-    } else {
-      const explicitOpt = (req.body.deliveryOption || req.body.potOption || '').toString();
-      const courierStr = (req.body.courierName || '').toString().toLowerCase();
-      const inferredOption: DeliveryOptionType =
-        explicitOpt === 'FULL_SOIL_8INCH' || courierStr.includes('8" full soil') || courierStr.includes('8 inch')
-          ? 'FULL_SOIL_8INCH'
-          : explicitOpt === 'FULL_SOIL_6INCH' || explicitOpt === 'FULL_SOIL' || courierStr.includes('6" full soil') || courierStr.includes('6 inch') || courierStr.includes('full soil')
-          ? 'FULL_SOIL_6INCH'
-          : courierStr.includes('mettur')
-          ? 'METTUR_PARCEL'
-          : 'REDUCED_SOIL';
+    const explicitOpt = (req.body.deliveryOption || req.body.potOption || '').toString();
+    const courierStr = (req.body.courierName || '').toString().toLowerCase();
+    const inferredOption: DeliveryOptionType =
+      explicitOpt === 'FULL_SOIL_8INCH' || courierStr.includes('8" full soil') || courierStr.includes('8 inch')
+        ? 'FULL_SOIL_8INCH'
+        : explicitOpt === 'FULL_SOIL_6INCH' || explicitOpt === 'FULL_SOIL' || courierStr.includes('6" full soil') || courierStr.includes('6 inch') || courierStr.includes('full soil')
+        ? 'FULL_SOIL_6INCH'
+        : courierStr.includes('mettur')
+        ? 'METTUR_PARCEL'
+        : 'REDUCED_SOIL';
 
-      if (inferredOption === 'REDUCED_SOIL') {
-        shippingCharge = allItemsHaveFreeDelivery ? 0 : calculateDeliveryFee(verifiedItems, targetState);
-      } else {
-        shippingCharge = getDeliveryChargeForOption(inferredOption, totalPlantCount, targetState);
+    const allItemsHaveFreeDelivery = inTN && verifiedItems.length > 0 && verifiedItems.every(i => i.freeDelivery === true);
+
+    let shippingCharge = 0;
+    if (inferredOption === 'REDUCED_SOIL') {
+      shippingCharge = allItemsHaveFreeDelivery ? 0 : calculateDeliveryFee(verifiedItems, targetState);
+    } else {
+      // Full Soil variants and Mettur parcel always compute courier charges
+      shippingCharge = getDeliveryChargeForOption(inferredOption, totalPlantCount, targetState);
+    }
+
+    // Preserve client-provided shipping charge if valid and consistent
+    if (req.body.shippingCharge !== undefined && !isNaN(Number(req.body.shippingCharge))) {
+      const clientShipping = Math.max(0, Number(req.body.shippingCharge));
+      if (clientShipping > 0 && (shippingCharge === 0 || Math.abs(clientShipping - shippingCharge) <= 20)) {
+        shippingCharge = clientShipping;
       }
     }
 
@@ -1061,6 +1074,10 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
       });
     }
 
+    const initialOrderStatus = (paymentMethod === 'COD' || paymentMethod === 'QR_PAYMENT' || paymentMethod === 'UPI_DIRECT')
+      ? 'CONFIRMED'
+      : 'PENDING';
+
     const newOrder = await db.createOrder({
       userId,
       merchantTransactionId,
@@ -1082,7 +1099,7 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
       couponCode: couponCode || undefined,
       grandTotal: calculatedGrandTotal,
       paymentStatus: 'PENDING',
-      orderStatus: 'PENDING',
+      orderStatus: initialOrderStatus,
       paymentMethod,
       paymentProofUrl: paymentProofUrl || undefined,
       transactionId: transactionId || undefined,
@@ -1224,7 +1241,9 @@ function sanitizeBootstrapOrders(ords: any[]): any[] {
     return isNaN(num) ? 0 : num;
   };
 
-  const sorted = [...ords].sort((a, b) => {
+  const filtered = ords.filter(isValidAdminOrder);
+
+  const sorted = [...filtered].sort((a, b) => {
     const diff = getOrderTime(b) - getOrderTime(a);
     if (diff !== 0) return diff;
     return (b.id || '').localeCompare(a.id || '');
@@ -1280,14 +1299,15 @@ apiRouter.get('/admin/bootstrap', requireAdmin, async (req: AuthenticatedRequest
       db.getCombos().catch(() => [])
     ]);
 
-    const stats = await db.getDashboardStats(orders, products);
+    const sanitizedOrders = sanitizeBootstrapOrders(orders);
+    const stats = await db.getDashboardStats(sanitizedOrders, products);
 
     const responsePayload = {
       success: true,
       stats,
       products: sanitizeBootstrapProducts(products),
       categories,
-      orders: sanitizeBootstrapOrders(orders),
+      orders: sanitizedOrders,
       coupons,
       banners,
       reviews,
@@ -1461,11 +1481,12 @@ apiRouter.get('/orders/:id', async (req: AuthenticatedRequest, res) => {
   }
 });
 
-// Admin GET all orders - no user filtering, always returns every order from every customer
+// Admin GET all orders - strictly sanitized for admin panel (no pending / unconfirmed orders)
 apiRouter.get('/admin/orders', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const orders = await db.getOrders();
-    res.json({ success: true, count: orders.length, orders });
+    const sanitized = sanitizeBootstrapOrders(orders);
+    res.json({ success: true, count: sanitized.length, orders: sanitized });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
@@ -1475,8 +1496,9 @@ apiRouter.get('/admin/orders', requireAdmin, async (req: AuthenticatedRequest, r
 apiRouter.all('/admin/sync-orders', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const orders = await db.syncAllVerifiedOrdersToDatabase();
+    const sanitized = sanitizeBootstrapOrders(orders);
     invalidateBootstrapCache();
-    res.json({ success: true, count: orders.length, orders, message: `Synced ${orders.length} orders to database successfully` });
+    res.json({ success: true, count: sanitized.length, orders: sanitized, message: `Synced ${sanitized.length} orders to database successfully` });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message || 'Sync failed' });
   }
@@ -1526,48 +1548,48 @@ const handleUpdateOrderFullRoute = async (req: AuthenticatedRequest, res: expres
     if (!id) return res.status(400).json({ success: false, message: 'Order ID is required' });
 
     const order = await db.updateOrderFull(String(id), req.body);
-    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
-    
     invalidateBootstrapCache();
+
     res.json({ success: true, order, message: 'Order updated successfully' });
   } catch (error: any) {
-    console.error('Error updating order:', error);
-    res.status(400).json({ success: false, message: error.message || 'Failed to update order' });
+    console.error('Error updating admin order:', error);
+    res.status(500).json({ success: false, message: error.message || 'Failed to update order' });
   }
 };
 
 apiRouter.put('/admin/orders/:id', requireAdmin, handleUpdateOrderFullRoute);
-apiRouter.post('/admin/orders/:id/update', requireAdmin, handleUpdateOrderFullRoute);
+apiRouter.put('/admin/orders/:id/update', requireAdmin, handleUpdateOrderFullRoute);
 apiRouter.post('/admin/orders/update', requireAdmin, handleUpdateOrderFullRoute);
-apiRouter.put('/admin/orders/update', requireAdmin, handleUpdateOrderFullRoute);
-apiRouter.patch('/admin/orders/:id', requireAdmin, handleUpdateOrderFullRoute);
 
 // Admin delete order
-const handleDeleteOrderRoute = async (req: AuthenticatedRequest, res: express.Response) => {
+const handleDeleteAdminOrderRoute = async (req: AuthenticatedRequest, res: express.Response) => {
   try {
     const id = req.params?.id || req.body?.id || req.body?.orderId;
     if (!id) return res.status(400).json({ success: false, message: 'Order ID is required' });
+
     await db.deleteOrder(String(id));
     invalidateBootstrapCache();
-    res.json({ success: true, message: `Order #${id} deleted successfully` });
+
+    res.json({ success: true, message: 'Order deleted successfully' });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
+    console.error('Error deleting admin order:', error);
+    res.status(500).json({ success: false, message: error.message || 'Failed to delete order' });
   }
 };
 
-apiRouter.delete('/admin/orders/:id', requireAdmin, handleDeleteOrderRoute);
-apiRouter.post('/admin/orders/delete', requireAdmin, handleDeleteOrderRoute);
-apiRouter.post('/admin/orders/:id/delete', requireAdmin, handleDeleteOrderRoute);
+apiRouter.delete('/admin/orders/:id', requireAdmin, handleDeleteAdminOrderRoute);
+apiRouter.post('/admin/orders/delete', requireAdmin, handleDeleteAdminOrderRoute);
 
-// ================= DISPATCH LABELS PDF ENDPOINT =================
-const handleGenerateLabelsPdf = async (req: express.Request, res: express.Response) => {
+// Generate A4 Dispatch Labels PDF (4 labels per page)
+const handleGenerateLabelsPdf = async (req: AuthenticatedRequest, res: express.Response) => {
   try {
     const orderIdsParam = (req.query.orderIds as string) || req.body?.orderIds;
     const batchNumber = (req.query.batch as string) || req.body?.batch || '#005';
     const sheetNumber = (req.query.sheet as string) || req.body?.sheet || '#11106';
 
     const allOrders = await db.getOrders();
-    let targetOrders = allOrders;
+    const validOrders = allOrders.filter(isValidAdminOrder);
+    let targetOrders = validOrders;
 
     if (orderIdsParam) {
       const idList = Array.isArray(orderIdsParam)
@@ -1578,8 +1600,8 @@ const handleGenerateLabelsPdf = async (req: express.Request, res: express.Respon
       }
     }
 
-    if (targetOrders.length === 0 && allOrders.length > 0) {
-      targetOrders = allOrders.slice(0, 4);
+    if (targetOrders.length === 0 && validOrders.length > 0) {
+      targetOrders = validOrders.slice(0, 4);
     }
 
     const pdfBuffer = generateDispatchLabelsPdf(targetOrders, batchNumber, sheetNumber);

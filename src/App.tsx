@@ -357,12 +357,11 @@ export const App: React.FC = () => {
   // Fetch Core Data on Mount with LocalStorage SWR Persistence
   const fetchCoreData = async () => {
     try {
-      const ts = Date.now();
       const [pRes, cRes, bRes, rRes] = await Promise.all([
-        fetch(`/api/products?t=${ts}`, { cache: 'no-store' }).then((r) => r.json()).catch(() => null),
-        fetch(`/api/categories?t=${ts}`, { cache: 'no-store' }).then((r) => r.json()).catch(() => null),
-        fetch(`/api/banners?t=${ts}`, { cache: 'no-store' }).then((r) => r.json()).catch(() => null),
-        fetch(`/api/reviews?t=${ts}`, { cache: 'no-store' }).then((r) => r.json()).catch(() => null)
+        fetch('/api/products').then((r) => r.json()).catch(() => null),
+        fetch('/api/categories').then((r) => r.json()).catch(() => null),
+        fetch('/api/banners').then((r) => r.json()).catch(() => null),
+        fetch('/api/reviews').then((r) => r.json()).catch(() => null)
       ]);
 
       if (pRes?.success && Array.isArray(pRes.products)) {
@@ -1059,7 +1058,13 @@ export const App: React.FC = () => {
     shippingCharge?: number;
   }) => {
     const subtotal = cart.reduce((sum, i) => sum + i.product.sellingPrice * i.quantity, 0);
-    const totalPlantCount = cart.reduce((sum, i) => sum + i.quantity, 0);
+    const totalPlantCount = cart.reduce((sum, i) => {
+      const isCombo = i.isCombo || i.product.id.startsWith('combo-') || (i.product as any).isCombo;
+      const bundleCount = (i.comboProducts && i.comboProducts.length > 0)
+        ? i.comboProducts.length
+        : ((i.product as any).comboProducts?.length || 1);
+      return sum + (isCombo ? bundleCount * i.quantity : i.quantity);
+    }, 0);
     const potOption = orderData.potOption || 'NONE';
     const potUnitFee = potOption === '6_INCH' ? 99 : potOption === '8_INCH' ? 199 : 0;
     const potCharge = orderData.potCharge ?? (potUnitFee * totalPlantCount);
@@ -1097,6 +1102,7 @@ export const App: React.FC = () => {
       transactionId: orderData.transactionId,
       potCharge,
       potOption,
+      deliveryOption: orderData.potOption,
       packingCharge,
       packingOption,
       courierName: orderData.courierName,
@@ -1109,7 +1115,10 @@ export const App: React.FC = () => {
         tamilName: i.product.tamilName,
         price: i.product.sellingPrice,
         quantity: i.quantity,
-        image: i.product.images?.[0] || '/products/double-delight.jpeg'
+        image: i.product.images?.[0] || '/products/double-delight.jpeg',
+        freeDelivery: i.freeDelivery ?? (i.product as any).freeDelivery ?? false,
+        isCombo: i.isCombo || (i.product as any).isCombo || i.product.id.startsWith('combo-'),
+        comboProducts: i.comboProducts || (i.product as any).comboProducts || []
       })),
       subtotal,
       shippingCharge,
@@ -1145,6 +1154,7 @@ export const App: React.FC = () => {
 
     if (data && data.success) {
       const orderId = data.orderId || data.order?.id;
+      const verifiedGrandTotal = data.amount !== undefined ? data.amount : (data.order?.grandTotal || grandTotal);
       const orderObj = data.order || {
         id: orderId,
         customerName: payload.customerName,
@@ -1152,7 +1162,7 @@ export const App: React.FC = () => {
         customerEmail: payload.customerEmail,
         shippingAddress: payload.shippingAddress,
         items: cart.map((i) => ({ productId: i.product.id, name: i.product.name, price: i.product.sellingPrice, quantity: i.quantity, image: i.product.images?.[0] || '/products/double-delight.jpeg' })),
-        grandTotal,
+        grandTotal: verifiedGrandTotal,
         paymentMethod: orderData.paymentMethod,
         paymentProofUrl: payload.paymentProofUrl,
         transactionId: payload.transactionId,
@@ -1169,7 +1179,7 @@ export const App: React.FC = () => {
           orderId,
           razorpayOrderId: data.razorpayOrderId,
           razorpayKeyId: data.razorpayKeyId,
-          amount: grandTotal,
+          amount: verifiedGrandTotal,
           customerName: payload.customerName,
           customerPhone: payload.customerPhone,
           customerEmail: payload.customerEmail

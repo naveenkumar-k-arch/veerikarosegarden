@@ -63,7 +63,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
 
   const fetchCombos = async () => {
     try {
-      const cRes = await fetch('/api/combos?_t=' + Date.now(), { cache: 'no-cache' }).then(r => r.json()).catch(() => null);
+      const cRes = await fetch('/api/combos').then(r => r.json()).catch(() => null);
 
       if (cRes && cRes.success && Array.isArray(cRes.combos)) {
         const deletedSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_combos') || '[]'));

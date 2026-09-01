@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Order, Product, Category, Review, Coupon, Banner, Combo, FinancialEntry, SiteSettings } from '../types';
 import { processLocalImageFile, processMultipleImageFiles } from '../utils/imageUpload';
 import { toast } from '../utils/toast';
-import { getOrderStage, STAGE_CONFIG, OrderStage, generateOrderWhatsAppMessage, isWhatsAppOrder } from '../utils/orderStages';
+import { getOrderStage, STAGE_CONFIG, OrderStage, generateOrderWhatsAppMessage, isWhatsAppOrder, isValidAdminOrder } from '../utils/orderStages';
 import { parseFullAddress, formatAddress as formatFullAddress } from '../utils/addressUtils';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import {
@@ -1036,7 +1036,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
   // 4-Stage Stats Calculation directly from real orders
   const stats = useMemo(() => {
-    const activeOrders = orders.filter(o => (o.orderStatus || '').toUpperCase() !== 'CANCELLED' && o.paymentStatus !== 'FAILED');
+    const activeOrders = orders.filter(isValidAdminOrder);
     const confirmedOrders = activeOrders.filter(o => getOrderStage(o.orderStatus) === 'confirmed');
     const packingOrders = activeOrders.filter(o => getOrderStage(o.orderStatus) === 'packing');
     const dispatchedOrders = activeOrders.filter(o => getOrderStage(o.orderStatus) === 'dispatched');
@@ -1399,10 +1399,10 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   // Filtered & Sorted Orders Feed
   const filteredOrders = useMemo(() => {
     let list = orderStageFilter === 'all' || orderStageFilter === 'week_based'
-      ? orders.filter(o => (o.orderStatus || '').toUpperCase() !== 'CANCELLED' && o.paymentStatus !== 'FAILED') 
+      ? orders.filter(isValidAdminOrder) 
       : orderStageFilter === 'holding'
-      ? orders.filter(o => (o.orderStatus || '').toUpperCase() !== 'CANCELLED' && (holdingOrderIds.includes(o.id) || (o as any).isHolding === true))
-      : orders.filter(o => (o.orderStatus || '').toUpperCase() !== 'CANCELLED' && o.paymentStatus !== 'FAILED' && getOrderStage(o.orderStatus) === orderStageFilter);
+      ? orders.filter(o => isValidAdminOrder(o) && (holdingOrderIds.includes(o.id) || (o as any).isHolding === true))
+      : orders.filter(o => isValidAdminOrder(o) && getOrderStage(o.orderStatus) === orderStageFilter);
 
     // 0. Order Source Filter (WhatsApp / Offline vs Website vs All)
     if (orderSourceFilter === 'whatsapp') {

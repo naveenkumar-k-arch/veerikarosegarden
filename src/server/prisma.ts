@@ -1,14 +1,15 @@
 import { PrismaClient } from '@prisma/client';
 
-// Global singleton to survive hot-reload in serverless environments
+// Global singletons to survive hot-reload in serverless environments
 declare global {
   // eslint-disable-next-line no-var
   var __prismaGlobal: PrismaClient | undefined;
+  // eslint-disable-next-line no-var
+  var __prismaNeonReadGlobal: PrismaClient | undefined;
 }
 
 /**
- * Returns a lazy-initialized Prisma Client instance if DATABASE_URL is set in environment.
- * Uses global singleton to prevent connection exhaustion in serverless (Vercel).
+ * Returns a lazy-initialized Prisma Client instance for the Primary Database (Supabase).
  */
 export function getPrismaClient(): PrismaClient | null {
   const dbUrl = process.env.DATABASE_URL;
@@ -18,13 +19,11 @@ export function getPrismaClient(): PrismaClient | null {
 
   if (!global.__prismaGlobal) {
     try {
-      // For Supabase / Neon Transaction Poolers: ensure pgbouncer mode + efficient serverless connection limits
       let serverlessUrl = dbUrl;
       if (!serverlessUrl.includes('pgbouncer') && (serverlessUrl.includes('pooler') || serverlessUrl.includes('neon.tech') || serverlessUrl.includes('6543'))) {
         serverlessUrl += (serverlessUrl.includes('?') ? '&' : '?') + 'pgbouncer=true';
       }
       if (!serverlessUrl.includes('connection_limit')) {
-        // Use 3 connections per serverless lambda instance to avoid exhausting database pooler
         serverlessUrl += (serverlessUrl.includes('?') ? '&' : '?') + 'connection_limit=3';
       }
       if (!serverlessUrl.includes('pool_timeout')) {
@@ -35,25 +34,57 @@ export function getPrismaClient(): PrismaClient | null {
       }
 
       global.__prismaGlobal = new PrismaClient({
-        datasources: {
-          db: {
-            url: serverlessUrl
-          }
-        },
+        datasources: { db: { url: serverlessUrl } },
         log: ['error']
       });
 
-      // Eagerly connect on init to eliminate cold-start latency on first query
       global.__prismaGlobal.$connect().catch((err) => {
-        console.warn('Prisma eager connect notice:', err);
+        console.warn('Prisma Supabase eager connect notice:', err);
       });
     } catch (err) {
-      console.error('Failed to initialize Prisma Client:', err);
+      console.error('Failed to initialize Prisma Client (Supabase):', err);
       return null;
     }
   }
 
   return global.__prismaGlobal;
+}
+
+/**
+ * Returns a lazy-initialized Prisma Client instance for the High-Egress Read Database (Neon).
+ * Falls back to getPrismaClient() if NEON_DATABASE_URL is not set.
+ */
+export function getReadPrismaClient(): PrismaClient | null {
+  const neonUrl = process.env.NEON_DATABASE_URL;
+  if (!neonUrl || neonUrl.trim() === '') {
+    return getPrismaClient();
+  }
+
+  if (!global.__prismaNeonReadGlobal) {
+    try {
+      let serverlessUrl = neonUrl;
+      if (!serverlessUrl.includes('pgbouncer') && (serverlessUrl.includes('pooler') || serverlessUrl.includes('neon.tech'))) {
+        serverlessUrl += (serverlessUrl.includes('?') ? '&' : '?') + 'pgbouncer=true';
+      }
+      if (!serverlessUrl.includes('connection_limit')) {
+        serverlessUrl += (serverlessUrl.includes('?') ? '&' : '?') + 'connection_limit=3';
+      }
+
+      global.__prismaNeonReadGlobal = new PrismaClient({
+        datasources: { db: { url: serverlessUrl } },
+        log: ['error']
+      });
+
+      global.__prismaNeonReadGlobal.$connect().catch((err) => {
+        console.warn('Prisma Neon eager connect notice:', err);
+      });
+    } catch (err) {
+      console.warn('Failed to initialize Neon Prisma Client, using Primary Supabase:', err);
+      return getPrismaClient();
+    }
+  }
+
+  return global.__prismaNeonReadGlobal;
 }
 
 /**

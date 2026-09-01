@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { Product, Category, Order, Coupon, Banner, Review, SiteSettings, PaymentLog, OrderItemSnapshot, PaymentMethod, FinancialEntry, Combo } from '../types.js';
 
-import { getPrismaClient, executeInTransaction } from './prisma.js';
+import { getPrismaClient, getReadPrismaClient, executeInTransaction } from './prisma.js';
 import { firestoreSaveOrder, firestoreGetAllOrders, firestoreUpdateOrder, firestoreDeleteOrder } from './firestore.js';
 import { ImmutableOrderVaultService } from './immutableVault.js';
 
@@ -405,27 +405,35 @@ class Store {
 
 
   // PRODUCTS
-  private productsCache: { data: Product[]; expiresAt: number } = {
-    data: DEFAULT_PRODUCTS.filter(p => !deletedProductIds.has(p.id)),
-    expiresAt: 0
-  };
+  private get productsCache(): { data: Product[]; expiresAt: number } {
+    if (!(globalThis as any)._productsCache) {
+      (globalThis as any)._productsCache = {
+        data: DEFAULT_PRODUCTS.filter(p => !deletedProductIds.has(p.id)),
+        expiresAt: 0
+      };
+    }
+    return (globalThis as any)._productsCache;
+  }
+  private set productsCache(val: { data: Product[]; expiresAt: number }) {
+    (globalThis as any)._productsCache = val;
+  }
   private isRefreshingProducts = false;
 
   invalidateProductsCache() {
-    this.productsCache.expiresAt = 0;
+    this.productsCache = { ...this.productsCache, expiresAt: 0 };
   }
 
   private async refreshProductsCache(): Promise<Product[]> {
     if (this.isRefreshingProducts) return this.productsCache.data;
     this.isRefreshingProducts = true;
     try {
-      const prisma = getPrismaClient();
+      const prisma = getReadPrismaClient() || getPrismaClient();
       if (!prisma) {
         const diskList = loadDiskProducts();
         const fallbackList = diskList.length > 0 ? diskList : DEFAULT_PRODUCTS;
         this.productsCache = {
           data: fallbackList.filter(p => !deletedProductIds.has(p.id) && (!p.sku || !deletedProductIds.has(p.sku))),
-          expiresAt: Date.now() + 300000
+          expiresAt: Date.now() + 600000
         };
         return this.productsCache.data;
       }
@@ -513,7 +521,7 @@ class Store {
       }
 
       saveDiskProducts(finalProducts);
-      this.productsCache = { data: finalProducts, expiresAt: Date.now() + 300000 };
+      this.productsCache = { data: finalProducts, expiresAt: Date.now() + 600000 };
       return finalProducts;
     } catch (err) {
       console.warn('Background refreshProductsCache notice:', err);
@@ -1112,25 +1120,33 @@ class Store {
   }
 
 
-  private categoriesCache: { data: Category[]; expiresAt: number } = {
-    data: DEFAULT_CATEGORIES.filter(c => !deletedCategoryIds.has(c.id)),
-    expiresAt: 0
-  };
+  private get categoriesCache(): { data: Category[]; expiresAt: number } {
+    if (!(globalThis as any)._categoriesCache) {
+      (globalThis as any)._categoriesCache = {
+        data: DEFAULT_CATEGORIES.filter(c => !deletedCategoryIds.has(c.id)),
+        expiresAt: 0
+      };
+    }
+    return (globalThis as any)._categoriesCache;
+  }
+  private set categoriesCache(val: { data: Category[]; expiresAt: number }) {
+    (globalThis as any)._categoriesCache = val;
+  }
   private isRefreshingCategories = false;
 
   invalidateCategoriesCache() {
-    this.categoriesCache.expiresAt = 0;
+    this.categoriesCache = { ...this.categoriesCache, expiresAt: 0 };
   }
 
   private async refreshCategoriesCache(): Promise<Category[]> {
     if (this.isRefreshingCategories) return this.categoriesCache.data;
     this.isRefreshingCategories = true;
     try {
-      const prisma = getPrismaClient();
+      const prisma = getReadPrismaClient() || getPrismaClient();
       if (!prisma) {
         this.categoriesCache = {
           data: DEFAULT_CATEGORIES.filter(c => !deletedCategoryIds.has(c.id)),
-          expiresAt: Date.now() + 300000
+          expiresAt: Date.now() + 600000
         };
         return this.categoriesCache.data;
       }
@@ -1176,7 +1192,7 @@ class Store {
         finalCategories = finalCategories.filter(c => !deletedCategoryIds.has(c.id));
       }
 
-      this.categoriesCache = { data: finalCategories, expiresAt: Date.now() + 300000 };
+      this.categoriesCache = { data: finalCategories, expiresAt: Date.now() + 600000 };
       return finalCategories;
     } catch (err) {
       console.warn('Background refreshCategoriesCache notice:', err);
@@ -1685,7 +1701,7 @@ class Store {
     if (Date.now() >= this.bannersCache.expiresAt) {
       (async () => {
         try {
-          const prisma = getPrismaClient();
+          const prisma = getReadPrismaClient() || getPrismaClient();
           if (prisma) {
             const items = await prisma.banner.findMany({
               where: onlyActive ? { active: true } : undefined,
@@ -1718,17 +1734,31 @@ class Store {
     return onlyActive ? list.filter(b => b.active !== false) : list;
   }
 
+  private get couponsCache(): { data: Coupon[]; expiresAt: number } | null {
+    return (globalThis as any)._couponsCache || null;
+  }
+  private set couponsCache(val: { data: Coupon[]; expiresAt: number } | null) {
+    (globalThis as any)._couponsCache = val;
+  }
+
+  invalidateCouponsCache() {
+    this.couponsCache = null;
+  }
+
   // COUPONS
   async getCoupons(onlyActive = false): Promise<Coupon[]> {
-    const prisma = getPrismaClient();
+    if (this.couponsCache && Date.now() < this.couponsCache.expiresAt) {
+      return onlyActive ? this.couponsCache.data.filter(c => c.active) : this.couponsCache.data;
+    }
+
+    const prisma = getReadPrismaClient() || getPrismaClient();
 
     if (prisma) {
       try {
         const items = await prisma.coupon.findMany({
-          where: onlyActive ? { isActive: true } : undefined,
           orderBy: { createdAt: 'desc' }
         });
-        return items.map(c => ({
+        const allCoupons = items.map(c => ({
           id: c.id,
           code: c.code,
           type: (c.discountType === 'FIXED' ? 'FIXED' : 'PERCENT') as 'FIXED' | 'PERCENT',
@@ -1739,6 +1769,9 @@ class Store {
           active: c.isActive,
           usageCount: c.timesUsed
         })).filter(c => !deletedCouponIds.has(c.id) && !deletedCouponIds.has(c.code.toUpperCase()));
+
+        this.couponsCache = { data: allCoupons, expiresAt: Date.now() + 300000 };
+        return onlyActive ? allCoupons.filter(c => c.active) : allCoupons;
       } catch (err) {
         console.error('Prisma getCoupons error:', err);
       }
@@ -1782,6 +1815,7 @@ class Store {
 
 
   async addCoupon(coupon: Omit<Coupon, 'id' | 'usageCount'>): Promise<Coupon> {
+    this.invalidateCouponsCache();
     const prisma = getPrismaClient();
     const id = 'coup-' + Date.now();
 
@@ -1823,6 +1857,7 @@ class Store {
   }
 
   async deleteCoupon(idOrCode: string): Promise<boolean> {
+    this.invalidateCouponsCache();
     const clean = (idOrCode || '').trim();
     if (clean) {
       deletedCouponIds.add(clean);
@@ -1849,6 +1884,7 @@ class Store {
   }
 
   async updateCoupon(idOrCode: string, updates: Partial<Coupon>): Promise<Coupon | null> {
+    this.invalidateCouponsCache();
     const prisma = getPrismaClient();
     const clean = (idOrCode || '').trim();
     const upper = clean.toUpperCase();
@@ -2315,7 +2351,12 @@ class Store {
   }
 
   // SITE SETTINGS
-  private settingsCache: { data: SiteSettings; expiresAt: number } | null = null;
+  private get settingsCache(): { data: SiteSettings; expiresAt: number } | null {
+    return (globalThis as any)._settingsCache || null;
+  }
+  private set settingsCache(val: { data: SiteSettings; expiresAt: number } | null) {
+    (globalThis as any)._settingsCache = val;
+  }
 
   invalidateSettingsCache() {
     this.settingsCache = null;
@@ -2330,7 +2371,7 @@ class Store {
     const memory = (globalThis as any)._globalMemorySettings || {};
     if (!prisma) {
       const res = { ...DEFAULT_SETTINGS, ...memory };
-      this.settingsCache = { data: res, expiresAt: Date.now() + 60000 };
+      this.settingsCache = { data: res, expiresAt: Date.now() + 300000 };
       return res;
     }
 
@@ -2341,7 +2382,7 @@ class Store {
 
       if (!s) {
         const res = { ...DEFAULT_SETTINGS, ...memory };
-        this.settingsCache = { data: res, expiresAt: Date.now() + 60000 };
+        this.settingsCache = { data: res, expiresAt: Date.now() + 300000 };
         return res;
       }
 
@@ -2379,12 +2420,12 @@ class Store {
       };
 
       (globalThis as any)._globalMemorySettings = merged;
-      this.settingsCache = { data: merged, expiresAt: Date.now() + 60000 };
+      this.settingsCache = { data: merged, expiresAt: Date.now() + 300000 };
       return merged;
     } catch (err) {
       console.error('Prisma getSettings error:', err);
       const res = { ...DEFAULT_SETTINGS, ...memory };
-      this.settingsCache = { data: res, expiresAt: Date.now() + 60000 };
+      this.settingsCache = { data: res, expiresAt: Date.now() + 300000 };
       return res;
     }
   }
@@ -2742,7 +2783,12 @@ class Store {
     return order;
   }
 
-  private ordersCache: { data: Order[]; expiresAt: number } | null = null;
+  private get ordersCache(): { data: Order[]; expiresAt: number } | null {
+    return (globalThis as any)._ordersCache || null;
+  }
+  private set ordersCache(val: { data: Order[]; expiresAt: number } | null) {
+    (globalThis as any)._ordersCache = val;
+  }
 
   invalidateOrdersCache() {
     this.ordersCache = null;
@@ -2993,10 +3039,14 @@ class Store {
       if ((o.orderStatus || '').toUpperCase() === 'CANCELLED' || o.paymentStatus === 'FAILED') {
         return false;
       }
-      // For automated online gateways (Razorpay, PhonePe):
-      // Only include orders if payment succeeded!
-      const isOnlineGateway = o.paymentMethod === 'RAZORPAY' || o.paymentMethod === 'PHONEPE' || (o.paymentMethod as string) === 'CARD';
-      if (isOnlineGateway && o.paymentStatus !== 'SUCCESS') {
+      // Hide all unpaid / pending payment orders (incomplete checkouts / abandoned UPI / Razorpay payment pending)
+      if (o.paymentStatus === 'PENDING' || (o.orderStatus || '').toUpperCase() === 'PAYMENT_PENDING' || (o.orderStatus || '').toUpperCase() === 'PENDING') {
+        if (o.paymentMethod !== 'COD' && o.paymentStatus !== 'SUCCESS' && !o.paymentProofUrl) {
+          return false;
+        }
+      }
+      const isOnlineGateway = o.paymentMethod === 'RAZORPAY' || o.paymentMethod === 'PHONEPE' || (o.paymentMethod as string) === 'CARD' || o.paymentMethod === 'UPI';
+      if (isOnlineGateway && o.paymentStatus !== 'SUCCESS' && !o.paymentProofUrl) {
         return false;
       }
       return true;
@@ -3541,7 +3591,7 @@ class Store {
       discount,
       grandTotal,
       paymentStatus: data.paymentStatus || 'SUCCESS',
-      orderStatus: data.orderStatus || 'PENDING',
+      orderStatus: data.orderStatus || 'CONFIRMED',
       paymentMethod: data.paymentMethod || 'WHATSAPP',
       notes: data.notes || '',
       trackingNumber: data.trackingNumber || '',
@@ -3948,7 +3998,14 @@ class Store {
         completedOrders,
         lowStockInventories
       ] = await Promise.all([
-        prisma.order.count(),
+        prisma.order.count({
+          where: {
+            OR: [
+              { paymentStatus: 'SUCCESS' },
+              { status: { in: ['PAID', 'PACKING', 'DISPATCHED', 'OUT_FOR_DELIVERY', 'DELIVERED'] } }
+            ]
+          }
+        }),
         prisma.order.aggregate({
           _sum: { totalAmount: true },
           where: {
@@ -3969,7 +4026,12 @@ class Store {
           }
         }),
         prisma.order.count({
-          where: { status: { in: ['PENDING', 'PACKING', 'DISPATCHED'] } }
+          where: {
+            OR: [
+              { paymentStatus: 'SUCCESS', status: { in: ['PAID', 'PACKING', 'DISPATCHED', 'OUT_FOR_DELIVERY'] } },
+              { status: { in: ['PAID', 'PACKING', 'DISPATCHED', 'OUT_FOR_DELIVERY'] } }
+            ]
+          }
         }),
         prisma.order.count({
           where: { status: 'DELIVERED' }
