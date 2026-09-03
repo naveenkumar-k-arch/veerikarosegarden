@@ -18,6 +18,12 @@ list_all_supabase_orders.cjs
 matched_user_orders.json
 orders_with_phones.json
 
+# Test/scratch files that may contain credentials
+test_pg.js
+test_*.js
+check_orders.ts
+fetch_neon_orders.ts
+
 # Local Netlify folder
 .netlify
 

@@ -44,8 +44,8 @@ export const AdminLoginForm: React.FC<AdminLoginFormProps> = ({ onLoginSuccess, 
           .then(bData => {
             if (bData?.success) {
               const str = JSON.stringify(bData);
-              sessionStorage.setItem('vrg_admin_session_cache', str);
-              localStorage.setItem('vrg_admin_persisted_cache', str);
+              sessionStorage.setItem('vrg_admin_session_cache_v5', str);
+              localStorage.setItem('vrg_admin_persisted_cache_v5', str);
             }
           })
           .catch(() => {});

@@ -48,7 +48,8 @@ apiRouter.get('/health', async (req, res) => {
   });
 });
 
-// In-memory bootstrap response cache (30s TTL) — eliminates repeated DB hits from polling
+// In-memory bootstrap response cache — eliminates repeated DB hits from polling
+const BOOTSTRAP_CACHE_TTL_MS = 60_000; // 60 seconds — must match ADMIN_POLL_INTERVAL_MS in AdminPage
 let bootstrapCache: { data: any; expiresAt: number } = { data: null, expiresAt: 0 };
 export const invalidateBootstrapCache = () => {
   bootstrapCache.expiresAt = 0;
@@ -1317,7 +1318,7 @@ apiRouter.get('/admin/bootstrap', requireAdmin, async (req: AuthenticatedRequest
       combos
     };
 
-    bootstrapCache = { data: responsePayload, expiresAt: Date.now() + 15000 };
+    bootstrapCache = { data: responsePayload, expiresAt: Date.now() + BOOTSTRAP_CACHE_TTL_MS };
 
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('X-Bootstrap-Cache', 'MISS');

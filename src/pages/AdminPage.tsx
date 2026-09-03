@@ -122,26 +122,26 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
   const [desktopLabelOrders, setDesktopLabelOrders] = useState<Order[] | null>(null);
   const [showAdminMenuDrawer, setShowAdminMenuDrawer] = useState(false);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'categories' | 'orders' | 'inventory' | 'coupons' | 'banners' | 'reviews' | 'settings' | 'audit' | 'finances' | 'payment_logs'>('dashboard');
-  const [orderFilterStage, setOrderFilterStageState] = useState<'all' | 'week_based' | 'pending' | 'packing' | 'dispatched' | 'delivered' | 'holding'>(() => {
+  const [orderFilterStage, setOrderFilterStageState] = useState<'all' | 'week_based' | 'confirmed' | 'packing' | 'dispatched' | 'delivered' | 'holding'>(() => {
     try {
       const saved = sessionStorage.getItem('vrg_admin_stage_filter');
       if (saved && ['all', 'week_based', 'pending', 'confirmed', 'packing', 'dispatched', 'delivered', 'holding'].includes(saved)) {
-        return (saved === 'confirmed' ? 'pending' : saved) as any;
+        return (saved === 'pending' ? 'confirmed' : saved) as any;
       }
     } catch {}
     return 'all';
   });
 
-  const setOrderFilterStage = (stage: 'all' | 'week_based' | 'pending' | 'packing' | 'dispatched' | 'delivered' | 'holding') => {
+  const setOrderFilterStage = (stage: 'all' | 'week_based' | 'confirmed' | 'packing' | 'dispatched' | 'delivered' | 'holding') => {
     setOrderFilterStageState(stage);
     try {
-      sessionStorage.setItem('vrg_admin_stage_filter', stage === 'pending' ? 'confirmed' : stage);
+      sessionStorage.setItem('vrg_admin_stage_filter', stage);
     } catch {}
   };
 
   // Version-controlled persistent cache keys to purge stale order snapshots
-  const ADMIN_CACHE_KEY_SESSION = 'vrg_admin_session_cache_v4';
-  const ADMIN_CACHE_KEY_LOCAL = 'vrg_admin_persisted_cache_v4';
+  const ADMIN_CACHE_KEY_SESSION = 'vrg_admin_session_cache_v5';
+  const ADMIN_CACHE_KEY_LOCAL = 'vrg_admin_persisted_cache_v5';
 
   // Multi-tiered persistent cache for instant (0ms) Stale-While-Revalidate UI hydration
   const getAdminSessionCache = (): any => {
@@ -983,6 +983,8 @@ const silentRefresh = async (): Promise<boolean> => {
       'vrg_admin_persisted_cache_v2',
       'vrg_admin_session_cache_v3',
       'vrg_admin_persisted_cache_v3',
+      'vrg_admin_session_cache_v4',
+      'vrg_admin_persisted_cache_v4',
       'vrg_deleted_orders',
       'vrg_deleted_categories',
       'vrg_deleted_coupons',
@@ -1028,10 +1030,11 @@ const silentRefresh = async (): Promise<boolean> => {
     };
     verifySession();
 
-    // Poll every 10 seconds for live order feed
+    // Poll every 60 seconds for live order feed (bootstrap cache is 60s TTL)
+    const ADMIN_POLL_INTERVAL_MS = 60_000; // 60 seconds — matches server bootstrap cache TTL
     const interval = setInterval(() => {
       fetchData();
-    }, 10000);
+    }, ADMIN_POLL_INTERVAL_MS);
 
     const handleSync = () => fetchData();
     const handleVisibilitySync = () => {
@@ -3263,7 +3266,7 @@ const silentRefresh = async (): Promise<boolean> => {
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                     <button
-                      onClick={() => { setOrderFilterStage('pending'); setActiveTab('orders'); }}
+                      onClick={() => { setOrderFilterStage('confirmed'); setActiveTab('orders'); }}
                       className="p-3 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-2xl text-left space-y-1 transition-all cursor-pointer"
                     >
                       <span className="text-lg">🌸</span>
@@ -4519,8 +4522,8 @@ const silentRefresh = async (): Promise<boolean> => {
                   </button>
 
                   <button
-                    onClick={() => setOrderFilterStage('pending')}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${orderFilterStage === 'pending' ? 'bg-amber-500 text-white shadow-xs' : 'bg-amber-50 text-amber-900 hover:bg-amber-100'}`}
+                    onClick={() => setOrderFilterStage('confirmed')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${orderFilterStage === 'confirmed' ? 'bg-amber-500 text-white shadow-xs' : 'bg-amber-50 text-amber-900 hover:bg-amber-100'}`}
                   >
                     <span>🌸 1. Confirmed</span>
                     <span className="px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-mono">{pendingList.length}</span>
@@ -4746,7 +4749,7 @@ const silentRefresh = async (): Promise<boolean> => {
                 {orderFilterStage !== 'week_based' && orderFilterStage !== 'holding' && (
                   <div className="space-y-8">
                     {/* SECTION 1: ORDER CONFIRMED */}
-                    {(orderFilterStage === 'all' || orderFilterStage === 'pending') && (
+                    {(orderFilterStage === 'all' || orderFilterStage === 'confirmed') && (
                       <div className="space-y-3">
                         <div className="flex items-center justify-between bg-amber-50 p-3.5 rounded-2xl border border-amber-200">
                           <h4 className="font-black text-sm text-amber-950 flex items-center gap-2">
@@ -4757,7 +4760,7 @@ const silentRefresh = async (): Promise<boolean> => {
                           </span>
                         </div>
                         {pendingList.length === 0 ? (
-                          <p className="text-xs text-slate-400 italic p-4 bg-white rounded-xl border border-dashed border-slate-200 text-center">No new pending orders in this section.</p>
+                          <p className="text-xs text-slate-400 italic p-4 bg-white rounded-xl border border-dashed border-slate-200 text-center">No confirmed orders waiting for packing.</p>
                         ) : (
                           <div className="space-y-4">
                             {pendingList.map(renderOrderCard)}

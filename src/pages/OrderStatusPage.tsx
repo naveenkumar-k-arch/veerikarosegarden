@@ -90,8 +90,34 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
   useEffect(() => {
     fetchOrder();
 
-    // Fast live poll every 2 seconds
-    const interval = setInterval(fetchOrder, 2000);
+    // Terminal states require no further polling — order won't change
+    const TERMINAL_STATUSES = new Set(['DELIVERED', 'CANCELLED', 'FAILED', 'REFUNDED']);
+    const isTerminal = (o: Order | null) =>
+      o && (TERMINAL_STATUSES.has(o.orderStatus) || TERMINAL_STATUSES.has(o.paymentStatus));
+
+    // Adaptive poll: 10s for first 60s, then slow to 30s, stops on terminal state
+    let elapsed = 0;
+    const FAST_INTERVAL = 10000;  // 10s
+    const SLOW_INTERVAL = 30000;  // 30s
+    const FAST_PHASE_MS = 60000;  // stay fast for 1 min
+    let intervalId: ReturnType<typeof setInterval>;
+
+    const schedulePoll = () => {
+      const delay = elapsed < FAST_PHASE_MS ? FAST_INTERVAL : SLOW_INTERVAL;
+      intervalId = setInterval(async () => {
+        // Stop polling once order is in a terminal state
+        if (isTerminal(order)) {
+          clearInterval(intervalId);
+          return;
+        }
+        elapsed += delay;
+        await fetchOrder();
+        // Reschedule with potentially slower interval
+        clearInterval(intervalId);
+        schedulePoll();
+      }, delay);
+    };
+    schedulePoll();
 
     // Instant 0ms cross-tab and in-window event listener
     const handleSync = (e: any) => {
@@ -122,7 +148,7 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
     window.addEventListener('storage', handleSync);
 
     return () => {
-      clearInterval(interval);
+      clearInterval(intervalId);
       window.removeEventListener('orderStatusUpdated', handleSync);
       window.removeEventListener('vrg_order_deleted', handleOrderDeleted);
       window.removeEventListener('vrg_orders_sync', handleOrderDeleted);

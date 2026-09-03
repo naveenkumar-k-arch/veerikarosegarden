@@ -1042,7 +1042,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
     const dispatchedOrders = activeOrders.filter(o => getOrderStage(o.orderStatus) === 'dispatched');
     const deliveredOrders = activeOrders.filter(o => getOrderStage(o.orderStatus) === 'delivered');
 
-    const paidOrders = orders.filter(o => {
+    const paidOrders = activeOrders.filter(o => {
       const pStatus = (o.paymentStatus || '').toString().toUpperCase();
       const oStatus = (o.orderStatus || '').toString().toUpperCase();
       return pStatus === 'SUCCESS' || pStatus === 'PAID' || pStatus === 'APPROVED' || oStatus === 'DELIVERED' || oStatus === 'COMPLETED';
@@ -1093,7 +1093,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
       return phones.size;
     };
     const newCustomersThisMonth = getUniqueCustomers(thisMonthOrders);
-    const uniqueCustomerCount = getUniqueCustomers(orders);
+    const uniqueCustomerCount = getUniqueCustomers(activeOrders);
 
     // Average rating
     const avgRating = reviews.length > 0
@@ -1114,20 +1114,20 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
       periodCustomers = getUniqueCustomers(thisWeekOrders);
     } else if (salesPeriod === 'all_time') {
       periodRevenue = totalRevenue;
-      periodOrderCount = orders.length;
+      periodOrderCount = activeOrders.length;
       periodCustomers = uniqueCustomerCount;
     }
 
     // Order counts by channel / source
-    const whatsAppOrdersCount = orders.filter(isWhatsAppOrder).length;
-    const websiteOrdersCount = orders.length - whatsAppOrdersCount;
+    const whatsAppOrdersCount = activeOrders.filter(isWhatsAppOrder).length;
+    const websiteOrdersCount = activeOrders.length - whatsAppOrdersCount;
 
     return {
       confirmedCount: confirmedOrders.length,
       packingCount: packingOrders.length,
       dispatchedCount: dispatchedOrders.length,
       deliveredCount: deliveredOrders.length,
-      totalCount: orders.length,
+      totalCount: activeOrders.length,
       totalRevenue,
       lowStockCount,
       whatsAppOrdersCount,
@@ -1388,7 +1388,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   // All orders sorted Newest First (for Dashboard & global views)
   const sortedAllOrders = useMemo(() => {
     return orders
-      .filter(o => (o.orderStatus || '').toUpperCase() !== 'CANCELLED' && o.paymentStatus !== 'FAILED')
+      .filter(isValidAdminOrder)
       .sort((a, b) => {
         const diff = getOrderTime(b) - getOrderTime(a);
         if (diff !== 0) return diff;
@@ -1617,7 +1617,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   }, [products, productCategoryFilter, productSearch]);
 
   const { notPrintedOrders, printedOrders, displayedLabelOrders } = useMemo(() => {
-    let list = [...orders];
+    let list = orders.filter(isValidAdminOrder);
 
     // 0. Filter by Order Source (WhatsApp / Offline vs Website vs All)
     if (labelSourceFilter === 'whatsapp') {
@@ -3942,7 +3942,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               >
                 <span className="block text-[11px] leading-tight truncate">All Sources</span>
                 <span className={`block text-[10px] font-black mt-0.5 ${labelSourceFilter === 'all' ? 'text-slate-900' : 'text-slate-500'}`}>
-                  {orders.length}
+                  {stats.totalCount}
                 </span>
               </button>
 
@@ -5427,13 +5427,13 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 <div className="flex justify-between py-1 border-b border-slate-100">
                   <span className="text-slate-600">UPI / QR / Gateway Payments</span>
                   <span className="font-bold text-emerald-700">
-                    ₹{orders.filter(o => o.paymentMethod !== 'COD' && o.paymentStatus === 'SUCCESS').reduce((s, o) => s + (o.grandTotal || 0), 0)}
+                    ₹{orders.filter(isValidAdminOrder).filter(o => o.paymentMethod !== 'COD' && o.paymentStatus === 'SUCCESS').reduce((s, o) => s + (o.grandTotal || 0), 0)}
                   </span>
                 </div>
                 <div className="flex justify-between py-1">
                   <span className="text-slate-600">Cash on Delivery (COD)</span>
                   <span className="font-bold text-amber-700">
-                    ₹{orders.filter(o => o.paymentMethod === 'COD').reduce((s, o) => s + (o.grandTotal || 0), 0)}
+                    ₹{orders.filter(isValidAdminOrder).filter(o => o.paymentMethod === 'COD').reduce((s, o) => s + (o.grandTotal || 0), 0)}
                   </span>
                 </div>
               </div>
@@ -6189,7 +6189,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 { screen: 'products', label: `🌿 Products Catalog (${products.length})`, icon: <Package className="w-4 h-4 text-emerald-700" /> },
                 { screen: 'combos', label: `🎁 Plant Combos & Offers (${combos.length})`, icon: <Sparkles className="w-4 h-4 text-amber-500" /> },
                 { screen: 'categories', label: `📁 Categories (${categories.length})`, icon: <FolderTree className="w-4 h-4 text-emerald-700" /> },
-                { screen: 'orders_list', label: `📦 All Orders (${orders.length})`, icon: <ShoppingBag className="w-4 h-4 text-blue-600" /> },
+                { screen: 'orders_list', label: `📦 All Orders (${stats.totalCount})`, icon: <ShoppingBag className="w-4 h-4 text-blue-600" /> },
                 { screen: 'inventory', label: `⚠️ Inventory & Stock (${stats.lowStockCount} Low)`, icon: <AlertTriangle className="w-4 h-4 text-amber-500" /> },
                 { screen: 'coupons', label: `🏷️ Discount Coupons (${coupons.length})`, icon: <Tag className="w-4 h-4 text-emerald-700" /> },
                 { screen: 'banners', label: `🖼️ Homepage Banners (${banners.length})`, icon: <ImageIcon className="w-4 h-4 text-indigo-600" /> },

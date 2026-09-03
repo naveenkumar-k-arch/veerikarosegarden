@@ -388,7 +388,7 @@ export function isValidAdminOrder(o: any): boolean {
   const hasProof = Boolean(o.paymentProofUrl || o.hasPaymentProof);
 
   // 1. Never show cancelled, failed, or refunded orders in active admin feeds
-  if (oStatus === 'CANCELLED' || pStatus === 'FAILED' || pStatus === 'CANCELLED' || oStatus === 'REFUNDED') {
+  if (oStatus === 'CANCELLED' || pStatus === 'FAILED' || pStatus === 'CANCELLED' || oStatus === 'REFUNDED' || oStatus === 'FAILED') {
     return false;
   }
 
@@ -409,23 +409,29 @@ export function isValidAdminOrder(o: any): boolean {
 
   // 5. COD orders are only valid if confirmed (not pending unconfirmed checkout)
   if (pMethod === 'COD') {
-    if (oStatus === 'PENDING' || oStatus === 'PAYMENT_PENDING' || oStatus === 'PAYMENT_INITIATED') {
+    if (oStatus === 'PENDING' || oStatus === 'PAYMENT_PENDING' || oStatus === 'PAYMENT_INITIATED' || oStatus === 'UNPAID') {
       return false;
     }
     return true;
   }
 
   // 6. Online gateways (Razorpay, PhonePe, UPI) without SUCCESS or proof are pending/unpaid -> STRICTLY HIDE
-  const isOnlineGateway = pMethod === 'RAZORPAY' || pMethod === 'PHONEPE' || pMethod === 'CARD' || pMethod === 'UPI' || pMethod === 'QR_PAYMENT';
+  const isOnlineGateway = pMethod === 'RAZORPAY' || pMethod === 'PHONEPE' || pMethod === 'CARD' || pMethod === 'UPI' || pMethod === 'QR_PAYMENT' || pMethod === 'UPI_DIRECT' || pMethod === 'ONLINE';
   if (isOnlineGateway && pStatus !== 'SUCCESS' && !hasProof) {
     return false;
   }
 
   // 7. General catch-all: any order still in PENDING status without verified payment is hidden
-  if (pStatus === 'PENDING' || oStatus === 'PENDING' || oStatus === 'PAYMENT_PENDING' || oStatus === 'PAYMENT_INITIATED') {
+  if (pStatus === 'PENDING' || pStatus === 'INITIATED' || pStatus === 'UNPAID' || oStatus === 'PENDING' || oStatus === 'PAYMENT_PENDING' || oStatus === 'PAYMENT_INITIATED') {
+    return false;
+  }
+
+  // 8. Strict catch-all: if payment is not verified SUCCESS and method is not COD and no screenshot proof -> STRICTLY HIDE
+  if (pStatus !== 'SUCCESS' && pMethod !== 'COD' && !hasProof) {
     return false;
   }
 
   return true;
 }
+
 

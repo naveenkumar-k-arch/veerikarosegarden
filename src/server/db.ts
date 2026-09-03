@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { Product, Category, Order, Coupon, Banner, Review, SiteSettings, PaymentLog, OrderItemSnapshot, PaymentMethod, FinancialEntry, Combo } from '../types.js';
+import { isValidAdminOrder } from '../utils/orderStages.js';
 
 import { getPrismaClient, getReadPrismaClient, executeInTransaction } from './prisma.js';
 import { firestoreSaveOrder, firestoreGetAllOrders, firestoreUpdateOrder, firestoreDeleteOrder } from './firestore.js';
@@ -311,8 +312,9 @@ function fromPrismaOrderStatus(prismaStatus?: string | null): Order['orderStatus
   if (s === 'DISPATCHED' || s === 'OUT_FOR_DELIVERY' || s === 'SHIPPED' || s === 'COURIER' || s === 'IN_TRANSIT') return 'DISPATCHED';
   if (s === 'PACKING' || s === 'PACKED' || s === 'PROCESSING') return 'PACKING';
   if (s === 'CONFIRMED' || s === 'PAID') return 'CONFIRMED';
-  if (s === 'CANCELLED') return 'CANCELLED';
-  return 'CONFIRMED';
+  if (s === 'CANCELLED' || s === 'FAILED' || s === 'REFUNDED') return 'CANCELLED';
+  if (s === 'PENDING' || s === 'PAYMENT_PENDING' || s === 'PAYMENT_INITIATED' || s === 'UNPAID') return 'PENDING';
+  return 'PENDING';
 }
 
 class Store {
@@ -2804,10 +2806,13 @@ class Store {
 
     if (prisma) {
       try {
+        const ORDER_QUERY_TAKE_USER  = 200; // per-customer history cap
+        const ORDER_QUERY_TAKE_ADMIN = 500; // admin/bootstrap full-list cap
         const items = await prisma.order.findMany({
           where: userId ? { userId } : {},
           include: { items: true },
-          orderBy: { createdAt: 'desc' }
+          orderBy: { createdAt: 'desc' },
+          take: userId ? ORDER_QUERY_TAKE_USER : ORDER_QUERY_TAKE_ADMIN
         });
 
         dbOrders = items.map(o => {
@@ -3035,21 +3040,7 @@ class Store {
       if (!o || !o.id || deletedOrderIds.has(o.id) || deletedOrderIds.has(o.merchantTransactionId || '') || deletedOrderIds.has(o.orderNumber || '')) {
         return false;
       }
-      // If order was explicitly cancelled or failed, do not show in active admin/operational orders
-      if ((o.orderStatus || '').toUpperCase() === 'CANCELLED' || o.paymentStatus === 'FAILED') {
-        return false;
-      }
-      // Hide all unpaid / pending payment orders (incomplete checkouts / abandoned UPI / Razorpay payment pending)
-      if (o.paymentStatus === 'PENDING' || (o.orderStatus || '').toUpperCase() === 'PAYMENT_PENDING' || (o.orderStatus || '').toUpperCase() === 'PENDING') {
-        if (o.paymentMethod !== 'COD' && o.paymentStatus !== 'SUCCESS' && !o.paymentProofUrl) {
-          return false;
-        }
-      }
-      const isOnlineGateway = o.paymentMethod === 'RAZORPAY' || o.paymentMethod === 'PHONEPE' || (o.paymentMethod as string) === 'CARD' || o.paymentMethod === 'UPI';
-      if (isOnlineGateway && o.paymentStatus !== 'SUCCESS' && !o.paymentProofUrl) {
-        return false;
-      }
-      return true;
+      return isValidAdminOrder(o);
     });
     if (!userId) {
       this.ordersCache = { data: result, expiresAt: Date.now() + 60000 };
@@ -3945,15 +3936,16 @@ class Store {
         stock: p.stock
       }));
 
+      const validExistingOrders = existingOrders.filter(isValidAdminOrder);
       const res = {
-        totalOrders: existingOrders.length,
+        totalOrders: validExistingOrders.length,
         totalRevenue: paidOrders.reduce((sum, o) => sum + (o.grandTotal || 0), 0),
         todaySales: paidOrders.filter(o => new Date(o.createdAt) >= todayStart).reduce((sum, o) => sum + (o.grandTotal || 0), 0),
-        pendingOrders: existingOrders.filter(o => o.orderStatus !== 'DELIVERED' && o.orderStatus !== 'CANCELLED').length,
-        completedOrders: existingOrders.filter(o => o.orderStatus === 'DELIVERED').length,
+        pendingOrders: validExistingOrders.filter(o => o.orderStatus !== 'DELIVERED' && o.orderStatus !== 'CANCELLED').length,
+        completedOrders: validExistingOrders.filter(o => o.orderStatus === 'DELIVERED').length,
         lowStockCount: lowStockProducts.length,
         lowStockProducts,
-        recentOrders: existingOrders.slice(0, 10)
+        recentOrders: validExistingOrders.slice(0, 10)
       };
       return res;
     }
@@ -3964,7 +3956,7 @@ class Store {
 
     const prisma = getPrismaClient();
     if (!prisma) {
-      const allOrders = this.memoryOrders;
+      const allOrders = this.memoryOrders.filter(isValidAdminOrder);
       const paidOrders = allOrders.filter(isRevenueOrder);
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);

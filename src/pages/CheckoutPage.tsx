@@ -651,43 +651,55 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       return;
     }
 
-    // Auto status poller: Polls server in background while user completes payment in UPI app / Razorpay
+    // Auto status poller: exponential backoff — starts at 2.5s, doubles up to 15s max
     let isDismissedOrDone = false;
-    const pollInterval = setInterval(async () => {
-      if (isDismissedOrDone || paymentCompletedRef.current) {
-        clearInterval(pollInterval);
-        return;
-      }
-      try {
-        const check = await fetch(`/api/orders/${orderRes.orderId}`);
-        const d = await check.json();
-        if (d.success && d.order && d.order.paymentStatus === 'SUCCESS') {
-          isDismissedOrDone = true;
-          clearInterval(pollInterval);
-          try { localStorage.removeItem('vrg_pending_razorpay_order'); } catch {}
-          paymentCompletedRef.current = true;
-          isPlacingOrderRef.current = false;
-          setLoading(false);
-          setOrderError(null);
-          setPlacedOrderId(orderRes.orderId);
-          setFetchedOrder(d.order);
-          if (onOrderConfirmed) {
-            onOrderConfirmed(d.order);
-          }
-          setStep(7);
-          goTo(7);
-        } else if (d.success && d.order && (d.order.paymentStatus === 'FAILED' || d.order.orderStatus === 'CANCELLED')) {
-          isDismissedOrDone = true;
-          clearInterval(pollInterval);
-          try { localStorage.removeItem('vrg_pending_razorpay_order'); } catch {}
-          isPlacingOrderRef.current = false;
-          setLoading(false);
-        }
-      } catch {}
-    }, 2500);
+    const POLL_INITIAL_DELAY_MS = 2_500;   // 2.5 seconds — first check
+    const POLL_MAX_DELAY_MS    = 15_000;   // 15 seconds — cap
+    const POLL_HARD_STOP_MS    = 120_000;  // 2 minutes — absolute max
+    let pollDelay = POLL_INITIAL_DELAY_MS;
+    let pollTimeoutId: ReturnType<typeof setTimeout>;
 
-    // Timeout poller after 2 minutes
-    setTimeout(() => clearInterval(pollInterval), 120000);
+    const schedulePollCheck = () => {
+      if (isDismissedOrDone || paymentCompletedRef.current) return;
+      pollTimeoutId = setTimeout(async () => {
+        if (isDismissedOrDone || paymentCompletedRef.current) return;
+        try {
+          const check = await fetch(`/api/orders/${orderRes.orderId}`);
+          const d = await check.json();
+          if (d.success && d.order && d.order.paymentStatus === 'SUCCESS') {
+            isDismissedOrDone = true;
+            try { localStorage.removeItem('vrg_pending_razorpay_order'); } catch {}
+            paymentCompletedRef.current = true;
+            isPlacingOrderRef.current = false;
+            setLoading(false);
+            setOrderError(null);
+            setPlacedOrderId(orderRes.orderId);
+            setFetchedOrder(d.order);
+            if (onOrderConfirmed) {
+              onOrderConfirmed(d.order);
+            }
+            setStep(7);
+            goTo(7);
+            return;
+          } else if (d.success && d.order && (d.order.paymentStatus === 'FAILED' || d.order.orderStatus === 'CANCELLED')) {
+            isDismissedOrDone = true;
+            try { localStorage.removeItem('vrg_pending_razorpay_order'); } catch {}
+            isPlacingOrderRef.current = false;
+            setLoading(false);
+            return;
+          }
+        } catch {}
+        // Exponential backoff: double delay, cap at POLL_MAX_DELAY_MS
+        pollDelay = Math.min(pollDelay * 2, POLL_MAX_DELAY_MS);
+        schedulePollCheck();
+      }, pollDelay);
+    };
+    schedulePollCheck();
+
+    // Hard stop after POLL_HARD_STOP_MS
+    setTimeout(() => { isDismissedOrDone = true; clearTimeout(pollTimeoutId); }, POLL_HARD_STOP_MS);
+
+
 
     const cancelPendingOrder = async (reason: string) => {
       try {
