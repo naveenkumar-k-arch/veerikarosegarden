@@ -220,7 +220,7 @@ const DEFAULT_SETTINGS: SiteSettings = {
   tagline: process.env.BUSINESS_TAGLINE || 'Premier Plant Nursery & Farm Direct Gardens',
   phone: process.env.BUSINESS_PHONE || '+91 63812 03534',
   email: process.env.BUSINESS_EMAIL || 'nv01110612@gmail.com',
-  whatsapp: process.env.BUSINESS_WHATSAPP || '+916381203534',
+  whatsapp: process.env.BUSINESS_WHATSAPP || '+919361540714',
   address: process.env.BUSINESS_ADDRESS || 'Pennagaram, Tamil Nadu — 636810',
   googleMapsUrl: 'https://maps.google.com/?q=Pennagaram,Tamil+Nadu',
   workingHours: 'Open 7 AM – 7 PM · All Days',

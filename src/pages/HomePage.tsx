@@ -606,7 +606,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               <button className="btn-green" onClick={() => onNavigate('shop')}>
                 Explore All Plants <ArrowRight style={{ width: 16, height: 16 }} />
               </button>
-              <a href="https://wa.me/917200826129?text=Hello%20Veerika%20Rose%20Garden" target="_blank" rel="noreferrer" className="btn-outline-green" style={{ textDecoration: 'none' }}>
+              <a href="https://wa.me/919361540714?text=Hello%20Veerika%20Rose%20Garden" target="_blank" rel="noreferrer" className="btn-outline-green" style={{ textDecoration: 'none' }}>
                 <MessageSquare style={{ width: 15, height: 15 }} /> WhatsApp Order
               </a>
             </div>
@@ -913,7 +913,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 {[
                   { Icon: MapPin, text: 'Pennagaram, Tamil Nadu' },
                   { Icon: Phone, text: '+91 72008 26129', href: 'tel:+917200826129' },
-                  { Icon: MessageSquare, text: 'WhatsApp Us', href: 'https://wa.me/917200826129' },
+                  { Icon: MessageSquare, text: 'WhatsApp Us', href: 'https://wa.me/919361540714' },
                 ].map(({ Icon, text, href }) => (
                   <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <Icon style={{ width: 15, height: 15, color: '#86efac', flexShrink: 0 }} />

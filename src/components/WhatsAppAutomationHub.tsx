@@ -45,7 +45,7 @@ export const WhatsAppAutomationHub: React.FC<WhatsAppAutomationHubProps> = ({ on
   const [autoSendDelivered, setAutoSendDelivered] = useState(true);
 
   // Test Message State
-  const [testPhone, setTestPhone] = useState('7200826129');
+  const [testPhone, setTestPhone] = useState('9361540714');
   const [testMessage, setTestMessage] = useState('🌸 Hello from Veerika Rose Garden! This is a test message from your Official Meta WhatsApp Cloud API.');
   const [showTestModal, setShowTestModal] = useState(false);
   const [logs, setLogs] = useState<any[]>([]);
@@ -620,7 +620,7 @@ export const WhatsAppAutomationHub: React.FC<WhatsAppAutomationHubProps> = ({ on
                   type="tel"
                   value={testPhone}
                   onChange={e => setTestPhone(e.target.value)}
-                  placeholder="e.g. 7200826129"
+                  placeholder="e.g. 9361540714"
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold font-mono"
                 />
               </div>

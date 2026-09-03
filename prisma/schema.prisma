@@ -510,7 +510,7 @@ model SiteSetting {
   tagline               String   @default("Premier Plant Nursery & Farm Direct Gardens")
   phone                 String   @default("+91 63812 03534")
   email                 String   @default("support@veerikarosegarden.com")
-  whatsapp              String   @default("+916381203534")
+  whatsapp              String   @default("+919361540714")
   address               String   @default("Pennagaram, Tamil Nadu - 636810")
   googleMapsUrl         String   @default("https://maps.google.com/?q=Veerika+Rose+Garden")
   workingHours          String   @default("Mon - Sun: 7:00 AM - 8:00 PM")

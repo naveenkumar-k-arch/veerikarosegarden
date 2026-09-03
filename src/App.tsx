@@ -1713,11 +1713,11 @@ export const App: React.FC = () => {
       {/* Floating WhatsApp Button — Visible ONLY on Main Home Page, positioned cleanly above bottom navigation on mobile */}
       {currentPage === 'home' && !isMobileCheckoutOpen && !isCartOpen && (
         <a
-          href="https://wa.me/917200826129?text=Hello%20Veerika%20Rose%20Garden!%20I%20have%20an%20enquiry%20about%20plants."
+          href="https://wa.me/919361540714?text=Hello%20Veerika%20Rose%20Garden!%20I%20have%20an%20enquiry%20about%20plants."
           target="_blank"
           rel="noopener noreferrer"
           className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-40 bg-emerald-600 hover:bg-emerald-700 active:scale-90 text-white p-3 sm:p-3.5 rounded-full shadow-2xl hover:scale-110 transition-all duration-200 flex items-center justify-center group border-2 border-white/20"
-          title="Chat with us on WhatsApp (+91 72008 26129)"
+          title="Chat with us on WhatsApp (+91 93615 40714)"
           aria-label="Chat with us on WhatsApp"
         >
           <span className="absolute -inset-1 rounded-full bg-emerald-500/30 animate-ping pointer-events-none" />

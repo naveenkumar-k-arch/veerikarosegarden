@@ -164,7 +164,7 @@ export const ExpertAdviceModal: React.FC<ExpertAdviceModalProps> = ({ isOpen, on
                 </button>
 
                 <a
-                  href="https://wa.me/917200826129?text=Hello%20Veerika%20Rose%20Garden,%20I%20want%20expert%20gardening%20advice"
+                  href="https://wa.me/919361540714?text=Hello%20Veerika%20Rose%20Garden,%20I%20want%20expert%20gardening%20advice"
                   target="_blank"
                   rel="noreferrer"
                   className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-2xl shadow-md flex items-center justify-center gap-2 transition-all text-center"

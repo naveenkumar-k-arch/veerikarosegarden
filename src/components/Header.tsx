@@ -62,7 +62,7 @@ export const Header: React.FC<HeaderProps> = ({
               <Phone style={{ width: 11, height: 11 }} /> <span className="sm-show" style={{ display: 'none' }}>+91 72008 26129</span>
             </a>
             <a
-              href="https://wa.me/917200826129?text=Hello%20Veerika%20Rose%20Garden"
+              href="https://wa.me/919361540714?text=Hello%20Veerika%20Rose%20Garden"
               target="_blank" rel="noreferrer"
               style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'white', fontSize: 10, fontWeight: 600, textDecoration: 'none', background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: 999, whiteSpace: 'nowrap' }}
             >

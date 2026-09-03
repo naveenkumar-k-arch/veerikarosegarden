@@ -57,7 +57,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               {[
                 { Icon: Instagram, href: '#', label: 'Instagram', color: '#db2777', bg: '#fdf2f8' },
                 { Icon: Youtube, href: '#', label: 'YouTube', color: '#dc2626', bg: '#fef2f2' },
-                { Icon: MessageSquare, href: 'https://wa.me/917200826129', label: 'WhatsApp', color: '#16a34a', bg: '#f0fdf4' },
+                { Icon: MessageSquare, href: 'https://wa.me/919361540714', label: 'WhatsApp', color: '#16a34a', bg: '#f0fdf4' },
               ].map(({ Icon, href, label, color, bg }) => (
                 <a key={label} href={href} target="_blank" rel="noreferrer" title={label} style={{
                   width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -135,7 +135,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               {[
                 { Icon: MapPin, text: 'Pennagaram, Tamil Nadu — 636810', href: '#', color: '#dc2626' },
                 { Icon: Phone, text: '+91 72008 26129', href: 'tel:+917200826129', color: '#16a34a' },
-                { Icon: MessageSquare, text: 'WhatsApp Us', href: 'https://wa.me/917200826129', color: '#16a34a' },
+                { Icon: MessageSquare, text: 'WhatsApp Us', href: 'https://wa.me/919361540714', color: '#16a34a' },
                 { Icon: Mail, text: 'support@veerikarosegarden.com', href: 'mailto:support@veerikarosegarden.com', color: '#7c3aed' },
                 { Icon: Clock, text: 'Open 7 AM – 7 PM · All Days', href: null, color: '#f59e0b' },
                 { Icon: Truck, text: 'Delivery: Monday to Friday', href: null, color: '#16a34a' },
