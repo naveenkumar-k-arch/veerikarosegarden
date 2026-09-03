@@ -1,6 +1,7 @@
 import * as jspdfPkg from 'jspdf';
 import { Order } from '../../types.js';
 import { sanitizePdfText, cleanPlantLabelName } from '../../utils/textSanitizer.js';
+import { isWhatsAppOrder } from '../../utils/orderStages.js';
 
 const jsPDFClass: any = (jspdfPkg as any).jsPDF || (jspdfPkg as any).default || jspdfPkg;
 
@@ -245,11 +246,13 @@ export function generateDispatchLabelsPdf(
       const typeLines = pdf.splitTextToSize(`Type: ${cleanPotOption}`, 50);
       pdf.text(typeLines[0], col1X + 1, nextServiceY);
 
+      let logisticsNextY = nextServiceY + 4.2;
       if (order.packingOption === 'MAX_PROTECTION' || order.packingOption === 'EXTRA_SECURE') {
         const packText = order.packingOption === 'MAX_PROTECTION' ? 'Pack: Max Heavy Guard' : 'Pack: Extra Secure Bubble';
         pdf.setFont('helvetica', 'normal');
         pdf.setFontSize(8.5);
-        pdf.text(packText, col1X + 1, nextServiceY + 4.2);
+        pdf.text(packText, col1X + 1, logisticsNextY);
+        logisticsNextY += 4.0;
       }
 
       if (order.courierBranch || order.courierDistrict) {
@@ -257,10 +260,27 @@ export function generateDispatchLabelsPdf(
         if (branchText) {
           pdf.setFont('helvetica', 'normal');
           pdf.setFontSize(8);
-          const branchY = nextServiceY + (order.packingOption === 'MAX_PROTECTION' || order.packingOption === 'EXTRA_SECURE' ? 8.2 : 4.2);
-          pdf.text(`Depot: ${branchText.slice(0, 24)}`, col1X + 1, branchY);
+          pdf.text(`Depot: ${branchText.slice(0, 24)}`, col1X + 1, logisticsNextY);
+          logisticsNextY += 4.0;
         }
       }
+
+      // Line 5: Serial Number, Order ID & Order Source (Website Order / WhatsApp Order)
+      const isWA = isWhatsAppOrder(order);
+      const sourceLabel = isWA ? 'WhatsApp Order' : 'Website Order';
+      const orderSerial = (pageIndex * chunkSize) + orderIdx + 1;
+      const orderIdStr = order.id || (order as any).orderNumber || '';
+
+      const metaStartY = Math.max(logisticsNextY + 1.5, boxTopY + boxHeight - 10.5);
+      
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(9.5);
+      pdf.text(`S.No: #${orderSerial} • ${orderIdStr}`, col1X + 1, metaStartY);
+
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(9.5);
+      pdf.text(sourceLabel, col1X + 1, metaStartY + 4.5);
 
       // ================= 4. COLUMN 2: "To," CUSTOMER BOX =================
       pdf.setDrawColor(0, 0, 0);
