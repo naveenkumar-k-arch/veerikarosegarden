@@ -3050,7 +3050,7 @@ class Store {
 
   async syncAllVerifiedOrdersToDatabase(): Promise<Order[]> {
     const prisma = getPrismaClient();
-    const diskOrders = loadDiskOrders();
+    const diskOrders = loadDiskOrders().filter(isValidAdminOrder);
     if (!prisma) return diskOrders;
 
     for (const order of diskOrders) {

@@ -1190,7 +1190,7 @@ apiRouter.get('/orders', requireAuth, async (req: AuthenticatedRequest, res) => 
       return res.status(401).json({ success: false, message: 'Authentication required. Please sign in to view orders.' });
     }
 
-    let orders = await db.getOrders();
+    let orders = (await db.getOrders()).filter(isValidAdminOrder);
     const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN';
 
     if (!isAdmin) {
@@ -1355,7 +1355,7 @@ apiRouter.get('/orders/user/:identifier', async (req: AuthenticatedRequest, res)
       }
     }
 
-    const allOrders = await db.getOrders();
+    const allOrders = (await db.getOrders()).filter(isValidAdminOrder);
     const numOnly = cleanId.replace(/\D/g, '');
 
     const matchedOrders = allOrders.filter(o => {
@@ -1597,7 +1597,7 @@ const handleGenerateLabelsPdf = async (req: AuthenticatedRequest, res: express.R
         ? orderIdsParam
         : String(orderIdsParam).split(',').map(s => s.trim()).filter(Boolean);
       if (idList.length > 0) {
-        targetOrders = allOrders.filter(o => idList.includes(o.id));
+        targetOrders = validOrders.filter(o => idList.includes(o.id));
       }
     }
 
