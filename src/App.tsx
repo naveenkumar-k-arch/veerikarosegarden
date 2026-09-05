@@ -8,6 +8,7 @@ import { Footer } from './components/Footer';
 import { CartDrawer } from './components/CartDrawer';
 import { SplashScreen } from './components/SplashScreen';
 import { ToastContainer } from './components/ToastContainer';
+import { toast } from './utils/toast';
 
 import { HomePage } from './pages/HomePage';
 import { lazyWithRetry } from './utils/lazyWithRetry';
@@ -31,11 +32,13 @@ import { INITIAL_PRODUCTS, INITIAL_CATEGORIES } from './data/catalogData';
 
 import { INITIAL_REVIEWS } from './data/reviewsData';
 import { calculateDeliveryFee } from './utils/delivery';
-import { toast } from './utils/toast';
 import { SITE_CONFIG } from './config/siteConfig';
 import { MaintenancePage } from './pages/MaintenancePage';
+import { LanguageProvider, useLanguage } from './context/LanguageContext';
+import { LanguageSelectionModal } from './components/LanguageSelectionModal';
 
-export const App: React.FC = () => {
+const AppContent: React.FC = () => {
+  const { language, t } = useLanguage();
   // Developer / Staff Maintenance Bypass State
   const [maintenanceBypassed, setMaintenanceBypassed] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
@@ -62,8 +65,15 @@ export const App: React.FC = () => {
     }
     return true;
   });
+  const [showLangModal, setShowLangModal] = useState<boolean>(false);
+
   const handleSplashComplete = useCallback(() => {
     setShowSplash(false);
+    // After splash screen finishes, prompt user to choose preferred language
+    const pathname = (typeof window !== 'undefined' ? window.location.pathname : '').toLowerCase();
+    if (!pathname.startsWith('/admin')) {
+      setShowLangModal(true);
+    }
   }, []);
 
   // Helper to parse URL path or hash into page name & param ID for multi-page routing
@@ -1286,6 +1296,7 @@ export const App: React.FC = () => {
   return (
     <>
       {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
+      <LanguageSelectionModal isOpen={showLangModal} onClose={() => setShowLangModal(false)} />
       <div
         style={{
           minHeight: '100vh',
@@ -1736,14 +1747,14 @@ export const App: React.FC = () => {
             navigateTo('home');
           }}>
             <Home />
-            <span>Home</span>
+            <span>{t('Home')}</span>
           </button>
           <button className={`nav-item ${currentPage === 'shop' && !isMobileCheckoutOpen ? 'active' : ''}`} onClick={() => {
             if (isMobileCheckoutOpen) setIsMobileCheckoutOpen(false);
             navigateTo('shop');
           }}>
             <Store />
-            <span>Shop</span>
+            <span>{t('Shop')}</span>
           </button>
           <button className={`nav-item ${currentPage === 'cart' || currentPage === 'checkout' || isMobileCheckoutOpen ? 'active' : ''} cart-btn`} onClick={() => {
             navigateTo('checkout');
@@ -1751,14 +1762,14 @@ export const App: React.FC = () => {
           }} aria-label="Open checkout">
             {cartCount > 0 && <span className="cart-badge">{cartCount > 9 ? '9+' : cartCount}</span>}
             <ShoppingCart />
-            <span>Cart</span>
+            <span>{t('Cart')}</span>
           </button>
           <button className={`nav-item ${currentPage === 'account' && !isMobileCheckoutOpen ? 'active' : ''}`} onClick={() => {
             if (isMobileCheckoutOpen) setIsMobileCheckoutOpen(false);
             navigateTo('account');
           }}>
             <UserIcon />
-            <span>{user ? user.name?.split(' ')[0] : 'Account'}</span>
+            <span>{user ? user.name?.split(' ')[0] : t('Account')}</span>
           </button>
         </nav>
       )}
@@ -1767,6 +1778,14 @@ export const App: React.FC = () => {
       <ToastContainer />
     </div>
     </>
+  );
+};
+
+export const App: React.FC = () => {
+  return (
+    <LanguageProvider>
+      <AppContent />
+    </LanguageProvider>
   );
 };
 

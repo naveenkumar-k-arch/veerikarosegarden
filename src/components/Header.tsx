@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Search, Heart, User as UserIcon, Phone, MessageSquare, Menu, X, LayoutDashboard, Sparkles } from 'lucide-react';
+import { ShoppingBag, Search, Heart, User as UserIcon, Phone, MessageSquare, Menu, X, LayoutDashboard, Sparkles, Globe } from 'lucide-react';
 import { Category, User, Product } from '../types';
 import { SearchAutocompleteDropdown } from './SearchAutocompleteDropdown';
+import { useLanguage } from '../context/LanguageContext';
 
 interface HeaderProps {
   cartCount: number;
@@ -28,6 +29,7 @@ export const Header: React.FC<HeaderProps> = ({
   isAdmin = false, onToggleAdmin = () => {},
   user, onOpenExpertAdvice
 }) => {
+  const { language, toggleLanguage, t, getCategoryName } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [showDesktopDropdown, setShowDesktopDropdown] = useState(false);
@@ -55,9 +57,24 @@ export const Header: React.FC<HeaderProps> = ({
       <div style={{ background: 'linear-gradient(90deg, #15803d, #16a34a, #15803d)', padding: '4px 0' }}>
         <div className="section-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', gap: 8, padding: '0 16px' }}>
           <span style={{ background: 'rgba(255,255,255,0.2)', color: 'white', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 999, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
-            🌿 ALL INDIA DELIVERY
+            🌿 {t('ALL INDIA DELIVERY')}
           </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            {/* Top Bar Language Selector Button */}
+            <button
+              onClick={toggleLanguage}
+              title={language === 'ta' ? 'Switch to English' : 'தமிழுக்கு மாறவும்'}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                color: '#ffffff', background: 'rgba(255,255,255,0.25)',
+                border: '1px solid rgba(255,255,255,0.4)', borderRadius: 999,
+                padding: '2px 8px', fontSize: 10, fontWeight: 700,
+                cursor: 'pointer', whiteSpace: 'nowrap',
+              }}
+            >
+              <Globe style={{ width: 10, height: 10 }} />
+              <span>{language === 'ta' ? 'English' : 'தமிழ்'}</span>
+            </button>
             <a href="tel:+917200826129" style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#bbf7d0', fontSize: 10, fontWeight: 600, textDecoration: 'none' }}>
               <Phone style={{ width: 11, height: 11 }} /> <span className="sm-show" style={{ display: 'none' }}>+91 72008 26129</span>
             </a>
@@ -66,7 +83,7 @@ export const Header: React.FC<HeaderProps> = ({
               target="_blank" rel="noreferrer"
               style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'white', fontSize: 10, fontWeight: 600, textDecoration: 'none', background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: 999, whiteSpace: 'nowrap' }}
             >
-              <MessageSquare style={{ width: 10, height: 10 }} /> WhatsApp
+              <MessageSquare style={{ width: 10, height: 10 }} /> {language === 'ta' ? 'வாட்ஸ்அப்' : 'WhatsApp'}
             </a>
           </div>
         </div>
@@ -88,13 +105,15 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
             <div>
               <h1 style={{
-                fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 800,
+                fontFamily: language === 'ta' ? 'var(--font-tamil)' : 'var(--font-display)', fontSize: language === 'ta' ? 14 : 15, fontWeight: 800,
                 color: 'var(--text-dark)', margin: 0, lineHeight: 1.1, whiteSpace: 'nowrap'
               }}>
-                Veerika <em style={{ color: 'var(--color-rose)', fontStyle: 'italic', fontWeight: 700 }}>Rose Garden</em>
+                {language === 'ta' ? 'வீரிகா ரோஜா தோட்டம்' : (
+                  <>Veerika <em style={{ color: 'var(--color-rose)', fontStyle: 'italic', fontWeight: 700 }}>Rose Garden</em></>
+                )}
               </h1>
               <p style={{ fontFamily: 'var(--font-tamil)', fontSize: 9, color: 'var(--text-muted)', margin: 0, whiteSpace: 'nowrap' }}>
-                வீரிகா ரோஜா கார்டன்
+                {language === 'ta' ? 'பென்னாகரம் நர்சரி' : 'வீரிகா ரோஜா கார்டன்'}
               </p>
             </div>
           </div>
@@ -105,7 +124,7 @@ export const Header: React.FC<HeaderProps> = ({
               <Search style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: 'var(--text-light)', zIndex: 2 }} />
               <input
                 type="text"
-                placeholder="Search plants in English, தமிழ், or Scientific name..."
+                placeholder={t('Search plants in English, தமிழ்...')}
                 value={searchQuery}
                 onFocus={() => { if (searchQuery.trim()) setShowDesktopDropdown(true); }}
                 onChange={e => {
@@ -121,7 +140,7 @@ export const Header: React.FC<HeaderProps> = ({
                 color: 'white', border: 'none', borderRadius: 8,
                 fontSize: 10, fontWeight: 700, cursor: 'pointer', zIndex: 2
               }}>
-                SEARCH
+                {t('Search')}
               </button>
             </form>
 
@@ -159,7 +178,7 @@ export const Header: React.FC<HeaderProps> = ({
                 flexShrink: 0,
               }}>
                 <Sparkles style={{ width: 12, height: 12 }} />
-                <span>Expert AI</span>
+                <span>{language === 'ta' ? 'தாவர நிபுணர் AI' : 'Expert AI'}</span>
               </button>
             )}
 
@@ -173,9 +192,25 @@ export const Header: React.FC<HeaderProps> = ({
                 flexShrink: 0,
               }}>
                 <LayoutDashboard style={{ width: 12, height: 12 }} />
-                <span className="sm-show" style={{ display: 'none' }}>{isAdmin ? 'Exit Admin' : 'Admin'}</span>
+                <span className="sm-show" style={{ display: 'none' }}>{language === 'ta' ? (isAdmin ? 'வெளியேறு' : 'நிர்வாகம்') : (isAdmin ? 'Exit Admin' : 'Admin')}</span>
               </button>
             )}
+
+            {/* Language Toggle Button */}
+            <button
+              onClick={toggleLanguage}
+              title={language === 'ta' ? 'Switch to English' : 'தமிழுக்கு மாற்றவும்'}
+              style={{
+                height: 32, padding: '0 8px', display: 'flex', alignItems: 'center', gap: 4,
+                background: language === 'ta' ? '#dcfce7' : 'var(--bg-soft)',
+                border: `1.5px solid ${language === 'ta' ? '#86efac' : '#d1fae5'}`,
+                borderRadius: 8, color: '#15803d', fontSize: 11, fontWeight: 800,
+                cursor: 'pointer', flexShrink: 0,
+              }}
+            >
+              <Globe style={{ width: 13, height: 13 }} />
+              <span>{language === 'ta' ? 'English' : 'தமிழ்'}</span>
+            </button>
 
             {/* Account / User button */}
             <button onClick={() => onNavigate('account')} title={user ? `My Account (${user.name})` : "Sign In / My Account"} style={{
@@ -187,7 +222,7 @@ export const Header: React.FC<HeaderProps> = ({
             }}>
               <UserIcon style={{ width: 14, height: 14, color: user ? '#16a34a' : 'var(--text-muted)' }} />
               <span className="sm-show" style={{ display: 'none', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {user ? user.name?.split(' ')[0] : 'Account'}
+                {user ? user.name?.split(' ')[0] : t('Account')}
               </span>
             </button>
 
@@ -236,7 +271,7 @@ export const Header: React.FC<HeaderProps> = ({
             <Search style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 13, height: 13, color: 'var(--text-light)', zIndex: 2 }} />
             <input
               type="text"
-              placeholder="Search plants..."
+              placeholder={t('Search plants in English, தமிழ்...')}
               value={searchQuery}
               onFocus={() => { if (searchQuery.trim()) setShowMobileDropdown(true); }}
               onChange={e => {
@@ -247,7 +282,7 @@ export const Header: React.FC<HeaderProps> = ({
               style={{ paddingLeft: 30, paddingRight: 64, height: 34, fontSize: 13 }}
             />
             <button type="submit" style={{ position: 'absolute', right: 3, top: 3, bottom: 3, padding: '0 10px', background: 'linear-gradient(135deg, #16a34a, #15803d)', color: 'white', border: 'none', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', zIndex: 2 }}>
-              GO
+              {language === 'ta' ? 'தேடு' : 'GO'}
             </button>
           </form>
 
@@ -283,7 +318,7 @@ export const Header: React.FC<HeaderProps> = ({
                 className={`cat-pill${activeCategory === undefined ? ' active' : ''}`}
                 style={{ fontSize: 11, padding: '4px 10px' }}
               >
-                All Plants
+                {t('Shop All')}
               </button>
               {categories.map(cat => (
                 <button
@@ -292,7 +327,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className={`cat-pill${activeCategory === cat.id ? ' active' : ''}`}
                   style={{ fontSize: 11, padding: '4px 10px' }}
                 >
-                  {cat.name}
+                  {getCategoryName(cat)}
                 </button>
               ))}
             </div>
@@ -311,7 +346,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <p style={{ margin: 0, fontSize: 10, color: '#15803d' }}>{user.email || user.phone || 'Customer'}</p>
                 </div>
                 <button onClick={() => { onNavigate('account'); setMobileMenuOpen(false); }} style={{ padding: '5px 10px', background: '#16a34a', color: 'white', border: 'none', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-                  My Account
+                  {t('My Account')}
                 </button>
               </div>
             ) : (
@@ -325,7 +360,7 @@ export const Header: React.FC<HeaderProps> = ({
                 }}
               >
                 <UserIcon style={{ width: 14, height: 14 }} />
-                <span>Login / Sign Up</span>
+                <span>{t('Sign In')}</span>
               </button>
             )}
 
@@ -336,7 +371,7 @@ export const Header: React.FC<HeaderProps> = ({
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, cursor: 'pointer'
               }}>
                 <Sparkles style={{ width: 14, height: 14 }} />
-                <span>✨ Ask Plant Expert AI</span>
+                <span>✨ {t('Expert Advice')}</span>
               </button>
             )}
 
@@ -352,16 +387,16 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: 'var(--text-light)', textTransform: 'uppercase', marginBottom: 8 }}>Categories</div>
+          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: 'var(--text-light)', textTransform: 'uppercase', marginBottom: 8 }}>{language === 'ta' ? 'வகைகள்' : 'Categories'}</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-            <button onClick={() => { onSelectCategory(undefined); onNavigate('shop'); setMobileMenuOpen(false); }} style={{ padding: '7px 10px', textAlign: 'left', borderRadius: 8, fontSize: 11, fontWeight: 600, background: '#dcfce7', border: '1px solid #bbf7d0', color: '#15803d', cursor: 'pointer' }}>All Plants</button>
+            <button onClick={() => { onSelectCategory(undefined); onNavigate('shop'); setMobileMenuOpen(false); }} style={{ padding: '7px 10px', textAlign: 'left', borderRadius: 8, fontSize: 11, fontWeight: 600, background: '#dcfce7', border: '1px solid #bbf7d0', color: '#15803d', cursor: 'pointer' }}>{t('Shop All')}</button>
             {categories.map(cat => (
-              <button key={cat.id} onClick={() => { onSelectCategory(cat.id); onNavigate('shop'); setMobileMenuOpen(false); }} style={{ padding: '7px 10px', textAlign: 'left', borderRadius: 8, fontSize: 11, background: 'var(--bg-soft)', border: '1px solid #e5f0e0', color: 'var(--text-body)', cursor: 'pointer' }}>{cat.name}</button>
+              <button key={cat.id} onClick={() => { onSelectCategory(cat.id); onNavigate('shop'); setMobileMenuOpen(false); }} style={{ padding: '7px 10px', textAlign: 'left', borderRadius: 8, fontSize: 11, background: 'var(--bg-soft)', border: '1px solid #e5f0e0', color: 'var(--text-body)', cursor: 'pointer' }}>{getCategoryName(cat)}</button>
             ))}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 10, paddingTop: 8, borderTop: '1px solid #f0fdf4' }}>
-            <button onClick={() => { onNavigate('policies'); setMobileMenuOpen(false); }} style={{ padding: '7px 10px', borderRadius: 8, fontSize: 11, background: 'var(--bg-soft)', border: '1px solid #e5f0e0', color: 'var(--text-muted)', cursor: 'pointer' }}>Policies</button>
-            <button onClick={() => { onNavigate('account'); setMobileMenuOpen(false); }} style={{ padding: '7px 10px', borderRadius: 8, fontSize: 11, background: 'var(--bg-soft)', border: '1px solid #e5f0e0', color: 'var(--text-muted)', cursor: 'pointer' }}>My Account</button>
+            <button onClick={() => { onNavigate('policies'); setMobileMenuOpen(false); }} style={{ padding: '7px 10px', borderRadius: 8, fontSize: 11, background: 'var(--bg-soft)', border: '1px solid #e5f0e0', color: 'var(--text-muted)', cursor: 'pointer' }}>{language === 'ta' ? 'கொள்கைகள்' : 'Policies'}</button>
+            <button onClick={() => { onNavigate('account'); setMobileMenuOpen(false); }} style={{ padding: '7px 10px', borderRadius: 8, fontSize: 11, background: 'var(--bg-soft)', border: '1px solid #e5f0e0', color: 'var(--text-muted)', cursor: 'pointer' }}>{t('My Account')}</button>
           </div>
         </div>
       )}

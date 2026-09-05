@@ -10,6 +10,7 @@ import { INDIAN_STATES, isTamilNadu, getDeliveryChargeForOption, DeliveryOptionT
 import { computeOrderTotals } from '../utils/orderTotals';
 import { CourierSelectionSection, CourierPartnerType } from './CourierSelectionSection';
 import { PlantProtectivePackingSection, PackingOptionType } from './PlantProtectivePackingSection';
+import { useLanguage } from '../context/LanguageContext';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types & Constants
@@ -32,19 +33,24 @@ interface MobileCheckoutFlowProps {
     paymentProofUrl?: string;
     transactionId?: string;
     potCharge?: number;
-    potOption?: string;
+    potOption?: any;
     packingCharge?: number;
-    packingOption?: string;
+    packingOption?: PackingOptionType;
+    courierPartner?: CourierPartnerType;
     courierName?: string;
     courierDistrict?: string;
     courierBranch?: string;
+    metturBranch?: string;
+    deliveryCharge?: number;
     shippingCharge?: number;
+    [key: string]: any;
   }) => Promise<{
-    success: boolean;
     orderId?: string;
+    success?: boolean;
     razorpayOrderId?: string;
-    razorpayKeyId?: string;
     amount?: number;
+    currency?: string;
+    keyId?: string;
     customerName?: string;
     customerPhone?: string;
     customerEmail?: string;
@@ -74,16 +80,21 @@ const DELIVERY_TERMS = [
 // Step Progress Bar
 // ─────────────────────────────────────────────────────────────────────────────
 
-const STEP_LABELS = [
-  'Cart', 'Summary', 'Address', 'Items', 'Terms', 'Payment', 'Confirmed', 'Receipt', 'Track'
+const STEP_LABELS_EN = [
+  'Cart', 'Summary', 'Address', 'Courier', 'Terms', 'Payment', 'Confirmed', 'Receipt', 'Track'
+];
+const STEP_LABELS_TA = [
+  'கூடை', 'சுருக்கம்', 'முகவரி', 'கூரியர்', 'விதிமுறைகள்', 'பணம்', 'உறுதியானது', 'ரசீது', 'கண்காணிப்பு'
 ];
 
 const StepBar: React.FC<{ step: number }> = ({ step }) => {
+  const { language } = useLanguage();
   const pct = Math.round(((step - 1) / 8) * 100);
+  const labels = language === 'ta' ? STEP_LABELS_TA : STEP_LABELS_EN;
   return (
     <div className="px-4 pt-2 pb-1">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[10px] font-bold text-emerald-700">Step {step} of 9 · {STEP_LABELS[step - 1]}</span>
+        <span className="text-[10px] font-bold text-emerald-700">{language === 'ta' ? `படி ${step} / 9` : `Step ${step} of 9`} · {labels[step - 1]}</span>
         <span className="text-[10px] font-bold text-slate-500">{pct}%</span>
       </div>
       <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
@@ -138,6 +149,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
   onRemoveItem,
   onNavigateToAccount,
 }) => {
+  const { language, t, getProductName } = useLanguage();
   // ── Step state ─────────────────────────────────────────────────────────────
   const [step, setStep] = useState<number>(() => {
     try {
@@ -1583,30 +1595,46 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
               {/* Price summary */}
               <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-2 text-xs text-slate-600">
                 <div className="flex justify-between">
-                  <span className="flex items-center gap-1">🧾 Subtotal:</span>
+                  <span className="flex items-center gap-1">🧾 {language === 'ta' ? 'கூடைத் தொகை:' : 'Subtotal:'}</span>
                   <span className="font-semibold text-slate-900">₹{subtotal}</span>
                 </div>
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="flex items-center gap-1">
-                      {isMettur ? '📦 Packing Fee:' : '🚚 Delivery Charge:'}
+                      {isMettur
+                        ? (language === 'ta' ? '📦 பேக்கிங் கட்டணம்:' : '📦 Packing Fee:')
+                        : (language === 'ta' ? '🚚 டெலிவரி கட்டணம்:' : '🚚 Delivery Charge:')}
                     </span>
                     <span className="text-[10px] text-slate-400 block">
                       {isMettur
-                        ? `Mettur Parcel Depot (${metturDistrict || 'Tamil Nadu'}) • Delivery charges payable extra upon branch pickup`
+                        ? (language === 'ta'
+                            ? `மேட்டூர் பார்சல் டெப்போ (${metturDistrict || 'தமிழ்நாடு'}) • கிளை டெலிவரி கட்டணம் பார்சல் பெறும்போது செலுத்தவும்`
+                            : `Mettur Parcel Depot (${metturDistrict || 'Tamil Nadu'}) • Delivery charges payable extra upon branch pickup`)
                         : hasAllFreeDelivery
-                          ? '100% Free Doorstep Delivery (Tamil Nadu Combo Offer)'
+                          ? (language === 'ta'
+                              ? '100% இலவச வீட்டு டெலிவரி (தமிழ்நாடு காம்போ சலுகை)'
+                              : '100% Free Doorstep Delivery (Tamil Nadu Combo Offer)')
                           : deliveryOption === 'FULL_SOIL_6INCH'
-                            ? 'Professional Courier (6" Full Soil - ₹140/plant)'
+                            ? (language === 'ta'
+                                ? 'புரொபஷனல் கூரியர் (6" முழு மண் - ₹140/செடி)'
+                                : 'Professional Courier (6" Full Soil - ₹140/plant)')
                             : deliveryOption === 'FULL_SOIL_8INCH'
-                              ? 'Professional Courier (8" Full Soil - ₹190/plant)'
+                              ? (language === 'ta'
+                                  ? 'புரொபஷனல் கூரியர் (8" முழு மண் - ₹190/செடி)'
+                                  : 'Professional Courier (8" Full Soil - ₹190/plant)')
                               : deliveryOption === 'FULL_SOIL'
-                                ? 'Professional Courier (6" Full Soil - ₹140/plant)'
-                                : `Professional Courier (Reduced Soil - ${inTN ? 'TN' : address.state || 'Other State'})`}
+                                ? (language === 'ta'
+                                    ? 'புரொபஷனல் கூரியர் (6" முழு மண் - ₹140/செடி)'
+                                    : 'Professional Courier (6" Full Soil - ₹140/plant)')
+                                : (language === 'ta'
+                                    ? `புரொபஷனல் கூரியர் (குறைந்த மண் - ${inTN ? 'தமிழ்நாடு' : address.state || 'பிற மாநிலம்'})`
+                                    : `Professional Courier (Reduced Soil - ${inTN ? 'TN' : address.state || 'Other State'})`)}
                     </span>
                     {isMettur && (
                       <span className="text-[9px] text-amber-800 font-bold block mt-0.5">
-                        ⚠️ Pay delivery fee directly to Mettur Parcel Service when collecting order.
+                        {language === 'ta'
+                          ? '⚠️ டெலிவரி கட்டணத்தை மேட்டூர் பார்சல் கிளையில் நேரடியாகச் செலுத்தவும்.'
+                          : '⚠️ Pay delivery fee directly to Mettur Parcel Service when collecting order.'}
                       </span>
                     )}
                   </div>
@@ -1950,22 +1978,22 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                 {/* Price Breakdown */}
                 <div className="border-t border-slate-100 pt-2 space-y-1.5 text-[11px]">
                   <div className="flex justify-between text-slate-600">
-                    <span>Plants Subtotal</span>
+                    <span>{language === 'ta' ? 'செடிகளின் தொகை' : 'Plants Subtotal'}</span>
                     <span className="font-bold text-slate-900">₹{fetchedOrder?.subtotal ?? subtotal}</span>
                   </div>
 
                   <div className="flex justify-between text-slate-600">
                     <span>
                       {(fetchedOrder?.courierPartner === 'METTUR_PARCEL' || courierPartner === 'METTUR_PARCEL')
-                        ? 'Packing Fee (Mettur Parcel Service)'
-                        : `Courier (${fetchedOrder?.courierName || 'Professional Courier'})`}
+                        ? (language === 'ta' ? 'பேக்கிங் கட்டணம் (மேட்டூர் பார்சல் சர்வீஸ்)' : 'Packing Fee (Mettur Parcel Service)')
+                        : (language === 'ta' ? `கூரியர் (${fetchedOrder?.courierName || 'புரொபஷனல் கூரியர்'})` : `Courier (${fetchedOrder?.courierName || 'Professional Courier'})`)}
                     </span>
                     <span className="font-bold text-slate-900">₹{fetchedOrder?.shippingCharge ?? shippingCharge}</span>
                   </div>
 
                   {(fetchedOrder?.packingCharge > 0 || packingCharge > 0) && (
                     <div className="flex justify-between text-slate-600">
-                      <span>Protective Packing</span>
+                      <span>{language === 'ta' ? 'பாதுகாப்பு பேக்கிங் கட்டணம்' : 'Protective Packing'}</span>
                       <span className="font-bold text-slate-900">₹{fetchedOrder?.packingCharge ?? packingCharge}</span>
                     </div>
                   )}
@@ -2027,15 +2055,15 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
               <div className="bg-white rounded-3xl border-2 border-slate-200 overflow-hidden shadow-sm">
                 {/* Receipt header */}
                 <div className="bg-emerald-900 text-white p-5 text-center space-y-1">
-                  <p className="text-[10px] font-bold text-emerald-300 uppercase tracking-widest">VRG NURSERY</p>
-                  <h3 className="text-lg font-black">Veerika Rose Garden</h3>
-                  <p className="text-[10px] text-emerald-200">Official Order Receipt</p>
+                  <p className="text-[10px] font-bold text-emerald-300 uppercase tracking-widest">{language === 'ta' ? 'விஆர்ஜி நர்சரி' : 'VRG NURSERY'}</p>
+                  <h3 className="text-lg font-black">{language === 'ta' ? 'வீரிகா ரோஜா கார்டன்' : 'Veerika Rose Garden'}</h3>
+                  <p className="text-[10px] text-emerald-200">{language === 'ta' ? 'அதிகாரப்பூர்வ ஆர்டர் ரசீது' : 'Official Order Receipt'}</p>
                 </div>
 
                 {/* Receipt body */}
                 <div className="p-4 space-y-3 text-xs">
                   <div className="flex justify-between border-b border-slate-100 pb-2">
-                    <span className="font-bold text-slate-600">Order ID</span>
+                    <span className="font-bold text-slate-600">{language === 'ta' ? 'ஆர்டர் எண்' : 'Order ID'}</span>
                     <span className="font-mono font-extrabold text-slate-900">{fetchedOrder?.id || placedOrderId}</span>
                   </div>
 
@@ -2048,20 +2076,20 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
 
                   <div className="border-t border-slate-200 pt-2 space-y-1.5">
                     <div className="flex justify-between">
-                      <span className="text-slate-600">Plant Total</span>
+                      <span className="text-slate-600">{language === 'ta' ? 'செடிகளின் தொகை' : 'Plant Total'}</span>
                       <span className="font-semibold text-slate-900">₹{fetchedOrder?.subtotal ?? subtotal}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-600">
                         {(fetchedOrder?.courierPartner === 'METTUR_PARCEL' || courierPartner === 'METTUR_PARCEL')
-                          ? 'Packing Fee (Mettur Parcel)'
-                          : `Courier (${fetchedOrder?.courierName || 'Professional'})`}
+                          ? (language === 'ta' ? 'பேக்கிங் கட்டணம் (மேட்டூர் பார்சல்)' : 'Packing Fee (Mettur Parcel)')
+                          : (language === 'ta' ? `கூரியர் (${fetchedOrder?.courierName || 'புரொபஷனல்'})` : `Courier (${fetchedOrder?.courierName || 'Professional'})`)}
                       </span>
                       <span className="font-semibold text-slate-900">₹{fetchedOrder?.shippingCharge ?? shippingCharge}</span>
                     </div>
                     {(fetchedOrder?.packingCharge > 0 || packingCharge > 0) && (
                       <div className="flex justify-between">
-                        <span className="text-slate-600">Packing Charge</span>
+                        <span className="text-slate-600">{language === 'ta' ? 'பாதுகாப்பு பேக்கிங் கட்டணம்' : 'Packing Charge'}</span>
                         <span className="font-semibold text-slate-900">₹{fetchedOrder?.packingCharge ?? packingCharge}</span>
                       </div>
                     )}

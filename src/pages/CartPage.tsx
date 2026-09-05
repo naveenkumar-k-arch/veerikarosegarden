@@ -3,6 +3,7 @@ import { CartItem, Product, User } from '../types';
 import { ShoppingBag, ArrowLeft, Trash2, Plus, Minus, Tag, Truck, ShieldCheck, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
 import { INDIAN_STATES, isTamilNadu } from '../utils/delivery';
 import { computeOrderTotals } from '../utils/orderTotals';
+import { useLanguage } from '../context/LanguageContext';
 
 interface CartPageProps {
   items: CartItem[];
@@ -27,6 +28,7 @@ export const CartPage: React.FC<CartPageProps> = ({
   onApplyCoupon,
   onRemoveCoupon
 }) => {
+  const { language, t, getProductName } = useLanguage();
   const [couponCode, setCouponCode] = useState('');
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponMsg, setCouponMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -306,14 +308,14 @@ export const CartPage: React.FC<CartPageProps> = ({
         <div className="space-y-4">
           <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200 text-xs space-y-4 shadow-sm">
             <h3 className="font-bold text-slate-900 text-base border-b border-slate-200 pb-3 flex items-center justify-between">
-              <span>Order Summary</span>
-              <span className="text-xs text-slate-500 font-medium">({items.length} items)</span>
+              <span>{t('Order Summary')}</span>
+              <span className="text-xs text-slate-500 font-medium">({items.length} {t('Items')})</span>
             </h3>
 
             {/* Delivery State Selector */}
             <div>
               <label className="font-bold text-slate-700 block mb-1 text-[11px]">
-                🚚 Delivery State Rate Preview:
+                🚚 {t('Delivery Charge')}:
               </label>
               <select
                 value={selectedState}
@@ -322,7 +324,7 @@ export const CartPage: React.FC<CartPageProps> = ({
               >
                 {INDIAN_STATES.map((st) => (
                   <option key={st} value={st}>
-                    {st} {isTamilNadu(st) ? '(₹60 base shipping)' : '(₹100 base shipping)'}
+                    {st} {isTamilNadu(st) ? (language === 'ta' ? '(₹60 ஆரம்ப டெலிவரி)' : '(₹60 base shipping)') : (language === 'ta' ? '(₹100 ஆரம்ப டெலிவரி)' : '(₹100 base shipping)')}
                   </option>
                 ))}
               </select>
@@ -332,27 +334,27 @@ export const CartPage: React.FC<CartPageProps> = ({
             <div className="pt-2 border-t border-slate-200 space-y-2">
               <label className="font-extrabold text-slate-900 text-xs flex items-center gap-1.5">
                 <Tag className="w-4 h-4 text-emerald-700" />
-                <span>Apply Coupon / Discount Code</span>
+                <span>{language === 'ta' ? 'கூப்பன் குறியீட்டைப் பயன்படுத்தவும்' : 'Apply Coupon / Discount Code'}</span>
               </label>
 
               {appliedCoupon ? (
                 <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between text-emerald-900">
                   <div>
-                    <p className="font-extrabold text-xs">CODE: {appliedCoupon.code}</p>
-                    <p className="text-[10px] text-emerald-700 font-medium">You saved ₹{appliedCoupon.discountAmount}!</p>
+                    <p className="font-extrabold text-xs">{language === 'ta' ? 'குறியீடு' : 'CODE'}: {appliedCoupon.code}</p>
+                    <p className="text-[10px] text-emerald-700 font-medium">{language === 'ta' ? `நீங்கள் ₹${appliedCoupon.discountAmount} சேமித்துள்ளீர்கள்!` : `You saved ₹${appliedCoupon.discountAmount}!`}</p>
                   </div>
                   <button
                     onClick={onRemoveCoupon}
                     className="text-xs font-bold text-rose-600 hover:underline cursor-pointer"
                   >
-                    Remove
+                    {t('Remove')}
                   </button>
                 </div>
               ) : (
                 <form onSubmit={handleCouponSubmit} className="flex gap-2">
                   <input
                     type="text"
-                    placeholder="Enter Coupon Code"
+                    placeholder={language === 'ta' ? 'கூப்பன் குறியீடு' : 'Enter Coupon Code'}
                     value={couponCode}
                     onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                     className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-xl font-mono text-xs font-semibold uppercase focus:outline-none focus:ring-2 focus:ring-emerald-600"
@@ -362,7 +364,7 @@ export const CartPage: React.FC<CartPageProps> = ({
                     disabled={couponLoading || !couponCode.trim()}
                     className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
                   >
-                    {couponLoading ? '...' : 'Apply'}
+                    {couponLoading ? '...' : t('Apply')}
                   </button>
                 </form>
               )}
@@ -377,37 +379,37 @@ export const CartPage: React.FC<CartPageProps> = ({
             {/* Calculations */}
             <div className="pt-3 border-t border-slate-200 space-y-2.5 text-slate-600">
               <div className="flex justify-between items-center">
-                <span className="font-medium">Subtotal:</span>
+                <span className="font-medium">{t('Subtotal')}:</span>
                 <span className="font-bold text-slate-900">₹{subtotal}</span>
               </div>
 
               {potCharge > 0 && (
                 <div className="flex justify-between items-center text-emerald-800">
-                  <span className="font-medium">🪴 Pot Charge ({totalPlantCount} pots):</span>
+                  <span className="font-medium">🪴 {language === 'ta' ? `தொட்டி கட்டணம் (${totalPlantCount} தொட்டிகள்):` : `Pot Charge (${totalPlantCount} pots):`}</span>
                   <span className="font-bold text-emerald-700">+₹{potCharge}</span>
                 </div>
               )}
 
               <div className="flex justify-between items-center">
-                <span className="font-medium">Delivery Fee:</span>
+                <span className="font-medium">{t('Delivery Charge')}:</span>
                 <span className="font-bold text-slate-900">
                   {selectedPot !== 'NONE' ? (
-                    <span className="text-emerald-700 font-extrabold">FREE (With Pot)</span>
+                    <span className="text-emerald-700 font-extrabold">{language === 'ta' ? 'இலவசம் (தொட்டியுடன்)' : 'FREE (With Pot)'}</span>
                   ) : (
-                    shippingFee === 0 ? 'FREE' : `₹${shippingFee}`
+                    shippingFee === 0 ? (language === 'ta' ? 'இலவசம்' : 'FREE') : `₹${shippingFee}`
                   )}
                 </span>
               </div>
 
               {appliedCoupon && (
                 <div className="flex justify-between text-emerald-700 font-semibold items-center">
-                  <span>Coupon Discount:</span>
+                  <span>{language === 'ta' ? 'கூப்பன் தள்ளுபடி:' : 'Coupon Discount:'}</span>
                   <span>-₹{discountAmount}</span>
                 </div>
               )}
 
               <div className="flex justify-between text-base font-extrabold text-slate-900 pt-3 border-t border-slate-300 items-center">
-                <span>Grand Total:</span>
+                <span>{t('Estimated Total')}:</span>
                 <span className="text-emerald-800 text-xl font-extrabold">₹{grandTotal}</span>
               </div>
             </div>
@@ -417,7 +419,7 @@ export const CartPage: React.FC<CartPageProps> = ({
               onClick={onProceedToCheckout}
               className="w-full py-4 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-sm rounded-2xl shadow-lg hover:shadow-emerald-700/25 transition-all flex items-center justify-center gap-2 cursor-pointer pt-3.5"
             >
-              <span>PROCEED TO CHECKOUT (₹{grandTotal})</span>
+              <span>{t('Proceed to Checkout')} (₹{grandTotal})</span>
               <ArrowRight className="w-5 h-5" />
             </button>
           </div>

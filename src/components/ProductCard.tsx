@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Product } from '../types';
 import { Heart, ShoppingBag, Star, Leaf, Plus, Check, ChevronRight, ChevronLeft } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface ProductCardProps {
   product: Product;
@@ -22,6 +23,7 @@ export interface CompactProductCardProps {
 export const CompactProductCard: React.FC<CompactProductCardProps> = ({
   product, onAddToCart, onViewDetails, isWishlisted = false, onToggleWishlist
 }) => {
+  const { language, t, getProductName } = useLanguage();
   if (!product || !product.id) return null;
 
   const [imgError, setImgError] = useState(false);
@@ -85,7 +87,7 @@ export const CompactProductCard: React.FC<CompactProductCardProps> = ({
             whiteSpace: 'nowrap',
             lineHeight: 1.2
           }}>
-            {discountPercent}% OFF
+            {discountPercent}% {language === 'ta' ? 'தள்ளுபடி' : 'OFF'}
           </span>
         )}
         <span style={{
@@ -101,7 +103,7 @@ export const CompactProductCard: React.FC<CompactProductCardProps> = ({
           overflow: 'hidden',
           textOverflow: 'ellipsis'
         }}>
-          {product.categoryName || 'Plant'}
+          {t(product.categoryName || 'Plant')}
         </span>
       </div>
 
@@ -133,7 +135,7 @@ export const CompactProductCard: React.FC<CompactProductCardProps> = ({
         />
         {product.stock === 0 && (
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ color: 'white', fontSize: 9, fontWeight: 800, background: 'rgba(0,0,0,0.6)', padding: '1px 6px', borderRadius: 999 }}>Sold Out</span>
+            <span style={{ color: 'white', fontSize: 9, fontWeight: 800, background: 'rgba(0,0,0,0.6)', padding: '1px 6px', borderRadius: 999 }}>{t('Out of Stock')}</span>
           </div>
         )}
       </div>
@@ -142,13 +144,17 @@ export const CompactProductCard: React.FC<CompactProductCardProps> = ({
       <div style={{ padding: '6px 7px 8px', display: 'flex', flexDirection: 'column', flex: 1, gap: 2, justifyContent: 'space-between' }}>
         <div>
           <h3 style={{
-            fontFamily: 'var(--font-display)', fontSize: 11, fontWeight: 700,
+            fontFamily: language === 'ta' ? 'var(--font-tamil)' : 'var(--font-display)', fontSize: 11, fontWeight: 700,
             color: '#1e293b', margin: 0, lineHeight: 1.2, height: 26, overflow: 'hidden',
             display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical'
           }}>
-            {product.name}
+            {getProductName(product)}
           </h3>
-          {product.tamilName ? (
+          {language === 'ta' ? (
+            <p style={{ fontSize: 8.5, color: '#94a3b8', margin: '1px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {product.englishName || 'உயிருள்ள செடி'}
+            </p>
+          ) : product.tamilName ? (
             <p style={{ fontFamily: 'var(--font-tamil)', fontSize: 8.5, color: '#94a3b8', margin: '1px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {product.tamilName}
             </p>
@@ -285,6 +291,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   product, onAddToCart, onViewDetails, onOpenCareGuide,
   isWishlisted = false, onToggleWishlist
 }) => {
+  const { language, t, getProductName } = useLanguage();
   if (!product || !product.id) return null;
 
   const [imgError, setImgError] = useState(false);
@@ -322,31 +329,33 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
-        cursor: 'pointer',
-        boxShadow: '0 2px 10px rgba(22,163,74,0.06)',
-        transition: 'box-shadow 0.25s ease, transform 0.25s ease',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
         position: 'relative',
-        WebkitTapHighlightColor: 'transparent',
-      }}
-      onMouseEnter={e => {
-        (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 28px rgba(22,163,74,0.18)';
-        (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)';
-      }}
-      onMouseLeave={e => {
-        (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 10px rgba(22,163,74,0.06)';
-        (e.currentTarget as HTMLElement).style.transform = '';
+        cursor: 'pointer',
+        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
       }}
     >
-      {/* Badges */}
-      <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
+      {/* Top badges */}
+      <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 3 }}>
         {discountPercent > 0 && (
-          <span style={{ background: 'linear-gradient(135deg,#f43f5e,#e11d48)', color: 'white', fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 999, boxShadow: '0 2px 8px rgba(244,63,94,0.35)' }}>
-            {discountPercent}% OFF
+          <span style={{
+            background: 'linear-gradient(135deg, #f43f5e, #e11d48)',
+            color: 'white', fontSize: 9.5, fontWeight: 800,
+            padding: '2px 8px', borderRadius: 999,
+            boxShadow: '0 2px 6px rgba(244,63,94,0.4)',
+            letterSpacing: '0.02em',
+          }}>
+            {discountPercent}% {language === 'ta' ? 'தள்ளுபடி' : 'OFF'}
           </span>
         )}
         {product.bestSeller && (
-          <span style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)', color: 'white', fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 999 }}>
-            ★ Best
+          <span style={{
+            background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+            color: 'white', fontSize: 9, fontWeight: 800,
+            padding: '2px 7px', borderRadius: 999,
+            boxShadow: '0 2px 6px rgba(245,158,11,0.4)',
+          }}>
+            ★ {language === 'ta' ? 'அதிக விற்பனை' : 'BESTSELLER'}
           </span>
         )}
       </div>
@@ -390,7 +399,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         {/* Stock badge */}
         {product.stock === 0 && (
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ color: 'white', fontSize: 12, fontWeight: 800, background: 'rgba(0,0,0,0.6)', padding: '4px 12px', borderRadius: 999 }}>Sold Out</span>
+            <span style={{ color: 'white', fontSize: 12, fontWeight: 800, background: 'rgba(0,0,0,0.6)', padding: '4px 12px', borderRadius: 999 }}>{t('Out of Stock')}</span>
           </div>
         )}
       </div>
@@ -400,7 +409,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         {/* Category + Rating */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--color-green)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-            {product.categoryName}
+            {t(product.categoryName)}
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Star style={{ width: 11, height: 11, color: '#f59e0b', fill: '#f59e0b' }} />
@@ -410,18 +419,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
         {/* Name */}
         <h3 style={{
-          fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 700,
+          fontFamily: language === 'ta' ? 'var(--font-tamil)' : 'var(--font-display)', fontSize: 14, fontWeight: 700,
           color: 'var(--text-dark)', lineHeight: 1.25, margin: 0,
           overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical'
         }}>
-          {product.name}
+          {getProductName(product)}
         </h3>
 
-        {product.tamilName && (
+        {language === 'ta' ? (
+          <p style={{ fontSize: 9.5, color: 'var(--text-muted)', margin: 0 }}>
+            {product.englishName || 'உயிருள்ள நர்சரி செடி'}
+          </p>
+        ) : product.tamilName ? (
           <p style={{ fontFamily: 'var(--font-tamil)', fontSize: 10, color: 'var(--text-muted)', margin: 0 }}>
             {product.tamilName}
           </p>
-        )}
+        ) : null}
 
         {/* Price Row */}
         <div style={{ marginTop: 'auto', paddingTop: 6 }}>
@@ -434,12 +447,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             )}
             {discountPercent > 0 && (
               <span style={{ fontSize: 9.5, fontWeight: 800, color: '#e11d48', background: '#ffe4e6', padding: '1px 6px', borderRadius: 6 }}>
-                {discountPercent}% OFF
+                {discountPercent}% {language === 'ta' ? 'தள்ளுபடி' : 'OFF'}
               </span>
             )}
             {product.stock > 0 && product.stock <= 5 && (
               <span style={{ fontSize: 9, fontWeight: 700, color: '#d97706', background: '#fef3c7', padding: '1px 5px', borderRadius: 4, marginLeft: 'auto' }}>
-                {product.stock} left
+                {product.stock} {language === 'ta' ? 'மட்டுமே உள்ளது' : 'left'}
               </span>
             )}
           </div>
@@ -466,11 +479,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             }}
           >
             {isAddingToCart ? (
-              <><span>✓</span> Added!</>
+              <><span>✓</span> {language === 'ta' ? 'சேர்க்கப்பட்டது!' : 'Added!'}</>
             ) : product.stock > 0 ? (
-              <><ShoppingBag style={{ width: 14, height: 14 }} /> Add to Cart</>
+              <><ShoppingBag style={{ width: 14, height: 14 }} /> {t('Add to Cart')}</>
             ) : (
-              'Sold Out'
+              t('Out of Stock')
             )}
           </button>
 
@@ -484,7 +497,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
             }}
           >
-            <Leaf style={{ width: 10, height: 10 }} /> Care Guide
+            <Leaf style={{ width: 10, height: 10 }} /> {language === 'ta' ? 'செடி பராமரிப்பு முறை' : 'Care Guide'}
           </button>
         </div>
       </div>
