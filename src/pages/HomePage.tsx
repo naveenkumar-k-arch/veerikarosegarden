@@ -5,6 +5,7 @@ import { CombosSection } from '../components/CombosSection';
 import { Card3D } from '../components/Card3D';
 import { INITIAL_REVIEWS } from '../data/reviewsData';
 import { comboToProduct, getCachedActiveCombos } from '../utils/comboUtils';
+import { useLanguage } from '../context/LanguageContext';
 import {
   ShieldCheck, Truck, Sprout, HeartHandshake, Star, ArrowRight,
   MapPin, MessageSquare, Phone, Leaf, Sparkles, Package, ChevronRight, X, ZoomIn, Camera
@@ -43,6 +44,22 @@ export const HomePage: React.FC<HomePageProps> = ({
   onAddToCart, onViewDetails, onOpenCareGuide,
   onNavigate, onSelectCategory, onSearchTag, onOpenExpertAdvice,
 }) => {
+  const { language, t, getCategoryName, getProductName } = useLanguage();
+  const isTa = language === 'ta';
+
+  const trustItems = isTa ? [
+    { icon: Truck, label: '7-நாள் வேர் பாதுகாப்பு', sub: 'உயிருடன் வந்து சேரும் உத்தரவாதம்', color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe' },
+    { icon: ShieldCheck, label: 'போன்பே பாதுகாப்பான கட்டணம்', sub: '100% பாதுகாப்பான பரிவர்த்தனை', color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
+    { icon: Sprout, label: 'இயற்கை நர்சரி', sub: 'ரசாயனமற்ற இயற்கை விவசாயம்', color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
+    { icon: HeartHandshake, label: 'இலவச நிபுணர் உதவி', sub: 'அழைப்பு & வாட்ஸ்அப் உதவி', color: '#e11d48', bg: '#fff1f2', border: '#fecdd3' },
+  ] : TRUST_ITEMS;
+
+  const testimonialsList = isTa ? [
+    { name: 'பிரியா எம்.', location: 'சென்னை', rating: 5, text: 'மிகவும் அழகான ஹைப்ரிட் ரோஜாக்கள் கிடைத்தன. பேக்கிங் மிக அற்புதம் — செடிகள் ஆரோக்கியமாக வந்து சேர்ந்தன!' },
+    { name: 'ராஜேஷ் கே.', location: 'கோயம்புத்தூர்', rating: 5, text: '3 ஒட்டு மாங்கன்றுகள் வாங்கினேன். சிறந்த தரம் மற்றும் விரைவான விநியோகம். மீண்டும் நிச்சயம் வாங்குவேன்.' },
+    { name: 'கவிதா எஸ்.', location: 'மதுரை', rating: 5, text: 'செடிகளுடன் வந்த பராமரிப்பு வழிகாட்டி மிகவும் உதவியாக இருந்தது. எனது மல்லிகை இப்போது அற்புதமாக பூத்துக் குலுங்குகிறது!' },
+  ] : TESTIMONIALS;
+
   const [selectedReviewPhoto, setSelectedReviewPhoto] = useState<Review | null>(null);
   const [reviewsList, setReviewsList] = useState<Review[]>(reviews || []);
   const [combosList, setCombosList] = useState<Combo[]>(getCachedActiveCombos);
@@ -173,20 +190,22 @@ export const HomePage: React.FC<HomePageProps> = ({
       <section className="section-container" style={{ padding: '24px 24px 0' }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 18 }}>
           <div>
-            <span className="section-label">Browse by Type</span>
+            <span className="section-label">{isTa ? 'வகைகள்' : 'Browse by Type'}</span>
             <div className="divider-green" />
             <h2 className="section-title" style={{ fontSize: 'clamp(20px, 3vw, 30px)', marginTop: 4 }}>
-              Plant <em>Categories</em>
+              {isTa ? <>செடி <em>வகைகள்</em></> : <>Plant <em>Categories</em></>}
             </h2>
           </div>
           <button className="btn-outline-green" style={{ fontSize: 12, padding: '8px 16px' }} onClick={() => onNavigate('shop')}>
-            View All <ChevronRight style={{ width: 14, height: 14 }} />
+            {isTa ? 'அனைத்தும் பார்க்க' : 'View All'} <ChevronRight style={{ width: 14, height: 14 }} />
           </button>
         </div>
         {displayCategories.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '30px 24px', background: 'white', border: '2px dashed #bbf7d0', borderRadius: 20 }}>
             <Leaf style={{ width: 32, height: 32, color: 'var(--color-green)', margin: '0 auto 10px', opacity: 0.5 }} />
-            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>No categories yet. Add them in Admin Panel.</p>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+              {isTa ? 'வகைகள் எதுவும் இல்லை.' : 'No categories yet. Add them in Admin Panel.'}
+            </p>
           </div>
         ) : (
           <div className="hp-cat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
@@ -216,17 +235,23 @@ export const HomePage: React.FC<HomePageProps> = ({
                       className="group-hover-scale"
                       onError={e => { (e.target as HTMLImageElement).src = '/products/double-delight.jpeg'; }} />
                     <span style={{ position: 'absolute', top: 6, right: 6, zIndex: 10, fontSize: 9, fontWeight: 800, background: 'linear-gradient(135deg,#e11d48,#be123c)', color: 'white', padding: '2px 7px', borderRadius: 999 }}>
-                      {maxDis}% OFF
+                      {maxDis}% {isTa ? 'தள்ளுபடி' : 'OFF'}
                     </span>
                   </div>
                   <div style={{ padding: '10px 12px 12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-                      <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 600, color: 'var(--text-dark)', margin: 0 }}>{cat.name}</h3>
-                      <span style={{ fontSize: 9, color: 'var(--color-green)', fontWeight: 700 }}>{plantCount} plants</span>
+                      <h3 style={{ fontFamily: isTa ? 'var(--font-tamil)' : 'var(--font-display)', fontSize: 13, fontWeight: 700, color: 'var(--text-dark)', margin: 0 }}>
+                        {isTa ? getCategoryName(cat) : cat.name}
+                      </h3>
+                      <span style={{ fontSize: 9, color: 'var(--color-green)', fontWeight: 700 }}>
+                        {plantCount} {isTa ? 'செடிகள்' : 'plants'}
+                      </span>
                     </div>
-                    <p style={{ fontFamily: 'var(--font-tamil)', fontSize: 10, color: 'var(--text-muted)', margin: '0 0 6px' }}>{cat.tamilName}</p>
+                    <p style={{ fontFamily: 'var(--font-tamil)', fontSize: 10, color: 'var(--text-muted)', margin: '0 0 6px' }}>
+                      {isTa ? 'உயிருள்ள பண்ணை செடிகள்' : cat.tamilName}
+                    </p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--color-green-dark)', fontSize: 11, fontWeight: 700 }}>
-                      Shop now <ArrowRight style={{ width: 10, height: 10 }} />
+                      {isTa ? 'வாங்கவும்' : 'Shop now'} <ArrowRight style={{ width: 10, height: 10 }} />
                     </div>
                   </div>
                 </div>
@@ -244,7 +269,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             onClick={() => onNavigate('shop')}
             style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)', color: 'white', border: 'none', borderRadius: 999, padding: '6px 14px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', boxShadow: '0 2px 6px rgba(22,163,74,0.3)' }}
           >
-            All Products
+            {isTa ? 'அனைத்து செடிகள்' : 'All Products'}
           </button>
           {activeCategories.map(cat => (
             <button
@@ -252,7 +277,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               onClick={() => { onSelectCategory(cat.id); onNavigate('shop'); }}
               style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', borderRadius: 999, padding: '6px 14px', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}
             >
-              <span>🌱</span> {cat.name}
+              <span>🌱</span> {isTa ? getCategoryName(cat) : cat.name}
             </button>
           ))}
         </div>
@@ -263,15 +288,15 @@ export const HomePage: React.FC<HomePageProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', marginBottom: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontSize: 16 }}>🌱</span>
-                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 800, color: '#1a2e1a', margin: 0 }}>
-                  Best Sellers
+                <h2 style={{ fontFamily: isTa ? 'var(--font-tamil)' : 'var(--font-display)', fontSize: 16, fontWeight: 800, color: '#1a2e1a', margin: 0 }}>
+                  {isTa ? 'அதிக விற்பனை' : 'Best Sellers'}
                 </h2>
               </div>
               <button
                 onClick={() => onNavigate('shop')}
                 style={{ background: 'none', border: 'none', color: '#16a34a', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2 }}
               >
-                More <ChevronRight style={{ width: 14, height: 14 }} />
+                {isTa ? 'மேலும்' : 'More'} <ChevronRight style={{ width: 14, height: 14 }} />
               </button>
             </div>
             <HorizontalScrollRow>
@@ -293,15 +318,15 @@ export const HomePage: React.FC<HomePageProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', marginBottom: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontSize: 16 }}>🌿</span>
-                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 800, color: '#1a2e1a', margin: 0 }}>
-                  Fresh Arrivals & All Plants
+                <h2 style={{ fontFamily: isTa ? 'var(--font-tamil)' : 'var(--font-display)', fontSize: 16, fontWeight: 800, color: '#1a2e1a', margin: 0 }}>
+                  {isTa ? 'புதிய வரவுகள் & அனைத்து செடிகள்' : 'Fresh Arrivals & All Plants'}
                 </h2>
               </div>
               <button
                 onClick={() => onNavigate('shop')}
                 style={{ background: 'none', border: 'none', color: '#16a34a', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2 }}
               >
-                All ({regularProducts.length}) <ChevronRight style={{ width: 14, height: 14 }} />
+                {isTa ? `அனைத்தும் (${regularProducts.length})` : `All (${regularProducts.length})`} <ChevronRight style={{ width: 14, height: 14 }} />
               </button>
             </div>
             <HorizontalScrollRow>
@@ -328,15 +353,15 @@ export const HomePage: React.FC<HomePageProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', marginBottom: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ fontSize: 16 }}>🌱</span>
-                  <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 800, color: '#1a2e1a', margin: 0 }}>
-                    {cat.name}
+                  <h2 style={{ fontFamily: isTa ? 'var(--font-tamil)' : 'var(--font-display)', fontSize: 16, fontWeight: 800, color: '#1a2e1a', margin: 0 }}>
+                    {isTa ? getCategoryName(cat) : cat.name}
                   </h2>
                 </div>
                 <button
                   onClick={() => { onSelectCategory(cat.id); onNavigate('shop'); }}
                   style={{ background: 'none', border: 'none', color: '#16a34a', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2 }}
                 >
-                  More <ChevronRight style={{ width: 14, height: 14 }} />
+                  {isTa ? 'மேலும்' : 'More'} <ChevronRight style={{ width: 14, height: 14 }} />
                 </button>
               </div>
 
@@ -359,14 +384,14 @@ export const HomePage: React.FC<HomePageProps> = ({
       <section className="section-container hidden sm:block" style={{ padding: '32px 24px 0' }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 18 }}>
           <div>
-            <span className="section-label">Our Collection</span>
+            <span className="section-label">{isTa ? 'எங்கள் தொகுப்பு' : 'Our Collection'}</span>
             <div className="divider-green" />
             <h2 className="section-title" style={{ fontSize: 'clamp(20px, 3vw, 30px)', marginTop: 4 }}>
-              All <em>Plants</em>
+              {isTa ? <>அனைத்து <em>செடிகள்</em></> : <>All <em>Plants</em></>}
             </h2>
           </div>
           <button className="btn-outline-green" style={{ fontSize: 12, padding: '8px 16px' }} onClick={() => onNavigate('shop')}>
-            Full Catalog <ChevronRight style={{ width: 14, height: 14 }} />
+            {isTa ? 'முழு பட்டியல்' : 'Full Catalog'} <ChevronRight style={{ width: 14, height: 14 }} />
           </button>
         </div>
         <div className="hp-product-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
@@ -377,7 +402,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         {regularProducts.length > 24 && (
           <div style={{ textAlign: 'center', marginTop: 24 }}>
             <button className="btn-green" onClick={() => onNavigate('shop')}>
-              View All {regularProducts.length} Plants <ArrowRight style={{ width: 15, height: 15 }} />
+              {isTa ? `அனைத்து ${regularProducts.length} செடிகளையும் பார்க்க` : `View All ${regularProducts.length} Plants`} <ArrowRight style={{ width: 15, height: 15 }} />
             </button>
           </div>
         )}
@@ -402,13 +427,15 @@ export const HomePage: React.FC<HomePageProps> = ({
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 28 }}>
             <div>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#fef3c7', color: '#b45309', padding: '4px 12px', borderRadius: 999, fontSize: 11, fontWeight: 800, border: '1px solid #fde68a', marginBottom: 8 }}>
-                <Camera style={{ width: 13, height: 13 }} /> VERIFIED BUYER PLANT PHOTOS
+                <Camera style={{ width: 13, height: 13 }} /> {isTa ? 'வாடிக்கையாளர் செடி புகைப்படங்கள்' : 'VERIFIED BUYER PLANT PHOTOS'}
               </div>
               <h2 className="section-title" style={{ fontSize: 'clamp(22px, 3.5vw, 36px)' }}>
-                Customer Photo <em>Reviews</em>
+                {isTa ? <>வாடிக்கையாளர் புகைப்படக் <em>கருத்துகள்</em></> : <>Customer Photo <em>Reviews</em></>}
               </h2>
               <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '4px 0 0', maxWidth: 500 }}>
-                Real photos & feedback uploaded by plant lovers directly from their home & terrace gardens.
+                {isTa
+                  ? 'வாடிக்கையாளர்கள் தங்கள் வீட்டு மற்றும் மாடித் தோட்டத்திலிருந்து நேரடியாகப் பகிர்ந்த புகைப்படங்கள் & கருத்துகள்.'
+                  : 'Real photos & feedback uploaded by plant lovers directly from their home & terrace gardens.'}
               </p>
             </div>
 
@@ -419,8 +446,8 @@ export const HomePage: React.FC<HomePageProps> = ({
                 ))}
               </div>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--text-dark)' }}>4.9 / 5.0 Rating</div>
-                <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>500+ Verified Sapling Deliveries</div>
+                <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--text-dark)' }}>4.9 / 5.0 {isTa ? 'மதிப்பீடு' : 'Rating'}</div>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>500+ {isTa ? 'விநியோகிக்கப்பட்ட செடிகள்' : 'Verified Sapling Deliveries'}</div>
               </div>
             </div>
           </div>
@@ -429,7 +456,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           {approvedReviews.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px 20px', background: 'white', borderRadius: 24, border: '2px dashed #bbf7d0' }}>
               <Camera style={{ width: 36, height: 36, color: 'var(--color-green)', margin: '0 auto 10px', opacity: 0.5 }} />
-              <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>No customer photo reviews yet. Add photos in Admin Panel!</p>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{isTa ? 'வாடிக்கையாளர் புகைப்படங்கள் இன்னும் இல்லை.' : 'No customer photo reviews yet. Add photos in Admin Panel!'}</p>
             </div>
           ) : (
             <div style={{
@@ -492,7 +519,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                           border: '1px solid rgba(255,255,255,0.9)',
                           boxShadow: '0 4px 14px rgba(0,0,0,0.1)'
                         }}>
-                          <Sparkles style={{ width: 12, height: 12, color: '#f59e0b' }} /> Customer Photo
+                          <Sparkles style={{ width: 12, height: 12, color: '#f59e0b' }} /> {isTa ? 'வாடிக்கையாளர் புகைப்படம்' : 'Customer Photo'}
                         </div>
 
                         <div style={{
@@ -502,7 +529,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                           fontSize: 11, fontWeight: 700,
                           display: 'flex', alignItems: 'center', gap: 5
                         }}>
-                          <ZoomIn style={{ width: 13, height: 13 }} /> Click to Zoom
+                          <ZoomIn style={{ width: 13, height: 13 }} /> {isTa ? 'பெரிதாக்க அழுத்தவும்' : 'Click to Zoom'}
                         </div>
                       </div>
                     ) : (
@@ -512,7 +539,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                         </div>
                         <div>
                           <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-dark)' }}>{review.userName}</div>
-                          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{review.location || 'Tamil Nadu'}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{isTa && review.location === 'Tamil Nadu' ? 'தமிழ்நாடு' : review.location || (isTa ? 'தமிழ்நாடு' : 'Tamil Nadu')}</div>
                         </div>
                       </div>
                     )}
@@ -529,14 +556,14 @@ export const HomePage: React.FC<HomePageProps> = ({
                           </div>
                           {review.isVerified && (
                             <span style={{ fontSize: 9, fontWeight: 800, color: '#15803d', background: '#dcfce7', padding: '2px 8px', borderRadius: 999, border: '1px solid #bbf7d0' }}>
-                              ✓ Verified Buyer
+                              ✓ {isTa ? 'உறுதிப்படுத்தப்பட்ட வாங்குபவர்' : 'Verified Buyer'}
                             </span>
                           )}
                         </div>
 
                         {/* Plant Tag */}
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', padding: '3px 9px', borderRadius: 8, fontSize: 11, fontWeight: 700, marginBottom: 10 }}>
-                          <span>🌱</span> {review.productName || 'Nursery Sapling'}
+                          <span>🌱</span> {isTa ? (t(review.productName) || 'நர்சரி செடி') : (review.productName || 'Nursery Sapling')}
                         </div>
 
                         {review.title && (
@@ -553,7 +580,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                       {/* Footer Info */}
                       <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid #f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)' }}>
                         <span style={{ fontWeight: 700, color: 'var(--text-dark)' }}>{review.userName}</span>
-                        <span>{review.location || 'Pennagaram'}</span>
+                        <span>{isTa ? (review.location === 'Tamil Nadu' ? 'தமிழ்நாடு' : review.location || 'பென்னாகரம்') : (review.location || 'Pennagaram')}</span>
                       </div>
                     </div>
                   </div>
@@ -579,40 +606,61 @@ export const HomePage: React.FC<HomePageProps> = ({
           {/* Left: Text */}
           <div className="hero-left" style={{ padding: '60px 0', display: 'flex', flexDirection: 'column' }}>
             <div className="animate-fade-up" style={{ marginBottom: 16 }}>
-              <span className="section-label">Premier Plant Nursery · Pennagaram, Tamil Nadu</span>
+              <span className="section-label">
+                {isTa ? 'முதன்மை தாவர நர்சரி · பென்னாகரம், தமிழ்நாடு' : 'Premier Plant Nursery · Pennagaram, Tamil Nadu'}
+              </span>
             </div>
             <p className="animate-fade-up-1" style={{ fontFamily: 'var(--font-tamil)', fontSize: 15, color: 'var(--text-muted)', marginBottom: 14 }}>
               வீரிகா ரோஜா கார்டன்
             </p>
             <h1 className="animate-fade-up-2" style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 'clamp(36px, 5vw, 68px)',
+              fontFamily: isTa ? 'var(--font-tamil)' : 'var(--font-display)',
+              fontSize: 'clamp(32px, 4.8vw, 64px)',
               fontWeight: 800,
               color: 'var(--text-dark)',
-              lineHeight: 1.1,
+              lineHeight: 1.15,
               marginBottom: 20,
             }}>
-              Healthy Roses &<br />
-              <em style={{ color: 'var(--color-rose)', fontStyle: 'italic' }}>Exotic Plants</em>
-              <br />
-              <span style={{ fontSize: '0.6em', color: 'var(--color-green-dark)', fontStyle: 'normal' }}>
-                Delivered to Your Door 🌿
-              </span>
+              {isTa ? (
+                <>
+                  ஆரோக்கியமான ரோஜாக்கள் &<br />
+                  <em style={{ color: 'var(--color-rose)', fontStyle: 'italic' }}>அரிய வகை செடிகள்</em>
+                  <br />
+                  <span style={{ fontSize: '0.65em', color: 'var(--color-green-dark)', fontStyle: 'normal' }}>
+                    உங்கள் வீட்டு வாசலில் 🌿
+                  </span>
+                </>
+              ) : (
+                <>
+                  Healthy Roses &<br />
+                  <em style={{ color: 'var(--color-rose)', fontStyle: 'italic' }}>Exotic Plants</em>
+                  <br />
+                  <span style={{ fontSize: '0.6em', color: 'var(--color-green-dark)', fontStyle: 'normal' }}>
+                    Delivered to Your Door 🌿
+                  </span>
+                </>
+              )}
             </h1>
             <p className="animate-fade-up-3" style={{ fontSize: 16, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 32, maxWidth: 480 }}>
-              Premium hybrid roses, grafted fruit trees, jasmine &amp; organic fertilizers — packed with 7-day root moisture protection for safe delivery across India.
+              {isTa
+                ? 'பிரீமியம் ஹைப்ரிட் ரோஜாக்கள், ஒட்டு பழ மரங்கள், மல்லிகை & இயற்கை உரங்கள் — 7 நாள் வேர் ஈரப்பதம் பாதுகாப்புடன் இந்தியா முழுவதும் பாதுகாப்பான டெலிவரி.'
+                : 'Premium hybrid roses, grafted fruit trees, jasmine & organic fertilizers — packed with 7-day root moisture protection for safe delivery across India.'}
             </p>
             <div className="animate-fade-up-4" style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 40 }}>
               <button className="btn-green" onClick={() => onNavigate('shop')}>
-                Explore All Plants <ArrowRight style={{ width: 16, height: 16 }} />
+                {isTa ? 'அனைத்து செடிகளையும் பார்க்க' : 'Explore All Plants'} <ArrowRight style={{ width: 16, height: 16 }} />
               </button>
               <a href="https://wa.me/919361540714?text=Hello%20Veerika%20Rose%20Garden" target="_blank" rel="noreferrer" className="btn-outline-green" style={{ textDecoration: 'none' }}>
-                <MessageSquare style={{ width: 15, height: 15 }} /> WhatsApp Order
+                <MessageSquare style={{ width: 15, height: 15 }} /> {isTa ? 'வாட்ஸ்அப் ஆர்டர்' : 'WhatsApp Order'}
               </a>
             </div>
             {/* Stats */}
             <div className="animate-fade-up-4" style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
-              {[{ val: '500+', lbl: 'Plant Varieties' }, { val: '4.9★', lbl: 'Customer Rating' }, { val: '10K+', lbl: 'Orders Delivered' }].map(s => (
+              {[
+                { val: '500+', lbl: isTa ? 'செடி வகைகள்' : 'Plant Varieties' },
+                { val: '4.9★', lbl: isTa ? 'வாடிக்கையாளர் மதிப்பீடு' : 'Customer Rating' },
+                { val: '10K+', lbl: isTa ? 'ஆர்டர்கள் விநியோகம்' : 'Orders Delivered' }
+              ].map(s => (
                 <div key={s.lbl}>
                   <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, color: 'var(--color-green-dark)' }}>{s.val}</div>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{s.lbl}</div>
@@ -658,8 +706,8 @@ export const HomePage: React.FC<HomePageProps> = ({
                 boxShadow: '0 8px 25px rgba(22,163,74,0.2)',
                 transform: 'translateZ(40px)'
               }}>
-                <span style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 800, color: 'var(--color-green-dark)' }}>
-                  🌹 Dutch Hybrid Rose in Ceramic 3D Pot
+                <span style={{ fontFamily: isTa ? 'var(--font-tamil)' : 'var(--font-display)', fontSize: 13, fontWeight: 800, color: 'var(--color-green-dark)' }}>
+                  {isTa ? '🌹 செராமிக் தொட்டியில் டச்சு ஹைப்ரிட் ரோஜா' : '🌹 Dutch Hybrid Rose in Ceramic 3D Pot'}
                 </span>
               </div>
             </div>
@@ -672,7 +720,9 @@ export const HomePage: React.FC<HomePageProps> = ({
               textAlign: 'center', minWidth: 110,
               transform: 'perspective(800px) rotateY(-12deg) rotateX(8deg) translateZ(50px)',
             }}>
-              <div style={{ fontSize: 10, color: 'var(--color-rose)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Starting at</div>
+              <div style={{ fontSize: 10, color: 'var(--color-rose)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                {isTa ? 'ஆரம்ப விலை' : 'Starting at'}
+              </div>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, color: 'var(--text-dark)' }}>₹99</div>
             </div>
 
@@ -688,10 +738,11 @@ export const HomePage: React.FC<HomePageProps> = ({
               <div style={{ display: 'flex', gap: 2 }}>
                 {[1,2,3,4,5].map(i => <Star key={i} style={{ width: 13, height: 13, color: '#f59e0b', fill: '#f59e0b' }} />)}
               </div>
-              <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-dark)' }}>10K+ Happy Customers</span>
+              <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-dark)' }}>
+                {isTa ? '10,000+ வாடிக்கையாளர்கள்' : '10K+ Happy Customers'}
+              </span>
             </div>
           </div>
-
 
           <style>{`@media (min-width: 900px) { .hero-right-show { display: block !important; } }`}</style>
         </div>
@@ -707,7 +758,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           background: 'white', borderRadius: 20, padding: '20px 24px',
           boxShadow: '0 4px 24px rgba(22,163,74,0.1)', border: '1.5px solid #e5f0e0',
         }}>
-          {TRUST_ITEMS.map(({ icon: Icon, label, sub, color, bg, border }) => (
+          {trustItems.map(({ icon: Icon, label, sub, color, bg, border }) => (
             <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ width: 42, height: 42, borderRadius: 12, background: bg, border: `1.5px solid ${border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon style={{ width: 20, height: 20, color }} />
@@ -726,14 +777,14 @@ export const HomePage: React.FC<HomePageProps> = ({
         <section className="section-container hidden sm:block" style={{ padding: '64px 24px 0' }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 28 }}>
             <div>
-              <span className="section-label">★ Top Rated</span>
+              <span className="section-label">{isTa ? '★ சிறந்த மதிப்பீடு' : '★ Top Rated'}</span>
               <div className="divider-green" />
               <h2 className="section-title" style={{ fontSize: 'clamp(22px, 3.5vw, 36px)', marginTop: 4 }}>
-                Best <em>Sellers</em>
+                {isTa ? <>அதிக <em>விற்பனை</em></> : <>Best <em>Sellers</em></>}
               </h2>
             </div>
             <button className="btn-outline-green" style={{ fontSize: 12, padding: '9px 18px' }} onClick={() => onNavigate('shop')}>
-              Explore All <ChevronRight style={{ width: 14, height: 14 }} />
+              {isTa ? 'அனைத்தும் பார்க்க' : 'Explore All'} <ChevronRight style={{ width: 14, height: 14 }} />
             </button>
           </div>
           <div className="hp-product-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 20 }}>
@@ -746,14 +797,14 @@ export const HomePage: React.FC<HomePageProps> = ({
       <section className="section-container hidden sm:block" style={{ padding: '64px 24px 0' }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 28 }}>
           <div>
-            <span className="section-label">Handpicked Selection</span>
+            <span className="section-label">{isTa ? 'தேர்ந்தெடுக்கப்பட்ட தொகுப்பு' : 'Handpicked Selection'}</span>
             <div className="divider-green" />
             <h2 className="section-title" style={{ fontSize: 'clamp(22px, 3.5vw, 36px)', marginTop: 4 }}>
-              Featured <em>Varieties</em>
+              {isTa ? <>சிறப்பு <em>வகைகள்</em></> : <>Featured <em>Varieties</em></>}
             </h2>
           </div>
           <button className="btn-outline-green" style={{ fontSize: 12, padding: '9px 18px' }} onClick={() => onNavigate('shop')}>
-            Explore All <ChevronRight style={{ width: 14, height: 14 }} />
+            {isTa ? 'அனைத்தும் பார்க்க' : 'Explore All'} <ChevronRight style={{ width: 14, height: 14 }} />
           </button>
         </div>
 
@@ -769,22 +820,28 @@ export const HomePage: React.FC<HomePageProps> = ({
         <section className="section-container" style={{ padding: '64px 24px 0' }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 28 }}>
             <div>
-              <span className="section-label">Browse by Type</span>
+              <span className="section-label">{isTa ? 'வகைகள்' : 'Browse by Type'}</span>
               <div className="divider-green" />
               <h2 className="section-title" style={{ fontSize: 'clamp(22px, 3.5vw, 36px)', marginTop: 4 }}>
-                Plant <em>Categories</em>
+                {isTa ? <>செடி <em>வகைகள்</em></> : <>Plant <em>Categories</em></>}
               </h2>
             </div>
             <button className="btn-outline-green" style={{ fontSize: 12, padding: '9px 18px' }} onClick={() => onNavigate('shop')}>
-              View All <ChevronRight style={{ width: 14, height: 14 }} />
+              {isTa ? 'அனைத்தும் பார்க்க' : 'View All'} <ChevronRight style={{ width: 14, height: 14 }} />
             </button>
           </div>
           {displayCategories.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '60px 24px', background: 'white', border: '2px dashed #bbf7d0', borderRadius: 20 }}>
               <Leaf style={{ width: 40, height: 40, color: 'var(--color-green)', margin: '0 auto 14px', opacity: 0.5 }} />
-              <h3 style={{ fontFamily: 'var(--font-display)', color: 'var(--text-dark)', marginBottom: 8 }}>No Categories Yet</h3>
-              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 18 }}>Add plant categories in the Admin Panel.</p>
-              <button className="btn-green" style={{ fontSize: 11 }} onClick={() => onNavigate('admin')}>Open Admin Panel</button>
+              <h3 style={{ fontFamily: 'var(--font-display)', color: 'var(--text-dark)', marginBottom: 8 }}>
+                {isTa ? 'வகைகள் எதுவும் இல்லை' : 'No Categories Yet'}
+              </h3>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 18 }}>
+                {isTa ? 'நிர்வாக பேனலில் செடி வகைகளைச் சேர்க்கவும்.' : 'Add plant categories in the Admin Panel.'}
+              </p>
+              <button className="btn-green" style={{ fontSize: 11 }} onClick={() => onNavigate('admin')}>
+                {isTa ? 'நிர்வாக பேனல்' : 'Open Admin Panel'}
+              </button>
             </div>
           ) : (
             <div className="hp-cat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
@@ -832,7 +889,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                         style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s ease' }} className="group-hover-scale"
                         onError={e => { (e.target as HTMLImageElement).src = '/products/double-delight.jpeg'; }} />
                       
-                      {cat.isFeatured && <span className="badge-amber" style={{ position: 'absolute', top: 8, left: 8, fontSize: 9, zIndex: 10 }}>★ Featured</span>}
+                      {cat.isFeatured && <span className="badge-amber" style={{ position: 'absolute', top: 8, left: 8, fontSize: 9, zIndex: 10 }}>★ {isTa ? 'சிறப்பு' : 'Featured'}</span>}
                       
                       <span style={{
                         position: 'absolute', top: 8, right: 8, zIndex: 10, fontSize: 9, fontWeight: 800,
@@ -840,21 +897,27 @@ export const HomePage: React.FC<HomePageProps> = ({
                         padding: '3px 8px', borderRadius: 999, boxShadow: '0 2px 8px rgba(225,29,72,0.4)',
                         letterSpacing: '0.02em', textTransform: 'uppercase'
                       }}>
-                        Up to {maxDis}% OFF
+                        {isTa ? `${maxDis}% வரை தள்ளுபடி` : `Up to ${maxDis}% OFF`}
                       </span>
                     </div>
                     <div style={{ padding: '12px 14px 14px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
-                        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 600, color: 'var(--text-dark)', margin: 0 }}>{cat.name}</h3>
-                        <span style={{ fontSize: 9, color: 'var(--color-green)', fontWeight: 700 }}>{plantCount} plants</span>
+                        <h3 style={{ fontFamily: isTa ? 'var(--font-tamil)' : 'var(--font-display)', fontSize: 14, fontWeight: 600, color: 'var(--text-dark)', margin: 0 }}>
+                          {isTa ? getCategoryName(cat) : cat.name}
+                        </h3>
+                        <span style={{ fontSize: 9, color: 'var(--color-green)', fontWeight: 700 }}>
+                          {plantCount} {isTa ? 'செடிகள்' : 'plants'}
+                        </span>
                       </div>
-                      <p style={{ fontFamily: 'var(--font-tamil)', fontSize: 11, color: 'var(--text-muted)', margin: '0 0 8px' }}>{cat.tamilName}</p>
+                      <p style={{ fontFamily: 'var(--font-tamil)', fontSize: 11, color: 'var(--text-muted)', margin: '0 0 8px' }}>
+                        {isTa ? 'உயிருள்ள பண்ணை செடிகள்' : cat.tamilName}
+                      </p>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--color-green-dark)', fontSize: 11, fontWeight: 700 }}>
-                          Shop now <ArrowRight style={{ width: 11, height: 11 }} />
+                          {isTa ? 'வாங்கவும்' : 'Shop now'} <ArrowRight style={{ width: 11, height: 11 }} />
                         </div>
                         <span style={{ fontSize: 10, fontWeight: 800, color: '#e11d48', background: '#fff1f2', padding: '2px 6px', borderRadius: 6, border: '1px solid #fecdd3' }}>
-                          {maxDis}% OFF
+                          {maxDis}% {isTa ? 'தள்ளுபடி' : 'OFF'}
                         </span>
                       </div>
                     </div>
@@ -869,12 +932,14 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* ===== TESTIMONIALS ===== */}
       <section className="section-container" style={{ padding: '72px 24px 0' }}>
         <div style={{ textAlign: 'center', marginBottom: 36 }}>
-          <span className="section-label">Customer Love</span>
+          <span className="section-label">{isTa ? 'வாடிக்கையாளர் அன்பு' : 'Customer Love'}</span>
           <div className="divider-green" style={{ margin: '12px auto' }} />
-          <h2 className="section-title" style={{ fontSize: 'clamp(22px, 3.5vw, 36px)' }}>What <em>Customers Say</em></h2>
+          <h2 className="section-title" style={{ fontSize: 'clamp(22px, 3.5vw, 36px)' }}>
+            {isTa ? <span>வாடிக்கையாளர்கள் <em>கூறுவது</em></span> : <>What <em>Customers Say</em></>}
+          </h2>
         </div>
         <div className="hp-testimonial-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 18 }}>
-          {TESTIMONIALS.map((t, i) => (
+          {testimonialsList.map((t, i) => (
             <div key={i} style={{ background: 'white', border: '1.5px solid #e5f0e0', borderRadius: 18, padding: 24, boxShadow: '0 2px 16px rgba(22,163,74,0.06)', transition: 'all 0.3s ease' }}
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 32px rgba(22,163,74,0.12)'; (e.currentTarget as HTMLElement).style.borderColor = '#86efac'; }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 16px rgba(22,163,74,0.06)'; (e.currentTarget as HTMLElement).style.borderColor = '#e5f0e0'; }}
@@ -905,15 +970,21 @@ export const HomePage: React.FC<HomePageProps> = ({
           <div style={{ position: 'absolute', bottom: -30, left: 100, width: 180, height: 180, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', padding: 'clamp(32px, 5vw, 56px)', gap: 32, flexWrap: 'wrap', position: 'relative', zIndex: 1 }}>
             <div>
-              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', color: '#bbf7d0', textTransform: 'uppercase' }}>Visit Our Farm</span>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', color: '#bbf7d0', textTransform: 'uppercase' }}>
+                {isTa ? 'எங்கள் பண்ணையைப் பார்வையிட' : 'Visit Our Farm'}
+              </span>
               <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(22px, 3.5vw, 38px)', color: 'white', margin: '8px 0 12px' }}>
-                Come Visit <em style={{ color: '#fde68a', fontStyle: 'italic' }}>Veerika Rose Garden</em>
+                {isTa ? (
+                  <>வீரிகா ரோஜா கார்டனுக்கு <em style={{ color: '#fde68a', fontStyle: 'italic' }}>வருகை தாருங்கள்</em></>
+                ) : (
+                  <>Come Visit <em style={{ color: '#fde68a', fontStyle: 'italic' }}>Veerika Rose Garden</em></>
+                )}
               </h2>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
                 {[
-                  { Icon: MapPin, text: 'Pennagaram, Tamil Nadu' },
+                  { Icon: MapPin, text: isTa ? 'பென்னாகரம், தமிழ்நாடு' : 'Pennagaram, Tamil Nadu' },
                   { Icon: Phone, text: '+91 72008 26129', href: 'tel:+917200826129' },
-                  { Icon: MessageSquare, text: 'WhatsApp Us', href: 'https://wa.me/919361540714' },
+                  { Icon: MessageSquare, text: isTa ? 'வாட்ஸ்அப் செய்யவும்' : 'WhatsApp Us', href: 'https://wa.me/919361540714' },
                 ].map(({ Icon, text, href }) => (
                   <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <Icon style={{ width: 15, height: 15, color: '#86efac', flexShrink: 0 }} />
@@ -924,11 +995,11 @@ export const HomePage: React.FC<HomePageProps> = ({
               </div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <button className="btn-white" style={{ fontSize: 12, padding: '10px 20px' }} onClick={() => onNavigate('shop')}>
-                  <Package style={{ width: 14, height: 14 }} /> Shop Plants
+                  <Package style={{ width: 14, height: 14 }} /> {isTa ? 'செடிகளை வாங்க' : 'Shop Plants'}
                 </button>
                 {onOpenExpertAdvice && (
                   <button onClick={onOpenExpertAdvice} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 20px', background: 'rgba(255,255,255,0.15)', color: 'white', border: '1.5px solid rgba(255,255,255,0.3)', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(8px)' }}>
-                    <Sparkles style={{ width: 14, height: 14 }} /> Expert AI Chat
+                    <Sparkles style={{ width: 14, height: 14 }} /> {isTa ? 'தாவர நிபுணர் AI' : 'Expert AI Chat'}
                   </button>
                 )}
               </div>
@@ -1018,10 +1089,12 @@ export const HomePage: React.FC<HomePageProps> = ({
             <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e5f0e0', background: '#f8faf6' }}>
               <div>
                 <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 800, color: '#1a2e1a', margin: 0 }}>
-                  📸 Customer Garden Photo
+                  📸 {isTa ? 'வாடிக்கையாளர் தோட்ட புகைப்படம்' : 'Customer Garden Photo'}
                 </h3>
                 <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>
-                  Uploaded by {selectedReviewPhoto.userName} ({selectedReviewPhoto.location || 'Tamil Nadu'})
+                  {isTa
+                    ? `பதிவேற்றியவர் ${selectedReviewPhoto.userName} (${selectedReviewPhoto.location || 'தமிழ்நாடு'})`
+                    : `Uploaded by ${selectedReviewPhoto.userName} (${selectedReviewPhoto.location || 'Tamil Nadu'})`}
                 </p>
               </div>
               <button
@@ -1063,11 +1136,11 @@ export const HomePage: React.FC<HomePageProps> = ({
                   ))}
                 </div>
                 <span style={{ fontSize: 11, fontWeight: 800, color: '#15803d', background: '#dcfce7', padding: '3px 10px', borderRadius: 999, border: '1px solid #bbf7d0' }}>
-                  ✓ Verified Buyer
+                  ✓ {isTa ? 'உறுதிப்படுத்தப்பட்ட வாங்குபவர்' : 'Verified Buyer'}
                 </span>
               </div>
               <div style={{ fontSize: 12, fontWeight: 800, color: '#15803d', marginBottom: 6 }}>
-                🌱 Plant: {selectedReviewPhoto.productName || 'Nursery Plant'}
+                🌱 {isTa ? 'செடி' : 'Plant'}: {getProductName({ name: selectedReviewPhoto.productName || 'நர்சரி செடி' })}
               </div>
               {selectedReviewPhoto.title && (
                 <h4 style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 700, margin: '0 0 6px', color: '#1a2e1a' }}>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Combo, Product } from '../types';
 import { ShoppingBag, Sparkles, CheckCircle2, Tag, ArrowRight, ShieldCheck, Truck } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface CombosSectionProps {
   onAddToCart: (product: Product, quantity?: number, meta?: any) => void;
@@ -23,6 +24,8 @@ const getAggregatedProducts = (productsList?: Product[]) => {
 };
 
 export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSelectProduct }) => {
+  const { language, t } = useLanguage();
+  const isTa = language === 'ta';
   const [combos, setCombos] = useState<Combo[]>(() => {
     try {
       const cached = localStorage.getItem('vrg_combos_cache');
@@ -153,24 +156,28 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
           <div>
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-amber-500/10 to-emerald-500/10 border border-amber-300/50 text-amber-900 text-xs font-bold uppercase tracking-wider mb-2 shadow-2xs">
               <Sparkles className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
-              <span>Combos & Offers</span>
-              <span className="bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full font-black">EXTRA SAVINGS</span>
+              <span>{isTa ? 'காம்போ சலுகைகள்' : 'Combos & Offers'}</span>
+              <span className="bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full font-black">
+                {isTa ? 'கூடுதல் சேமிப்பு' : 'EXTRA SAVINGS'}
+              </span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              🔥 Special Plant Combo Offers
+              {isTa ? '🔥 சிறப்பு செடி காம்போ சலுகைகள்' : '🔥 Special Plant Combo Offers'}
             </h2>
             <p className="text-sm text-slate-600 mt-1 max-w-xl font-medium">
-              Hand-picked plant bundles directly from Veerika Rose Garden with exclusive combo discounts & free doorstep farm delivery.
+              {isTa
+                ? 'வீரிகா ரோஜா கார்டன் பண்ணையிலிருந்து நேரடியாக பிரத்யேக காம்போ தள்ளுபடி & பண்ணை டெலிவரியுடன் கூடிய செடிகள் தொகுப்பு.'
+                : 'Hand-picked plant bundles directly from Veerika Rose Garden with exclusive combo discounts & free doorstep farm delivery.'}
             </p>
           </div>
 
           <div className="flex items-center gap-3 text-xs font-bold text-slate-600 bg-white/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-slate-200 shadow-2xs self-start md:self-auto">
             <span className="flex items-center gap-1 text-emerald-700">
-              <ShieldCheck className="w-4 h-4" /> Healthy Grafted Saplings
+              <ShieldCheck className="w-4 h-4" /> {isTa ? 'ஆரோக்கியமான ஒட்டுச்செடிகள்' : 'Healthy Grafted Saplings'}
             </span>
             <span className="text-slate-300">•</span>
             <span className="flex items-center gap-1 text-amber-700">
-              <Truck className="w-4 h-4" /> Express Moisture Packed
+              <Truck className="w-4 h-4" /> {isTa ? 'ஈரப்பதம் குறையாத பேக்கிங்' : 'Express Moisture Packed'}
             </span>
           </div>
         </div>
@@ -195,6 +202,13 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
               const isJustAdded = addedComboId === combo.id;
               const aggregated = getAggregatedProducts(combo.products);
 
+              const badgeText = isTa
+                ? (combo.badge?.includes('1-IN-1') ? '1-ல்-1 சிறப்பு சலுகை'
+                  : combo.badge?.includes('2-IN-1') ? '2-ல்-1 சிறப்பு சலுகை'
+                  : combo.badge?.includes('3-IN-1') ? '3-ல்-1 சிறப்பு சலுகை'
+                  : 'சிறப்பு காம்போ')
+                : (combo.badge || 'COMBO OFFER');
+
               return (
                 <div
                   key={combo.id}
@@ -205,17 +219,17 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                   <div className="absolute top-2.5 left-2.5 right-2.5 z-20 flex items-center justify-between gap-1.5 pointer-events-none">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="bg-gradient-to-r from-rose-600 to-amber-600 text-white font-black text-[10px] sm:text-[11px] px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-md uppercase tracking-wide flex items-center gap-1">
-                        <Tag className="w-3 h-3" /> {combo.badge || 'COMBO OFFER'}
+                        <Tag className="w-3 h-3" /> {badgeText}
                       </span>
                       {combo.freeDelivery && (
                         <span className="bg-emerald-600 text-white font-black text-[10px] sm:text-[11px] px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full shadow-md flex items-center gap-1">
-                          <Truck className="w-3 h-3" /> FREE SHIPPING
+                          <Truck className="w-3 h-3" /> {isTa ? 'இலவச டெலிவரி' : 'FREE SHIPPING'}
                         </span>
                       )}
                     </div>
                     {discount > 0 && (
                       <span className="bg-emerald-800 text-white font-black text-[10px] sm:text-[11px] px-2 py-0.5 sm:py-1 rounded-full shadow-md shrink-0">
-                        {discount}% OFF
+                        {discount}% {isTa ? 'தள்ளுபடி' : 'OFF'}
                       </span>
                     )}
                   </div>
@@ -249,11 +263,11 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                       
                       <div className="absolute bottom-2.5 sm:bottom-3 left-3 sm:left-4 right-3 sm:right-4 text-white">
                         <h3 className="font-black text-base sm:text-xl leading-snug drop-shadow-md line-clamp-2">
-                          {combo.title}
+                          {isTa ? t(combo.title) : combo.title}
                         </h3>
                         {combo.subtitle && (
                           <p className="text-[11px] sm:text-xs font-medium text-amber-200/90 truncate drop-shadow-xs mt-0.5">
-                            {combo.subtitle}
+                            {isTa ? t(combo.subtitle) : combo.subtitle}
                           </p>
                         )}
                       </div>
@@ -264,7 +278,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                         {aggregated.length > 0 && (
                           <div className="bg-amber-50/80 border border-amber-200/60 rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 space-y-1.5 sm:space-y-2">
                             <p className="text-[10px] sm:text-[11px] font-bold text-amber-900 uppercase tracking-wider flex items-center justify-between gap-1.5">
-                              <span>🌿 Includes {combo.products?.length || 0} Farm Plants:</span>
+                              <span>🌿 {isTa ? `சேர்க்கப்பட்ட பண்ணை செடிகள் (${combo.products?.length || 0}):` : `Includes ${combo.products?.length || 0} Farm Plants:`}</span>
                             </p>
                             <div className="space-y-1">
                               {aggregated.map(({ product: p, count }) => (
@@ -284,7 +298,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                                     ) : (
                                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 group-hover/item:scale-125 transition-transform shrink-0" />
                                     )}
-                                    <span className="truncate">{p.name}</span>
+                                    <span className="truncate">{isTa ? (p.tamilName && p.tamilName !== p.name ? p.tamilName : t(p.name)) : p.name}</span>
                                   </span>
                                 </div>
                               ))}
@@ -307,13 +321,13 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                           </div>
                           {savings > 0 && (
                             <p className="text-[11px] sm:text-xs font-extrabold text-emerald-700 mt-0.5">
-                              🎉 Save ₹{savings} ({discount}% OFF)
+                              🎉 {isTa ? `ரூ. ${savings} சேமிப்பு (${discount}% தள்ளுபடி)` : `Save ₹${savings} (${discount}% OFF)`}
                             </p>
                           )}
                         </div>
                         {combo.freeDelivery && (
                           <span className="bg-emerald-100 text-emerald-900 font-extrabold text-[10px] sm:text-[11px] px-2 py-0.5 rounded-lg border border-emerald-300">
-                            🚚 Free Delivery (TN)
+                            🚚 {isTa ? 'இலவச டெலிவரி (TN)' : 'Free Delivery (TN)'}
                           </span>
                         )}
                       </div>
@@ -334,13 +348,13 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                       {isJustAdded ? (
                         <>
                           <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 animate-bounce" />
-                          <span>Added to Cart!</span>
+                          <span>{isTa ? 'கூடையில் சேர்க்கப்பட்டது!' : 'Added to Cart!'}</span>
                         </>
                       ) : (
                         <>
                           <ShoppingBag className="w-4 h-4" />
-                          <span className="sm:hidden">Add Bundle • ₹{combo.comboPrice}</span>
-                          <span className="hidden sm:inline">Add Combo Package to Cart (₹{combo.comboPrice})</span>
+                          <span className="sm:hidden">{isTa ? `கூடையில் சேர்க்க • ₹${combo.comboPrice}` : `Add Bundle • ₹${combo.comboPrice}`}</span>
+                          <span className="hidden sm:inline">{isTa ? `காம்போ தொகுப்பை கூடையில் சேர்க்கவும் (₹${combo.comboPrice})` : `Add Combo Package to Cart (₹${combo.comboPrice})`}</span>
                           <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </>
                       )}
@@ -358,6 +372,12 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
         const discount = modalCombo.discountPercent || (modalCombo.originalPrice > 0 ? Math.round(((modalCombo.originalPrice - modalCombo.comboPrice) / modalCombo.originalPrice) * 100) : 0);
         const savings = modalCombo.originalPrice > modalCombo.comboPrice ? modalCombo.originalPrice - modalCombo.comboPrice : 0;
         const isJustAdded = addedComboId === modalCombo.id;
+        const modalBadgeText = isTa
+          ? (modalCombo.badge?.includes('1-IN-1') ? '1-ல்-1 சிறப்பு சலுகை'
+            : modalCombo.badge?.includes('2-IN-1') ? '2-ல்-1 சிறப்பு சலுகை'
+            : modalCombo.badge?.includes('3-IN-1') ? '3-ல்-1 சிறப்பு சலுகை'
+            : 'சிறப்பு காம்போ')
+          : (modalCombo.badge || 'COMBO OFFER');
 
         return (
           <div
@@ -391,25 +411,25 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                 <div className="absolute bottom-4 left-6 right-6 text-white space-y-1">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     <span className="bg-amber-500 text-white font-black text-xs px-3 py-1 rounded-full uppercase tracking-wider">
-                      {modalCombo.badge || 'COMBO OFFER'}
+                      {modalBadgeText}
                     </span>
                     {modalCombo.freeDelivery && (
                       <span className="bg-emerald-600 text-white font-black text-xs px-3 py-1 rounded-full">
-                        🚚 FREE DELIVERY (TN ONLY)
+                        🚚 {isTa ? 'இலவச டெலிவரி (தமிழ்நாடு மட்டும்)' : 'FREE DELIVERY (TN ONLY)'}
                       </span>
                     )}
                     {discount > 0 && (
                       <span className="bg-rose-600 text-white font-black text-xs px-3 py-1 rounded-full">
-                        {discount}% OFF
+                        {discount}% {isTa ? 'தள்ளுபடி' : 'OFF'}
                       </span>
                     )}
                   </div>
                   <h3 className="text-2xl sm:text-3xl font-black font-display drop-shadow-md">
-                    {modalCombo.title}
+                    {isTa ? t(modalCombo.title) : modalCombo.title}
                   </h3>
                   {modalCombo.subtitle && (
                     <p className="text-xs text-amber-200 font-medium">
-                      {modalCombo.subtitle}
+                      {isTa ? t(modalCombo.subtitle) : modalCombo.subtitle}
                     </p>
                   )}
                 </div>
@@ -423,12 +443,14 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">🎉</span>
                       <div>
-                        <p className="text-sm font-black">Nursery Direct Special Discount!</p>
-                        <p className="text-xs text-emerald-100 font-medium">You save ₹{savings} compared to buying saplings individually</p>
+                        <p className="text-sm font-black">{isTa ? 'நர்சரி நேரடி சிறப்பு தள்ளுபடி!' : 'Nursery Direct Special Discount!'}</p>
+                        <p className="text-xs text-emerald-100 font-medium">
+                          {isTa ? `தனித்தனியாக வாங்குவதை விட ரூ.${savings} மிச்சப்படுத்துகிறீர்கள்` : `You save ₹${savings} compared to buying saplings individually`}
+                        </p>
                       </div>
                     </div>
                     <span className="text-xl font-black bg-white/20 px-3 py-1.5 rounded-xl border border-white/30 shrink-0">
-                      {discount}% OFF
+                      {discount}% {isTa ? 'தள்ளுபடி' : 'OFF'}
                     </span>
                   </div>
                 )}
@@ -436,7 +458,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                 {/* Included Plants Section */}
                 <div className="space-y-3">
                   <h4 className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
-                    <span>🌿 Included Saplings in this Package ({modalCombo.products?.length || 0})</span>
+                    <span>🌿 {isTa ? `இந்த தொகுப்பில் உள்ள செடிகள் (${modalCombo.products?.length || 0})` : `Included Saplings in this Package (${modalCombo.products?.length || 0})`}</span>
                   </h4>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -451,7 +473,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                       >
                         {count > 1 && (
                           <span className="absolute top-2 right-2 bg-gradient-to-r from-amber-500 to-emerald-700 text-white font-black text-[11px] px-2.5 py-0.5 rounded-full shadow-xs font-mono z-10">
-                            {count}× Saplings Bundle
+                            {count}× {isTa ? 'செடிகள்' : 'Saplings Bundle'}
                           </span>
                         )}
                         <img
@@ -460,11 +482,15 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                           className="w-14 h-14 rounded-xl object-cover border border-slate-200 shrink-0 group-hover:scale-105 transition-transform"
                         />
                         <div className="flex-1 min-w-0">
-                          <h5 className="font-bold text-slate-900 text-xs truncate group-hover:text-emerald-800">{p.name}</h5>
-                          <p className="text-[10px] text-slate-400 font-medium truncate">{p.tamilName}</p>
+                          <h5 className="font-bold text-slate-900 text-xs truncate group-hover:text-emerald-800">
+                            {isTa ? (p.tamilName && p.tamilName !== p.name ? p.tamilName : t(p.name)) : p.name}
+                          </h5>
+                          <p className="text-[10px] text-slate-400 font-medium truncate">
+                            {isTa ? '🌱 நேரடி பண்ணை செடி' : (p.tamilName || '')}
+                          </p>
                           <div className="flex items-center justify-between mt-1">
                             <span className="text-[10px] text-emerald-700 font-bold bg-white px-2 py-0.5 rounded border border-slate-200">
-                              {p.potSize || 'Bag Plant'}
+                              {isTa ? 'உயிருள்ள பண்ணை செடி' : (p.potSize || 'Bag Plant')}
                             </span>
                           </div>
                         </div>
@@ -477,11 +503,11 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                 <div className="grid grid-cols-2 gap-3 pt-2 text-[11px] font-bold text-slate-700">
                   <div className="flex items-center gap-2 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200">
                     <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
-                    <span>7-Day Root Moisture Moisturelock</span>
+                    <span>{isTa ? '7-நாள் வேர் ஈரப்பதம் பாதுகாப்பு' : '7-Day Root Moisture Moisturelock'}</span>
                   </div>
                   <div className="flex items-center gap-2 bg-amber-50 p-2.5 rounded-xl border border-amber-200">
                     <Truck className="w-4 h-4 text-amber-700 shrink-0" />
-                    <span>Safe All-India Express Delivery</span>
+                    <span>{isTa ? 'பாதுகாப்பான விரைவு டெலிவரி' : 'Safe All-India Express Delivery'}</span>
                   </div>
                 </div>
               </div>
@@ -489,7 +515,9 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
               {/* Modal Footer CTA */}
               <div className="p-3.5 sm:p-4 bg-slate-50 border-t border-slate-200 shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
                 <div className="flex items-center justify-between sm:block">
-                  <span className="text-[10px] sm:text-[11px] text-slate-500 font-bold block">Combo Package Price</span>
+                  <span className="text-[10px] sm:text-[11px] text-slate-500 font-bold block">
+                    {isTa ? 'காம்போ விலை' : 'Combo Package Price'}
+                  </span>
                   <div className="flex items-baseline gap-2">
                     <span className="text-xl sm:text-2xl font-black text-slate-900">₹{modalCombo.comboPrice}</span>
                     {modalCombo.originalPrice > modalCombo.comboPrice && (
@@ -507,7 +535,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                   className="w-full sm:w-auto py-3 px-5 sm:px-6 bg-gradient-to-r from-emerald-700 via-emerald-800 to-amber-700 hover:from-emerald-800 hover:to-amber-800 text-white font-extrabold text-xs rounded-xl sm:rounded-2xl shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
                 >
                   <ShoppingBag className="w-4 h-4" />
-                  <span>Add All {modalCombo.products?.length || 0} Saplings to Cart</span>
+                  <span>{isTa ? `அனைத்து ${modalCombo.products?.length || 0} செடிகளையும் கூடையில் சேர்க்கவும்` : `Add All ${modalCombo.products?.length || 0} Saplings to Cart`}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>

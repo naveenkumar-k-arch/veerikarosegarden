@@ -205,7 +205,7 @@ export const TRANSLATIONS_TA: Record<string, string> = {
   'Fast WhatsApp Customer Support': 'உடனடி வாட்ஸ்அப் வாடிக்கையாளர் உதவி',
 
   // Footer & About
-  'Veerika Rose Garden': 'வீரிகா ரோஜா கார்டன் (VRG Nursery)',
+  'Veerika Rose Garden': 'வீரிகா ரோஜா கார்டன்',
   'Pennagaram, Dharmapuri District, Tamil Nadu': 'பென்னாகரம், தர்மபுரி மாவட்டம், தமிழ்நாடு',
   'All Rights Reserved': 'அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை',
   'Privacy Policy': 'தனியுரிமைக் கொள்கை',
@@ -225,12 +225,254 @@ export const TRANSLATIONS_TA: Record<string, string> = {
   'Please select your preferred shopping language': 'தயவுசெய்து உங்கள் விருப்பமான மொழியைத் தேர்ந்தெடுக்கவும்',
   'Welcome to Veerika Rose Garden': 'வீரிகா ரோஜா கார்டனுக்கு நல்வரவு',
   'You can change your language anytime from the top menu': 'மேல் மெனுவிலிருந்து எந்த நேரத்திலும் மொழியை மாற்றிக் கொள்ளலாம்',
+
+  // Catalog & Sections
+  'Combos & Offers': 'காம்போ சலுகைகள்',
+  'EXTRA SAVINGS': 'கூடுதல் சேமிப்பு',
+  'Special Plant Combo Offers': 'சிறப்பு செடி காம்போ சலுகைகள்',
+  'Healthy Grafted Saplings': 'ஆரோக்கியமான ஒட்டுச்செடிகள்',
+  'Express Moisture Packed': 'ஈரப்பதம் குறையாத பேக்கிங்',
+  '1-IN-1 SPECIAL': '1-ல்-1 சிறப்பு சலுகை',
+  '2-IN-1 SPECIAL': '2-ல்-1 சிறப்பு சலுகை',
+  '3-IN-1 SPECIAL': '3-ல்-1 சிறப்பு சலுகை',
+  'FREE SHIPPING': 'இலவச டெலிவரி',
+  'Free Delivery (TN)': 'இலவச டெலிவரி (TN)',
+  'Add Combo Package to Cart': 'காம்போ தொகுப்பை கூடையில் சேர்க்கவும்',
+  'Add Bundle': 'காம்போவை சேர்க்க',
+  'Browse by Type': 'வகைகள்',
+  'Plant Categories': 'செடி வகைகள்',
+  'View All': 'அனைத்தையும் பார்க்க',
+  'Shop now': 'வாங்கவும்',
+  'Our Collection': 'எங்கள் தொகுப்பு',
+  'All Plants': 'அனைத்து செடிகள்',
+  'Full Catalog': 'முழு பட்டியல்',
+  'VERIFIED BUYER PLANT PHOTOS': 'வாடிக்கையாளர் செடி புகைப்படங்கள்',
+  'Customer Photo Reviews': 'வாடிக்கையாளர் புகைப்படக் கருத்துகள்',
+  '4.9 / 5.0 Rating': '4.9 / 5.0 மதிப்பீடு',
+  '500+ Verified Sapling Deliveries': '500+ உறுதிப்படுத்தப்பட்ட செடி டெலிவரிகள்',
+  'Customer Photo': 'வாடிக்கையாளர் புகைப்படம்',
+  'Click to Zoom': 'பெரிதாக்க அழுத்தவும்',
+  'Verified Buyer': 'உறுதிப்படுத்தப்பட்ட வாங்குபவர்',
+  '✓ Verified Buyer': '✓ உறுதிப்படுத்தப்பட்ட வாங்குபவர்',
+  'Customer Love': 'வாடிக்கையாளர் அன்பு',
+  'What Customers Say': 'வாடிக்கையாளர்கள் கூறுவது',
+  'Visit Our Farm': 'எங்கள் பண்ணையைப் பார்வையிட',
+  'Come Visit Veerika Rose Garden': 'வீரிகா ரோஜா கார்டனுக்கு வருகை தாருங்கள்',
+  'Shop Plants': 'செடிகளை வாங்க',
+  'Expert AI Chat': 'தாவர நிபுணர் AI',
+  'Quick Links': 'முக்கிய இணைப்புகள்',
+  'Shop All Plants': 'அனைத்து செடிகள்',
+  'Starting at': 'ஆரம்ப விலை',
+  '10K+ Happy Customers': '10,000+ மகிழ்ச்சியான வாடிக்கையாளர்கள்',
+  '7-Day Root Protection': '7-நாள் வேர் பாதுகாப்பு',
+  'Live arrival guaranteed': 'உயிருடன் வந்து சேரும் உத்தரவாதம்',
+  'PhonePe Safe Payment': 'போன்பே பாதுகாப்பான கட்டணம்',
+  '100% encrypted checkout': '100% பாதுகாப்பான பரிவர்த்தனை',
+  'Organic Nursery': 'இயற்கை நர்சரி',
+  'Chemical-free cultivation': 'ரசாயனமற்ற இயற்கை விவசாயம்',
+  'Free Expert Support': 'இலவச நிபுணர் உதவி',
+  'Call + WhatsApp helpline': 'அழைப்பு & வாட்ஸ்அப் உதவி',
+  '★ Top Rated': '★ சிறந்த மதிப்பீடு',
+  'Explore All': 'அனைத்தும் பார்க்க',
+  'Handpicked Selection': 'தேர்ந்தெடுக்கப்பட்ட தொகுப்பு',
+  'Featured Varieties': 'சிறப்பு வகைகள்',
+  'Explore All Plants': 'அனைத்து செடிகளையும் பார்க்க',
+  'WhatsApp Order': 'வாட்ஸ்அப் ஆர்டர்',
+  'Plant Varieties': 'செடி வகைகள்',
+  'Customer Rating': 'வாடிக்கையாளர் மதிப்பீடு',
+  'Orders Delivered': 'ஆர்டர்கள் விநியோகம்',
+  'Mun coeur': 'மான் கர் ரோஜா',
+  'Taiwan pink guva': 'தைவான் பிங்க் கொய்யா',
+  'Mini beetroot guva': 'மினி பீட்ரூட் கொய்யா',
+  'Perfume breeze light pink': 'பெர்பியூம் ப்ரீஸ் லைட் பிங்க் ரோஜா',
+  'Perfume breeze': 'பெர்பியூம் ப்ரீஸ் ரோஜா',
+  'White Panneer Rose': 'வெள்ளை பன்னீர் ரோஜா',
+  'Creeper Jackie Rose': 'ஜாக்கி கொடி ரோஜா',
+  'Birthday Party Creeper Rose': 'பர்த்டே பார்ட்டி கொடி ரோஜா',
+  'Baby Romantica Creeper Rose': 'பேபி ரொமாண்டிகா கொடி ரோஜா',
+  'Red Cascade Climber Rose': 'சிவப்பு கொடி ரோஜா (ரெட் காஸ்கேட்)',
+  'Suloli Hanging Rose (Creeper)': 'சுலோலி தொங்கும் கொடி ரோஜா',
+  'Pink Creeper Rose': 'இளஞ்சிவப்பு கொடி ரோஜா',
+  'Purple Hibiscus': 'நீல/ஊதா செம்பருத்தி',
+  'Manoranjitham (Climbing Ylang Ylang)': 'மனோரஞ்சிதம் செடி',
+  'Panneer Kodi Milagu (Pepper Vine)': 'பன்னீர் கொடி மிளகு',
+  'Red Henna (Sigappu Marudhani)': 'சிகப்பு மருதாணி செடி',
+  'Srilankan Malli': 'இலங்கை மல்லி செடி',
+  'Kodi Sambangi (Climbing Tuberose)': 'கொடி சம்பங்கி செடி',
+  'Rangoon Creeper (Single Petal)': 'ரங்கூன் மல்லி (ஒற்றை இதழ்)',
+  'Barleria Cristata (December Poo)': 'டிசம்பர் பூ செடி (வயலட்/பிங்க்)',
+  'Magilam Poo Maram (Bullet Wood)': 'மகிழம் பூ மரம்',
+  'Yellow Parijadham': 'மஞ்சள் பாரிஜாதம்',
+  'Bridal Bouquet (Night Queen Kodi)': 'பிரைடல் பொக்கே / நைட்குயின் கொடி',
+  'Panneer Pushpam Plant': 'பன்னீர் புஷ்பம் செடி',
+  'Petrea Volubilis Violet (Sandpaper Vine)': 'பெட்ரியா வயலட் கொடி',
+  'Petrea Volubilis White (Sandpaper Vine)': 'பெட்ரியா வெள்ளை கொடி',
+  'Apple Red rose offer': 'ஆப்பிள் ரெட் ரோஸ் சலுகை',
+  'Apple Red Rose': 'ஆப்பிள் ரெட் ரோஸ்',
+  'Sunday Rose Combo': 'ஞாயிறு ரோஜா காம்போ',
+  'BEST ON SUNDAY – ROSE COMBO OFFER': 'ஞாயிறு சிறப்பு ரோஜா காம்போ சலுகை',
+  'Seven Days Rose': '7 நாட்கள் ரோஜா',
+  'Paneer Butter Rose': 'பன்னீர் பட்டர் ரோஜா',
+  '7 Days Rose (Everblooming Red)': '7 நாட்கள் ரோஜா (எவர்ப்ளூமிங் ரெட்)',
+  'Naatu Rose (Country Paneer Rose)': 'நாட்டு பன்னீர் ரோஸ்',
+  'SWEET FRAGRANCE ORCHID ROSE SPECIAL OFFER': 'நறுமணமிக்க ஆர்க்கிட் ரோஜா சிறப்பு சலுகை',
+  'Orchid Rose (Free shipping)': 'ஆர்க்கிட் ரோஸ் (இலவச டெலிவரி)',
+  'Orchid Rose': 'ஆர்க்கிட் ரோஸ்',
+  'FAIRY ROSE – 2 SPECIAL VARIETIES COMBO': 'ஃபேரி ரோஸ் - 2 சிறப்பு ரகங்கள் காம்போ',
+  'Pink Fairy Rose (Polyantha)': 'பிங்க் ஃபேரி ரோஸ்',
+  'Margo Koster Pink Rose': 'மார்கோ கோஸ்டர் பிங்க் ரோஸ்',
+  'WATER APPLE – 3 VARIETY COMBO': 'வாட்டர் ஆப்பிள் - 3 ரக காம்போ',
+  'Green Water Apple Plant': 'பச்சை வாட்டர் ஆப்பிள் செடி',
+  'Red Water Apple Plant': 'சிவப்பு வாட்டர் ஆப்பிள் செடி',
+  'White Water Apple Plant': 'வெள்ளை வாட்டர் ஆப்பிள் செடி',
+  'Guva combo offer': 'கொய்யா காம்போ சலுகை',
+  'Taiwan pink guva & mini beetroot guva': 'தைவான் பிங்க் கொய்யா & மினி பீட்ரூட் கொய்யா',
+  'Restock alert': 'மீண்டும் இருப்பில் வந்துள்ளது',
+  'Sunday Special offer': 'ஞாயிறு சிறப்பு சலுகை',
+  '7days rose and button panner combo': '7 நாட்கள் ரோஜா & பட்டன் பன்னீர் காம்போ',
+  'Button Pink Rose': 'பட்டன் பிங்க் ரோஸ்',
+  'Rose Plants': 'ரோஜா வகைகள்',
+  'Herbal Plants': 'மூலிகைச் செடிகள்',
+  'Jasmine Varieties': 'மல்லி பூ வகைகள்',
+  'Creeper Roses': 'கொடி ரோஸ் வகைகள்',
+  'Rare & Exotic Roses': 'அரிய வகை ரோஜாக்கள்',
+  'Flowering Plants': 'பூச்செடிகள்',
+  'Live Plant': 'உயிருள்ள பண்ணை செடி',
+  'Live Plants': 'உயிருள்ள பண்ணை செடிகள்',
+  'From': 'விலை',
+  'Plants': 'செடிகள்',
+  'Plant': 'செடி',
 };
 
 // Common Tamil word dictionary for deep recursive DOM translation
 const GENERAL_PHRASE_MAPPINGS: [RegExp, string][] = [
   [/\bVeerika Rose Garden\b/gi, 'வீரிகா ரோஜா கார்டன்'],
   [/\bVRG Nursery\b/gi, 'விஆர்ஜி நர்சரி'],
+  [/\bPremier Plant Nursery · Pennagaram, Tamil Nadu\b/gi, 'முதன்மை தாவர நர்சரி · பென்னாகரம், தமிழ்நாடு'],
+  [/\bPennagaram, Tamil Nadu\b/gi, 'பென்னாகரம், தமிழ்நாடு'],
+  [/\bHealthy Roses &Exotic PlantsDelivered to Your Door 🌿\b/gi, 'ஆரோக்கியமான ரோஜா & அரிய செடிகள் உங்கள் வீட்டு வாசலுக்கு 🌿'],
+  [/\bHealthy Roses & Exotic Plants Delivered to Your Door 🌿\b/gi, 'ஆரோக்கியமான ரோஜா & அரிய செடிகள் உங்கள் வீட்டு வாசலுக்கு 🌿'],
+  [/\bPremium hybrid roses, grafted fruit trees, jasmine & organic fertilizers.*?across India\./gi, 'பிரீமியம் ஹைப்ரிட் ரோஜாக்கள், ஒட்டு மா/பழ மரங்கள், மல்லிகை & இயற்கை உரங்கள் — இந்தியா முழுவதும் பாதுகாப்பான டெலிவரிக்கு 7 நாள் வேர் ஈரப்பதம் பாதுகாப்புடன் அனுப்பப்படுகிறது.'],
+  [/\bRose Varieties\b/gi, 'ரோஜா வகைகள்'],
+  [/\bRose Plants\b/gi, 'ரோஜா வகைகள்'],
+  [/\bHerbal Plants\b/gi, 'மூலிகைச் செடிகள்'],
+  [/\bJasmine Varieties\b/gi, 'மல்லி பூ வகைகள்'],
+  [/\bCreeper Roses\b/gi, 'கொடி ரோஸ் வகைகள்'],
+  [/\bMiniature Roses\b/gi, 'மினியேச்சர் ரோஸ் வகைகள்'],
+  [/\bRare & Exotic Roses\b/gi, 'அரிய வகை ரோஜாக்கள்'],
+  [/\bFruit Plants\b/gi, 'பழ மரங்கள்'],
+  [/\bFlowering Plants\b/gi, 'பூச்செடிகள்'],
+  [/\bLive Plant\b/gi, 'உயிருள்ள பண்ணை செடி'],
+  [/\bLive Plants\b/gi, 'உயிருள்ள பண்ணை செடிகள்'],
+  [/\bMun coeur\b/gi, 'மான் கர் ரோஜா'],
+  [/\bTaiwan pink guva\b/gi, 'தைவான் பிங்க் கொய்யா'],
+  [/\bMini beetroot guva\b/gi, 'மினி பீட்ரூட் கொய்யா'],
+  [/\bPerfume breeze light pink\b/gi, 'பெர்பியூம் ப்ரீஸ் லைட் பிங்க் ரோஜா'],
+  [/\bPerfume breeze\b/gi, 'பெர்பியூம் ப்ரீஸ் ரோஜா'],
+  [/\bGuva\b/gi, 'கொய்யா'],
+  [/\bGuava\b/gi, 'கொய்யா'],
+  [/\bApple Red rose offer\b/gi, 'ஆப்பிள் ரெட் ரோஸ் சலுகை'],
+  [/\bApple Red Rose\b/gi, 'ஆப்பிள் ரெட் ரோஸ்'],
+  [/\bSeven Days Rose\b/gi, '7 நாட்கள் ரோஜா'],
+  [/\b7 Days Rose \(Everblooming Red\)\b/gi, '7 நாட்கள் ரோஜா (எவர்ப்ளூமிங் ரெட்)'],
+  [/\b7 Days Rose\b/gi, '7 நாட்கள் ரோஜா'],
+  [/\bNaatu Rose \(Country Paneer Rose\)\b/gi, 'நாட்டு பன்னீர் ரோஸ்'],
+  [/\bNaatu Rose\b/gi, 'நாட்டு ரோஜா'],
+  [/\bPaneer Butter Rose\b/gi, 'பன்னீர் பட்டர் ரோஜா'],
+  [/\bOrchid Rose \(Free shipping\)\b/gi, 'ஆர்க்கிட் ரோஸ் (இலவச டெலிவரி)'],
+  [/\bOrchid Rose\b/gi, 'ஆர்க்கிட் ரோஸ்'],
+  [/\bPink Fairy Rose \(Polyantha\)\b/gi, 'பிங்க் ஃபேரி ரோஸ்'],
+  [/\bPink Fairy Rose\b/gi, 'பிங்க் ஃபேரி ரோஸ்'],
+  [/\bMargo Koster Pink Rose\b/gi, 'மார்கோ கோஸ்டர் பிங்க் ரோஸ்'],
+  [/\bGreen Water Apple Plant\b/gi, 'பச்சை வாட்டர் ஆப்பிள் செடி'],
+  [/\bRed Water Apple Plant\b/gi, 'சிவப்பு வாட்டர் ஆப்பிள் செடி'],
+  [/\bWhite Water Apple Plant\b/gi, 'வெள்ளை வாட்டர் ஆப்பிள் செடி'],
+  [/\bGreen Water Apple\b/gi, 'பச்சை வாட்டர் ஆப்பிள்'],
+  [/\bRed Water Apple\b/gi, 'சிவப்பு வாட்டர் ஆப்பிள்'],
+  [/\bWhite Water Apple\b/gi, 'வெள்ளை வாட்டர் ஆப்பிள்'],
+  [/\bWater Apple\b/gi, 'வாட்டர் ஆப்பிள் (பன்னீர் ஜம்பு)'],
+  [/\bButton Pink Rose\b/gi, 'பட்டன் பிங்க் ரோஸ்'],
+  [/\b7days rose and button panner combo\b/gi, '7 நாட்கள் ரோஜா & பட்டன் பன்னீர் சேர்க்கை'],
+  [/\bRestock alert\b/gi, 'மீண்டும் இருப்பில் வந்துள்ளது'],
+  [/\bSunday Special offer\b/gi, 'ஞாயிறு சிறப்பு சலுகை'],
+  [/\bSunday Rose Combo\b/gi, 'ஞாயிறு ரோஜா காம்போ'],
+  [/\bBEST ON SUNDAY – ROSE COMBO OFFER\b/gi, 'ஞாயிறு சிறப்பு ரோஜா காம்போ சலுகை'],
+  [/\bBest Seller Combo\b/gi, 'அதிக விற்பனை காம்போ'],
+  [/\bLimited Stock Offer\b/gi, 'குறைந்த இருப்பு சலுகை'],
+  [/\bSpecial Offer\b/gi, 'சிறப்பு சலுகை'],
+  [/\bCombos & Offers\b/gi, 'காம்போ சலுகைகள்'],
+  [/\bEXTRA SAVINGS\b/gi, 'கூடுதல் சேமிப்பு'],
+  [/\bSpecial Plant Combo Offers\b/gi, 'சிறப்பு செடி காம்போ சலுகைகள்'],
+  [/\bHand-picked plant bundles directly from.*?delivery\./gi, 'வீரிகா ரோஜா கார்டன் பண்ணையிலிருந்து நேரடியாக பிரத்யேக காம்போ தள்ளுபடி & பண்ணை டெலிவரியுடன் கூடிய செடிகள் தொகுப்பு.'],
+  [/\bHealthy Grafted Saplings\b/gi, 'ஆரோக்கியமான ஒட்டுச்செடிகள்'],
+  [/\bExpress Moisture Packed\b/gi, 'ஈரப்பதம் குறையாத பேக்கிங்'],
+  [/\b1-IN-1 SPECIAL\b/gi, '1-ல்-1 சிறப்பு சலுகை'],
+  [/\b2-IN-1 SPECIAL\b/gi, '2-ல்-1 சிறப்பு சலுகை'],
+  [/\b3-IN-1 SPECIAL\b/gi, '3-ல்-1 சிறப்பு சலுகை'],
+  [/\bFREE SHIPPING\b/gi, 'இலவச டெலிவரி'],
+  [/\bFree Shipping\b/gi, 'இலவச டெலிவரி'],
+  [/\bFree Delivery \(TN\)\b/gi, 'இலவச டெலிவரி (TN)'],
+  [/\bFREE DELIVERY \(TN ONLY\)\b/gi, 'இலவச டெலிவரி (தமிழ்நாடு மட்டும்)'],
+  [/\bIncludes (\d+) Farm Plants:\b/gi, 'சேர்க்கப்பட்ட பண்ணை செடிகள் ($1):'],
+  [/\bAdd Combo Package to Cart \(₹(\d+)\)\b/gi, 'காம்போ தொகுப்பை கூடையில் சேர்க்கவும் (₹$1)'],
+  [/\bAdd Combo Package to Cart\b/gi, 'காம்போ தொகுப்பை கூடையில் சேர்க்கவும்'],
+  [/\bAdd Bundle • ₹(\d+)\b/gi, 'கூடையில் சேர்க்க • ₹$1'],
+  [/\bAdd Bundle\b/gi, 'கூடையில் சேர்க்க'],
+  [/\bSave ₹(\d+) \((\d+)% OFF\)\b/gi, 'ரூ. $1 சேமிப்பு ($2% தள்ளுபடி)'],
+  [/\bSave ₹(\d+)\b/gi, 'ரூ. $1 சேமிப்பு'],
+  [/(\d+)%\s*OFF\b/gi, '$1% தள்ளுபடி'],
+  [/(\d+)%\s*off\b/gi, '$1% தள்ளுபடி'],
+  [/\bUp to (\d+)% OFF\b/gi, '$1% வரை தள்ளுபடி'],
+  [/\bBrowse by Type\b/gi, 'வகைகள்'],
+  [/\bPlant Categories\b/gi, 'செடி வகைகள்'],
+  [/\bView All (\d+) Plants\b/gi, 'அனைத்து $1 செடிகளையும் பார்க்க'],
+  [/\bView All\b/gi, 'அனைத்தையும் பார்க்க'],
+  [/\bFull Catalog\b/gi, 'முழு பட்டியல்'],
+  [/\bOur Collection\b/gi, 'எங்கள் தொகுப்பு'],
+  [/\bAll Plants\b/gi, 'அனைத்து செடிகள்'],
+  [/\bShop now\b/gi, 'வாங்கவும்'],
+  [/(\d+)\s+plants\b/gi, '$1 செடிகள்'],
+  [/\bVERIFIED BUYER PLANT PHOTOS\b/gi, 'வாடிக்கையாளர் செடி புகைப்படங்கள்'],
+  [/\bCustomer Photo Reviews\b/gi, 'வாடிக்கையாளர் புகைப்படக் கருத்துகள்'],
+  [/\bReal photos & feedback uploaded by plant lovers directly from their home & terrace gardens\./gi, 'வாடிக்கையாளர்கள் தங்கள் வீட்டு மற்றும் மாடித் தோட்டத்திலிருந்து நேரடியாகப் பகிர்ந்த புகைப்படங்கள் & கருத்துகள்.'],
+  [/\b4\.9 \/ 5\.0 Rating\b/gi, '4.9 / 5.0 மதிப்பீடு'],
+  [/\b500\+ Verified Sapling Deliveries\b/gi, '500+ உறுதிப்படுத்தப்பட்ட செடி டெலிவரிகள்'],
+  [/\bCustomer Photo\b/gi, 'வாடிக்கையாளர் புகைப்படம்'],
+  [/\bClick to Zoom\b/gi, 'பெரிதாக்க அழுத்தவும்'],
+  [/\bVerified Buyer\b/gi, 'உறுதிப்படுத்தப்பட்ட வாங்குபவர்'],
+  [/\bCustomer Love\b/gi, 'வாடிக்கையாளர் அன்பு'],
+  [/\bWhat Customers Say\b/gi, 'வாடிக்கையாளர்கள் கூறுவது'],
+  [/\bVisit Our Farm\b/gi, 'எங்கள் பண்ணையைப் பார்வையிட'],
+  [/\bCome Visit Veerika Rose Garden\b/gi, 'வீரிகா ரோஜா கார்டனுக்கு வருகை தாருங்கள்'],
+  [/\bShop Plants\b/gi, 'செடிகளை வாங்க'],
+  [/\bExpert AI Chat\b/gi, 'தாவர நிபுணர் AI'],
+  [/\bQuick Links\b/gi, 'முக்கிய இணைப்புகள்'],
+  [/\bShop All Plants\b/gi, 'அனைத்து செடிகள்'],
+  [/\bTrack My Order\b/gi, 'ஆர்டரைக் கண்காணிக்கவும்'],
+  [/\bShipping Policy\b/gi, 'டெலிவரி கொள்கை'],
+  [/\bRefund Policy\b/gi, 'பணத்திருப்புக் கொள்கை'],
+  [/\bCart \((\d+)\)\b/gi, 'கூடை ($1)'],
+  [/\bStarting at\b/gi, 'ஆரம்ப விலை'],
+  [/\b10K\+ Happy Customers\b/gi, '10,000+ மகிழ்ச்சியான வாடிக்கையாளர்கள்'],
+  [/\b7-Day Root Protection\b/gi, '7-நாள் வேர் பாதுகாப்பு'],
+  [/\bLive arrival guaranteed\b/gi, 'உயிருடன் வந்து சேரும் உத்தரவாதம்'],
+  [/\bPhonePe Safe Payment\b/gi, 'போன்பே பாதுகாப்பான கட்டணம்'],
+  [/\b100% encrypted checkout\b/gi, '100% பாதுகாப்பான பரிவர்த்தனை'],
+  [/\bOrganic Nursery\b/gi, 'இயற்கை நர்சரி'],
+  [/\bChemical-free cultivation\b/gi, 'ரசாயனமற்ற இயற்கை விவசாயம்'],
+  [/\bFree Expert Support\b/gi, 'இலவச நிபுணர் உதவி'],
+  [/\bCall \+ WhatsApp helpline\b/gi, 'அழைப்பு & வாட்ஸ்அப் உதவி'],
+  [/\b★ Top Rated\b/gi, '★ சிறந்த மதிப்பீடு'],
+  [/\bBest Sellers\b/gi, 'அதிக விற்பனை'],
+  [/\bExplore All\b/gi, 'அனைத்தும் பார்க்க'],
+  [/\bHandpicked Selection\b/gi, 'தேர்ந்தெடுக்கப்பட்ட தொகுப்பு'],
+  [/\bFeatured Varieties\b/gi, 'சிறப்பு வகைகள்'],
+  [/\bExplore All Plants\b/gi, 'அனைத்து செடிகளையும் பார்க்க'],
+  [/\bWhatsApp Order\b/gi, 'வாட்ஸ்அப் ஆர்டர்'],
+  [/\bPlant Varieties\b/gi, 'செடி வகைகள்'],
+  [/\bCustomer Rating\b/gi, 'வாடிக்கையாளர் மதிப்பீடு'],
+  [/\bOrders Delivered\b/gi, 'ஆர்டர்கள் விநியோகம்'],
+  [/\bDutch Hybrid Rose in Ceramic 3D Pot\b/gi, 'செராமிக் தொட்டியில் டச்சு ஹைப்ரிட் ரோஜா'],
   [/\bSecure Checkout\b/gi, 'பாதுகாப்பான செக்அவுட்'],
   [/\bOrder Summary\b/gi, 'ஆர்டர் விவரங்கள்'],
   [/\bDelivery Charge\b/gi, 'டெலிவரி கட்டணம்'],
@@ -311,15 +553,31 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
       if (k.toLowerCase() === lowerKey) return v;
     }
 
+    // Check regex mappings
+    for (const [regex, replacement] of GENERAL_PHRASE_MAPPINGS) {
+      if (regex.test(trimmed)) {
+        return trimmed.replace(regex, replacement);
+      }
+    }
+
     return fallback || key;
   }, [language]);
 
   const getProductName = useCallback((product: { name: string; englishName?: string; tamilName?: string }): string => {
     if (!product) return '';
     if (language === 'ta') {
-      return (product.tamilName && product.tamilName.trim()) 
-        ? product.tamilName.trim() 
-        : t(product.name || product.englishName || '');
+      const trimmedTa = (product.tamilName || '').trim();
+      const engName = (product.englishName || product.name || '').trim();
+      // If tamilName exists and is distinct from englishName, return it
+      if (trimmedTa && trimmedTa.toLowerCase() !== engName.toLowerCase()) {
+        return trimmedTa;
+      }
+      // Check translations for product name
+      const translated = t(engName);
+      if (translated && translated !== engName) {
+        return translated;
+      }
+      return trimmedTa || engName;
     }
     return product.englishName || product.name;
   }, [language, t]);
@@ -327,9 +585,12 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
   const getCategoryName = useCallback((category: { name: string; tamilName?: string }): string => {
     if (!category) return '';
     if (language === 'ta') {
-      return (category.tamilName && category.tamilName.trim()) 
-        ? category.tamilName.trim() 
-        : t(category.name);
+      if (category.tamilName && category.tamilName.trim()) {
+        // Strip out any bracketed English suffix like "(Combos)" or "(Herbals)"
+        const cleanTamil = category.tamilName.replace(/\s*\([a-zA-Z\s&]+\)/g, '').trim();
+        if (cleanTamil) return cleanTamil;
+      }
+      return t(category.name);
     }
     return category.name;
   }, [language, t]);
@@ -355,11 +616,12 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
         const trimmed = text.trim();
         if (TRANSLATIONS_TA[trimmed]) {
           newText = text.replace(trimmed, TRANSLATIONS_TA[trimmed]);
-        } else {
-          for (const [regex, replacement] of GENERAL_PHRASE_MAPPINGS) {
-            if (regex.test(newText)) {
-              newText = newText.replace(regex, replacement);
-            }
+        }
+
+        // Apply general phrase mappings
+        for (const [regex, replacement] of GENERAL_PHRASE_MAPPINGS) {
+          if (regex.test(newText)) {
+            newText = newText.replace(regex, replacement);
           }
         }
 

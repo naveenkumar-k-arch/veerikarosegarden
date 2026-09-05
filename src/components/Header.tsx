@@ -63,7 +63,7 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Top Bar Language Selector Button */}
             <button
               onClick={toggleLanguage}
-              title={language === 'ta' ? 'Switch to English' : 'தமிழுக்கு மாறவும்'}
+              title={language === 'ta' ? 'ஆங்கிலத்திற்கு மாறவும்' : 'தமிழுக்கு மாறவும்'}
               style={{
                 display: 'flex', alignItems: 'center', gap: 4,
                 color: '#ffffff', background: 'rgba(255,255,255,0.25)',
@@ -73,7 +73,7 @@ export const Header: React.FC<HeaderProps> = ({
               }}
             >
               <Globe style={{ width: 10, height: 10 }} />
-              <span>{language === 'ta' ? 'English' : 'தமிழ்'}</span>
+              <span>{language === 'ta' ? 'தமிழ்' : 'English'}</span>
             </button>
             <a href="tel:+917200826129" style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#bbf7d0', fontSize: 10, fontWeight: 600, textDecoration: 'none' }}>
               <Phone style={{ width: 11, height: 11 }} /> <span className="sm-show" style={{ display: 'none' }}>+91 72008 26129</span>

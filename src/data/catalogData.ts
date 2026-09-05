@@ -4,7 +4,7 @@ export const INITIAL_CATEGORIES: Category[] = [
   {
     "id": "cat-combos",
     "name": "Combos & Offers",
-    "tamilName": "சேர்க்கை & சலுகைகள் (Combos)",
+    "tamilName": "சேர்க்கை & சலுகைகள்",
     "slug": "combos",
     "image": "/products/double-delight.jpeg",
     "description": "Special discounted live plant combo bundles, multi-sapling packages, and seasonal offers.",
@@ -28,7 +28,7 @@ export const INITIAL_CATEGORIES: Category[] = [
   {
     "id": "cat-herbals",
     "name": "Herbal Plants",
-    "tamilName": "மூலிகை (Herbals)",
+    "tamilName": "மூலிகைச் செடிகள்",
     "slug": "herbals",
     "image": "/categories/herbal-plants.jpg",
     "description": "Medicinal plants including Neeli Avuri, Sangu Poo, Aavaram Poo, Vasambu, Vetrilai & Rosemary.",
@@ -40,7 +40,7 @@ export const INITIAL_CATEGORIES: Category[] = [
   {
     "id": "cat-jasmine",
     "name": "Jasmine Varieties",
-    "tamilName": "மல்லி பூ வகைகள் (Jasmine Vts)",
+    "tamilName": "மல்லி பூ வகைகள்",
     "slug": "jasmine-varieties",
     "image": "/categories/jasmine-varieties.jpg",
     "description": "Fragrant Raja Malli (10 layer), Mysuru Malli, Pachai Mullai, Kakatan & Jadhi Malli.",
@@ -52,7 +52,7 @@ export const INITIAL_CATEGORIES: Category[] = [
   {
     "id": "cat-creeper",
     "name": "Creeper Roses",
-    "tamilName": "கொடி ரோஸ் வகைகள் (Creeper)",
+    "tamilName": "கொடி ரோஸ் வகைகள்",
     "slug": "creeper-roses",
     "image": "/categories/creeper-roses.jpg",
     "description": "Climbing and hanging rose varieties like Creeper Jackie, Red Cascade & Pink Creeper.",
@@ -76,7 +76,7 @@ export const INITIAL_CATEGORIES: Category[] = [
   {
     "id": "cat-rare",
     "name": "Rare & Exotic Roses",
-    "tamilName": "அரிய வகை ரோஜாக்கள் (Rare & Exotic)",
+    "tamilName": "அரிய வகை ரோஜாக்கள்",
     "slug": "rare-exotic-roses",
     "image": "/categories/exotics-rare-roses.jpg",
     "description": "Exclusive rare varieties like Ink Spot, Teddy Bear, Black Jade, Blue For You, Fireworks Ruffle, Black Magic & Abracadabra.",
@@ -88,7 +88,7 @@ export const INITIAL_CATEGORIES: Category[] = [
   {
     "id": "cat-fruits",
     "name": "Fruit Plants",
-    "tamilName": "பழ மரங்கள் (Fruit Plants)",
+    "tamilName": "பழ மரங்கள்",
     "slug": "fruit-plants",
     "image": "/categories/fruit-plants.jpg",
     "description": "High-yielding live fruit saplings including Black Grapes, Kalapadi Sapota, Miracle Fruit, Water Apple & PKM 1 Moringa.",
@@ -100,7 +100,7 @@ export const INITIAL_CATEGORIES: Category[] = [
   {
     "id": "cat-flowering",
     "name": "Flowering Plants",
-    "tamilName": "பூச்செடிகள் (Flowering Plants)",
+    "tamilName": "பூச்செடிகள்",
     "slug": "flowering-plants",
     "image": "/categories/flowering-plants.jpg",
     "description": "Beautiful fragrant flowering garden plants including Manoranjitham, Parijadham, Krishnakamalam & Shenbagam.",

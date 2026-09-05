@@ -1,11 +1,15 @@
 import React from 'react';
 import { Phone, Mail, MapPin, Clock, ShieldCheck, MessageSquare, Leaf, ArrowRight, Instagram, Youtube, Truck } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface FooterProps {
   onNavigate: (page: string, params?: any) => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
+  const { language, t } = useLanguage();
+  const isTa = language === 'ta';
+
   return (
     <footer style={{ background: 'white', borderTop: '2px solid #dcfce7', marginTop: 0 }}>
       {/* PhonePe banner */}
@@ -17,13 +21,21 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                 <ShieldCheck style={{ width: 22, height: 22, color: '#16a34a' }} />
               </div>
               <div>
-                <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-dark)', margin: 0 }}>PhonePe 100% Secure Payment Gateway</h4>
-                <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>Encrypted UPI, Cards, NetBanking & QR payments with instant confirmation</p>
+                <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-dark)', margin: 0 }}>
+                  {isTa ? 'போன்பே 100% பாதுகாப்பான கட்டண தளம்' : 'PhonePe 100% Secure Payment Gateway'}
+                </h4>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>
+                  {isTa ? 'பாதுகாப்பான யுபிஐ, கார்டு, நெட்பேங்கிங் & கியூஆர் உடனடி கட்டணம்' : 'Encrypted UPI, Cards, NetBanking & QR payments with instant confirmation'}
+                </p>
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 12, background: 'white', border: '1.5px solid #bbf7d0', boxShadow: '0 2px 8px rgba(22,163,74,0.08)' }}>
-              <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Verified Merchant:</span>
-              <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--color-green-dark)', letterSpacing: '0.06em' }}>VEERIKA ROSE GARDEN</span>
+              <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                {isTa ? 'அங்கீகரிக்கப்பட்ட வணிகர்:' : 'Verified Merchant:'}
+              </span>
+              <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--color-green-dark)', letterSpacing: '0.06em' }}>
+                {isTa ? 'வீரிகா ரோஜா கார்டன்' : 'VEERIKA ROSE GARDEN'}
+              </span>
             </div>
           </div>
         </div>
@@ -40,24 +52,32 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                 <img src="/logo.webp" alt="Veerika Rose Garden" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </div>
               <div>
-                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 700, color: 'var(--text-dark)', margin: 0 }}>
-                  Veerika <em style={{ color: 'var(--color-rose)', fontStyle: 'italic' }}>Rose Garden</em>
+                <h3 style={{ fontFamily: isTa ? 'var(--font-tamil)' : 'var(--font-display)', fontSize: isTa ? 16 : 17, fontWeight: 700, color: 'var(--text-dark)', margin: 0 }}>
+                  {isTa ? 'வீரிகா ரோஜா தோட்டம்' : (
+                    <>Veerika <em style={{ color: 'var(--color-rose)', fontStyle: 'italic' }}>Rose Garden</em></>
+                  )}
                 </h3>
-                <p style={{ fontFamily: 'var(--font-tamil)', fontSize: 10, color: 'var(--text-muted)', margin: 0 }}>வீரிகா ரோஜா கார்டன்</p>
+                <p style={{ fontFamily: 'var(--font-tamil)', fontSize: 10, color: 'var(--text-muted)', margin: 0 }}>
+                  {isTa ? 'பென்னாகரம், தர்மபுரி' : 'வீரிகா ரோஜா கார்டன்'}
+                </p>
               </div>
             </div>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.8, marginBottom: 14 }}>
-              Premier nursery supplying authentic hybrid roses, grafted fruit trees, jasmine, medicinal plants and organic vermicompost directly from our farm.
+              {isTa
+                ? 'அசல் ஹைப்ரிட் ரோஜாக்கள், ஒட்டு பழ மரங்கள், மல்லிகை, மூலிகைச் செடிகள் மற்றும் இயற்கை உரங்களை எங்கள் பண்ணையிலிருந்து நேரடியாக வழங்கும் முதன்மை நர்சரி.'
+                : 'Premier nursery supplying authentic hybrid roses, grafted fruit trees, jasmine, medicinal plants and organic vermicompost directly from our farm.'}
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 18 }}>
               <Leaf style={{ width: 13, height: 13, color: 'var(--color-green)' }} />
-              <span style={{ fontSize: 11, color: 'var(--color-green-dark)', fontWeight: 700 }}>100% Healthy Saplings Guarantee</span>
+              <span style={{ fontSize: 11, color: 'var(--color-green-dark)', fontWeight: 700 }}>
+                {isTa ? '100% ஆரோக்கியமான செடிகள் உத்தரவாதம்' : '100% Healthy Saplings Guarantee'}
+              </span>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               {[
                 { Icon: Instagram, href: '#', label: 'Instagram', color: '#db2777', bg: '#fdf2f8' },
                 { Icon: Youtube, href: '#', label: 'YouTube', color: '#dc2626', bg: '#fef2f2' },
-                { Icon: MessageSquare, href: 'https://wa.me/919361540714', label: 'WhatsApp', color: '#16a34a', bg: '#f0fdf4' },
+                { Icon: MessageSquare, href: 'https://wa.me/919361540714', label: isTa ? 'வாட்ஸ்அப்' : 'WhatsApp', color: '#16a34a', bg: '#f0fdf4' },
               ].map(({ Icon, href, label, color, bg }) => (
                 <a key={label} href={href} target="_blank" rel="noreferrer" title={label} style={{
                   width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -76,11 +96,18 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           {/* Categories */}
           <div>
             <h4 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--color-green-dark)', marginBottom: 16, paddingBottom: 10, borderBottom: '2px solid #dcfce7' }}>
-              Plant Categories
+              {isTa ? 'செடி வகைகள்' : 'Plant Categories'}
             </h4>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 9 }}>
-              {['Hybrid Roses', 'Grafted Fruit Trees', 'Jasmine & Flowers', 'Medicinal Plants', 'Indoor Plants', 'Organic Fertilizers'].map(item => (
-                <li key={item}>
+              {[
+                { en: 'Hybrid Roses', ta: 'ஹைப்ரிட் ரோஜாக்கள்' },
+                { en: 'Grafted Fruit Trees', ta: 'ஒட்டு பழ மரங்கள்' },
+                { en: 'Jasmine & Flowers', ta: 'மல்லிகை & பூச்செடிகள்' },
+                { en: 'Medicinal Plants', ta: 'மூலிகைச் செடிகள்' },
+                { en: 'Indoor Plants', ta: 'உள் அலங்காரச் செடிகள்' },
+                { en: 'Organic Fertilizers', ta: 'இயற்கை உரங்கள்' },
+              ].map(item => (
+                <li key={item.en}>
                   <button onClick={() => onNavigate('shop')} style={{
                     background: 'none', border: 'none', cursor: 'pointer',
                     display: 'flex', alignItems: 'center', gap: 7,
@@ -90,7 +117,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                     onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'; }}
                   >
                     <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-green-light)', flexShrink: 0 }} />
-                    {item}
+                    {isTa ? item.ta : item.en}
                   </button>
                 </li>
               ))}
@@ -100,15 +127,15 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           {/* Quick Links */}
           <div>
             <h4 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--color-green-dark)', marginBottom: 16, paddingBottom: 10, borderBottom: '2px solid #dcfce7' }}>
-              Quick Links
+              {isTa ? 'முக்கிய இணைப்புகள்' : 'Quick Links'}
             </h4>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 9 }}>
               {[
-                { label: 'Shop All Plants', page: 'shop' },
-                { label: 'My Account', page: 'account' },
-                { label: 'Track My Order', page: 'order-status' },
-                { label: 'Shipping Policy', page: 'policies' },
-                { label: 'Refund Policy', page: 'policies' },
+                { label: isTa ? 'அனைத்து செடிகள்' : 'Shop All Plants', page: 'shop' },
+                { label: isTa ? 'எனது கணக்கு' : 'My Account', page: 'account' },
+                { label: isTa ? 'ஆர்டரைக் கண்காணிக்க' : 'Track My Order', page: 'order-status' },
+                { label: isTa ? 'ஷிப்பிங் கொள்கை' : 'Shipping Policy', page: 'policies' },
+                { label: isTa ? 'பணத்திருப்புக் கொள்கை' : 'Refund Policy', page: 'policies' },
               ].map(({ label, page }) => (
                 <li key={label}>
                   <button onClick={() => onNavigate(page)} style={{
@@ -129,16 +156,16 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           {/* Contact */}
           <div>
             <h4 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--color-green-dark)', marginBottom: 16, paddingBottom: 10, borderBottom: '2px solid #dcfce7' }}>
-              Contact Us
+              {isTa ? 'தொடர்புக்கு' : 'Contact Us'}
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
               {[
-                { Icon: MapPin, text: 'Pennagaram, Tamil Nadu — 636810', href: '#', color: '#dc2626' },
+                { Icon: MapPin, text: isTa ? 'பென்னாகரம், தர்மபுரி — 636810' : 'Pennagaram, Tamil Nadu — 636810', href: '#', color: '#dc2626' },
                 { Icon: Phone, text: '+91 72008 26129', href: 'tel:+917200826129', color: '#16a34a' },
-                { Icon: MessageSquare, text: 'WhatsApp Us', href: 'https://wa.me/919361540714', color: '#16a34a' },
+                { Icon: MessageSquare, text: isTa ? 'வாட்ஸ்அப் உதவி' : 'WhatsApp Us', href: 'https://wa.me/919361540714', color: '#16a34a' },
                 { Icon: Mail, text: 'support@veerikarosegarden.com', href: 'mailto:support@veerikarosegarden.com', color: '#7c3aed' },
-                { Icon: Clock, text: 'Open 7 AM – 7 PM · All Days', href: null, color: '#f59e0b' },
-                { Icon: Truck, text: 'Delivery: Monday to Friday', href: null, color: '#16a34a' },
+                { Icon: Clock, text: isTa ? 'காலை 7 – இரவு 7 மணி வரை · அனைத்து நாட்களும்' : 'Open 7 AM – 7 PM · All Days', href: null, color: '#f59e0b' },
+                { Icon: Truck, text: isTa ? 'டெலிவரி: திங்கள் முதல் வெள்ளி வரை' : 'Delivery: Monday to Friday', href: null, color: '#16a34a' },
               ].map(({ Icon, text, href, color }) => (
                 <div key={text} style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
                   <div style={{ width: 26, height: 26, borderRadius: 7, background: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -162,10 +189,12 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
         {/* Bottom bar */}
         <div style={{ paddingTop: 22, borderTop: '1.5px solid #f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <p style={{ fontSize: 11, color: 'var(--text-light)', margin: 0, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-            <span>© {new Date().getFullYear()} Veerika Rose Garden Nursery. All rights reserved.</span>
+            <span>
+              {isTa ? `© ${new Date().getFullYear()} வீரிகா ரோஜா கார்டன் நர்சரி. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.` : `© ${new Date().getFullYear()} Veerika Rose Garden Nursery. All rights reserved.`}
+            </span>
             <span style={{ opacity: 0.4 }}>•</span>
             <span>
-              This website built by{' '}
+              {isTa ? 'இணையதள உருவாக்கம்: ' : 'This website built by '}
               <a
                 href="https://myportfolio-five-rouge-12.vercel.app"
                 target="_blank"
@@ -185,14 +214,20 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             </span>
           </p>
           <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-            {['Privacy Policy', 'Terms of Service', 'Refund Policy'].map(link => (
-              <button key={link} onClick={() => onNavigate('policies')} style={{
+            {[
+              { en: 'Privacy Policy', ta: 'தனியுரிமைக் கொள்கை' },
+              { en: 'Terms of Service', ta: 'சேவை விதிமுறைகள்' },
+              { en: 'Refund Policy', ta: 'பணத்திருப்புக் கொள்கை' },
+            ].map(link => (
+              <button key={link.en} onClick={() => onNavigate('policies')} style={{
                 background: 'none', border: 'none', cursor: 'pointer',
                 fontSize: 11, color: 'var(--text-light)', padding: 0, transition: 'color 0.2s ease',
               }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--color-green-dark)'; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--text-light)'; }}
-              >{link}</button>
+              >
+                {isTa ? link.ta : link.en}
+              </button>
             ))}
             {/* Staff admin access */}
             <button onClick={() => onNavigate('admin')} style={{
@@ -202,7 +237,9 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             }}
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--color-green-dark)'; }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--text-light)'; }}
-            >⚙️ Staff Login</button>
+            >
+              {isTa ? '⚙️ பணியாளர் உள்நுழைவு' : '⚙️ Staff Login'}
+            </button>
           </div>
         </div>
       </div>

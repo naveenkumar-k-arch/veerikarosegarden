@@ -151,8 +151,8 @@ export const CompactProductCard: React.FC<CompactProductCardProps> = ({
             {getProductName(product)}
           </h3>
           {language === 'ta' ? (
-            <p style={{ fontSize: 8.5, color: '#94a3b8', margin: '1px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {product.englishName || 'உயிருள்ள செடி'}
+            <p style={{ fontFamily: 'var(--font-tamil)', fontSize: 8.5, color: '#16a34a', margin: '1px 0 0', fontWeight: 600 }}>
+              உயிருள்ள பண்ணை செடி
             </p>
           ) : product.tamilName ? (
             <p style={{ fontFamily: 'var(--font-tamil)', fontSize: 8.5, color: '#94a3b8', margin: '1px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -166,7 +166,9 @@ export const CompactProductCard: React.FC<CompactProductCardProps> = ({
         {/* Price & Green Plus Button */}
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 2 }}>
           <div>
-            <span style={{ fontSize: 8, color: '#94a3b8', display: 'block', fontWeight: 500, lineHeight: 1 }}>From</span>
+            <span style={{ fontSize: 8, color: '#94a3b8', display: 'block', fontWeight: 500, lineHeight: 1 }}>
+              {language === 'ta' ? 'விலை' : 'From'}
+            </span>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 2, marginTop: 1 }}>
               <span style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 800, color: '#15803d', lineHeight: 1 }}>
                 ₹{product.sellingPrice}
@@ -179,7 +181,7 @@ export const CompactProductCard: React.FC<CompactProductCardProps> = ({
             </div>
             {discountPercent > 0 && (
               <span style={{ fontSize: 7.5, fontWeight: 800, color: '#e11d48', display: 'block', marginTop: 1, lineHeight: 1 }}>
-                {discountPercent}% OFF
+                {discountPercent}% {language === 'ta' ? 'தள்ளுபடி' : 'OFF'}
               </span>
             )}
           </div>
@@ -427,8 +429,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </h3>
 
         {language === 'ta' ? (
-          <p style={{ fontSize: 9.5, color: 'var(--text-muted)', margin: 0 }}>
-            {product.englishName || 'உயிருள்ள நர்சரி செடி'}
+          <p style={{ fontFamily: 'var(--font-tamil)', fontSize: 9.5, color: '#15803d', fontWeight: 600, margin: 0 }}>
+            🌱 நேரடி நர்சரி செடி
           </p>
         ) : product.tamilName ? (
           <p style={{ fontFamily: 'var(--font-tamil)', fontSize: 10, color: 'var(--text-muted)', margin: 0 }}>
