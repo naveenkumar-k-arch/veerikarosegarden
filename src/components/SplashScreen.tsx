@@ -8,23 +8,11 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
   const [phase, setPhase] = useState<'title-in' | 'hold' | 'open' | 'done'>('title-in');
 
   const handleDismiss = () => {
-    try {
-      sessionStorage.setItem('vrg_splash_shown', 'true');
-    } catch {}
     setPhase('done');
     onComplete();
   };
 
   useEffect(() => {
-    try {
-      if (sessionStorage.getItem('vrg_splash_shown') === 'true') {
-        onComplete();
-        setPhase('done');
-        return;
-      }
-      sessionStorage.setItem('vrg_splash_shown', 'true');
-    } catch {}
-
     // Phase 1: title animates in (0ms → 600ms)
     const t1 = setTimeout(() => setPhase('hold'), 600);
     // Phase 2: hold & showcase branding (600ms → 3200ms)

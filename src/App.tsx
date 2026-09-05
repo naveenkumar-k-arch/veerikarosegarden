@@ -52,19 +52,17 @@ export const App: React.FC = () => {
       return false;
     }
   });
-  // Splash Screen State — only shows once on very first visit in session if landing on Home page
+  // Splash Screen State — shows for 4s when opening the website (except admin routes)
   const [showSplash, setShowSplash] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
-    try {
-      if (sessionStorage.getItem('vrg_splash_shown') === 'true') return false;
-    } catch {}
-    const pathname = window.location.pathname.trim().replace(/\/+$/, '') || '/';
-    return pathname === '/' || pathname === '';
+    const pathname = (window.location.pathname || '/').trim().toLowerCase();
+    const hash = (window.location.hash || '').trim().toLowerCase();
+    if (pathname.startsWith('/admin') || hash.startsWith('#/admin')) {
+      return false;
+    }
+    return true;
   });
   const handleSplashComplete = useCallback(() => {
-    try {
-      sessionStorage.setItem('vrg_splash_shown', 'true');
-    } catch {}
     setShowSplash(false);
   }, []);
 
