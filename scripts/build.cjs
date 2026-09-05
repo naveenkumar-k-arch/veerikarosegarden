@@ -28,7 +28,16 @@ try {
   run(`${nodePath} node_modules/vite/bin/vite.js build`);
 
   console.log('\n[3/3] Bundling Serverless / Standalone Server...');
-  run(`${nodePath} node_modules/esbuild/bin/esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs`);
+  const esbuild = require('esbuild');
+  esbuild.buildSync({
+    entryPoints: ['server.ts'],
+    bundle: true,
+    platform: 'node',
+    format: 'cjs',
+    packages: 'external',
+    sourcemap: true,
+    outfile: 'dist/server.cjs',
+  });
 
   console.log('\n✅ Build completed successfully!');
 } catch (error) {
