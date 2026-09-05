@@ -3589,9 +3589,12 @@ class Store {
       notes: data.notes || '',
       trackingNumber: data.trackingNumber || '',
       courierName: data.courierName || '',
+      source: data.source || 'WHATSAPP',
+      isWhatsApp: data.isWhatsApp !== false,
+      channel: data.channel || 'WHATSAPP',
       createdAt: data.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
-    };
+    } as any;
 
     if (prisma) {
       try {
@@ -3623,6 +3626,8 @@ class Store {
             paymentMethod: (order.paymentMethod === 'COD' ? 'COD' : order.paymentMethod === 'PHONEPE' ? 'PHONEPE' : 'UPI') as any,
             notes: JSON.stringify({
               note: order.notes || '',
+              source: 'whatsapp',
+              isWhatsApp: true,
               itemsSnapshot: items
             }),
             trackingNumber: order.trackingNumber || null,

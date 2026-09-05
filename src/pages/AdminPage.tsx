@@ -2088,6 +2088,9 @@ const silentRefresh = async (): Promise<boolean> => {
       customerName: whatsAppOrderForm.customerName.trim(),
       customerPhone: whatsAppOrderForm.customerPhone.trim(),
       customerEmail: whatsAppOrderForm.customerEmail.trim(),
+      source: 'WHATSAPP',
+      isWhatsApp: true,
+      channel: 'WHATSAPP',
       shippingAddress: {
         fullName: whatsAppOrderForm.customerName.trim(),
         phone: whatsAppOrderForm.customerPhone.trim(),
