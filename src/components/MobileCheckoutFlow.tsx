@@ -749,7 +749,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
       modal: {
         ondismiss: async () => {
           isDismissedOrDone = true;
-          clearInterval(pollInterval);
+          clearTimeout(pollTimeoutId);
           if (paymentCompletedRef.current) return;
 
           try {
@@ -782,7 +782,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
       },
       handler: async function (response: any) {
         isDismissedOrDone = true;
-        clearInterval(pollInterval);
+        clearTimeout(pollTimeoutId);
         isPaymentInProgressRef.current = true;
         setLoading(true);
         setOrderError(null);
@@ -839,7 +839,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
       const rzp = new (window as any).Razorpay(options);
       rzp.on('payment.failed', async function (response: any) {
         isDismissedOrDone = true;
-        clearInterval(pollInterval);
+        clearTimeout(pollTimeoutId);
         if (paymentCompletedRef.current) return;
         try { localStorage.removeItem('vrg_pending_razorpay_order'); } catch {}
         await cancelPendingOrder(response.error?.description || 'Transaction declined');
@@ -851,7 +851,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
       rzp.open();
     } catch (err: any) {
       isDismissedOrDone = true;
-      clearInterval(pollInterval);
+      clearTimeout(pollTimeoutId);
       try { localStorage.removeItem('vrg_pending_razorpay_order'); } catch {}
       isPaymentInProgressRef.current = false;
       isPlacingOrderRef.current = false;

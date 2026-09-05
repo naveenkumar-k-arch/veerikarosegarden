@@ -724,7 +724,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       modal: {
         ondismiss: async () => {
           isDismissedOrDone = true;
-          clearInterval(pollInterval);
+          clearTimeout(pollTimeoutId);
           if (paymentCompletedRef.current) return;
 
           // Background check in case payment completed right as modal closed
@@ -758,7 +758,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       },
       handler: async (response: any) => {
         isDismissedOrDone = true;
-        clearInterval(pollInterval);
+        clearTimeout(pollTimeoutId);
         setLoading(true);
         setOrderError(null);
 
@@ -810,7 +810,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       const rzp = new (window as any).Razorpay(options);
       rzp.on('payment.failed', async (resp: any) => {
         isDismissedOrDone = true;
-        clearInterval(pollInterval);
+        clearTimeout(pollTimeoutId);
         if (paymentCompletedRef.current) return;
         try { localStorage.removeItem('vrg_pending_razorpay_order'); } catch {}
         await cancelPendingOrder(resp.error?.description || 'Transaction declined');
@@ -821,7 +821,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       rzp.open();
     } catch {
       isDismissedOrDone = true;
-      clearInterval(pollInterval);
+      clearTimeout(pollTimeoutId);
       try { localStorage.removeItem('vrg_pending_razorpay_order'); } catch {}
       isPlacingOrderRef.current = false;
       setLoading(false);
