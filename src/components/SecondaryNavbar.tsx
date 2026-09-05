@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Search, Home, Store, ShoppingCart, User as UserIcon, Globe } from 'lucide-react';
+import { ArrowLeft, Search, Home, Store, ShoppingCart, User as UserIcon, Globe, ChevronDown } from 'lucide-react';
 import { User, Product } from '../types';
 import { SearchAutocompleteDropdown } from './SearchAutocompleteDropdown';
 import { useLanguage } from '../context/LanguageContext';
@@ -25,7 +25,7 @@ export const SecondaryNavbar: React.FC<SecondaryNavbarProps> = ({
   products = [],
   onSelectProduct,
 }) => {
-  const { language, toggleLanguage, t } = useLanguage();
+  const { language, setLanguage, toggleLanguage, t } = useLanguage();
   const [localSearch, setLocalSearch] = useState<string>(searchQuery);
   const [showDropdown, setShowDropdown] = useState(false);
 
@@ -150,15 +150,21 @@ export const SecondaryNavbar: React.FC<SecondaryNavbarProps> = ({
 
         {/* Right Navigation Actions */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {/* Language Toggle Button */}
-          <button
-            onClick={toggleLanguage}
-            title={language === 'ta' ? 'Switch to English' : 'தமிழுக்கு மாறவும்'}
-            className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl font-extrabold text-xs flex items-center gap-1 cursor-pointer transition-all"
-          >
-            <Globe className="w-3.5 h-3.5 text-emerald-700" />
-            <span>{language === 'ta' ? 'EN' : 'தமிழ்'}</span>
-          </button>
+          {/* Language Dropdown Select */}
+          <div className="relative flex items-center">
+            <Globe className="w-3.5 h-3.5 text-emerald-700 absolute left-2 pointer-events-none" />
+            <select
+              id="secondary-lang-select"
+              value={language}
+              onChange={(e) => setLanguage(e.target.value as any)}
+              className="appearance-none pl-6 pr-5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-850 border border-emerald-200 rounded-xl font-black text-xs cursor-pointer outline-none transition-all"
+              title={language === 'ta' ? 'மொழியை மாற்றவும்' : 'Change Language'}
+            >
+              <option value="en">EN</option>
+              <option value="ta">தமிழ்</option>
+            </select>
+            <ChevronDown className="w-3 h-3 text-emerald-700 absolute right-1.5 pointer-events-none" />
+          </div>
 
           <button
             onClick={() => onNavigate('home')}

@@ -69,10 +69,13 @@ const AppContent: React.FC = () => {
 
   const handleSplashComplete = useCallback(() => {
     setShowSplash(false);
-    // After splash screen finishes, prompt user to choose preferred language
+    // Prompt user to choose preferred language only the first time they visit
     const pathname = (typeof window !== 'undefined' ? window.location.pathname : '').toLowerCase();
     if (!pathname.startsWith('/admin')) {
-      setShowLangModal(true);
+      const alreadyChosen = typeof window !== 'undefined' && localStorage.getItem('vrg_lang_chosen') === 'true';
+      if (!alreadyChosen) {
+        setShowLangModal(true);
+      }
     }
   }, []);
 

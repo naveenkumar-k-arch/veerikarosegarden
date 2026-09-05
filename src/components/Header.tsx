@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Search, Heart, User as UserIcon, Phone, MessageSquare, Menu, X, LayoutDashboard, Sparkles, Globe } from 'lucide-react';
+import { ShoppingBag, Search, Heart, User as UserIcon, Phone, MessageSquare, Menu, X, LayoutDashboard, Sparkles, Globe, ChevronDown } from 'lucide-react';
 import { Category, User, Product } from '../types';
 import { SearchAutocompleteDropdown } from './SearchAutocompleteDropdown';
 import { useLanguage } from '../context/LanguageContext';
@@ -29,7 +29,7 @@ export const Header: React.FC<HeaderProps> = ({
   isAdmin = false, onToggleAdmin = () => {},
   user, onOpenExpertAdvice
 }) => {
-  const { language, toggleLanguage, t, getCategoryName } = useLanguage();
+  const { language, setLanguage, toggleLanguage, t, getCategoryName } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [showDesktopDropdown, setShowDesktopDropdown] = useState(false);
@@ -196,21 +196,34 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             )}
 
-            {/* Language Toggle Button */}
-            <button
-              onClick={toggleLanguage}
-              title={language === 'ta' ? 'Switch to English' : 'தமிழுக்கு மாற்றவும்'}
-              style={{
-                height: 32, padding: '0 8px', display: 'flex', alignItems: 'center', gap: 4,
-                background: language === 'ta' ? '#dcfce7' : 'var(--bg-soft)',
-                border: `1.5px solid ${language === 'ta' ? '#86efac' : '#d1fae5'}`,
-                borderRadius: 8, color: '#15803d', fontSize: 11, fontWeight: 800,
-                cursor: 'pointer', flexShrink: 0,
-              }}
-            >
-              <Globe style={{ width: 13, height: 13 }} />
-              <span>{language === 'ta' ? 'English' : 'தமிழ்'}</span>
-            </button>
+            {/* Language Dropdown Select */}
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <Globe style={{ position: 'absolute', left: 7, width: 13, height: 13, color: '#15803d', pointerEvents: 'none', zIndex: 1 }} />
+              <select
+                id="header-lang-select"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as any)}
+                title={language === 'ta' ? 'மொழியை மாற்றவும்' : 'Change Language'}
+                style={{
+                  appearance: 'none',
+                  WebkitAppearance: 'none',
+                  height: 32,
+                  padding: '0 18px 0 23px',
+                  background: language === 'ta' ? '#dcfce7' : 'var(--bg-soft)',
+                  border: `1.5px solid ${language === 'ta' ? '#86efac' : '#d1fae5'}`,
+                  borderRadius: 8,
+                  color: '#15803d',
+                  fontSize: 11,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  outline: 'none',
+                }}
+              >
+                <option value="en">EN</option>
+                <option value="ta">தமிழ்</option>
+              </select>
+              <ChevronDown style={{ position: 'absolute', right: 5, width: 11, height: 11, color: '#15803d', pointerEvents: 'none' }} />
+            </div>
 
             {/* Account / User button */}
             <button onClick={() => onNavigate('account')} title={user ? `My Account (${user.name})` : "Sign In / My Account"} style={{
@@ -339,6 +352,48 @@ export const Header: React.FC<HeaderProps> = ({
       {mobileMenuOpen && (
         <div style={{ background: 'white', borderTop: '2px solid #dcfce7', padding: '14px 16px' }}>
           <div style={{ marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {/* Mobile Menu Language Dropdown Button */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: '#f0fdf4',
+              padding: '8px 12px',
+              borderRadius: 10,
+              border: '1.5px solid #bbf7d0',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Globe style={{ width: 16, height: 16, color: '#15803d' }} />
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#166534' }}>
+                  {language === 'ta' ? 'மொழித் தேர்வு:' : 'Change Language:'}
+                </span>
+              </div>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <select
+                  id="mobile-drawer-lang-select"
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value as any)}
+                  style={{
+                    appearance: 'none',
+                    WebkitAppearance: 'none',
+                    padding: '6px 24px 6px 12px',
+                    background: '#ffffff',
+                    border: '1.5px solid #86efac',
+                    borderRadius: 8,
+                    fontSize: 12,
+                    fontWeight: 800,
+                    color: '#15803d',
+                    cursor: 'pointer',
+                    outline: 'none',
+                  }}
+                >
+                  <option value="en">English (Default)</option>
+                  <option value="ta">தமிழ்</option>
+                </select>
+                <ChevronDown style={{ position: 'absolute', right: 7, width: 12, height: 12, color: '#15803d', pointerEvents: 'none' }} />
+              </div>
+            </div>
+
             {user ? (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', padding: '8px 12px', borderRadius: 10, border: '1px solid #bbf7d0' }}>
                 <div>
