@@ -84,7 +84,7 @@ export interface MobileAdminWorkflowProps {
   onUpdateOrderStatus: (orderId: string, status: string, paymentStatus?: string) => Promise<void>;
   onToggleOrderPrinted?: (orderId: string, isPrinted?: boolean) => Promise<void>;
   onSaveTracking: (orderId: string, data: { courierName: string; trackingNumber: string; trackingLink?: string }) => Promise<void>;
-  onOpenAddWhatsAppOrder?: () => void;
+  onOpenAddWhatsAppOrder?: (mode?: 'manual' | 'ai_image') => void;
   onOpenEditOrder?: (o: Order) => void;
   onDeleteOrder?: (id: string) => Promise<void>;
   onSaveProduct?: (prod: any) => Promise<void>;
@@ -2300,14 +2300,26 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               </div>
               <div className="flex items-center gap-2">
                 {onOpenAddWhatsAppOrder && (
-                  <button
-                    type="button"
-                    onClick={onOpenAddWhatsAppOrder}
-                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
-                  >
-                    <WhatsAppIcon size={14} className="fill-white shrink-0" />
-                    <span>+ Add Order</span>
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => onOpenAddWhatsAppOrder('manual')}
+                      className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-xs flex items-center gap-1 cursor-pointer active:scale-95 transition-all"
+                      title="Add order manually"
+                    >
+                      <WhatsAppIcon size={13} className="fill-white shrink-0" />
+                      <span>+ Add Order</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onOpenAddWhatsAppOrder('ai_image')}
+                      className="px-2 py-1.5 bg-gradient-to-r from-teal-700 to-emerald-800 hover:from-teal-800 hover:to-emerald-900 text-white font-extrabold text-xs rounded-xl shadow-xs flex items-center gap-1 cursor-pointer active:scale-95 transition-all border border-emerald-400/40"
+                      title="Upload image & scan with Gemini AI"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                      <span>📸 Scan</span>
+                    </button>
+                  </div>
                 )}
                 <button
                   onClick={() => navigateScreen('menu_drawer')}
@@ -6170,16 +6182,28 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               </div>
 
               {onOpenAddWhatsAppOrder && (
-                <button
-                  onClick={() => {
-                    navigateScreen('dashboard');
-                    onOpenAddWhatsAppOrder();
-                  }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-emerald-50 text-emerald-950 border border-emerald-300 hover:bg-emerald-100 transition-colors cursor-pointer font-extrabold text-xs text-left shadow-2xs"
-                >
-                  <WhatsAppIcon size={16} className="fill-[#25D366] shrink-0" />
-                  <span>+ Add WhatsApp / Offline Order</span>
-                </button>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    onClick={() => {
+                      navigateScreen('dashboard');
+                      onOpenAddWhatsAppOrder('manual');
+                    }}
+                    className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-emerald-50 text-emerald-950 border border-emerald-300 hover:bg-emerald-100 transition-colors cursor-pointer font-extrabold text-xs text-left shadow-2xs"
+                  >
+                    <WhatsAppIcon size={14} className="fill-[#25D366] shrink-0" />
+                    <span>+ Manual Order</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigateScreen('dashboard');
+                      onOpenAddWhatsAppOrder('ai_image');
+                    }}
+                    className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-teal-50 text-teal-950 border border-teal-300 hover:bg-teal-100 transition-colors cursor-pointer font-extrabold text-xs text-left shadow-2xs"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+                    <span>📸 AI Scan Order</span>
+                  </button>
+                </div>
               )}
 
               {[

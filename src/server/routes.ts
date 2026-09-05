@@ -1542,6 +1542,101 @@ const handleCreateAdminOrderRoute = async (req: AuthenticatedRequest, res: expre
 apiRouter.post('/admin/orders', requireAdmin, handleCreateAdminOrderRoute);
 apiRouter.post('/admin/orders/create', requireAdmin, handleCreateAdminOrderRoute);
 
+// Admin AI Extraction from Order Image (Gemini 3.6 Flash)
+const handleExtractOrderFromImageRoute = async (req: express.Request, res: express.Response) => {
+  const { imageBase64, mimeType = 'image/jpeg' } = req.body;
+  if (!imageBase64) {
+    return res.status(400).json({ success: false, message: 'imageBase64 is required' });
+  }
+
+  const cleanBase64 = imageBase64.replace(/^data:[^;]+;base64,/, '');
+  const detectedMime = (imageBase64.match(/^data:([^;]+);base64,/) || [])[1] || mimeType;
+  const apiKey = process.env.GEMINI_API_KEY || '';
+
+  try {
+    const { GoogleGenAI } = await import('@google/genai');
+    const ai = new GoogleGenAI({ apiKey });
+
+    const prompt = `You are an expert order extraction AI for Veerika Rose Garden nursery in Tamil Nadu, India.
+Analyze this order image (which could be a WhatsApp chat screenshot, a handwritten order slip, a paper receipt, bill, shipping parcel label, or handwritten note in English, Tamil, or Tanglish).
+
+Carefully extract ALL customer and order details into this JSON structure:
+{
+  "customerName": "Full name of customer",
+  "customerPhone": "10-digit mobile number without +91 or leading 0",
+  "customerEmail": "Email or empty string",
+  "fullAddress": "Complete doorstep shipping delivery address as written",
+  "houseNo": "Door number / house / flat number",
+  "street": "Street name / road / layout / area",
+  "villageTown": "Village, town, or city",
+  "district": "District (e.g. Dharmapuri, Salem, Krishnagiri, Chennai, Coimbatore, etc.)",
+  "state": "Tamil Nadu",
+  "pincode": "6-digit Indian PIN code",
+  "items": [
+    {
+      "name": "Exact or standardized plant name",
+      "quantity": 1,
+      "price": 0
+    }
+  ],
+  "plantsText": "Clean multiline string formatted with quantities, e.g.: 1. 2x 7 Days Yellow Rose\\n2. 1x Paneer Rose",
+  "grandTotal": 0,
+  "courierName": "Professional Courier – Reduced Soil",
+  "paymentMethod": "WHATSAPP",
+  "paymentStatus": "SUCCESS",
+  "orderStatus": "CONFIRMED",
+  "notes": "Any special customer instructions or delivery notes"
+}
+
+If any field is not explicitly mentioned, provide reasonable defaults (state: "Tamil Nadu", courierName: "Professional Courier – Reduced Soil", paymentMethod: "WHATSAPP", paymentStatus: "SUCCESS", orderStatus: "CONFIRMED").
+Calculate grandTotal if prices are mentioned, else set to 0.
+RESPOND STRICTLY WITH A SINGLE VALID JSON OBJECT ONLY (no markdown formatting, no code fences).`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.6-flash',
+      contents: [
+        {
+          inlineData: {
+            mimeType: detectedMime,
+            data: cleanBase64
+          }
+        },
+        prompt
+      ]
+    });
+
+    const rawText = (response.text || '').trim();
+    const jsonText = rawText.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/\s*```$/, '').trim();
+
+    let parsedData: any = {};
+    try {
+      parsedData = JSON.parse(jsonText);
+    } catch {
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        parsedData = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('Could not parse Gemini response as JSON: ' + rawText.slice(0, 200));
+      }
+    }
+
+    return res.json({
+      success: true,
+      data: parsedData,
+      raw: rawText
+    });
+  } catch (error: any) {
+    console.error('Gemini order extraction error:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to extract order details with Gemini AI'
+    });
+  }
+};
+
+apiRouter.post('/admin/orders/extract-from-image', handleExtractOrderFromImageRoute);
+apiRouter.post('/orders/extract-from-image', handleExtractOrderFromImageRoute);
+
 // Admin full order update
 const handleUpdateOrderFullRoute = async (req: AuthenticatedRequest, res: express.Response) => {
   try {
@@ -2360,7 +2455,7 @@ apiRouter.post('/gemini/plant-doctor', async (req, res) => {
       const { GoogleGenAI } = await import('@google/genai');
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.6-flash',
         contents: `You are the chief botanical expert at Veerika Rose Garden nursery in Tamil Nadu, India.
 Provide concise, practical, expert gardening and plant care advice in 2-3 short bullet points for this customer's question: "${question}".
 Recommend organic Tamil Nadu nursery techniques (cow dung manure, neem cake powder, rose mix fertilizer, 6 hours direct sunlight, proper pot drainage).

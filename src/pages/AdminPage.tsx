@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Product, Category, Order, Coupon, Banner, Review, SiteSettings, PaymentLog, FinancialEntry, Combo, PaymentStatus, OrderStatus } from '../types';
-import { LayoutDashboard, Package, ShoppingBag, FolderTree, Tag, Image, Star, Settings as SettingsIcon, ShieldCheck, Plus, Edit, Trash2, Check, X, RefreshCw, Printer, AlertTriangle, Search, Lock, ExternalLink, DollarSign, TrendingUp, TrendingDown, Camera, CreditCard, ChevronDown, User, Phone, MapPin, Upload, MessageSquare, ThumbsUp, Eye, EyeOff, Sparkles, Monitor, Sprout, Menu, LogOut, Truck, Globe } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, FolderTree, Tag, Image, Star, Settings as SettingsIcon, ShieldCheck, Plus, Edit, Trash2, Check, X, RefreshCw, Printer, AlertTriangle, Search, Lock, ExternalLink, DollarSign, TrendingUp, TrendingDown, Camera, CreditCard, ChevronDown, User, Phone, MapPin, Upload, MessageSquare, ThumbsUp, Eye, EyeOff, Sparkles, Monitor, Sprout, Menu, LogOut, Truck, Globe, ZoomIn } from 'lucide-react';
 
 import { INITIAL_PRODUCTS, INITIAL_CATEGORIES } from '../data/catalogData';
 import { INITIAL_REVIEWS } from '../data/reviewsData';
@@ -10,6 +10,8 @@ import { processLocalImageFile, processMultipleImageFiles } from '../utils/image
 import { toast } from '../utils/toast';
 import { getOrderStage, STAGE_CONFIG, generateOrderWhatsAppMessage, isWhatsAppOrder, isValidAdminOrder } from '../utils/orderStages';
 import { WhatsAppIcon } from '../components/WhatsAppIcon';
+import { AIOrderImageUpload } from '../components/AIOrderImageUpload';
+import { ExtractedOrderData } from '../utils/geminiOrderExtractor';
 
 
 // ── Inline Coupon Creation Form ──────────────────────────────────────────────
@@ -614,6 +616,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
   const [showWhatsAppOrderModal, setShowWhatsAppOrderModal] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [whatsAppOrderSaving, setWhatsAppOrderSaving] = useState(false);
+  const [addOrderMode, setAddOrderMode] = useState<'manual' | 'ai_image'>('manual');
+  const [uploadedOrderImagePreview, setUploadedOrderImagePreview] = useState<string | null>(null);
+  const [showImageZoomModal, setShowImageZoomModal] = useState(false);
+  const [showPlantsTextToggle, setShowPlantsTextToggle] = useState(false);
   const [whatsAppOrderForm, setWhatsAppOrderForm] = useState({
     customerName: '',
     customerPhone: '',
@@ -1822,9 +1828,12 @@ const silentRefresh = async (): Promise<boolean> => {
     }
   };
 
-  // Open WhatsApp Order Modal for Creating a New Order
-  const handleOpenAddWhatsAppOrder = () => {
+  // Open WhatsApp / AI Order Modal for Creating a New Order
+  const handleOpenAddWhatsAppOrder = (mode: 'manual' | 'ai_image' = 'manual') => {
     setEditingOrder(null);
+    setAddOrderMode(mode);
+    setUploadedOrderImagePreview(null);
+    setShowPlantsTextToggle(false);
     setWhatsAppOrderForm({
       customerName: '',
       customerPhone: '',
@@ -1844,11 +1853,122 @@ const silentRefresh = async (): Promise<boolean> => {
       paymentMethod: 'WHATSAPP',
       paymentStatus: 'SUCCESS',
       orderStatus: 'CONFIRMED',
-      notes: 'WhatsApp Order',
+      notes: mode === 'ai_image' ? 'Order from scanned image' : 'WhatsApp Order',
       trackingNumber: '',
       courierName: 'Professional Courier – Reduced Soil'
     });
     setShowWhatsAppOrderModal(true);
+  };
+
+  const handleAddItemRow = () => {
+    const newItem = {
+      productId: `custom-wa-${Date.now()}-${whatsAppOrderForm.items.length}`,
+      sku: `PLANT-${whatsAppOrderForm.items.length + 1}`,
+      name: '',
+      tamilName: '',
+      price: 0,
+      mrp: 0,
+      quantity: 1,
+      image: '/products/double-delight.jpeg'
+    };
+    const updatedItems = [...whatsAppOrderForm.items, newItem];
+    const newPlantsText = updatedItems
+      .filter(it => it.name && it.name.trim())
+      .map(it => `${it.quantity > 1 ? `${it.quantity}x ` : ''}${it.name}${it.price > 0 ? ` (₹${it.price})` : ''}`)
+      .join('\n');
+    setWhatsAppOrderForm(prev => ({
+      ...prev,
+      items: updatedItems,
+      plantsText: newPlantsText || prev.plantsText
+    }));
+  };
+
+  const handleUpdateItemRow = (index: number, field: string, value: any) => {
+    const updatedItems = whatsAppOrderForm.items.map((item, idx) => {
+      if (idx !== index) return item;
+      return { ...item, [field]: value };
+    });
+    const newPlantsText = updatedItems
+      .filter(it => it.name && it.name.trim())
+      .map(it => `${it.quantity > 1 ? `${it.quantity}x ` : ''}${it.name}${it.price > 0 ? ` (₹${it.price})` : ''}`)
+      .join('\n');
+    setWhatsAppOrderForm(prev => ({
+      ...prev,
+      items: updatedItems,
+      plantsText: newPlantsText || prev.plantsText
+    }));
+  };
+
+  const handleRemoveItemRow = (index: number) => {
+    const updatedItems = whatsAppOrderForm.items.filter((_, idx) => idx !== index);
+    const newPlantsText = updatedItems
+      .filter(it => it.name && it.name.trim())
+      .map(it => `${it.quantity > 1 ? `${it.quantity}x ` : ''}${it.name}${it.price > 0 ? ` (₹${it.price})` : ''}`)
+      .join('\n');
+    setWhatsAppOrderForm(prev => ({
+      ...prev,
+      items: updatedItems,
+      plantsText: newPlantsText
+    }));
+  };
+
+  const handleRecalculateTotalFromItems = () => {
+    const sum = (whatsAppOrderForm.items || []).reduce((acc, it) => acc + ((Number(it.price) || 0) * (Number(it.quantity) || 1)), 0);
+    if (sum > 0) {
+      setWhatsAppOrderForm(prev => ({ ...prev, grandTotal: sum }));
+      toast.success(`Grand total updated to ₹${sum}`, 'Total Updated');
+    }
+  };
+
+  const handleAIExtractionSuccess = (data: ExtractedOrderData, imagePreviewUrl?: string) => {
+    if (imagePreviewUrl) {
+      setUploadedOrderImagePreview(imagePreviewUrl);
+    }
+    const mappedItems = (data.items && data.items.length > 0)
+      ? data.items.map((it, idx) => ({
+          productId: `custom-ai-${Date.now()}-${idx}`,
+          sku: `PLANT-${idx + 1}`,
+          name: it.name || `Plant ${idx + 1}`,
+          tamilName: it.tamilName || it.name || `நர்சரி செடி ${idx + 1}`,
+          price: Number(it.price) || 0,
+          mrp: Number(it.price) || 0,
+          quantity: Number(it.quantity) || 1,
+          image: '/products/double-delight.jpeg'
+        }))
+      : [];
+
+    const computedPlantsText = mappedItems.length > 0
+      ? mappedItems.map(it => `${it.quantity > 1 ? `${it.quantity}x ` : ''}${it.name}${it.price > 0 ? ` (₹${it.price})` : ''}`).join('\n')
+      : (data.plantsText || '');
+
+    const itemsSum = mappedItems.reduce((acc, it) => acc + (it.price * it.quantity), 0);
+    const computedTotal = Number(data.grandTotal) > 0
+      ? Number(data.grandTotal)
+      : (itemsSum > 0 ? itemsSum : 140);
+
+    setWhatsAppOrderForm(prev => ({
+      ...prev,
+      customerName: data.customerName || prev.customerName,
+      customerPhone: (data.customerPhone || prev.customerPhone).replace(/\D/g, '').slice(-10),
+      customerEmail: data.customerEmail || prev.customerEmail,
+      fullAddress: data.fullAddress || prev.fullAddress,
+      houseNo: data.houseNo || prev.houseNo,
+      street: data.street || data.fullAddress || prev.street,
+      villageTown: data.villageTown || prev.villageTown,
+      district: data.district || prev.district,
+      state: data.state || prev.state || 'Tamil Nadu',
+      pincode: data.pincode || prev.pincode,
+      plantsText: computedPlantsText,
+      items: mappedItems,
+      grandTotal: computedTotal,
+      courierName: data.courierName || prev.courierName || 'Professional Courier – Reduced Soil',
+      paymentMethod: (data.paymentMethod as any) || prev.paymentMethod || 'WHATSAPP',
+      paymentStatus: (data.paymentStatus as any) || 'SUCCESS',
+      orderStatus: (data.orderStatus as any) || 'CONFIRMED',
+      notes: data.notes || (imagePreviewUrl ? 'Scanned from image via Gemini AI' : prev.notes)
+    }));
+
+    toast.success('Order preview ready! Review and edit all fields before adding.', 'AI Extraction Complete');
   };
 
   // Open WhatsApp Order Modal for Editing an Existing Order
@@ -1913,6 +2033,17 @@ const silentRefresh = async (): Promise<boolean> => {
     // If editing existing order and plantsText was unchanged, keep authentic existing items snapshot!
     if (editingOrder && editingOrder.items && editingOrder.items.length > 0 && rawPlantsText === originalPlantsText) {
       parsedItems = editingOrder.items;
+    } else if (whatsAppOrderForm.items && whatsAppOrderForm.items.length > 0) {
+      parsedItems = whatsAppOrderForm.items.map((it, idx) => ({
+        productId: it.productId || `custom-wa-${Date.now()}-${idx}`,
+        sku: it.sku || `WA-${idx + 1}`,
+        name: it.name || `Ordered Plant ${idx + 1}`,
+        tamilName: it.tamilName || it.name || `நர்சரி செடி ${idx + 1}`,
+        price: Number(it.price) || (Number(whatsAppOrderForm.grandTotal || 0) / (whatsAppOrderForm.items.length || 1)),
+        mrp: Number(it.mrp || it.price) || (Number(whatsAppOrderForm.grandTotal || 0) / (whatsAppOrderForm.items.length || 1)),
+        quantity: Number(it.quantity) || 1,
+        image: it.image || '/products/double-delight.jpeg'
+      }));
     } else if (rawPlantsText) {
       // Split STRICTLY on newlines (\n) - NEVER split on commas or semicolons!
       const lines = rawPlantsText.split(/\r?\n+/).map(l => l.trim()).filter(Boolean);
@@ -1935,8 +2066,6 @@ const silentRefresh = async (): Promise<boolean> => {
           image: '/products/double-delight.jpeg'
         };
       });
-    } else if (whatsAppOrderForm.items && whatsAppOrderForm.items.length > 0) {
-      parsedItems = whatsAppOrderForm.items;
     } else {
       parsedItems = [{
         productId: `custom-wa-${Date.now()}-0`,
@@ -2063,12 +2192,25 @@ const silentRefresh = async (): Promise<boolean> => {
       if (data.success && data.order) {
         setOrders(prev => {
           const updated = [data.order, ...prev];
+          const keysToSave = ['veerika_admin_orders', 'vrg_user_orders', 'veerika_customer_orders', 'vrg_orders', 'vrg_my_orders'];
+          keysToSave.forEach(key => {
+            try { localStorage.setItem(key, JSON.stringify(updated)); } catch {}
+          });
           persistAdminCache(c => ({ ...c, orders: updated }));
+          try {
+            const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
+            cached.orders = updated;
+            localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
+          } catch {}
           return updated;
         });
-        toast.success(`WhatsApp order #${data.order.id} added to pipeline!`, 'Order Created');
+        toast.success(`Order #${data.order.id} added as new order!`, 'Order Created');
         setShowWhatsAppOrderModal(false);
         setEditingOrder(null);
+        setUploadedOrderImagePreview(null);
+        try {
+          window.dispatchEvent(new CustomEvent('orderStatusUpdated', { detail: { orderId: data.order.id } }));
+        } catch {}
       } else {
         throw new Error(data.message || 'Failed to create WhatsApp order');
       }
@@ -2165,201 +2307,619 @@ const silentRefresh = async (): Promise<boolean> => {
   const renderWhatsAppOrderModal = () => {
     if (!showWhatsAppOrderModal) return null;
     return (
-      <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fade-in">
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden my-auto">
-          {/* Modal Header */}
-          <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-emerald-800 to-teal-900 text-white">
-            <div className="flex items-center gap-3">
-              <span className="p-2.5 bg-white/10 rounded-2xl text-xl backdrop-blur-md">💬</span>
-              <div>
-                <h3 className="font-extrabold text-base sm:text-lg flex items-center gap-2">
-                  <span>{editingOrder ? `Edit Order #${editingOrder.id}` : 'Create WhatsApp / Offline Order'}</span>
-                </h3>
-                <p className="text-xs text-emerald-100/90 font-medium">
-                  {editingOrder ? 'Update order details & courier type' : 'Add custom customer order details & paste ordered plant list'}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => { setShowWhatsAppOrderModal(false); setEditingOrder(null); }}
-              className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
-              title="Close"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Streamlined Modal Form Content */}
-          <form onSubmit={handleSaveWhatsAppOrder} className="overflow-y-auto p-5 sm:p-6 space-y-4 flex-1 text-xs">
-            {/* 1. Customer Name, Phone & Email */}
-            <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
-              <h4 className="font-black text-slate-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                <User className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Customer Contact Details</span>
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <>
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fade-in">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-3xl w-full max-h-[92vh] flex flex-col overflow-hidden my-auto">
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-emerald-800 to-teal-900 text-white">
+              <div className="flex items-center gap-3">
+                <span className="p-2.5 bg-white/10 rounded-2xl text-xl backdrop-blur-md">
+                  {editingOrder ? '✏️' : addOrderMode === 'ai_image' ? '📸' : '💬'}
+                </span>
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Name *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Nantha Kumar"
-                    value={whatsAppOrderForm.customerName}
-                    onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, customerName: e.target.value })}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                  />
+                  <h3 className="font-extrabold text-base sm:text-lg flex items-center gap-2">
+                    <span>
+                      {editingOrder
+                        ? `Edit Order #${editingOrder.id}`
+                        : addOrderMode === 'ai_image'
+                        ? 'Add New Order via Image (Gemini AI)'
+                        : 'Add New Order (Manual Entry)'}
+                    </span>
+                  </h3>
+                  <p className="text-xs text-emerald-100/90 font-medium">
+                    {editingOrder
+                      ? 'Update order details, plant list & courier partner'
+                      : addOrderMode === 'ai_image'
+                      ? 'Upload local bill or chat photo → Gemini extracts details → Edit preview → Add as New Order'
+                      : 'Enter customer contact, address & ordered plants manually'}
+                  </p>
                 </div>
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Phone No *</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-2 font-bold text-slate-400">+91</span>
-                    <input
-                      type="tel"
-                      required
-                      placeholder="9344392517"
-                      value={whatsAppOrderForm.customerPhone}
-                      onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, customerPhone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
-                      className="w-full pl-11 pr-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                    />
+              </div>
+              <button
+                onClick={() => {
+                  setShowWhatsAppOrderModal(false);
+                  setEditingOrder(null);
+                  setUploadedOrderImagePreview(null);
+                }}
+                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
+                title="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Mode Switcher Tabs (Only for Creating New Orders) */}
+            {!editingOrder && (
+              <div className="px-4 sm:px-6 pt-3 pb-2 bg-slate-100/70 border-b border-slate-200/80">
+                <div className="grid grid-cols-2 gap-2 p-1 bg-slate-200/80 rounded-2xl">
+                  <button
+                    type="button"
+                    onClick={() => setAddOrderMode('manual')}
+                    className={`py-2 px-3 rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                      addOrderMode === 'manual'
+                        ? 'bg-white text-slate-900 shadow-sm border border-slate-200/60'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <span>✍️ Option 1: Manual Entry</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAddOrderMode('ai_image')}
+                    className={`py-2 px-3 rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                      addOrderMode === 'ai_image'
+                        ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                    <span>📸 Option 2: Upload Image (Gemini AI)</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Option 2 Initial State: AI Image Upload Uploader if no image uploaded yet */}
+            {addOrderMode === 'ai_image' && !uploadedOrderImagePreview && !editingOrder ? (
+              <div className="overflow-y-auto p-5 sm:p-6 space-y-4 flex-1 text-xs">
+                <div className="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-4 flex items-start gap-3">
+                  <span className="text-2xl shrink-0">📸</span>
+                  <div className="space-y-1">
+                    <h4 className="font-extrabold text-emerald-950 text-sm">
+                      Upload Order Photo / Bill / WhatsApp Chat Screenshot
+                    </h4>
+                    <p className="text-xs text-emerald-800/90 leading-relaxed">
+                      Select an image from your local computer or phone. Google Gemini AI will read and extract the customer name, phone number, doorstep address, pincode, ordered plants with quantities, and total amount.
+                    </p>
+                    <p className="text-[11px] text-emerald-700 font-bold">
+                      💡 You will see a full Order Preview with complete edit options before adding as a new order!
+                    </p>
                   </div>
                 </div>
+
+                <AIOrderImageUpload
+                  onExtractionSuccess={handleAIExtractionSuccess}
+                />
+              </div>
+            ) : (
+              /* Order Form & Preview (Both Manual & AI Preview) */
+              <form onSubmit={handleSaveWhatsAppOrder} className="overflow-y-auto p-5 sm:p-6 space-y-4 flex-1 text-xs">
+                {/* AI Extracted Order Preview Card with Zoom */}
+                {uploadedOrderImagePreview && (
+                  <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50 border-2 border-emerald-300/80 rounded-2xl p-4 space-y-3 shadow-2xs">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="p-1.5 bg-emerald-600 text-white rounded-xl shadow-xs">
+                          <Sparkles className="w-4 h-4" />
+                        </span>
+                        <div>
+                          <h4 className="font-extrabold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                            <span>Gemini AI Order Preview</span>
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                              Extracted
+                            </span>
+                          </h4>
+                          <p className="text-[11px] text-emerald-900 font-medium">
+                            Review and edit all fields below. When satisfied, click <strong>"Add as New Order"</strong>.
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setUploadedOrderImagePreview(null)}
+                        className="text-xs font-bold text-slate-600 hover:text-emerald-700 bg-white px-2.5 py-1.5 rounded-xl border border-slate-200 hover:border-emerald-300 transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        <span>Upload Different Image</span>
+                      </button>
+                    </div>
+
+                    {/* Image Thumbnail & Zoom Preview */}
+                    <div className="flex items-center gap-3 bg-white/95 p-3 rounded-xl border border-emerald-200/80">
+                      <div
+                        onClick={() => setShowImageZoomModal(true)}
+                        className="relative group w-20 h-20 rounded-xl overflow-hidden border border-slate-300 cursor-pointer shrink-0 bg-slate-100 flex items-center justify-center shadow-2xs"
+                        title="Click to zoom image in full screen"
+                      >
+                        <img
+                          src={uploadedOrderImagePreview}
+                          alt="Uploaded Order Document"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        />
+                        <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white">
+                          <ZoomIn className="w-5 h-5" />
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <p className="text-xs font-extrabold text-slate-900">
+                          Uploaded Order Image / Bill
+                        </p>
+                        <p className="text-[11px] text-slate-500">
+                          Click the image thumbnail to inspect handwriting or chat screenshot at full resolution.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setShowImageZoomModal(true)}
+                          className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 cursor-pointer"
+                        >
+                          <ZoomIn className="w-3.5 h-3.5" />
+                          <span>🔍 View Full Resolution Image</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 1. Customer Name, Phone & Email */}
+                <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-black text-slate-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Customer Contact Details *</span>
+                    </h4>
+                    <span className="text-[10px] font-bold text-slate-500">Editable</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Customer Name *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Nantha Kumar"
+                        value={whatsAppOrderForm.customerName}
+                        onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, customerName: e.target.value })}
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Phone No (10 digits) *</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2 font-bold text-slate-400">+91</span>
+                        <input
+                          type="tel"
+                          required
+                          placeholder="9344392517"
+                          value={whatsAppOrderForm.customerPhone}
+                          onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, customerPhone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                          className="w-full pl-11 pr-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Email (Optional)</label>
+                      <input
+                        type="email"
+                        placeholder="customer@gmail.com"
+                        value={whatsAppOrderForm.customerEmail}
+                        onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, customerEmail: e.target.value })}
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-medium text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Full Delivery Address (Single Box) */}
+                <div className="space-y-2.5 bg-amber-50/60 p-4 rounded-2xl border border-amber-200">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-black text-amber-950 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-rose-600" />
+                      <span>Doorstep Delivery Address (for Shipping Label & Courier) *</span>
+                    </h4>
+                    <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md">
+                      Editable Full Address
+                    </span>
+                  </div>
+                  <textarea
+                    required
+                    rows={3}
+                    placeholder={"Doorstep address:\ne.g. 4/12B, Perumal Kovil Street, Pennagaram Post, Dharmapuri - 636810, Tamil Nadu"}
+                    value={whatsAppOrderForm.fullAddress}
+                    onChange={e => {
+                      const text = e.target.value;
+                      const pinMatch = text.match(/\b\d{6}\b/);
+                      setWhatsAppOrderForm({
+                        ...whatsAppOrderForm,
+                        fullAddress: text,
+                        pincode: pinMatch ? pinMatch[0] : whatsAppOrderForm.pincode
+                      });
+                    }}
+                    className="w-full p-3 bg-white border border-amber-300 rounded-xl font-semibold text-slate-900 focus:ring-2 focus:ring-amber-500 focus:outline-none leading-relaxed text-xs"
+                  />
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                    <div>
+                      <label className="text-[11px] font-bold text-amber-950 block">Pincode</label>
+                      <input
+                        type="text"
+                        maxLength={6}
+                        placeholder="636810"
+                        value={whatsAppOrderForm.pincode}
+                        onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) })}
+                        className="w-full px-2.5 py-1.5 bg-white border border-amber-300 rounded-lg font-bold text-xs text-slate-900 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-amber-950 block">District</label>
+                      <input
+                        type="text"
+                        placeholder="Dharmapuri"
+                        value={whatsAppOrderForm.district}
+                        onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, district: e.target.value })}
+                        className="w-full px-2.5 py-1.5 bg-white border border-amber-300 rounded-lg font-bold text-xs text-slate-900 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-amber-950 block">State</label>
+                      <input
+                        type="text"
+                        placeholder="Tamil Nadu"
+                        value={whatsAppOrderForm.state}
+                        onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, state: e.target.value })}
+                        className="w-full px-2.5 py-1.5 bg-white border border-amber-300 rounded-lg font-bold text-xs text-slate-900 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Ordered Plants & Items (Full Interactive Item Controls & Raw Text) */}
+                <div className="space-y-3 bg-emerald-50/70 p-4 rounded-2xl border border-emerald-300">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <h4 className="font-black text-emerald-950 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                      <Sprout className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>
+                        Ordered Plants & Items
+                        {whatsAppOrderForm.items && whatsAppOrderForm.items.length > 0
+                          ? ` (${whatsAppOrderForm.items.length} items)`
+                          : ''} *
+                      </span>
+                    </h4>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleAddItemRow}
+                        className="text-[11px] font-extrabold text-emerald-800 bg-emerald-200/90 hover:bg-emerald-300 px-3 py-1 rounded-lg transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>+ Add Plant Row</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Interactive Plant Rows */}
+                  {whatsAppOrderForm.items && whatsAppOrderForm.items.length > 0 ? (
+                    <div className="space-y-2">
+                      {whatsAppOrderForm.items.map((item, idx) => (
+                        <div
+                          key={item.productId || idx}
+                          className="bg-white p-3 rounded-xl border border-emerald-200/90 shadow-2xs flex flex-wrap sm:flex-nowrap items-center gap-2"
+                        >
+                          <span className="w-5 text-center font-bold text-slate-400 text-xs shrink-0">
+                            {idx + 1}.
+                          </span>
+
+                          {/* Plant Name input */}
+                          <div className="flex-1 min-w-[150px]">
+                            <input
+                              type="text"
+                              required
+                              placeholder="Plant name (e.g. Kashmiri Red Rose)"
+                              value={item.name}
+                              onChange={e => handleUpdateItemRow(idx, 'name', e.target.value)}
+                              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg font-bold text-xs text-slate-900 focus:outline-none focus:bg-white focus:ring-1 focus:ring-emerald-500"
+                            />
+                          </div>
+
+                          {/* Quantity with +/- */}
+                          <div className="flex items-center gap-1 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200 shrink-0">
+                            <span className="text-[10px] font-bold text-slate-500">Qty:</span>
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateItemRow(idx, 'quantity', Math.max(1, (Number(item.quantity) || 1) - 1))}
+                              className="w-5 h-5 bg-white rounded flex items-center justify-center font-bold text-slate-700 hover:bg-slate-200 cursor-pointer text-xs"
+                            >
+                              -
+                            </button>
+                            <span className="w-6 text-center font-black text-xs text-slate-900">
+                              {item.quantity || 1}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateItemRow(idx, 'quantity', (Number(item.quantity) || 1) + 1)}
+                              className="w-5 h-5 bg-white rounded flex items-center justify-center font-bold text-slate-700 hover:bg-slate-200 cursor-pointer text-xs"
+                            >
+                              +
+                            </button>
+                          </div>
+
+                          {/* Unit Price */}
+                          <div className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 shrink-0">
+                            <span className="text-[10px] font-bold text-slate-500">₹</span>
+                            <input
+                              type="number"
+                              min="0"
+                              placeholder="Price"
+                              value={item.price || 0}
+                              onChange={e => handleUpdateItemRow(idx, 'price', Number(e.target.value) || 0)}
+                              className="w-16 px-1 py-0.5 bg-transparent font-bold text-xs text-slate-900 focus:outline-none text-right"
+                            />
+                          </div>
+
+                          {/* Line Subtotal */}
+                          <div className="w-20 text-right shrink-0">
+                            <span className="text-[11px] font-black text-emerald-800">
+                              ₹{(Number(item.price) || 0) * (Number(item.quantity) || 1)}
+                            </span>
+                          </div>
+
+                          {/* Delete Item */}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveItemRow(idx)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer shrink-0"
+                            title="Remove plant"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+
+                      {/* Helper Row: Recalculate Total and Toggle Raw Text */}
+                      <div className="flex items-center justify-between pt-1 flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={handleRecalculateTotalFromItems}
+                          className="text-[11px] font-bold text-emerald-800 hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          <span>
+                            ⚡ Set Grand Total to sum of items (₹
+                            {whatsAppOrderForm.items.reduce(
+                              (s, it) => s + (Number(it.price) || 0) * (Number(it.quantity) || 1),
+                              0
+                            )}
+                            )
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowPlantsTextToggle(!showPlantsTextToggle)}
+                          className="text-[11px] font-bold text-slate-600 hover:text-slate-900 cursor-pointer"
+                        >
+                          {showPlantsTextToggle ? '▲ Hide Raw Text' : '▼ View / Edit Raw WhatsApp Text'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Fallback Textarea if no structured items added yet */
+                    <div className="space-y-2">
+                      <textarea
+                        required
+                        rows={4}
+                        placeholder={"Paste or type plant names here (separated by new line):\ne.g.\n1. 7 Days Yellow Rose - 2 Nos\n2. Special Yellow Button Rose\n3. Kashmiri Scented Red Rose"}
+                        value={whatsAppOrderForm.plantsText}
+                        onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, plantsText: e.target.value })}
+                        className="w-full p-3 bg-white border border-emerald-300 rounded-xl font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none leading-relaxed text-xs"
+                      />
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10.5px] text-emerald-900 font-medium">
+                          💡 Type or paste plant names directly.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleAddItemRow}
+                          className="text-[11px] font-bold text-emerald-800 hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>Switch to Structured Plant Items</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Optional Raw Textarea Sync */}
+                  {showPlantsTextToggle && whatsAppOrderForm.items && whatsAppOrderForm.items.length > 0 && (
+                    <div className="pt-2">
+                      <label className="text-[10.5px] font-bold text-emerald-950 block mb-1">
+                        Raw Plants Text (WhatsApp Format)
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={whatsAppOrderForm.plantsText}
+                        onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, plantsText: e.target.value })}
+                        className="w-full p-2.5 bg-white border border-emerald-300 rounded-xl font-mono text-xs text-slate-800 focus:outline-none"
+                        placeholder="Raw plants text"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* 4. Price & Courier Type */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                  <div className="bg-emerald-100/70 p-3 rounded-xl border border-emerald-300">
+                    <label className="font-black text-emerald-950 block mb-1 text-xs flex items-center gap-1">
+                      <DollarSign className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>Price / Amount Received (₹) *</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2 font-black text-emerald-900 text-sm">₹</span>
+                      <input
+                        type="number"
+                        required
+                        min="0"
+                        placeholder="140"
+                        value={whatsAppOrderForm.grandTotal}
+                        onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, grandTotal: Number(e.target.value) || 0 })}
+                        className="w-full pl-8 pr-3 py-2 bg-white border-2 border-emerald-500 rounded-xl font-black text-base text-emerald-900 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50/70 p-3 rounded-xl border border-blue-200">
+                    <label className="font-black text-blue-950 block mb-1 text-xs flex items-center gap-1">
+                      <Truck className="w-3.5 h-3.5 text-blue-700" />
+                      <span>Courier Partner *</span>
+                    </label>
+                    <select
+                      value={whatsAppOrderForm.courierName}
+                      onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, courierName: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-blue-300 rounded-xl font-bold text-slate-900 focus:outline-none text-xs"
+                    >
+                      <option value="Professional Courier – Reduced Soil">
+                        🚚 Professional Courier – Reduced Soil (Doorstep Delivery)
+                      </option>
+                      <option value="Professional Courier – Full Soil">
+                        🌱 Professional Courier – Full Soil (Tamil Nadu Only)
+                      </option>
+                      <option value="Mettur Parcel Service (MSS)">
+                        📦 Mettur Parcel Service / MSS (Branch Pickup Depot)
+                      </option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* 5. Payment Method & Status */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Payment Method</label>
+                    <select
+                      value={whatsAppOrderForm.paymentMethod}
+                      onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, paymentMethod: e.target.value as any })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900 focus:outline-none text-xs"
+                    >
+                      <option value="WHATSAPP">💬 WhatsApp Direct</option>
+                      <option value="UPI">📱 UPI</option>
+                      <option value="GPAY">Google Pay</option>
+                      <option value="PHONEPE">PhonePe</option>
+                      <option value="COD">💵 Cash On Delivery</option>
+                      <option value="BANK_TRANSFER">🏦 Bank Transfer</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Payment Status</label>
+                    <select
+                      value={whatsAppOrderForm.paymentStatus}
+                      onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, paymentStatus: e.target.value as any })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900 focus:outline-none text-xs"
+                    >
+                      <option value="SUCCESS">✅ Paid (Success)</option>
+                      <option value="PENDING">⏳ Payment Pending</option>
+                      <option value="FAILED">❌ Failed</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Order Status</label>
+                    <select
+                      value={whatsAppOrderForm.orderStatus}
+                      onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, orderStatus: e.target.value as any })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900 focus:outline-none text-xs"
+                    >
+                      <option value="CONFIRMED">📦 Confirmed (Ready to Pack)</option>
+                      <option value="PACKED">📦 Packed</option>
+                      <option value="SHIPPED">🚚 Shipped</option>
+                      <option value="DELIVERED">🎉 Delivered</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* 6. Admin Order Notes */}
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Email (Optional)</label>
+                  <label className="font-bold text-slate-700 block mb-1">Internal Notes / Special Instructions</label>
                   <input
-                    type="email"
-                    placeholder="customer@gmail.com"
-                    value={whatsAppOrderForm.customerEmail}
-                    onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, customerEmail: e.target.value })}
+                    type="text"
+                    placeholder="e.g. Scanned bill #42, extra moist packing requested"
+                    value={whatsAppOrderForm.notes}
+                    onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, notes: e.target.value })}
                     className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-medium text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   />
                 </div>
-              </div>
-            </div>
 
-            {/* 2. Full Delivery Address (Single Box) */}
-            <div className="space-y-2.5 bg-amber-50/60 p-4 rounded-2xl border border-amber-200">
-              <div className="flex items-center justify-between">
-                <h4 className="font-black text-amber-950 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-rose-600" />
-                  <span>Delivery Address (for Shipping Label & Courier) *</span>
-                </h4>
-                <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md">
-                  Single Box (Paste from WhatsApp)
-                </span>
-              </div>
-              <textarea
-                required
-                rows={3}
-                placeholder={"Paste full customer delivery address here:\ne.g. 4/12B, Perumal Kovil Street, Pennagaram Post, Dharmapuri - 636810, Tamil Nadu"}
-                value={whatsAppOrderForm.fullAddress}
-                onChange={e => {
-                  const text = e.target.value;
-                  const pinMatch = text.match(/\b\d{6}\b/);
-                  setWhatsAppOrderForm({
-                    ...whatsAppOrderForm,
-                    fullAddress: text,
-                    pincode: pinMatch ? pinMatch[0] : whatsAppOrderForm.pincode
-                  });
-                }}
-                className="w-full p-3 bg-white border border-amber-300 rounded-xl font-semibold text-slate-900 focus:ring-2 focus:ring-amber-500 focus:outline-none leading-relaxed text-xs"
-              />
-              <p className="text-[10.5px] text-amber-900 font-medium">
-                💡 Paste the complete doorstep address here directly from WhatsApp. Pincode and town will be automatically formatted on the shipping label.
-              </p>
-            </div>
-
-            {/* 3. Plants (Pastable Format - No Dropdown Required) */}
-            <div className="space-y-2 bg-emerald-50/70 p-4 rounded-2xl border border-emerald-300">
-              <div className="flex items-center justify-between">
-                <h4 className="font-black text-emerald-950 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                  <Sprout className="w-3.5 h-3.5 text-emerald-700" />
-                  <span>Plants (Pasteable Format — No Dropdown Required) *</span>
-                </h4>
-                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md">
-                  Paste Multiple Plants
-                </span>
-              </div>
-              <textarea
-                required
-                rows={4}
-                placeholder={"Paste or type plant names here (separated by new line or comma):\ne.g.\n1. 7 Days Yellow Rose - 2 Nos\n2. Special Yellow Button Rose\n3. Kashmiri Scented Red Rose"}
-                value={whatsAppOrderForm.plantsText}
-                onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, plantsText: e.target.value })}
-                className="w-full p-3 bg-white border border-emerald-300 rounded-xl font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none leading-relaxed text-xs"
-              />
-              <p className="text-[10.5px] text-emerald-900 font-medium">
-                💡 Paste straight from WhatsApp chat. You can include quantities like "2x Yellow Rose" or "Button Rose - 3 Nos".
-              </p>
-            </div>
-
-            {/* 4. Price & Courier Type */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
-              <div className="bg-emerald-100/70 p-3 rounded-xl border border-emerald-300">
-                <label className="font-black text-emerald-950 block mb-1 text-xs flex items-center gap-1">
-                  <DollarSign className="w-3.5 h-3.5 text-emerald-700" />
-                  <span>Price / Amount Received (₹) *</span>
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-2 font-black text-emerald-900 text-sm">₹</span>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    placeholder="140"
-                    value={whatsAppOrderForm.grandTotal}
-                    onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, grandTotal: Number(e.target.value) || 0 })}
-                    className="w-full pl-8 pr-3 py-2 bg-white border-2 border-emerald-500 rounded-xl font-black text-base text-emerald-900 focus:outline-none"
-                  />
+                {/* Modal Submit Actions */}
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowWhatsAppOrderModal(false);
+                      setEditingOrder(null);
+                      setUploadedOrderImagePreview(null);
+                    }}
+                    className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={whatsAppOrderSaving}
+                    className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-black text-xs rounded-xl shadow-md cursor-pointer transition-all hover:scale-102 active:scale-98 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {whatsAppOrderSaving ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Saving Order...</span>
+                      </>
+                    ) : editingOrder ? (
+                      <>
+                        <span>💾 Update Order</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4" />
+                        <span>➕ Add as New Order</span>
+                      </>
+                    )}
+                  </button>
                 </div>
-              </div>
-
-              <div className="bg-blue-50/70 p-3 rounded-xl border border-blue-200">
-                <label className="font-black text-blue-950 block mb-1 text-xs flex items-center gap-1">
-                  <Truck className="w-3.5 h-3.5 text-blue-700" />
-                  <span>Courier Partner (Same 3 Step Options) *</span>
-                </label>
-                <select
-                  value={whatsAppOrderForm.courierName}
-                  onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, courierName: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-blue-300 rounded-xl font-bold text-slate-900 focus:outline-none text-xs"
-                >
-                  <option value="Professional Courier – Reduced Soil">
-                    🚚 Professional Courier – Reduced Soil (Doorstep Delivery)
-                  </option>
-                  <option value="Professional Courier – Full Soil">
-                    🌱 Professional Courier – Full Soil (Tamil Nadu Only)
-                  </option>
-                  <option value="Mettur Parcel Service (MSS)">
-                    📦 Mettur Parcel Service / MSS (Branch Pickup Depot)
-                  </option>
-                </select>
-              </div>
-            </div>
-
-            {/* Modal Submit Actions */}
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => { setShowWhatsAppOrderModal(false); setEditingOrder(null); }}
-                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={whatsAppOrderSaving}
-                className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-extrabold text-xs rounded-xl shadow-md cursor-pointer transition-all hover:scale-102 active:scale-98 disabled:opacity-50"
-              >
-                {whatsAppOrderSaving
-                  ? 'Saving Order...'
-                  : editingOrder
-                  ? '💾 Update Order'
-                  : '➕ Save WhatsApp / Offline Order'}
-              </button>
-            </div>
-          </form>
+              </form>
+            )}
+          </div>
         </div>
-      </div>
+
+        {/* Full Image Zoom Modal */}
+        {showImageZoomModal && uploadedOrderImagePreview && (
+          <div className="fixed inset-0 z-[60] bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-4 animate-fade-in">
+            <div className="max-w-4xl w-full max-h-[90vh] flex flex-col bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-slate-700">
+              <div className="p-3 bg-slate-800 text-white flex items-center justify-between border-b border-slate-700">
+                <span className="font-bold text-xs flex items-center gap-2">
+                  <ZoomIn className="w-4 h-4 text-emerald-400" />
+                  <span>Original Uploaded Order Image (Full Resolution)</span>
+                </span>
+                <button
+                  onClick={() => setShowImageZoomModal(false)}
+                  className="p-1.5 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-slate-950">
+                <img
+                  src={uploadedOrderImagePreview}
+                  alt="Full resolution uploaded order"
+                  className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-lg"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </>
     );
   };
 
@@ -2998,12 +3558,20 @@ const silentRefresh = async (): Promise<boolean> => {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={handleOpenAddWhatsAppOrder}
+            onClick={() => handleOpenAddWhatsAppOrder('manual')}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all cursor-pointer active:scale-95"
-            title="Create new order from WhatsApp or Phone"
+            title="Create new order manually"
           >
-            <span>💬</span>
-            <span>+ Add WhatsApp / Offline Order</span>
+            <span>✍️</span>
+            <span>+ Add Order</span>
+          </button>
+          <button
+            onClick={() => handleOpenAddWhatsAppOrder('ai_image')}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gradient-to-r from-teal-700 to-emerald-800 hover:from-teal-800 hover:to-emerald-900 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all cursor-pointer active:scale-95 border border-emerald-400/40"
+            title="Upload bill or WhatsApp screenshot to auto-extract with Gemini AI"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+            <span>📸 AI Scan Order</span>
           </button>
 
           <button
@@ -3326,13 +3894,20 @@ const silentRefresh = async (): Promise<boolean> => {
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-2xs space-y-4">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-2">
                     <h3 className="font-bold text-base text-slate-900">Recent Customer Orders ({recentOrdersList.length})</h3>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       <button
-                        onClick={handleOpenAddWhatsAppOrder}
+                        onClick={() => handleOpenAddWhatsAppOrder('manual')}
                         className="text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-xl border border-emerald-200 flex items-center gap-1.5 cursor-pointer transition-colors"
                       >
-                        <span>💬</span>
-                        <span>+ Add WhatsApp Order</span>
+                        <span>✍️</span>
+                        <span>+ Add Order</span>
+                      </button>
+                      <button
+                        onClick={() => handleOpenAddWhatsAppOrder('ai_image')}
+                        className="text-xs font-bold text-teal-800 hover:text-teal-900 bg-teal-50 hover:bg-teal-100 px-2.5 py-1.5 rounded-xl border border-teal-200 flex items-center gap-1 cursor-pointer transition-colors"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                        <span>📸 AI Scan</span>
                       </button>
                       <button
                         onClick={() => setActiveTab('orders')}
@@ -4438,11 +5013,18 @@ const silentRefresh = async (): Promise<boolean> => {
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <button
-                      onClick={handleOpenAddWhatsAppOrder}
-                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer transition-all hover:scale-102 active:scale-98"
+                      onClick={() => handleOpenAddWhatsAppOrder('manual')}
+                      className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer transition-all hover:scale-102 active:scale-98"
                     >
-                      <WhatsAppIcon className="w-4 h-4 fill-white" />
-                      <span>+ Add WhatsApp / Offline Order</span>
+                      <span>✍️</span>
+                      <span>+ Manual Order</span>
+                    </button>
+                    <button
+                      onClick={() => handleOpenAddWhatsAppOrder('ai_image')}
+                      className="px-3.5 py-2 bg-gradient-to-r from-teal-700 to-emerald-800 hover:from-teal-800 hover:to-emerald-900 text-white font-extrabold text-xs rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer transition-all hover:scale-102 active:scale-98"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                      <span>📸 AI Image Scan Order</span>
                     </button>
                     <span className="text-xs bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold px-3 py-1.5 rounded-xl">
                       🚚 Neon PostgreSQL Synced
