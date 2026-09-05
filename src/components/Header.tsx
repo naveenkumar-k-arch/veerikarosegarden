@@ -84,7 +84,7 @@ export const Header: React.FC<HeaderProps> = ({
               boxShadow: '0 0 0 2px #dcfce7',
               flexShrink: 0,
             }}>
-              <img src="/logo.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src="/logo.webp" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </div>
             <div>
               <h1 style={{

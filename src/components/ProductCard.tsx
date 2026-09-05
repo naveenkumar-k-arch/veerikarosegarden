@@ -35,7 +35,10 @@ export const CompactProductCard: React.FC<CompactProductCardProps> = ({
 
   const defaultImg = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=400&q=80';
   const rawImg = (Array.isArray(product.images) && product.images[0]) || (product as any).imageUrl || (product as any).image;
-  const displayImg = imgError || !rawImg ? defaultImg : rawImg;
+  const webpImg = rawImg && typeof rawImg === 'string' && (rawImg.startsWith('/products/') || rawImg.startsWith('/categories/'))
+    ? rawImg.replace(/\.(png|jpg|jpeg)$/i, '.webp')
+    : rawImg;
+  const displayImg = imgError || !webpImg ? defaultImg : webpImg;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -295,7 +298,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const defaultImg = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80';
   const rawImg = (Array.isArray(product.images) && product.images[0]) || (product as any).imageUrl || (product as any).image;
-  const displayImg = imgError || !rawImg ? defaultImg : rawImg;
+  const webpImg = rawImg && typeof rawImg === 'string' && (rawImg.startsWith('/products/') || rawImg.startsWith('/categories/'))
+    ? rawImg.replace(/\.(png|jpg|jpeg)$/i, '.webp')
+    : rawImg;
+  const displayImg = imgError || !webpImg ? defaultImg : webpImg;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();

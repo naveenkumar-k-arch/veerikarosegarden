@@ -449,8 +449,9 @@ class Store {
       });
 
       let results: Product[] = items.map(p => {
-        const primaryImage = p.image || (p.images && p.images.length > 0 ? p.images[0] : `/products/vrg/${p.id.replace('vrg-', '')}.png`);
-        const allImages = p.images && p.images.length > 0 ? p.images : [primaryImage];
+        const rawPrimary = p.image || (p.images && p.images.length > 0 ? p.images[0] : `/products/vrg/${p.id.replace('vrg-', '')}.webp`);
+        const primaryImage = rawPrimary.startsWith('/products/') || rawPrimary.startsWith('/categories/') ? rawPrimary.replace(/\.(png|jpg|jpeg)$/i, '.webp') : rawPrimary;
+        const allImages = (p.images && p.images.length > 0 ? p.images : [primaryImage]).map(img => (img.startsWith('/products/') || img.startsWith('/categories/')) ? img.replace(/\.(png|jpg|jpeg)$/i, '.webp') : img);
         const diskItem = diskMap.get(p.id) || (p.sku ? diskMap.get(p.sku) : undefined);
         const defItem = defMap.get(p.id) || (p.sku ? defMap.get(p.sku) : undefined);
         const resolvedStock = (p.inventory?.quantity !== undefined && p.inventory?.quantity !== null)
@@ -595,8 +596,9 @@ class Store {
           include: { categoryRel: true, inventory: true }
         });
         if (p && !deletedProductIds.has(p.id)) {
-          const primaryImage = p.image || (p.images && p.images.length > 0 ? p.images[0] : `/products/vrg/${p.id.replace('vrg-', '')}.png`);
-          const allImages = p.images && p.images.length > 0 ? p.images : [primaryImage];
+          const rawPrimary = p.image || (p.images && p.images.length > 0 ? p.images[0] : `/products/vrg/${p.id.replace('vrg-', '')}.webp`);
+          const primaryImage = rawPrimary.startsWith('/products/') || rawPrimary.startsWith('/categories/') ? rawPrimary.replace(/\.(png|jpg|jpeg)$/i, '.webp') : rawPrimary;
+          const allImages = (p.images && p.images.length > 0 ? p.images : [primaryImage]).map(img => (img.startsWith('/products/') || img.startsWith('/categories/')) ? img.replace(/\.(png|jpg|jpeg)$/i, '.webp') : img);
           return {
             id: p.id,
             sku: p.sku || `VRG-${p.id.slice(0, 6).toUpperCase()}`,

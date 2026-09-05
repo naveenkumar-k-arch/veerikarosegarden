@@ -37,7 +37,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
               <div style={{ width: 52, height: 52, borderRadius: '50%', overflow: 'hidden', border: '2.5px solid #16a34a', boxShadow: '0 0 0 3px #dcfce7', flexShrink: 0 }}>
-                <img src="/logo.png" alt="Veerika Rose Garden" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img src="/logo.webp" alt="Veerika Rose Garden" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </div>
               <div>
                 <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 700, color: 'var(--text-dark)', margin: 0 }}>

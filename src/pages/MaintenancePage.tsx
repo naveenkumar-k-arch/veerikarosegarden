@@ -60,7 +60,7 @@ export const MaintenancePage: React.FC<MaintenancePageProps> = ({
       <header className="relative z-10 w-full max-w-6xl mx-auto px-4 sm:px-6 py-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <img
-            src="/logo.png"
+            src="/logo.webp"
             alt="Veerika Rose Garden Logo"
             className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl object-cover shadow-lg border border-emerald-500/30 bg-emerald-900"
             onError={(e) => {

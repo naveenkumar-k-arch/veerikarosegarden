@@ -16,18 +16,19 @@ function run(command) {
 try {
   console.log('=== Starting Build Pipeline ===');
   
+  const nodePath = `"${process.execPath}"`;
   console.log('[1/3] Generating Prisma Client...');
   try {
-    run('npx prisma generate');
+    run(`${nodePath} node_modules/prisma/build/index.js generate`);
   } catch (prismaErr) {
     console.warn('⚠️ Warning: Prisma generate failed (likely Windows file lock), continuing with existing client:', prismaErr.message);
   }
 
   console.log('\n[2/3] Building Vite Client Assets...');
-  run('npx vite build');
+  run(`${nodePath} node_modules/vite/bin/vite.js build`);
 
   console.log('\n[3/3] Bundling Serverless / Standalone Server...');
-  run('npx esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs');
+  run(`${nodePath} node_modules/esbuild/bin/esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs`);
 
   console.log('\n✅ Build completed successfully!');
 } catch (error) {

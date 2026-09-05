@@ -110,7 +110,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
             filter: 'drop-shadow(0 0 24px rgba(244,63,94,0.5))',
           }}
         >
-          <img src="/logo.png" alt="Veerika Rose Garden" width={80} height={80} style={{ borderRadius: '50%', objectFit: 'cover' }} />
+          <img src="/logo.webp" alt="Veerika Rose Garden" width={80} height={80} style={{ borderRadius: '50%', objectFit: 'cover' }} />
         </div>
 
         {/* Tamil name */}

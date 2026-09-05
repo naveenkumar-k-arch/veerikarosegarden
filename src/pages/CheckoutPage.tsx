@@ -528,7 +528,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           </table>
           <div class="totals">
             <div><span>Subtotal:</span><span>₹${orderData.subtotal}</span></div>
-            <div><span>Delivery Fee:</span><span>₹${orderData.shippingCharge}</span></div>
+            <div><span>${(orderData.courierPartner === 'METTUR_PARCEL' || courierPartner === 'METTUR_PARCEL') ? 'Packing Fee' : 'Delivery Fee'}:</span><span>₹${orderData.shippingCharge}</span></div>
             ${orderData.packingCharge ? `<div><span>Protective Packing:</span><span>₹${orderData.packingCharge}</span></div>` : ''}
             <div class="grand-total"><span>Grand Total:</span><span>₹${orderData.grandTotal}</span></div>
           </div>
@@ -1374,12 +1374,14 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 </div>
                 <div className="flex justify-between items-start">
                   <div>
-                    <span className="flex items-center gap-1">🚚 Delivery Charge:</span>
+                    <span className="flex items-center gap-1">
+                      {courierPartner === 'METTUR_PARCEL' ? '📦 Packing Fee:' : '🚚 Delivery Charge:'}
+                    </span>
                     <span className="text-[10px] text-slate-400 block">
-                      {hasAllFreeDelivery
-                        ? '100% Free Doorstep Delivery (Tamil Nadu Combo Offer)'
-                        : courierPartner === 'METTUR_PARCEL'
-                          ? `Mettur Parcel Depot (${metturDistrict || 'Tamil Nadu'}) • Delivery charges payable extra upon branch pickup`
+                      {courierPartner === 'METTUR_PARCEL'
+                        ? `Mettur Parcel Depot (${metturDistrict || 'Tamil Nadu'}) • Delivery charges payable extra upon branch pickup`
+                        : hasAllFreeDelivery
+                          ? '100% Free Doorstep Delivery (Tamil Nadu Combo Offer)'
                           : deliveryOption === 'FULL_SOIL_6INCH'
                             ? 'Professional Courier (6" Full Soil - ₹140/plant)'
                             : deliveryOption === 'FULL_SOIL_8INCH'
@@ -1796,9 +1798,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                   <span className="font-bold text-slate-900">₹{fetchedOrder?.subtotal ?? subtotal}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-600">Courier Delivery</span>
+                  <span className="text-slate-600">
+                    {(fetchedOrder?.courierPartner === 'METTUR_PARCEL' || courierPartner === 'METTUR_PARCEL') ? 'Packing Fee' : 'Courier Delivery'}
+                  </span>
                   <span className="font-bold text-slate-900">
-                    {fetchedOrder?.courierName || courierPartner || 'Standard Courier'} ({(fetchedOrder?.shippingCharge ?? shippingCharge) === 0 ? 'FREE' : `₹${fetchedOrder?.shippingCharge ?? shippingCharge}`})
+                    {fetchedOrder?.courierName || (courierPartner === 'METTUR_PARCEL' ? 'Mettur Parcel Service' : 'Standard Courier')} ({(fetchedOrder?.shippingCharge ?? shippingCharge) === 0 ? 'FREE' : `₹${fetchedOrder?.shippingCharge ?? shippingCharge}`})
                   </span>
                 </div>
                 {Boolean(fetchedOrder?.packingCharge ?? packingCharge) && (
@@ -1876,7 +1880,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                       <span className="font-semibold text-slate-900">₹{fetchedOrder?.subtotal ?? subtotal}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-600">Delivery Charge</span>
+                      <span className="text-slate-600">
+                        {(fetchedOrder?.courierPartner === 'METTUR_PARCEL' || courierPartner === 'METTUR_PARCEL') ? 'Packing Fee' : 'Delivery Charge'}
+                      </span>
                       <span className="font-semibold text-slate-900">₹{fetchedOrder?.shippingCharge ?? shippingCharge}</span>
                     </div>
                     {(fetchedOrder?.packingCharge > 0 || packingCharge > 0) && (

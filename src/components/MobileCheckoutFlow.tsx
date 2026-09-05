@@ -1064,7 +1064,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
         <td style="text-align: right; font-weight: 700;">₹${order.subtotal || subtotal}</td>
       </tr>
       <tr>
-        <td colspan="2" style="text-align: right; color: #64748b;">Delivery Charge:</td>
+        <td colspan="2" style="text-align: right; color: #64748b;">${(order.courierPartner === 'METTUR_PARCEL' || courierPartner === 'METTUR_PARCEL') ? 'Packing Fee:' : 'Delivery Charge:'}</td>
         <td style="text-align: right; font-weight: 700;">₹${order.shippingCharge ?? shippingCharge}</td>
       </tr>
       ${(order.potCharge || potCharge) > 0 ? `
@@ -1587,12 +1587,14 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                 </div>
                 <div className="flex justify-between items-start">
                   <div>
-                    <span className="flex items-center gap-1">🚚 Delivery Charge:</span>
+                    <span className="flex items-center gap-1">
+                      {courierPartner === 'METTUR_PARCEL' ? '📦 Packing Fee:' : '🚚 Delivery Charge:'}
+                    </span>
                     <span className="text-[10px] text-slate-400 block">
-                      {hasAllFreeDelivery
-                        ? '100% Free Doorstep Delivery (Tamil Nadu Combo Offer)'
-                        : courierPartner === 'METTUR_PARCEL'
-                          ? `Mettur Parcel Depot (${metturDistrict || 'Tamil Nadu'}) • Delivery charges payable extra upon branch pickup`
+                      {courierPartner === 'METTUR_PARCEL'
+                        ? `Mettur Parcel Depot (${metturDistrict || 'Tamil Nadu'}) • Delivery charges payable extra upon branch pickup`
+                        : hasAllFreeDelivery
+                          ? '100% Free Doorstep Delivery (Tamil Nadu Combo Offer)'
                           : deliveryOption === 'FULL_SOIL_6INCH'
                             ? 'Professional Courier (6" Full Soil - ₹140/plant)'
                             : deliveryOption === 'FULL_SOIL_8INCH'
@@ -1952,7 +1954,11 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                   </div>
 
                   <div className="flex justify-between text-slate-600">
-                    <span>Courier ({fetchedOrder?.courierName || (courierPartner === 'METTUR_PARCEL' ? 'Mettur Parcel Service' : 'Professional Courier')})</span>
+                    <span>
+                      {(fetchedOrder?.courierPartner === 'METTUR_PARCEL' || courierPartner === 'METTUR_PARCEL')
+                        ? 'Packing Fee (Mettur Parcel Service)'
+                        : `Courier (${fetchedOrder?.courierName || 'Professional Courier'})`}
+                    </span>
                     <span className="font-bold text-slate-900">₹{fetchedOrder?.shippingCharge ?? shippingCharge}</span>
                   </div>
 
@@ -2045,7 +2051,11 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                       <span className="font-semibold text-slate-900">₹{fetchedOrder?.subtotal ?? subtotal}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-600">Courier ({fetchedOrder?.courierName || (courierPartner === 'METTUR_PARCEL' ? 'Mettur Parcel' : 'Professional')})</span>
+                      <span className="text-slate-600">
+                        {(fetchedOrder?.courierPartner === 'METTUR_PARCEL' || courierPartner === 'METTUR_PARCEL')
+                          ? 'Packing Fee (Mettur Parcel)'
+                          : `Courier (${fetchedOrder?.courierName || 'Professional'})`}
+                      </span>
                       <span className="font-semibold text-slate-900">₹{fetchedOrder?.shippingCharge ?? shippingCharge}</span>
                     </div>
                     {(fetchedOrder?.packingCharge > 0 || packingCharge > 0) && (

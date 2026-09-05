@@ -43,7 +43,7 @@ export const InvoicePrint: React.FC<InvoicePrintProps> = ({ order, onClose }) =>
       <div className="flex flex-col sm:flex-row justify-between items-start gap-4 border-b border-slate-200 pb-6">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Veerika Rose Garden Logo" className="w-10 h-10 object-contain shrink-0" />
+            <img src="/logo.webp" alt="Veerika Rose Garden Logo" className="w-10 h-10 object-contain shrink-0" />
             <h2 className="text-xl font-bold text-slate-900 tracking-tight">Veerika Rose Garden</h2>
           </div>
           <p className="text-xs text-slate-500 font-medium">வீரிகா ரோஜா கார்டன் • Registered Nursery</p>

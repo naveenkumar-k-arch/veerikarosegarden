@@ -378,7 +378,7 @@ const DEFAULT_BANNERS = [
 
 apiRouter.get('/banners', async (req, res) => {
   try {
-    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+    res.setHeader('Cache-Control', 'public, max-age=120, s-maxage=600, stale-while-revalidate=1800');
     let banners = await db.getBanners(true);
     // Auto-seed default banners if table is empty
     if (!banners || banners.length === 0) {
@@ -698,7 +698,7 @@ apiRouter.post('/combos/delete', requireAdmin, handleDeleteCombo);
 // ================= REVIEWS =================
 apiRouter.get('/reviews', async (req, res) => {
   try {
-    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+    res.setHeader('Cache-Control', 'public, max-age=120, s-maxage=600, stale-while-revalidate=1800');
     const { productId } = req.query;
     const reviews = await db.getReviews(productId as string | undefined);
     res.json({ success: true, reviews });
@@ -2215,7 +2215,7 @@ apiRouter.post('/admin/finances/:id/update', requireAdmin, handleUpdateFinance);
 // ================= SITE SETTINGS =================
 apiRouter.get('/settings', async (req, res) => {
   try {
-    res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=120');
+    res.setHeader('Cache-Control', 'public, max-age=120, s-maxage=600, stale-while-revalidate=1800');
     const settings = await db.getSettings();
     if (!settings) {
       return res.json({ success: true, settings: {} });

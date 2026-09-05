@@ -492,7 +492,9 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
         {/* Pricing & Courier Details Breakdown */}
         <div className="pt-3 border-t border-slate-200 space-y-1.5 text-xs text-slate-700">
           <div className="flex justify-between items-center">
-            <span className="font-medium">🚚 Courier Delivery:</span>
+            <span className="font-medium">
+              {(order as any).courierPartner === 'METTUR_PARCEL' || order.courierName?.includes('Mettur') ? '📦 Packing Fee:' : '🚚 Courier Delivery:'}
+            </span>
             <span className="font-bold text-slate-900">
               {order.courierName || 'Professional Courier'}
               {order.courierBranch ? ` (${order.courierBranch})` : ''}

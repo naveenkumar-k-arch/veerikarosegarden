@@ -934,7 +934,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </div>
             </div>
             <div style={{ display: 'none', flexDirection: 'column', alignItems: 'center', gap: 12 }} className="cta-right-show">
-              <img src="/logo.png" alt="Veerika" style={{ width: 120, height: 120, borderRadius: '50%', objectFit: 'cover', border: '4px solid rgba(255,255,255,0.3)', boxShadow: '0 8px 30px rgba(0,0,0,0.2)' }} className="animate-float" />
+              <img src="/logo.webp" alt="Veerika" style={{ width: 120, height: 120, borderRadius: '50%', objectFit: 'cover', border: '4px solid rgba(255,255,255,0.3)', boxShadow: '0 8px 30px rgba(0,0,0,0.2)' }} className="animate-float" />
               <span style={{ color: '#bbf7d0', fontSize: 12, fontFamily: 'var(--font-tamil)', textAlign: 'center' }}>வீரிகா ரோஜா கார்டன்</span>
             </div>
           </div>
