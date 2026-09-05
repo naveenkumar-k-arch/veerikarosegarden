@@ -366,7 +366,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
   const [deliveryOption, setDeliveryOption] = useState<DeliveryOptionType>(() => {
     try {
       const saved = sessionStorage.getItem('vrg_checkout_delivery_option') as any;
-      if (saved === 'FULL_SOIL_6INCH' || saved === 'FULL_SOIL_8INCH' || saved === 'FULL_SOIL' || saved === 'REDUCED_SOIL') return saved;
+      if (saved === 'FULL_SOIL_6INCH' || saved === 'FULL_SOIL_8INCH' || saved === 'FULL_SOIL' || saved === 'REDUCED_SOIL' || saved === 'METTUR_PARCEL') return saved;
     } catch {}
     return 'REDUCED_SOIL';
   });
@@ -433,16 +433,17 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
     }
   }, [totalPlantCount, deliveryOption, courierPartner, address.state]);
 
+  const isMettur = courierPartner === 'METTUR_PARCEL' || deliveryOption === 'METTUR_PARCEL';
   const isReducedSoil = (courierPartner === 'PROFESSIONAL_COURIER' || !courierPartner) && (deliveryOption === 'REDUCED_SOIL' || !deliveryOption);
   const baseShipping = getDeliveryChargeForOption(
-    courierPartner === 'METTUR_PARCEL' ? 'METTUR_PARCEL' : deliveryOption,
+    isMettur ? 'METTUR_PARCEL' : deliveryOption,
     isReducedSoil ? chargeablePlantCount : totalPlantCount,
     address.state
   );
   const shippingCharge = isReducedSoil
     ? (hasAllFreeDelivery ? 0 : (chargeablePlantCount === 0 ? 0 : baseShipping))
     : baseShipping;
-  const packingCharge = courierPartner === 'METTUR_PARCEL'
+  const packingCharge = isMettur
     ? (selectedPacking === 'EXTRA_SECURE' ? 10 : selectedPacking === 'MAX_PROTECTION' ? 15 : 0)
     : 0;
   const potCharge = 0;
@@ -1588,10 +1589,10 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="flex items-center gap-1">
-                      {courierPartner === 'METTUR_PARCEL' ? '📦 Packing Fee:' : '🚚 Delivery Charge:'}
+                      {isMettur ? '📦 Packing Fee:' : '🚚 Delivery Charge:'}
                     </span>
                     <span className="text-[10px] text-slate-400 block">
-                      {courierPartner === 'METTUR_PARCEL'
+                      {isMettur
                         ? `Mettur Parcel Depot (${metturDistrict || 'Tamil Nadu'}) • Delivery charges payable extra upon branch pickup`
                         : hasAllFreeDelivery
                           ? '100% Free Doorstep Delivery (Tamil Nadu Combo Offer)'
@@ -1603,7 +1604,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                                 ? 'Professional Courier (6" Full Soil - ₹140/plant)'
                                 : `Professional Courier (Reduced Soil - ${inTN ? 'TN' : address.state || 'Other State'})`}
                     </span>
-                    {courierPartner === 'METTUR_PARCEL' && (
+                    {isMettur && (
                       <span className="text-[9px] text-amber-800 font-bold block mt-0.5">
                         ⚠️ Pay delivery fee directly to Mettur Parcel Service when collecting order.
                       </span>
@@ -1619,7 +1620,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                 </div>
 
                 {/* Protective Packing Fee - Only show for Mettur Parcel Service */}
-                {courierPartner === 'METTUR_PARCEL' && (
+                {isMettur && (
                   <div className="flex justify-between items-center">
                     <span className="flex items-center gap-1">🛡️ Plant Protective Packing:</span>
                     <span className="font-bold text-slate-900">
