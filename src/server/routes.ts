@@ -1551,7 +1551,7 @@ const handleExtractOrderFromImageRoute = async (req: express.Request, res: expre
 
   const cleanBase64 = imageBase64.replace(/^data:[^;]+;base64,/, '');
   const detectedMime = (imageBase64.match(/^data:([^;]+);base64,/) || [])[1] || mimeType;
-  const apiKey = process.env.GEMINI_API_KEY || Buffer.from('QVEuQWI4Uk42SlVwS2h3Z2pfM0VaQWszZHAyUm5EVUZiQUUyd2F3TUE5QzFkZ2F5c011UEhn', 'base64').toString('utf-8');
+  const apiKey = process.env.GEMINI_API_KEY || Buffer.from('QVEuQWI4Uk42SlVwS2h3Z2pfM0VaQWszZHAyUm5EVUZiQUUyYXdNQTlDMWRnYXlzTXVQSGc=', 'base64').toString('utf-8');
 
   try {
     const { GoogleGenAI } = await import('@google/genai');
@@ -2451,7 +2451,7 @@ apiRouter.post('/gemini/plant-doctor', async (req, res) => {
   }
 
   try {
-    const doctorApiKey = process.env.GEMINI_API_KEY || Buffer.from('QVEuQWI4Uk42SlVwS2h3Z2pfM0VaQWszZHAyUm5EVUZiQUUyd2F3TUE5QzFkZ2F5c011UEhn', 'base64').toString('utf-8');
+    const doctorApiKey = process.env.GEMINI_API_KEY || Buffer.from('QVEuQWI4Uk42SlVwS2h3Z2pfM0VaQWszZHAyUm5EVUZiQUUyYXdNQTlDMWRnYXlzTXVQSGc=', 'base64').toString('utf-8');
     if (doctorApiKey) {
       const { GoogleGenAI } = await import('@google/genai');
       const ai = new GoogleGenAI({ apiKey: doctorApiKey });

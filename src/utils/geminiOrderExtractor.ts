@@ -31,7 +31,7 @@ export interface ExtractedOrderData {
   imagePreviewUrl?: string;
 }
 
-const DEFAULT_GEMINI_API_KEY = (typeof import.meta !== 'undefined' && import.meta.env && (import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY)) || (typeof atob !== 'undefined' ? atob('QVEuQWI4Uk42SlVwS2h3Z2pfM0VaQWszZHAyUm5EVUZiQUUyd2F3TUE5QzFkZ2F5c011UEhn') : '');
+const DEFAULT_GEMINI_API_KEY = (typeof import.meta !== 'undefined' && (import.meta as any)?.env && ((import.meta as any).env.VITE_GEMINI_API_KEY || (import.meta as any).env.GEMINI_API_KEY)) || (typeof atob !== 'undefined' ? atob('QVEuQWI4Uk42SlVwS2h3Z2pfM0VaQWszZHAyUm5EVUZiQUUyYXdNQTlDMWRnYXlzTXVQSGc=') : '');
 
 // Helper: Convert File to base64 data URL
 export const fileToDataUrl = (file: File): Promise<string> => {
