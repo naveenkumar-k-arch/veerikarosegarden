@@ -8,7 +8,7 @@ import { MobileAdminWorkflow } from '../components/MobileAdminWorkflow';
 import { A4LabelSheetPrint } from '../components/A4LabelSheetPrint';
 import { processLocalImageFile, processMultipleImageFiles } from '../utils/imageUpload';
 import { toast } from '../utils/toast';
-import { getOrderStage, STAGE_CONFIG, generateOrderWhatsAppMessage, isWhatsAppOrder, isValidAdminOrder } from '../utils/orderStages';
+import { getOrderStage, STAGE_CONFIG, generateOrderWhatsAppMessage, isWhatsAppOrder, isUploadedByImage, isValidAdminOrder } from '../utils/orderStages';
 import { WhatsAppIcon } from '../components/WhatsAppIcon';
 import { AIOrderImageUpload } from '../components/AIOrderImageUpload';
 import { ExtractedOrderData } from '../utils/geminiOrderExtractor';
@@ -265,7 +265,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
       });
   });
   const [orderSortBy, setOrderSortBy] = useState<'date_desc' | 'date_asc' | 'price_desc' | 'price_asc'>('date_desc');
-  const [orderSourceFilter, setOrderSourceFilter] = useState<'all' | 'whatsapp' | 'website'>('all');
+  const [orderSourceFilter, setOrderSourceFilter] = useState<'all' | 'whatsapp' | 'website' | 'image'>('all');
   const [holdingOrderIds, setHoldingOrderIds] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('vrg_holding_order_ids');
@@ -2084,6 +2084,7 @@ const silentRefresh = async (): Promise<boolean> => {
     const pinMatch = rawAddress.match(/\b\d{6}\b/);
     const extractedPincode = pinMatch ? pinMatch[0] : (whatsAppOrderForm.pincode || '');
 
+    const isFromImage = Boolean(uploadedOrderImagePreview || addOrderMode === 'ai_image');
     const payload = {
       customerName: whatsAppOrderForm.customerName.trim(),
       customerPhone: whatsAppOrderForm.customerPhone.trim(),
@@ -2091,6 +2092,10 @@ const silentRefresh = async (): Promise<boolean> => {
       source: 'WHATSAPP',
       isWhatsApp: true,
       channel: 'WHATSAPP',
+      uploadedByImage: isFromImage,
+      entryMode: isFromImage ? 'image' : 'manual',
+      paymentProofUrl: uploadedOrderImagePreview || undefined,
+      orderImageUrl: uploadedOrderImagePreview || undefined,
       shippingAddress: {
         fullName: whatsAppOrderForm.customerName.trim(),
         phone: whatsAppOrderForm.customerPhone.trim(),
@@ -2111,7 +2116,7 @@ const silentRefresh = async (): Promise<boolean> => {
       paymentMethod: whatsAppOrderForm.paymentMethod || 'WHATSAPP',
       paymentStatus: whatsAppOrderForm.paymentStatus || 'SUCCESS',
       orderStatus: whatsAppOrderForm.orderStatus || 'CONFIRMED',
-      notes: whatsAppOrderForm.notes || '',
+      notes: whatsAppOrderForm.notes || (isFromImage ? 'Uploaded by Image (AI Extracted)' : ''),
       trackingNumber: whatsAppOrderForm.trackingNumber || '',
       courierName: whatsAppOrderForm.courierName || 'Professional Courier – Reduced Soil'
     };
@@ -3943,6 +3948,7 @@ const silentRefresh = async (): Promise<boolean> => {
                         <tbody className="divide-y divide-slate-100 font-medium">
                           {recentOrdersList.slice(0, 10).map((o: Order) => {
                             const isWA = isWhatsAppOrder(o);
+                            const isFromImg = isUploadedByImage(o);
                             return (
                               <tr key={o.id} className="hover:bg-slate-50">
                                 <td className="py-2.5 px-3 font-mono font-black text-slate-900">
@@ -3954,6 +3960,11 @@ const silentRefresh = async (): Promise<boolean> => {
                                     ) : (
                                       <span title="Placed on Website" className="inline-flex items-center gap-1 bg-blue-600 text-white px-2 py-0.5 rounded-md font-black text-[10px] shadow-2xs">
                                         <Globe className="w-3 h-3 text-white" /> Website
+                                      </span>
+                                    )}
+                                    {isFromImg && (
+                                      <span title="Created via Image Upload (Bill / WhatsApp screenshot)" className="inline-flex items-center gap-1 bg-purple-600 text-white px-2 py-0.5 rounded-md font-black text-[10px] shadow-2xs">
+                                        <Camera className="w-3 h-3 text-white" /> Uploaded by Image
                                       </span>
                                     )}
                                     <span>{o.id}</span>
@@ -4362,6 +4373,7 @@ const silentRefresh = async (): Promise<boolean> => {
               if (!isValidAdminOrder(o)) return false;
               if (orderSourceFilter === 'whatsapp') return isWhatsAppOrder(o);
               if (orderSourceFilter === 'website') return !isWhatsAppOrder(o);
+              if (orderSourceFilter === 'image') return isUploadedByImage(o);
               return true;
             });
 
@@ -4481,12 +4493,14 @@ const silentRefresh = async (): Promise<boolean> => {
             };
 
             const whatsAppOrdersCount = orders.filter(isWhatsAppOrder).length;
+            const imageOrdersCount = orders.filter(isUploadedByImage).length;
             const websiteOrdersCount = orders.length - whatsAppOrdersCount;
 
             const renderOrderCard = (o: Order) => {
               const currentStage = getOrderStage(o.orderStatus);
               const isCod = o.paymentMethod === 'COD';
               const isWA = isWhatsAppOrder(o);
+              const isFromImg = isUploadedByImage(o);
               const isOnHold = holdingOrderIds.includes(o.id) || (o as any).isHolding === true;
               const s = (o.orderStatus || '').toUpperCase();
               const isDelivered = currentStage === 'delivered';
@@ -4531,6 +4545,12 @@ const silentRefresh = async (): Promise<boolean> => {
                             <span>Website Order</span>
                           </span>
                         )}
+                        {isFromImg && (
+                          <span className="inline-flex items-center gap-1.5 bg-purple-600 text-white font-extrabold px-2.5 py-0.5 rounded-full text-[11px] shadow-xs tracking-wide" title="Details auto-extracted from uploaded photo/bill">
+                            <Camera className="w-3.5 h-3.5 text-white" />
+                            <span>Uploaded by Image</span>
+                          </span>
+                        )}
                         {isOnHold && (
                           <span className="inline-flex items-center gap-1 bg-amber-500 text-white font-extrabold px-2.5 py-0.5 rounded-full text-[11px] shadow-xs">
                             ⏸️ ON HOLD
@@ -4564,13 +4584,13 @@ const silentRefresh = async (): Promise<boolean> => {
                               : '📱 PhonePe (Auto-Verified)'}
                           </span>
                         </span>
-                        {(o.paymentMethod === 'QR_PAYMENT' || o.paymentMethod === 'UPI_DIRECT' || Boolean(o.paymentProofUrl)) && o.paymentProofUrl && (
+                        {(o.paymentMethod === 'QR_PAYMENT' || o.paymentMethod === 'UPI_DIRECT' || Boolean(o.paymentProofUrl) || isFromImg) && (o.paymentProofUrl || (o as any).orderImageUrl) && (
                           <button
                             onClick={() => setSelectedProofOrder(o)}
-                            className="px-2.5 py-0.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-full text-[11px] flex items-center gap-1 transition-all cursor-pointer shadow-2xs"
+                            className="px-2.5 py-0.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-full text-[11px] flex items-center gap-1 transition-all cursor-pointer shadow-2xs"
                           >
                             <Camera className="w-3 h-3" />
-                            <span>View Paid Receipt</span>
+                            <span>{isFromImg ? 'View Uploaded Image' : 'View Paid Receipt'}</span>
                           </button>
                         )}
                       </div>
@@ -5078,10 +5098,24 @@ const silentRefresh = async (): Promise<boolean> => {
                       <span>🌐 Website Orders</span>
                       <span className="px-1.5 py-0.2 rounded-full bg-white/30 text-[10px] font-mono">{websiteOrdersCount}</span>
                     </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setOrderSourceFilter('image')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs border ${
+                        orderSourceFilter === 'image'
+                          ? 'bg-purple-600 text-white border-purple-700 shadow-xs'
+                          : 'bg-purple-50 text-purple-900 hover:bg-purple-100 border-purple-200'
+                      }`}
+                    >
+                      <Camera className={`w-3.5 h-3.5 ${orderSourceFilter === 'image' ? 'text-white' : 'text-purple-600'}`} />
+                      <span>Uploaded by Image</span>
+                      <span className="px-1.5 py-0.2 rounded-full bg-white/30 text-[10px] font-mono">{imageOrdersCount}</span>
+                    </button>
                   </div>
 
                   <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-xl">
-                    Showing {filteredBySource.length} {orderSourceFilter === 'whatsapp' ? 'WhatsApp' : orderSourceFilter === 'website' ? 'Website' : ''} Orders
+                    Showing {filteredBySource.length} {orderSourceFilter === 'whatsapp' ? 'WhatsApp' : orderSourceFilter === 'website' ? 'Website' : orderSourceFilter === 'image' ? 'Uploaded by Image' : ''} Orders
                   </span>
                 </div>
 
@@ -7195,8 +7229,8 @@ const silentRefresh = async (): Promise<boolean> => {
             <div className="flex justify-between items-center border-b border-slate-200 pb-3">
               <div>
                 <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
-                  <Camera className="w-5 h-5 text-indigo-600" />
-                  <span>Customer Payment Receipt Proof</span>
+                  <Camera className={`w-5 h-5 ${isUploadedByImage(selectedProofOrder) ? 'text-purple-600' : 'text-indigo-600'}`} />
+                  <span>{isUploadedByImage(selectedProofOrder) ? 'Uploaded Order Image / Bill (AI Scanned)' : 'Customer Payment Receipt Proof'}</span>
                 </h3>
                 <p className="text-[11px] text-slate-500 font-mono">
                   Order #{selectedProofOrder.id} • Txn: {selectedProofOrder.merchantTransactionId}

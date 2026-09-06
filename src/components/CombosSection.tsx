@@ -6,6 +6,7 @@ import { useLanguage } from '../context/LanguageContext';
 interface CombosSectionProps {
   onAddToCart: (product: Product, quantity?: number, meta?: any) => void;
   onSelectProduct?: (product: Product) => void;
+  onViewAllCombos?: () => void;
 }
 
 const getAggregatedProducts = (productsList?: Product[]) => {
@@ -23,7 +24,7 @@ const getAggregatedProducts = (productsList?: Product[]) => {
   return Array.from(map.values());
 };
 
-export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSelectProduct }) => {
+export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSelectProduct, onViewAllCombos }) => {
   const { language, t } = useLanguage();
   const isTa = language === 'ta';
   const [combos, setCombos] = useState<Combo[]>(() => {
@@ -171,14 +172,28 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
             </p>
           </div>
 
-          <div className="flex items-center gap-3 text-xs font-bold text-slate-600 bg-white/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-slate-200 shadow-2xs self-start md:self-auto">
-            <span className="flex items-center gap-1 text-emerald-700">
-              <ShieldCheck className="w-4 h-4" /> {isTa ? 'ஆரோக்கியமான ஒட்டுச்செடிகள்' : 'Healthy Grafted Saplings'}
-            </span>
-            <span className="text-slate-300">•</span>
-            <span className="flex items-center gap-1 text-amber-700">
-              <Truck className="w-4 h-4" /> {isTa ? 'ஈரப்பதம் குறையாத பேக்கிங்' : 'Express Moisture Packed'}
-            </span>
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap self-start md:self-auto">
+            <div className="flex items-center gap-2 sm:gap-3 text-xs font-bold text-slate-600 bg-white/80 backdrop-blur-md px-3 sm:px-4 py-2 rounded-2xl border border-slate-200 shadow-2xs">
+              <span className="flex items-center gap-1 text-emerald-700">
+                <ShieldCheck className="w-4 h-4" /> {isTa ? 'ஆரோக்கியமான ஒட்டுச்செடிகள்' : 'Healthy Grafted Saplings'}
+              </span>
+              <span className="text-slate-300">•</span>
+              <span className="flex items-center gap-1 text-amber-700">
+                <Truck className="w-4 h-4" /> {isTa ? 'ஈரப்பதம் குறையாத பேக்கிங்' : 'Express Moisture Packed'}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (onViewAllCombos) onViewAllCombos();
+                else window.location.hash = '#/shop';
+              }}
+              className="px-3.5 sm:px-4 py-2 bg-gradient-to-r from-emerald-700 to-emerald-800 hover:from-emerald-800 hover:to-emerald-900 text-white font-black text-xs rounded-2xl flex items-center gap-1.5 shadow-xs hover:shadow-md transition-all cursor-pointer"
+            >
+              <span>{isTa ? 'அனைத்து காம்போக்களையும் பார்க்க' : 'View All Combos'}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
 
@@ -196,7 +211,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-            {combos.map((combo) => {
+            {combos.slice(0, 2).map((combo) => {
               const discount = combo.discountPercent || (combo.originalPrice > 0 ? Math.round(((combo.originalPrice - combo.comboPrice) / combo.originalPrice) * 100) : 0);
               const savings = combo.originalPrice > combo.comboPrice ? combo.originalPrice - combo.comboPrice : 0;
               const isJustAdded = addedComboId === combo.id;
@@ -363,6 +378,53 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                 </div>
               );
             })}
+
+            {/* 3rd Card: View All Combos & Special Offers (Navigates to Shop) */}
+            <div
+              onClick={() => {
+                if (onViewAllCombos) onViewAllCombos();
+                else window.location.hash = '#/shop';
+              }}
+              className="group bg-gradient-to-br from-emerald-900 via-teal-950 to-slate-950 border-2 border-emerald-500/40 hover:border-emerald-400 rounded-2xl sm:rounded-3xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 flex flex-col justify-between relative transform hover:-translate-y-1.5 cursor-pointer p-6 sm:p-7 text-white"
+            >
+              {/* Ambient Decorative Glows */}
+              <div className="absolute -top-10 -right-10 w-44 h-44 bg-emerald-400/20 rounded-full blur-2xl pointer-events-none group-hover:scale-125 transition-transform duration-500" />
+              <div className="absolute -bottom-10 -left-10 w-44 h-44 bg-amber-400/15 rounded-full blur-2xl pointer-events-none group-hover:scale-125 transition-transform duration-500" />
+
+              <div className="relative z-10 flex flex-col items-center justify-center text-center space-y-4 my-auto py-3">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-black text-[11px] uppercase tracking-wider shadow-inner">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+                  <span>{isTa ? 'அனைத்து சேர்க்கைகள்' : 'Special Collection'}</span>
+                </div>
+
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-amber-500 flex items-center justify-center shadow-xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 text-3xl sm:text-4xl">
+                  🌹
+                </div>
+
+                <div className="space-y-1.5 max-w-xs">
+                  <h3 className="font-black text-xl sm:text-2xl text-white tracking-tight drop-shadow-sm leading-snug">
+                    {isTa ? 'அனைத்து காம்போக்களையும் பார்க்க' : 'View All Combo Offers'}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-emerald-100/80 font-medium leading-relaxed">
+                    {isTa
+                      ? `வீரிகா ரோஜா கார்டன் பண்ணையின் அனைத்து ${combos.length > 2 ? `${combos.length}+` : ''} சேர்க்கை சலுகைகளையும் கடையின் பக்கத்தில் காண்க.`
+                      : `Explore all ${combos.length > 2 ? `${combos.length}+` : ''} curated nursery bundles with exclusive savings & free doorstep delivery.`}
+                  </p>
+                </div>
+
+                <div className="pt-2 w-full max-w-xs">
+                  <div className="w-full py-3 sm:py-3.5 px-4 rounded-xl sm:rounded-2xl bg-gradient-to-r from-amber-400 via-emerald-400 to-teal-300 text-slate-950 font-black text-xs sm:text-sm shadow-lg group-hover:shadow-xl transition-all flex items-center justify-center gap-2 group-hover:gap-3">
+                    <span>{isTa ? 'கடைக்குச் செல்லவும் (Shop Now)' : 'Explore All in Shop'}</span>
+                    <ArrowRight className="w-4 h-4 text-slate-950 transition-transform group-hover:translate-x-1" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative z-10 pt-3 border-t border-emerald-800/60 flex items-center justify-between text-[11px] text-emerald-300/80 font-bold">
+                <span>🌱 {isTa ? 'பண்ணை நேரடி பேக்கிங்' : 'Direct Nursery Packing'}</span>
+                <span>🚚 {isTa ? 'இலவச டெலிவரி' : 'Free Home Delivery'}</span>
+              </div>
+            </div>
           </div>
         )}
       </div>

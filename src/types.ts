@@ -123,6 +123,11 @@ export interface Order {
   trackingNumber?: string;
   deliveryNotes?: string;
   notes?: string;
+  source?: string;
+  isWhatsApp?: boolean;
+  uploadedByImage?: boolean;
+  entryMode?: 'manual' | 'ai_image' | 'image' | string;
+  orderImageUrl?: string;
   potCharge?: number;
   potOption?: string;
   packingCharge?: number;

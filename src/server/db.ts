@@ -2842,126 +2842,152 @@ class Store {
           let unpackedCourierBranch: string | undefined = undefined;
           let parsedCourierFromNotes: string | undefined = undefined;
           let unpackedItemsSnapshot: OrderItemSnapshot[] | undefined = undefined;
+            let unpackedUploadedByImage = false;
+            let unpackedSource = 'WEBSITE';
+            let unpackedIsWhatsApp = false;
+            let unpackedOrderNote = '';
+
             if (notesStr.startsWith('{') && notesStr.endsWith('}')) {
-            try {
-              const pNotes = JSON.parse(notesStr);
-              if (pNotes.proof) unpackedProofUrl = pNotes.proof;
-              if (pNotes.txnId) unpackedTxnId = pNotes.txnId;
-              if (pNotes.packingOption) unpackedPackingOption = pNotes.packingOption;
-              if (pNotes.packingCharge !== undefined) unpackedPackingCharge = pNotes.packingCharge;
-              if (pNotes.potOption) unpackedPotOption = pNotes.potOption;
-              if (pNotes.potCharge !== undefined) unpackedPotCharge = pNotes.potCharge;
-              if (pNotes.courierName) parsedCourierFromNotes = pNotes.courierName;
-              if (pNotes.courierDistrict) unpackedCourierDistrict = pNotes.courierDistrict;
-              if (pNotes.courierBranch) unpackedCourierBranch = pNotes.courierBranch;
-              if (pNotes.itemsSnapshot && Array.isArray(pNotes.itemsSnapshot) && pNotes.itemsSnapshot.length > 0) {
-                unpackedItemsSnapshot = pNotes.itemsSnapshot;
+              try {
+                const pNotes = JSON.parse(notesStr);
+                if (pNotes.proof) unpackedProofUrl = pNotes.proof;
+                if (pNotes.paymentProofUrl) unpackedProofUrl = pNotes.paymentProofUrl;
+                if (pNotes.orderImageUrl) unpackedProofUrl = pNotes.orderImageUrl;
+                if (pNotes.uploadedByImage) unpackedUploadedByImage = true;
+                if (pNotes.entryMode === 'image') unpackedUploadedByImage = true;
+                if (pNotes.source) unpackedSource = pNotes.source;
+                if (pNotes.isWhatsApp !== undefined) unpackedIsWhatsApp = pNotes.isWhatsApp;
+                if (pNotes.note) unpackedOrderNote = pNotes.note;
+                if (pNotes.txnId) unpackedTxnId = pNotes.txnId;
+                if (pNotes.packingOption) unpackedPackingOption = pNotes.packingOption;
+                if (pNotes.packingCharge !== undefined) unpackedPackingCharge = pNotes.packingCharge;
+                if (pNotes.potOption) unpackedPotOption = pNotes.potOption;
+                if (pNotes.potCharge !== undefined) unpackedPotCharge = pNotes.potCharge;
+                if (pNotes.courierName) parsedCourierFromNotes = pNotes.courierName;
+                if (pNotes.courierDistrict) unpackedCourierDistrict = pNotes.courierDistrict;
+                if (pNotes.courierBranch) unpackedCourierBranch = pNotes.courierBranch;
+                if (pNotes.itemsSnapshot && Array.isArray(pNotes.itemsSnapshot) && pNotes.itemsSnapshot.length > 0) {
+                  unpackedItemsSnapshot = pNotes.itemsSnapshot;
+                }
+              } catch {}
+            } else if (notesStr.includes('|||PROOF|||')) {
+              const proofMatch = notesStr.split('|||PROOF|||')[1]?.split('|||TXNID|||')[0];
+              const txnMatch = notesStr.split('|||TXNID|||')[1];
+              if (proofMatch) unpackedProofUrl = proofMatch.trim();
+              if (txnMatch) unpackedTxnId = txnMatch.trim();
+            } else if (notesStr.includes('|||TXNID|||')) {
+              const txnMatch = notesStr.split('|||TXNID|||')[1];
+              if (txnMatch) unpackedTxnId = txnMatch.trim();
+            }
+
+            const itemsSnapshot: OrderItemSnapshot[] = (unpackedItemsSnapshot && unpackedItemsSnapshot.length > 0)
+              ? unpackedItemsSnapshot
+              : o.items.map(i => {
+                  const rawId = (i.productId || 'PLANT').trim();
+                  const isComboItem = rawId.toLowerCase().startsWith('combo-') || rawId.toLowerCase().startsWith('vrg-combo-');
+                  const cleanSku = isComboItem
+                    ? `CMB-${rawId.replace(/^combo-|^vrg-combo-/i, '').slice(0, 8).toUpperCase()}`
+                    : `VRG-${rawId.replace(/^vrg-|^prod-/i, '').slice(0, 8).toUpperCase()}`;
+
+                  return {
+                    productId: i.productId,
+                    sku: cleanSku,
+                    name: i.productName || 'Nursery Plant',
+                    tamilName: i.productName || 'நார்சரி செடி',
+                    price: i.price,
+                    mrp: i.price,
+                    quantity: i.quantity,
+                    image: '/products/double-delight.jpeg'
+                  };
+                });
+
+            const rawTracking = (o as any).trackingNumber || '';
+            let parsedCourier: string | undefined = parsedCourierFromNotes;
+            let parsedTracking: string | undefined = rawTracking || undefined;
+            if (rawTracking.includes(' | ')) {
+              const parts = rawTracking.split(' | ');
+              parsedCourier = parts[0]?.trim();
+              parsedTracking = parts[1]?.trim();
+            }
+
+            if (!parsedCourier) {
+              if (unpackedCourierBranch || unpackedCourierDistrict) {
+                parsedCourier = 'Mettur Parcel Service';
+              } else if (unpackedPotOption === 'FULL_SOIL_8INCH') {
+                parsedCourier = 'Professional Courier (8" Full Soil)';
+              } else if (unpackedPotOption === 'FULL_SOIL_6INCH' || unpackedPotOption === 'FULL_SOIL') {
+                parsedCourier = 'Professional Courier (6" Full Soil)';
+              } else {
+                parsedCourier = 'Professional Courier (Reduced Soil)';
               }
-            } catch {}
-          } else if (notesStr.includes('|||PROOF|||')) {
-            const proofMatch = notesStr.split('|||PROOF|||')[1]?.split('|||TXNID|||')[0];
-            const txnMatch = notesStr.split('|||TXNID|||')[1];
-            if (proofMatch) unpackedProofUrl = proofMatch.trim();
-            if (txnMatch) unpackedTxnId = txnMatch.trim();
-          } else if (notesStr.includes('|||TXNID|||')) {
-            const txnMatch = notesStr.split('|||TXNID|||')[1];
-            if (txnMatch) unpackedTxnId = txnMatch.trim();
-          }
-
-          const itemsSnapshot: OrderItemSnapshot[] = (unpackedItemsSnapshot && unpackedItemsSnapshot.length > 0)
-            ? unpackedItemsSnapshot
-            : o.items.map(i => {
-                const rawId = (i.productId || 'PLANT').trim();
-                const isComboItem = rawId.toLowerCase().startsWith('combo-') || rawId.toLowerCase().startsWith('vrg-combo-');
-                const cleanSku = isComboItem
-                  ? `CMB-${rawId.replace(/^combo-|^vrg-combo-/i, '').slice(0, 8).toUpperCase()}`
-                  : `VRG-${rawId.replace(/^vrg-|^prod-/i, '').slice(0, 8).toUpperCase()}`;
-
-                return {
-                  productId: i.productId,
-                  sku: cleanSku,
-                  name: i.productName || 'Nursery Plant',
-                  tamilName: i.productName || 'நார்சரி செடி',
-                  price: i.price,
-                  mrp: i.price,
-                  quantity: i.quantity,
-                  image: '/products/double-delight.jpeg'
-                };
-              });
-
-          const rawTracking = (o as any).trackingNumber || '';
-          let parsedCourier: string | undefined = parsedCourierFromNotes;
-          let parsedTracking: string | undefined = rawTracking || undefined;
-          if (rawTracking.includes(' | ')) {
-            const parts = rawTracking.split(' | ');
-            parsedCourier = parts[0]?.trim();
-            parsedTracking = parts[1]?.trim();
-          }
-
-          if (!parsedCourier) {
-            if (unpackedCourierBranch || unpackedCourierDistrict) {
-              parsedCourier = 'Mettur Parcel Service';
-            } else if (unpackedPotOption === 'FULL_SOIL_8INCH') {
-              parsedCourier = 'Professional Courier (8" Full Soil)';
-            } else if (unpackedPotOption === 'FULL_SOIL_6INCH' || unpackedPotOption === 'FULL_SOIL') {
-              parsedCourier = 'Professional Courier (6" Full Soil)';
-            } else {
-              parsedCourier = 'Professional Courier (Reduced Soil)';
             }
-          }
-          if (!unpackedPotOption || unpackedPotOption === 'NONE') {
-            const cLower = parsedCourier.toLowerCase();
-            if (cLower.includes('8" full soil') || cLower.includes('8 inch')) {
-              unpackedPotOption = 'FULL_SOIL_8INCH';
-            } else if (cLower.includes('6" full soil') || cLower.includes('6 inch') || cLower.includes('full soil')) {
-              unpackedPotOption = 'FULL_SOIL_6INCH';
-            } else {
-              unpackedPotOption = 'REDUCED_SOIL';
+            if (!unpackedPotOption || unpackedPotOption === 'NONE') {
+              const cLower = parsedCourier.toLowerCase();
+              if (cLower.includes('8" full soil') || cLower.includes('8 inch')) {
+                unpackedPotOption = 'FULL_SOIL_8INCH';
+              } else if (cLower.includes('6" full soil') || cLower.includes('6 inch') || cLower.includes('full soil')) {
+                unpackedPotOption = 'FULL_SOIL_6INCH';
+              } else {
+                unpackedPotOption = 'REDUCED_SOIL';
+              }
             }
-          }
 
-          const hasProof = Boolean(unpackedProofUrl);
-          const dbOrderStatus = fromPrismaOrderStatus(o.status);
+            const hasProof = Boolean(unpackedProofUrl);
+            const dbOrderStatus = fromPrismaOrderStatus(o.status);
 
-          const calculatedSubtotal = itemsSnapshot.reduce((sum, it) => sum + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
-          const finalSubtotal = Number(o.subtotal) > 0 ? Number(o.subtotal) : (calculatedSubtotal > 0 ? calculatedSubtotal : Number(o.totalAmount || 0));
-          const packingAndPotCharges = Number(unpackedPackingCharge || 0) + Number(unpackedPotCharge || 0);
-          const finalGrandTotal = Number(o.totalAmount) > 0 ? Number(o.totalAmount) : (finalSubtotal + Number(o.deliveryFee || 0) + packingAndPotCharges - Number(o.discount || 0));
+            const calculatedSubtotal = itemsSnapshot.reduce((sum, it) => sum + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
+            const finalSubtotal = Number(o.subtotal) > 0 ? Number(o.subtotal) : (calculatedSubtotal > 0 ? calculatedSubtotal : Number(o.totalAmount || 0));
+            const packingAndPotCharges = Number(unpackedPackingCharge || 0) + Number(unpackedPotCharge || 0);
+            const finalGrandTotal = Number(o.totalAmount) > 0 ? Number(o.totalAmount) : (finalSubtotal + Number(o.deliveryFee || 0) + packingAndPotCharges - Number(o.discount || 0));
 
-          return {
-            id: o.id,
-            customerName: o.customerName,
-            customerPhone: o.customerPhone,
-            customerEmail: o.customerEmail || '',
-            shippingAddress: parsedAddress,
-            items: itemsSnapshot,
-            subtotal: finalSubtotal,
-            discount: o.discount,
-            shippingCharge: o.deliveryFee,
-            grandTotal: finalGrandTotal,
-            orderStatus: dbOrderStatus,
-            paymentStatus: o.paymentStatus === 'SUCCESS' ? 'SUCCESS' : o.paymentStatus === 'FAILED' ? 'FAILED' : 'PENDING',
-            paymentMethod: (((o as any).paymentMethod === 'RAZORPAY' || (o as any).paymentMethod === 'CARD' || String(o.merchantTransactionId || '').startsWith('order_') || String(o.merchantTransactionId || '').startsWith('pay_') || String(unpackedTxnId || '').startsWith('pay_'))
-              ? 'RAZORPAY'
-              : (o as any).paymentMethod === 'COD'
-              ? 'COD'
-              : (o as any).paymentMethod === 'PHONEPE'
-              ? 'PHONEPE'
-              : 'QR_PAYMENT') as PaymentMethod,
-            paymentProofUrl: unpackedProofUrl,
-            transactionId: unpackedTxnId || o.merchantTransactionId || '',
-            merchantTransactionId: o.merchantTransactionId || '',
-            trackingNumber: parsedTracking,
-            courierName: parsedCourier,
-            potOption: unpackedPotOption,
-            potCharge: unpackedPotCharge,
-            packingOption: unpackedPackingOption || 'STANDARD',
-            packingCharge: unpackedPackingCharge || 0,
-            courierDistrict: unpackedCourierDistrict,
-            courierBranch: unpackedCourierBranch,
-            createdAt: o.createdAt.toISOString(),
-            updatedAt: o.updatedAt.toISOString()
-          };
+            const isImgUpload = Boolean(
+              unpackedUploadedByImage ||
+              (unpackedProofUrl && (unpackedIsWhatsApp || unpackedSource === 'WHATSAPP')) ||
+              notesStr.toLowerCase().includes('scanned from image') ||
+              notesStr.toLowerCase().includes('uploaded by image') ||
+              notesStr.toLowerCase().includes('ai image')
+            );
+
+            return {
+              id: o.id,
+              customerName: o.customerName,
+              customerPhone: o.customerPhone,
+              customerEmail: o.customerEmail || '',
+              shippingAddress: parsedAddress,
+              items: itemsSnapshot,
+              subtotal: finalSubtotal,
+              discount: o.discount,
+              shippingCharge: o.deliveryFee,
+              grandTotal: finalGrandTotal,
+              orderStatus: dbOrderStatus,
+              paymentStatus: o.paymentStatus === 'SUCCESS' ? 'SUCCESS' : o.paymentStatus === 'FAILED' ? 'FAILED' : 'PENDING',
+              paymentMethod: (((o as any).paymentMethod === 'RAZORPAY' || (o as any).paymentMethod === 'CARD' || String(o.merchantTransactionId || '').startsWith('order_') || String(o.merchantTransactionId || '').startsWith('pay_') || String(unpackedTxnId || '').startsWith('pay_'))
+                ? 'RAZORPAY'
+                : (o as any).paymentMethod === 'COD'
+                ? 'COD'
+                : (o as any).paymentMethod === 'PHONEPE'
+                ? 'PHONEPE'
+                : 'QR_PAYMENT') as PaymentMethod,
+              paymentProofUrl: unpackedProofUrl,
+              orderImageUrl: unpackedProofUrl,
+              uploadedByImage: isImgUpload,
+              entryMode: isImgUpload ? 'image' : (unpackedIsWhatsApp ? 'manual' : undefined),
+              source: unpackedSource,
+              isWhatsApp: unpackedIsWhatsApp,
+              notes: unpackedOrderNote || notesStr,
+              transactionId: unpackedTxnId || o.merchantTransactionId || '',
+              merchantTransactionId: o.merchantTransactionId || '',
+              trackingNumber: parsedTracking,
+              courierName: parsedCourier,
+              potOption: unpackedPotOption,
+              potCharge: unpackedPotCharge,
+              packingOption: unpackedPackingOption || 'STANDARD',
+              packingCharge: unpackedPackingCharge || 0,
+              courierDistrict: unpackedCourierDistrict,
+              courierBranch: unpackedCourierBranch,
+              createdAt: o.createdAt.toISOString(),
+              updatedAt: o.updatedAt.toISOString()
+            };
         });
       } catch (err) {
         console.error('Prisma getOrders error:', err);
@@ -3592,6 +3618,10 @@ class Store {
       source: data.source || 'WHATSAPP',
       isWhatsApp: data.isWhatsApp !== false,
       channel: data.channel || 'WHATSAPP',
+      uploadedByImage: Boolean(data.uploadedByImage || data.entryMode === 'image' || data.entryMode === 'ai_image' || data.orderImageUrl || (data.notes && data.notes.toLowerCase().includes('scanned from image'))),
+      entryMode: data.entryMode || (data.uploadedByImage ? 'image' : 'manual'),
+      paymentProofUrl: data.paymentProofUrl || data.orderImageUrl || '',
+      orderImageUrl: data.orderImageUrl || data.paymentProofUrl || '',
       createdAt: data.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
     } as any;
@@ -3628,6 +3658,10 @@ class Store {
               note: order.notes || '',
               source: 'whatsapp',
               isWhatsApp: true,
+              uploadedByImage: Boolean(order.uploadedByImage),
+              entryMode: order.entryMode || 'manual',
+              paymentProofUrl: order.paymentProofUrl || '',
+              orderImageUrl: order.orderImageUrl || '',
               itemsSnapshot: items
             }),
             trackingNumber: order.trackingNumber || null,

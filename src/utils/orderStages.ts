@@ -376,6 +376,24 @@ export function isWhatsAppOrder(o: any): boolean {
 }
 
 /**
+ * Check if an order was created by uploading an image (photo of bill, receipt, or WhatsApp screenshot)
+ */
+export function isUploadedByImage(o: any): boolean {
+  if (!o) return false;
+  if (o.uploadedByImage === true) return true;
+  if (o.entryMode === 'image' || o.entryMode === 'ai_image') return true;
+  if (Boolean(o.orderImageUrl)) return true;
+  const notes = (o.notes || '').toString().toLowerCase();
+  return (
+    notes.includes('uploaded by image') ||
+    notes.includes('scanned from image') ||
+    notes.includes('ai image') ||
+    notes.includes('gemini ai') ||
+    notes.includes('image_ai')
+  );
+}
+
+/**
  * Strict validator to check if an order should be visible in Admin Panels.
  * Pending, unpaid checkout attempts, abandoned orders, cancelled, and failed orders are strictly hidden.
  */

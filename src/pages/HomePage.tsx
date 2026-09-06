@@ -184,7 +184,14 @@ export const HomePage: React.FC<HomePageProps> = ({
     <div style={{ background: 'var(--bg-page)' }}>
 
       {/* ===== COMBOS & OFFERS (ABOVE CATEGORIES) ===== */}
-      <CombosSection onAddToCart={onAddToCart} onSelectProduct={onViewDetails} />
+      <CombosSection
+        onAddToCart={onAddToCart}
+        onSelectProduct={onViewDetails}
+        onViewAllCombos={() => {
+          onSelectCategory('combos');
+          onNavigate('shop');
+        }}
+      />
 
       {/* ===== CATEGORIES (FIRST) ===== */}
       <section className="section-container" style={{ padding: '24px 24px 0' }}>
