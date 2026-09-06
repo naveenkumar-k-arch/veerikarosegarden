@@ -101,25 +101,7 @@ export function cleanPlantLabelName(rawName: string | null | undefined, fallback
   // 1. Remove "Scientific Name: ..." or "Botanical Name: ..."
   name = name.replace(/(scientific|botanical)\s*name\s*[:\-]?\s*[^,;()]+/gi, '');
 
-  // 2. Remove botanical genus/species in parentheses or brackets e.g. "(Rosa damascena)", "(Rosa indica)", etc.
-  name = name.replace(/\s*\([a-z\s.\-]{3,40}\)/gi, (match) => {
-    const lower = match.toLowerCase();
-    if (/rosa|jasmin|hibisc|plumer|adeni|bougain|ficus|dracaen|sansev|chrysanth|ixora|murraya|tabernae|allamanda|nerium/i.test(lower)) {
-      return '';
-    }
-    if (/^\s*\([A-Z][a-z]+\s+(damascena|chinensis|indica|centifolia|bourboniana|gallica|moschata|rubiginosa|multiflora|sambac|grandiflorum|obesum)\)$/i.test(match.trim())) {
-      return '';
-    }
-    return match;
-  });
-
-  // 3. Remove specific standalone Latin botanical binomials only if alongside other common names
-  name = name.replace(/\b(Rosa|Hibiscus|Jasminum|Adenium|Plumeria|Bougainvillea|Ficus)\s+(damascena|chinensis|indica|centifolia|bourboniana|gallica|moschata|rubiginosa|multiflora|sambac|grandiflorum|obesum)\b/gi, (match) => {
-    if (match.trim().toLowerCase() === name.trim().toLowerCase()) return match;
-    return '';
-  });
-
-  // 4. Sanitize with standard PDF sanitizer
+  // 2. Sanitize with standard PDF sanitizer (handles emojis, Unicode, HTML entities)
   const sanitized = sanitizePdfText(name, fallback);
   return sanitized;
 }

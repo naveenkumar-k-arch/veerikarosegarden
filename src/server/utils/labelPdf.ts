@@ -171,15 +171,15 @@ export function generateDispatchLabelsPdf(
       const boxHeight = 64;
 
       const col1X = labelX;
-      const col1W = 54;
+      const col1W = 48;
 
-      const toBoxX = col1X + col1W + 4;
-      const toBoxW = 57;
+      const toBoxX = col1X + col1W + 3;
+      const toBoxW = 58;
       const toBoxY = boxTopY;
       const toBoxH = boxHeight;
 
-      const itemBoxX = toBoxX + toBoxW + 4;
-      const itemBoxW = 65;
+      const itemBoxX = toBoxX + toBoxW + 3;
+      const itemBoxW = 72;
       const itemBoxY = boxTopY;
       const itemBoxH = boxHeight;
 
@@ -195,11 +195,11 @@ export function generateDispatchLabelsPdf(
 
       // Line 1: VEERIKA ROSE GARDEN
       pdf.setFillColor(255, 255, 0); // Bright Yellow
-      pdf.rect(col1X, fromContentY, 52, 7.5, 'F');
+      pdf.rect(col1X, fromContentY, 47, 7.2, 'F');
       pdf.setTextColor(0, 0, 0);
       pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(11.5);
-      pdf.text('VEERIKA ROSE GARDEN', col1X + 1, fromContentY + 5.5);
+      pdf.setFontSize(10.5);
+      pdf.text('VEERIKA ROSE GARDEN', col1X + 1, fromContentY + 5.2);
 
       // Line 2: Dharmapuri
       const line2Y = fromContentY + 9.5;
@@ -219,7 +219,7 @@ export function generateDispatchLabelsPdf(
       pdf.setFontSize(11.5);
       pdf.text('+91 63812 03534', col1X + 1, line3Y + 4.8);
 
-      // Line 4: SERVICE & COURIER LOGISTICS DETAILS (Strict 50mm clamp)
+      // Line 4: SERVICE & COURIER LOGISTICS DETAILS (Strict 46mm clamp)
       const serviceStartY = line3Y + 9.5;
       const cleanCourier = sanitizePdfText(order.courierName || 'Professional Courier', 'Professional Courier');
       
@@ -236,32 +236,32 @@ export function generateDispatchLabelsPdf(
 
       pdf.setTextColor(0, 0, 0);
       pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(9.5);
-      const serviceLines = pdf.splitTextToSize(`Service: ${cleanCourier}`, 50);
+      pdf.setFontSize(9.0);
+      const serviceLines = pdf.splitTextToSize(`Service: ${cleanCourier}`, 46);
       pdf.text(serviceLines.slice(0, 2), col1X + 1, serviceStartY);
 
-      const nextServiceY = serviceStartY + (serviceLines.length * 4.2) + 0.5;
+      const nextServiceY = serviceStartY + (serviceLines.length * 4.0) + 0.5;
       pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(9);
-      const typeLines = pdf.splitTextToSize(`Type: ${cleanPotOption}`, 50);
+      pdf.setFontSize(8.5);
+      const typeLines = pdf.splitTextToSize(`Type: ${cleanPotOption}`, 46);
       pdf.text(typeLines[0], col1X + 1, nextServiceY);
 
-      let logisticsNextY = nextServiceY + 4.2;
+      let logisticsNextY = nextServiceY + 4.0;
       if (order.packingOption === 'MAX_PROTECTION' || order.packingOption === 'EXTRA_SECURE') {
         const packText = order.packingOption === 'MAX_PROTECTION' ? 'Pack: Max Heavy Guard' : 'Pack: Extra Secure Bubble';
         pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(8.5);
+        pdf.setFontSize(8.0);
         pdf.text(packText, col1X + 1, logisticsNextY);
-        logisticsNextY += 4.0;
+        logisticsNextY += 3.8;
       }
 
       if (order.courierBranch || order.courierDistrict) {
         const branchText = sanitizePdfText(order.courierBranch || order.courierDistrict || '', '');
         if (branchText) {
           pdf.setFont('helvetica', 'normal');
-          pdf.setFontSize(8);
+          pdf.setFontSize(7.8);
           pdf.text(`Depot: ${branchText.slice(0, 24)}`, col1X + 1, logisticsNextY);
-          logisticsNextY += 4.0;
+          logisticsNextY += 3.8;
         }
       }
 
@@ -275,11 +275,11 @@ export function generateDispatchLabelsPdf(
       
       pdf.setTextColor(0, 0, 0);
       pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(9.5);
+      pdf.setFontSize(9.0);
       pdf.text(`S.No: #${orderSerial} • ${orderIdStr}`, col1X + 1, metaStartY);
 
       pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(9.5);
+      pdf.setFontSize(9.0);
       pdf.text(sourceLabel, col1X + 1, metaStartY + 4.5);
 
       // ================= 4. COLUMN 2: "To," CUSTOMER BOX =================
@@ -290,43 +290,43 @@ export function generateDispatchLabelsPdf(
       // 1) Customer Name (BOLD)
       pdf.setTextColor(0, 0, 0);
       pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(12.5);
+      pdf.setFontSize(12.0);
       const nameLines = pdf.splitTextToSize(info.name, toBoxW - 4);
-      pdf.text(nameLines, toBoxX + 2.5, toBoxY + 5.2);
+      pdf.text(nameLines, toBoxX + 2.5, toBoxY + 5.0);
 
-      let currentY = toBoxY + 5.2 + (nameLines.length * 4.8) + 0.8;
+      let currentY = toBoxY + 5.0 + (nameLines.length * 4.6) + 0.8;
 
       // 2) Customer Address (Regular font)
       pdf.setTextColor(0, 0, 0);
       pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(10.5);
+      pdf.setFontSize(10.0);
       const addrLines = pdf.splitTextToSize(info.cleanAddress, toBoxW - 4);
       const displayAddrLines = addrLines.slice(0, 4);
       pdf.text(displayAddrLines, toBoxX + 2.5, currentY);
 
-      currentY += (displayAddrLines.length * 4.4) + 1.8;
+      currentY += (displayAddrLines.length * 4.2) + 1.6;
 
       // 3) PINCODE (BOLD - placed right below address)
       if (info.pincode) {
         pdf.setTextColor(0, 0, 0);
         pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(12.5);
+        pdf.setFontSize(12.0);
         pdf.text(`PINCODE: ${info.pincode}`, toBoxX + 2.5, currentY);
-        currentY += 5.2;
+        currentY += 5.0;
       }
 
       // 4) Customer Phone Number (BOLD - placed right below pincode)
       if (info.phone) {
         pdf.setTextColor(0, 0, 0);
         pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(12.5);
+        pdf.setFontSize(12.0);
         const phoneFormatted = info.phone.toLowerCase().startsWith('ph') || info.phone.toLowerCase().startsWith('mob')
           ? info.phone
           : `Mob: ${info.phone}`;
         pdf.text(phoneFormatted, toBoxX + 2.5, currentY);
       }
 
-      // ================= 5. COLUMN 3: ORDERED PLANTS BOX =================
+      // ================= 5. COLUMN 3: ORDERED PLANTS BOX (72mm Width) =================
       pdf.setDrawColor(0, 0, 0);
       pdf.setLineWidth(0.3);
       pdf.rect(itemBoxX, itemBoxY, itemBoxW, itemBoxH, 'S');
@@ -338,48 +338,35 @@ export function generateDispatchLabelsPdf(
       if (itemCount === 0) {
         pdf.setTextColor(0, 0, 0);
         pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(11);
+        pdf.setFontSize(10.5);
         pdf.text('• Rose Plant Sapling', itemBoxX + 2.5, itemBoxY + 6.0);
       } else {
-        const singleColUsableW = itemBoxW - 4; // 61mm
-        pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(9.5);
+        const usableW = itemBoxW - 4; // 68mm width
+        const useTwoCol = itemCount > 13;
 
-        let estimatedSingleColLines = 0;
-        for (const it of items) {
-          const cleanName = cleanPlantLabelName(it.name, 'Rose Plant');
-          const qtyStr = it.quantity > 1 ? ` (${it.quantity})` : '';
-          const itemText = `• ${cleanName}${qtyStr}`;
-          const lines = pdf.splitTextToSize(itemText, singleColUsableW);
-          estimatedSingleColLines += lines.length;
-        }
+        if (!useTwoCol) {
+          // 1-column layout for up to 13 items: per-item dynamic font fitting to ensure full product name is visible on 1 line
+          let baseFontSize = 10.5;
+          let lineHeight = 5.2;
 
-        const isTwoCol = itemCount > 7 || estimatedSingleColLines > 11;
-
-        if (!isTwoCol) {
-          // 1-column layout with dynamic font sizing & full multi-line rendering
-          let fontSize = 11;
-          let lineHeight = 5.6;
-
-          if (estimatedSingleColLines <= 3) {
-            fontSize = 11.5;
+          if (itemCount <= 3) {
+            baseFontSize = 11.0;
             lineHeight = 6.2;
-          } else if (estimatedSingleColLines <= 5) {
-            fontSize = 10.5;
-            lineHeight = 5.2;
-          } else if (estimatedSingleColLines <= 8) {
-            fontSize = 9.5;
-            lineHeight = 4.4;
+          } else if (itemCount <= 5) {
+            baseFontSize = 10.0;
+            lineHeight = 5.0;
+          } else if (itemCount <= 8) {
+            baseFontSize = 9.0;
+            lineHeight = 4.2;
+          } else if (itemCount <= 11) {
+            baseFontSize = 8.2;
+            lineHeight = 3.6;
           } else {
-            fontSize = 8.8;
-            lineHeight = 3.8;
+            baseFontSize = 7.5;
+            lineHeight = 3.2;
           }
 
-          pdf.setTextColor(0, 0, 0);
-          pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(fontSize);
-
-          let currY = itemBoxY + (estimatedSingleColLines <= 4 ? 6.0 : 4.8);
+          let currY = itemBoxY + (itemCount <= 4 ? 5.8 : 4.5);
 
           for (let i = 0; i < items.length; i++) {
             const it = items[i];
@@ -387,36 +374,43 @@ export function generateDispatchLabelsPdf(
             const qtyStr = it.quantity > 1 ? ` (${it.quantity})` : '';
             const itemText = `• ${cleanName}${qtyStr}`;
 
-            const lines: string[] = pdf.splitTextToSize(itemText, singleColUsableW);
+            let itemFs = baseFontSize;
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(itemFs);
+
+            // Dynamically scale down font size so product name fits on 1 single line
+            while (pdf.getTextWidth(itemText) > usableW && itemFs > 7.0) {
+              itemFs -= 0.4;
+              pdf.setFontSize(itemFs);
+            }
+
+            const lines: string[] = pdf.splitTextToSize(itemText, usableW);
             for (let l = 0; l < lines.length; l++) {
               if (currY <= maxY) {
                 const lineStr = l === 0 ? lines[l] : `  ${lines[l]}`;
-                pdf.text(lineStr, itemBoxX + 2.5, currY);
+                pdf.text(lineStr, itemBoxX + 2.0, currY);
                 currY += lineHeight;
               }
             }
             if (itemCount <= 4 && i < items.length - 1) {
-              currY += 1.0;
+              currY += 0.8;
             }
           }
         } else {
-          // 2-column layout with multi-line wrapping and adaptive font size
-          const colW = (itemBoxW - 6) / 2; // 29.5mm
+          // 2-column layout for large orders (14+ items)
+          const colW = (itemBoxW - 6) / 2; // 33mm
           const leftItems = items.slice(0, Math.ceil(itemCount / 2));
           const rightItems = items.slice(Math.ceil(itemCount / 2));
 
-          let fontSize = 8.5;
-          let lineHeight = 3.6;
+          let fontSize = 7.5;
+          let lineHeight = 3.0;
 
-          if (itemCount > 20) {
-            fontSize = 6.8;
-            lineHeight = 2.6;
-          } else if (itemCount > 14) {
-            fontSize = 7.5;
-            lineHeight = 3.0;
-          } else if (itemCount > 9) {
-            fontSize = 8.0;
-            lineHeight = 3.3;
+          if (itemCount > 22) {
+            fontSize = 6.5;
+            lineHeight = 2.4;
+          } else if (itemCount > 17) {
+            fontSize = 7.0;
+            lineHeight = 2.7;
           }
 
           pdf.setTextColor(0, 0, 0);
@@ -424,11 +418,19 @@ export function generateDispatchLabelsPdf(
           pdf.setFontSize(fontSize);
 
           // Left column
-          let lY = itemBoxY + 4.2;
+          let lY = itemBoxY + 4.0;
           for (const it of leftItems) {
             const cleanName = cleanPlantLabelName(it.name, 'Rose Plant');
             const qtyStr = it.quantity > 1 ? ` (${it.quantity})` : '';
             const itemText = `• ${cleanName}${qtyStr}`;
+            
+            let itemFs = fontSize;
+            pdf.setFontSize(itemFs);
+            while (pdf.getTextWidth(itemText) > colW && itemFs > 6.0) {
+              itemFs -= 0.3;
+              pdf.setFontSize(itemFs);
+            }
+
             const lines: string[] = pdf.splitTextToSize(itemText, colW);
             for (let l = 0; l < lines.length; l++) {
               if (lY <= maxY) {
@@ -437,15 +439,24 @@ export function generateDispatchLabelsPdf(
                 lY += lineHeight;
               }
             }
+            pdf.setFontSize(fontSize);
           }
 
           // Right column
-          let rY = itemBoxY + 4.2;
+          let rY = itemBoxY + 4.0;
           const rightColX = itemBoxX + (itemBoxW / 2) + 1.5;
           for (const it of rightItems) {
             const cleanName = cleanPlantLabelName(it.name, 'Rose Plant');
             const qtyStr = it.quantity > 1 ? ` (${it.quantity})` : '';
             const itemText = `• ${cleanName}${qtyStr}`;
+
+            let itemFs = fontSize;
+            pdf.setFontSize(itemFs);
+            while (pdf.getTextWidth(itemText) > colW && itemFs > 6.0) {
+              itemFs -= 0.3;
+              pdf.setFontSize(itemFs);
+            }
+
             const lines: string[] = pdf.splitTextToSize(itemText, colW);
             for (let l = 0; l < lines.length; l++) {
               if (rY <= maxY) {
@@ -454,6 +465,7 @@ export function generateDispatchLabelsPdf(
                 rY += lineHeight;
               }
             }
+            pdf.setFontSize(fontSize);
           }
         }
       }
