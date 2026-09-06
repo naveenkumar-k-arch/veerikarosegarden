@@ -333,67 +333,129 @@ export function generateDispatchLabelsPdf(
 
       const items = order.items || [];
       const itemCount = items.length;
-      const isTwoCol = itemCount > 8;
+      const maxY = itemBoxY + itemBoxH - 2.0;
 
-      if (items.length > 0) {
-        if (isTwoCol) {
-          const colW = (itemBoxW - 6) / 2;
-          const leftItems = items.slice(0, Math.ceil(itemCount / 2));
-          const rightItems = items.slice(Math.ceil(itemCount / 2));
-          const itemFontSize = itemCount > 18 ? 7.8 : 8.8;
-          const itemLineHeight = itemCount > 18 ? 3.2 : 3.8;
-
-          pdf.setTextColor(0, 0, 0);
-          pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(itemFontSize);
-
-          // Render left column
-          let lY = itemBoxY + 4.5;
-          for (const it of leftItems) {
-            if (lY <= itemBoxY + itemBoxH - 2.5) {
-              const cleanName = cleanPlantLabelName(it.name, 'Rose Plant');
-              const itemText = `• ${cleanName}${it.quantity > 1 ? ` (${it.quantity})` : ''}`;
-              const split = pdf.splitTextToSize(itemText, colW);
-              pdf.text(split[0] || itemText, itemBoxX + 2.0, lY);
-              lY += itemLineHeight;
-            }
-          }
-
-          // Render right column
-          let rY = itemBoxY + 4.5;
-          for (const it of rightItems) {
-            if (rY <= itemBoxY + itemBoxH - 2.5) {
-              const cleanName = cleanPlantLabelName(it.name, 'Rose Plant');
-              const itemText = `• ${cleanName}${it.quantity > 1 ? ` (${it.quantity})` : ''}`;
-              const split = pdf.splitTextToSize(itemText, colW);
-              pdf.text(split[0] || itemText, itemBoxX + (itemBoxW / 2) + 2.0, rY);
-              rY += itemLineHeight;
-            }
-          }
-        } else {
-          // 1 to 8 plants: large bold font nicely distributed
-          const itemFontSize = itemCount <= 4 ? 11.5 : 10.5;
-          const itemLineHeight = itemCount <= 4 ? 6.5 : 5.2;
-
-          pdf.setTextColor(0, 0, 0);
-          pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(itemFontSize);
-
-          let itemY = itemBoxY + 5.5;
-          for (const it of items) {
-            if (itemY <= itemBoxY + itemBoxH - 2.5) {
-              const cleanName = cleanPlantLabelName(it.name, 'Rose Plant');
-              const itemText = `• ${cleanName}${it.quantity > 1 ? ` (${it.quantity})` : ''}`;
-              const split = pdf.splitTextToSize(itemText, itemBoxW - 4);
-              pdf.text(split[0] || itemText, itemBoxX + 2.5, itemY);
-              itemY += itemLineHeight;
-            }
-          }
-        }
-      } else {
+      if (itemCount === 0) {
+        pdf.setTextColor(0, 0, 0);
         pdf.setFont('helvetica', 'bold');
         pdf.setFontSize(11);
         pdf.text('• Rose Plant Sapling', itemBoxX + 2.5, itemBoxY + 6.0);
+      } else {
+        const singleColUsableW = itemBoxW - 4; // 61mm
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(9.5);
+
+        let estimatedSingleColLines = 0;
+        for (const it of items) {
+          const cleanName = cleanPlantLabelName(it.name, 'Rose Plant');
+          const qtyStr = it.quantity > 1 ? ` (${it.quantity})` : '';
+          const itemText = `• ${cleanName}${qtyStr}`;
+          const lines = pdf.splitTextToSize(itemText, singleColUsableW);
+          estimatedSingleColLines += lines.length;
+        }
+
+        const isTwoCol = itemCount > 7 || estimatedSingleColLines > 11;
+
+        if (!isTwoCol) {
+          // 1-column layout with dynamic font sizing & full multi-line rendering
+          let fontSize = 11;
+          let lineHeight = 5.6;
+
+          if (estimatedSingleColLines <= 3) {
+            fontSize = 11.5;
+            lineHeight = 6.2;
+          } else if (estimatedSingleColLines <= 5) {
+            fontSize = 10.5;
+            lineHeight = 5.2;
+          } else if (estimatedSingleColLines <= 8) {
+            fontSize = 9.5;
+            lineHeight = 4.4;
+          } else {
+            fontSize = 8.8;
+            lineHeight = 3.8;
+          }
+
+          pdf.setTextColor(0, 0, 0);
+          pdf.setFont('helvetica', 'bold');
+          pdf.setFontSize(fontSize);
+
+          let currY = itemBoxY + (estimatedSingleColLines <= 4 ? 6.0 : 4.8);
+
+          for (let i = 0; i < items.length; i++) {
+            const it = items[i];
+            const cleanName = cleanPlantLabelName(it.name, 'Rose Plant');
+            const qtyStr = it.quantity > 1 ? ` (${it.quantity})` : '';
+            const itemText = `• ${cleanName}${qtyStr}`;
+
+            const lines: string[] = pdf.splitTextToSize(itemText, singleColUsableW);
+            for (let l = 0; l < lines.length; l++) {
+              if (currY <= maxY) {
+                const lineStr = l === 0 ? lines[l] : `  ${lines[l]}`;
+                pdf.text(lineStr, itemBoxX + 2.5, currY);
+                currY += lineHeight;
+              }
+            }
+            if (itemCount <= 4 && i < items.length - 1) {
+              currY += 1.0;
+            }
+          }
+        } else {
+          // 2-column layout with multi-line wrapping and adaptive font size
+          const colW = (itemBoxW - 6) / 2; // 29.5mm
+          const leftItems = items.slice(0, Math.ceil(itemCount / 2));
+          const rightItems = items.slice(Math.ceil(itemCount / 2));
+
+          let fontSize = 8.5;
+          let lineHeight = 3.6;
+
+          if (itemCount > 20) {
+            fontSize = 6.8;
+            lineHeight = 2.6;
+          } else if (itemCount > 14) {
+            fontSize = 7.5;
+            lineHeight = 3.0;
+          } else if (itemCount > 9) {
+            fontSize = 8.0;
+            lineHeight = 3.3;
+          }
+
+          pdf.setTextColor(0, 0, 0);
+          pdf.setFont('helvetica', 'bold');
+          pdf.setFontSize(fontSize);
+
+          // Left column
+          let lY = itemBoxY + 4.2;
+          for (const it of leftItems) {
+            const cleanName = cleanPlantLabelName(it.name, 'Rose Plant');
+            const qtyStr = it.quantity > 1 ? ` (${it.quantity})` : '';
+            const itemText = `• ${cleanName}${qtyStr}`;
+            const lines: string[] = pdf.splitTextToSize(itemText, colW);
+            for (let l = 0; l < lines.length; l++) {
+              if (lY <= maxY) {
+                const lineStr = l === 0 ? lines[l] : `  ${lines[l]}`;
+                pdf.text(lineStr, itemBoxX + 2.0, lY);
+                lY += lineHeight;
+              }
+            }
+          }
+
+          // Right column
+          let rY = itemBoxY + 4.2;
+          const rightColX = itemBoxX + (itemBoxW / 2) + 1.5;
+          for (const it of rightItems) {
+            const cleanName = cleanPlantLabelName(it.name, 'Rose Plant');
+            const qtyStr = it.quantity > 1 ? ` (${it.quantity})` : '';
+            const itemText = `• ${cleanName}${qtyStr}`;
+            const lines: string[] = pdf.splitTextToSize(itemText, colW);
+            for (let l = 0; l < lines.length; l++) {
+              if (rY <= maxY) {
+                const lineStr = l === 0 ? lines[l] : `  ${lines[l]}`;
+                pdf.text(lineStr, rightColX, rY);
+                rY += lineHeight;
+              }
+            }
+          }
+        }
       }
     });
   });

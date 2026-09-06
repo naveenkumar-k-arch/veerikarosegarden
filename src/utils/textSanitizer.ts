@@ -107,16 +107,15 @@ export function cleanPlantLabelName(rawName: string | null | undefined, fallback
     if (/rosa|jasmin|hibisc|plumer|adeni|bougain|ficus|dracaen|sansev|chrysanth|ixora|murraya|tabernae|allamanda|nerium/i.test(lower)) {
       return '';
     }
-    if (/^\s*\([A-Z][a-z]+\s+[a-z]+(\s+[a-z]+)?\)$/.test(match.trim())) {
+    if (/^\s*\([A-Z][a-z]+\s+(damascena|chinensis|indica|centifolia|bourboniana|gallica|moschata|rubiginosa|multiflora|sambac|grandiflorum|obesum)\)$/i.test(match.trim())) {
       return '';
     }
     return match;
   });
 
-  // 3. Remove standalone scientific names if present
-  name = name.replace(/\b(Rosa|Hibiscus|Jasminum|Adenium|Plumeria|Bougainvillea|Ficus)\s+[a-z]+(\s+[a-z]+)?\b/gi, (match) => {
-    // If the whole string is just the scientific name, keep it sanitized, otherwise strip if alongside common name
-    if (match.trim() === name.trim()) return match;
+  // 3. Remove specific standalone Latin botanical binomials only if alongside other common names
+  name = name.replace(/\b(Rosa|Hibiscus|Jasminum|Adenium|Plumeria|Bougainvillea|Ficus)\s+(damascena|chinensis|indica|centifolia|bourboniana|gallica|moschata|rubiginosa|multiflora|sambac|grandiflorum|obesum)\b/gi, (match) => {
+    if (match.trim().toLowerCase() === name.trim().toLowerCase()) return match;
     return '';
   });
 
