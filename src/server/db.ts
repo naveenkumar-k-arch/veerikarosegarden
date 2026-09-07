@@ -1945,8 +1945,20 @@ class Store {
       }
     }
 
+    const diskCombos = loadDiskCombos();
     if (dbCombos.length === 0) {
-      dbCombos = loadDiskCombos();
+      dbCombos = diskCombos;
+    } else {
+      const dbMap = new Map(dbCombos.map(c => [c.id, c]));
+      for (const dc of diskCombos) {
+        if (!dbMap.has(dc.id)) {
+          dbCombos.unshift(dc);
+        } else {
+          const existing = dbMap.get(dc.id);
+          if (dc.freePacking !== undefined && (existing as any).freePacking === undefined) (existing as any).freePacking = dc.freePacking;
+          if (dc.onlyMetturService !== undefined && (existing as any).onlyMetturService === undefined) (existing as any).onlyMetturService = dc.onlyMetturService;
+        }
+      }
     }
 
     // Return strictly active database combos without stale memory seeds
@@ -1992,6 +2004,9 @@ class Store {
         active: c.active !== false,
         order: c.order || 1,
         freeDelivery: c.freeDelivery === true,
+        freePacking: (c as any).freePacking === true,
+        onlyMetturService: (c as any).onlyMetturService === true,
+        description: c.description || undefined,
         createdAt: c.createdAt ? (typeof c.createdAt === 'string' ? c.createdAt : (c.createdAt as any).toISOString?.() || String(c.createdAt)) : new Date().toISOString(),
         updatedAt: c.updatedAt ? (typeof c.updatedAt === 'string' ? c.updatedAt : (c.updatedAt as any).toISOString?.() || String(c.updatedAt)) : new Date().toISOString()
       };

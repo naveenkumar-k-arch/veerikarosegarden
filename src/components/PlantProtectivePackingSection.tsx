@@ -8,6 +8,7 @@ export interface PlantProtectivePackingSectionProps {
   items: CartItem[];
   selectedPacking: PackingOptionType;
   onChangePacking: (option: PackingOptionType) => void;
+  isFreePacking?: boolean;
   className?: string;
 }
 
@@ -15,6 +16,7 @@ export const PlantProtectivePackingSection: React.FC<PlantProtectivePackingSecti
   items,
   selectedPacking,
   onChangePacking,
+  isFreePacking = false,
   className = ''
 }) => {
   const [showCartChangedNotice, setShowCartChangedNotice] = useState(false);
@@ -99,6 +101,19 @@ export const PlantProtectivePackingSection: React.FC<PlantProtectivePackingSecti
         <div className="p-3 bg-emerald-100/90 border border-emerald-300 rounded-2xl flex items-center gap-2 text-emerald-900 text-[11px] font-bold animate-in fade-in duration-300">
           <Sparkles className="w-4 h-4 text-emerald-700 shrink-0 animate-spin" />
           <span>Your cart changed, so we updated the packing recommendations.</span>
+        </div>
+      )}
+
+      {/* Free Packing Banner for Vinayagar Chaturthi Special */}
+      {isFreePacking && (
+        <div className="p-3 bg-emerald-500/10 border border-emerald-300 rounded-2xl flex items-start gap-2.5 text-xs text-emerald-950 font-bold">
+          <Sparkles className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-extrabold text-emerald-900">🎁 100% இலவச தாவர பாதுகாப்பு பேக்கிங் (Free Protective Packing Included!)</p>
+            <p className="text-[11px] font-medium text-emerald-800 mt-0.5">
+              இந்த சிறப்பு விநாயகர் சதுர்த்தி காம்போவிற்கு பிரீமியம் இரட்டை அடுக்கு பாதுகாப்பு பேக்கிங் முற்றிலும் இலவசமாக வழங்கப்படுகிறது.
+            </p>
+          </div>
         </div>
       )}
 
@@ -192,8 +207,8 @@ export const PlantProtectivePackingSection: React.FC<PlantProtectivePackingSecti
               </div>
             </div>
             <div className="text-right shrink-0">
-              <span className="text-xs sm:text-sm font-black text-emerald-900 block">₹10</span>
-              <span className="text-[9px] text-slate-500 font-medium">Per Order</span>
+              <span className="text-xs sm:text-sm font-black text-emerald-900 block">{isFreePacking ? '₹0' : '₹10'}</span>
+              <span className="text-[9px] text-slate-500 font-medium">{isFreePacking ? 'FREE' : 'Per Order'}</span>
             </div>
           </div>
         </div>
@@ -254,8 +269,8 @@ export const PlantProtectivePackingSection: React.FC<PlantProtectivePackingSecti
               </div>
             </div>
             <div className="text-right shrink-0">
-              <span className="text-xs sm:text-sm font-black text-emerald-900 block">₹15</span>
-              <span className="text-[9px] text-slate-500 font-medium">Per Order</span>
+              <span className="text-xs sm:text-sm font-black text-emerald-900 block">{isFreePacking ? '₹0' : '₹15'}</span>
+              <span className="text-[9px] text-slate-500 font-medium">{isFreePacking ? 'FREE' : 'Per Order'}</span>
             </div>
           </div>
         </div>

@@ -126,6 +126,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             items.map((item) => {
               const isCombo = item.isCombo || item.product.id.startsWith('combo-') || item.product.categoryId === 'combos';
               const hasFreeDelivery = item.freeDelivery === true || (item.product as any).freeDelivery === true;
+              const hasFreePacking = item.freePacking === true || (item.product as any).freePacking === true;
+              const hasOnlyMettur = item.onlyMetturService === true || (item.product as any).onlyMetturService === true;
 
               return (
                 <div
@@ -154,11 +156,23 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     ) : item.product.tamilName ? (
                       <p className="text-[11px] text-emerald-800 font-medium truncate">{item.product.tamilName}</p>
                     ) : null}
-                    {hasFreeDelivery && (
-                      <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-1.5 py-0.2 rounded mt-0.5">
-                        <Truck className="w-2.5 h-2.5" /> {language === 'ta' ? 'இலவச டெலிவரி (TN)' : 'Free Delivery (TN)'}
-                      </span>
-                    )}
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {hasFreeDelivery && (
+                        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-emerald-700 bg-emerald-100/90 px-1.5 py-0.5 rounded">
+                          <Truck className="w-2.5 h-2.5" /> {language === 'ta' ? 'இலவச டெலிவரி' : 'Free Delivery'}
+                        </span>
+                      )}
+                      {hasFreePacking && (
+                        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-amber-800 bg-amber-100/90 px-1.5 py-0.5 rounded">
+                          <ShieldCheck className="w-2.5 h-2.5 text-amber-700" /> {language === 'ta' ? 'இலவச பேக்கிங்' : 'Free Packing'}
+                        </span>
+                      )}
+                      {hasOnlyMettur && (
+                        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-indigo-800 bg-indigo-100/90 px-1.5 py-0.5 rounded">
+                          <MapPin className="w-2.5 h-2.5 text-indigo-700" /> {language === 'ta' ? 'மேட்டூர் பார்சல் (MSSS) மட்டும்' : 'Only Mettur Parcel (MSSS)'}
+                        </span>
+                      )}
+                    </div>
                     {isCombo && (
                       <div className="bg-amber-50/90 border border-amber-300/80 rounded-xl p-2 mt-1.5 space-y-1.5">
                         <div className="flex items-center justify-between text-[10px] font-bold text-amber-900 border-b border-amber-200/60 pb-1">

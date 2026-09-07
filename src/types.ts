@@ -69,6 +69,8 @@ export interface CartItem {
   comboTitle?: string;
   comboBadge?: string;
   freeDelivery?: boolean;
+  freePacking?: boolean;
+  onlyMetturService?: boolean;
   comboProducts?: Product[];
 }
 
@@ -266,6 +268,9 @@ export interface Combo {
   active: boolean;
   order?: number;
   freeDelivery?: boolean;
+  freePacking?: boolean;
+  onlyMetturService?: boolean;
+  description?: string;
   createdAt?: string;
   updatedAt?: string;
 }

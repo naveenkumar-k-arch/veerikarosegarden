@@ -4543,5 +4543,134 @@ export const INITIAL_PRODUCTS: Product[] = [
     "status": "ACTIVE",
     "createdAt": "2026-08-16T12:00:00.000Z",
     "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-malgova-mango-plant",
+    "sku": "VRG-FRUI-051",
+    "name": "Malgova Mango Plant",
+    "englishName": "Malgova Mango Plant",
+    "tamilName": "மல்கோவா மாம்பழச் செடி",
+    "scientificName": "Mangifera indica 'Malgova'",
+    "categoryId": "cat-fruits",
+    "categoryName": "Fruit Plants",
+    "description": "Prized south Indian Malgova mango grafted sapling known for large round fiberless ultra-sweet aromatic fruits.",
+    "mrp": 200,
+    "sellingPrice": 149,
+    "discount": 25,
+    "stock": 25,
+    "rating": 5,
+    "reviewCount": 14,
+    "images": [
+      "/products/vrg/malgova-mango-plant.png"
+    ],
+    "image": "/products/vrg/malgova-mango-plant.png",
+    "imageUrl": "/products/vrg/malgova-mango-plant.png",
+    "plantHeight": "2-3 Feet Grafted",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "Summer Harvest",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "fruit plants",
+      "malgova mango plant"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-banganapalli-mango-plant",
+    "sku": "VRG-FRUI-052",
+    "name": "Banganapalli Mango Plant",
+    "englishName": "Banganapalli Mango Plant",
+    "tamilName": "பங்கனபள்ளி மாம்பழச் செடி",
+    "scientificName": "Mangifera indica 'Banganapalli'",
+    "categoryId": "cat-fruits",
+    "categoryName": "Fruit Plants",
+    "description": "Celebrated king of mangoes 'Benishan' grafted sapling producing golden-yellow sweet luscious thin-skinned fruits.",
+    "mrp": 200,
+    "sellingPrice": 149,
+    "discount": 25,
+    "stock": 25,
+    "rating": 5,
+    "reviewCount": 16,
+    "images": [
+      "/products/vrg/banganapalli-mango-plant.png"
+    ],
+    "image": "/products/vrg/banganapalli-mango-plant.png",
+    "imageUrl": "/products/vrg/banganapalli-mango-plant.png",
+    "plantHeight": "2-3 Feet Grafted",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "Summer Harvest",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "fruit plants",
+      "banganapalli mango plant"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-pkm-sapota-plant",
+    "sku": "VRG-FRUI-053",
+    "name": "PKM 1 Sapota Plant",
+    "englishName": "PKM 1 Sapota Plant",
+    "tamilName": "PKM 1 சப்போட்டா செடி",
+    "scientificName": "Manilkara zapota 'PKM 1'",
+    "categoryId": "cat-fruits",
+    "categoryName": "Fruit Plants",
+    "description": "High-yielding Tamil Nadu special PKM-1 grafted sapota (chiku) sapling producing clusters of rich honey-sweet fruits.",
+    "mrp": 150,
+    "sellingPrice": 99,
+    "discount": 34,
+    "stock": 30,
+    "rating": 5,
+    "reviewCount": 19,
+    "images": [
+      "/products/vrg/pkm-sapota-plant.png"
+    ],
+    "image": "/products/vrg/pkm-sapota-plant.png",
+    "imageUrl": "/products/vrg/pkm-sapota-plant.png",
+    "plantHeight": "2-3 Feet Grafted",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "fruit plants",
+      "pkm 1 sapota plant"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-16T12:00:00.000Z",
+    "updatedAt": "2026-08-16T12:00:00.000Z"
   }
 ];

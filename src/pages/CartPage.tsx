@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CartItem, Product, User } from '../types';
-import { ShoppingBag, ArrowLeft, Trash2, Plus, Minus, Tag, Truck, ShieldCheck, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
+import { ShoppingBag, ArrowLeft, Trash2, Plus, Minus, Tag, Truck, ShieldCheck, ArrowRight, Sparkles, CheckCircle2, MapPin } from 'lucide-react';
 import { INDIAN_STATES, isTamilNadu } from '../utils/delivery';
 import { computeOrderTotals } from '../utils/orderTotals';
 import { useLanguage } from '../context/LanguageContext';
@@ -129,6 +129,8 @@ export const CartPage: React.FC<CartPageProps> = ({
             {items.map((item) => {
               const isCombo = item.isCombo || item.product.id.startsWith('combo-') || item.product.categoryId === 'combos';
               const hasFreeDelivery = item.freeDelivery === true || (item.product as any).freeDelivery === true;
+              const hasFreePacking = item.freePacking === true || (item.product as any).freePacking === true;
+              const hasOnlyMettur = item.onlyMetturService === true || (item.product as any).onlyMetturService === true;
               const hasDiscount = item.product.mrp > item.product.sellingPrice;
               const discountPercent = hasDiscount ? Math.round(((item.product.mrp - item.product.sellingPrice) / item.product.mrp) * 100) : 0;
 
@@ -155,6 +157,16 @@ export const CartPage: React.FC<CartPageProps> = ({
                       {hasFreeDelivery && (
                         <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 font-extrabold text-[10px] px-2 py-0.5 rounded-md">
                           <Truck className="w-3 h-3 text-emerald-600" /> Free Delivery (TN)
+                        </span>
+                      )}
+                      {hasFreePacking && (
+                        <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-900 font-extrabold text-[10px] px-2 py-0.5 rounded-md border border-amber-300">
+                          <ShieldCheck className="w-3 h-3 text-amber-700" /> Free Packing (₹0)
+                        </span>
+                      )}
+                      {hasOnlyMettur && (
+                        <span className="inline-flex items-center gap-1 bg-indigo-100 text-indigo-900 font-extrabold text-[10px] px-2 py-0.5 rounded-md border border-indigo-200">
+                          <MapPin className="w-3 h-3 text-indigo-700" /> Only Mettur Parcel (MSSS)
                         </span>
                       )}
                       {discountPercent > 0 && (

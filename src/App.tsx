@@ -810,6 +810,8 @@ const AppContent: React.FC = () => {
     comboTitle?: string;
     comboBadge?: string;
     freeDelivery?: boolean;
+    freePacking?: boolean;
+    onlyMetturService?: boolean;
     comboProducts?: Product[];
   }) => {
     try {
@@ -837,6 +839,8 @@ const AppContent: React.FC = () => {
           comboTitle: meta?.comboTitle || (product.id.startsWith('combo-') ? product.name : undefined),
           comboBadge: meta?.comboBadge,
           freeDelivery: meta?.freeDelivery ?? (product as any).freeDelivery ?? false,
+          freePacking: meta?.freePacking ?? (product as any).freePacking ?? false,
+          onlyMetturService: meta?.onlyMetturService ?? (product as any).onlyMetturService ?? false,
           comboProducts: meta?.comboProducts || []
         }
       ];
@@ -863,13 +867,24 @@ const AppContent: React.FC = () => {
   };
 
   // Direct "Buy Now" flow
-  const handleBuyNow = (product: Product, quantity = 1) => {
+  const handleBuyNow = (product: Product, quantity = 1, meta?: any) => {
     try {
       sessionStorage.removeItem('vrg_checkout_step');
       localStorage.removeItem('vrg_checkout_step');
       sessionStorage.removeItem('vrg_placed_order_id');
     } catch {}
-    setCart([{ product, quantity }]);
+    setCart([{
+      product,
+      quantity,
+      isCombo: meta?.isCombo || (product as any).isCombo || product.id.startsWith('combo-'),
+      comboId: meta?.comboId || (product.id.startsWith('combo-') ? product.id : undefined),
+      comboTitle: meta?.comboTitle || (product.id.startsWith('combo-') ? product.name : undefined),
+      comboBadge: meta?.comboBadge,
+      freeDelivery: meta?.freeDelivery ?? (product as any).freeDelivery ?? false,
+      freePacking: meta?.freePacking ?? (product as any).freePacking ?? false,
+      onlyMetturService: meta?.onlyMetturService ?? (product as any).onlyMetturService ?? false,
+      comboProducts: meta?.comboProducts || (product as any).comboProducts || []
+    }]);
     navigateTo('checkout');
   };
 

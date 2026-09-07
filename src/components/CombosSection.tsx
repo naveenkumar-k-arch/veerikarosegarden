@@ -134,6 +134,8 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
       comboTitle: combo.title,
       comboBadge: combo.badge || 'COMBO OFFER',
       freeDelivery: combo.freeDelivery === true,
+      freePacking: (combo as any).freePacking === true,
+      onlyMetturService: (combo as any).onlyMetturService === true,
       comboProducts
     });
 
@@ -340,11 +342,20 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                             </p>
                           )}
                         </div>
-                        {combo.freeDelivery && (
+                        {(combo as any).onlyMetturService ? (
+                          <div className="flex flex-col gap-1 items-end">
+                            <span className="bg-amber-100 text-amber-950 font-black text-[9px] sm:text-[10px] px-2 py-0.5 rounded-md border border-amber-300">
+                              📦 {isTa ? 'மேட்டூர் பார்சல் மட்டுமே' : 'Only Mettur Parcel'}
+                            </span>
+                            <span className="bg-emerald-100 text-emerald-900 font-extrabold text-[9px] sm:text-[10px] px-2 py-0.5 rounded-md border border-emerald-300">
+                              🚚 {isTa ? 'இலவச டெலிவரி & பேக்கிங்' : 'Free Delivery & Packing'}
+                            </span>
+                          </div>
+                        ) : combo.freeDelivery ? (
                           <span className="bg-emerald-100 text-emerald-900 font-extrabold text-[10px] sm:text-[11px] px-2 py-0.5 rounded-lg border border-emerald-300">
                             🚚 {isTa ? 'இலவச டெலிவரி (TN)' : 'Free Delivery (TN)'}
                           </span>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   </div>

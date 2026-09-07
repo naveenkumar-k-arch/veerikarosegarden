@@ -851,6 +851,8 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
           quantity: validQty,
           image: matchedCombo.imageUrl || matchedCombo.products?.[0]?.images?.[0] || '',
           freeDelivery: matchedCombo.freeDelivery === true,
+          freePacking: (matchedCombo as any).freePacking === true,
+          onlyMetturService: (matchedCombo as any).onlyMetturService === true,
           isCombo: true,
           comboProducts: matchedCombo.products || []
         });
@@ -885,10 +887,10 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
         name: dbProduct.name,
         tamilName: dbProduct.tamilName,
         price: verifiedPrice,
-        mrp: dbProduct.mrp,
+        mrp: Number(dbProduct.mrp || verifiedPrice),
         quantity: validQty,
-        image: (dbProduct.images && dbProduct.images.length > 0) ? dbProduct.images[0] : '',
-        freeDelivery: (dbProduct as any).freeDelivery === true,
+        image: dbProduct.images?.[0] || (dbProduct as any).image || '',
+        freeDelivery: false,
         isCombo: false
       });
     }
@@ -927,8 +929,11 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
       : (potUnitFee * totalPlantCount);
 
     // Protective Packing Calculation (Active for Mettur Parcel Service or Custom selection)
+    const hasFreePacking = verifiedItems.some(i => (i as any).freePacking === true || (i.productId && String(i.productId).toLowerCase().includes('vinayagar')));
     const packingOption = req.body.packingOption || 'STANDARD';
-    const packingCharge = (req.body.packingCharge !== undefined && !isNaN(Number(req.body.packingCharge)))
+    let packingCharge = hasFreePacking
+      ? 0
+      : (req.body.packingCharge !== undefined && !isNaN(Number(req.body.packingCharge)))
       ? Math.max(0, Number(req.body.packingCharge))
       : (packingOption === 'EXTRA_SECURE' ? 10 : packingOption === 'MAX_PROTECTION' ? 15 : 0);
 
@@ -951,11 +956,16 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
         ? 'METTUR_PARCEL'
         : 'REDUCED_SOIL';
 
-    const allItemsHaveFreeDelivery = inTN && verifiedItems.length > 0 && verifiedItems.every(i => i.freeDelivery === true);
+    const hasMetturComboFreeDelivery = verifiedItems.some(i => (i as any).freeDelivery === true && ((i as any).onlyMetturService === true || (i.productId && String(i.productId).toLowerCase().includes('vinayagar'))));
+    const allItemsHaveFreeDelivery = inTN && verifiedItems.length > 0 && verifiedItems.every(i => (i as any).freeDelivery === true);
 
     let shippingCharge = 0;
     if (inferredOption === 'REDUCED_SOIL') {
       shippingCharge = allItemsHaveFreeDelivery ? 0 : calculateDeliveryFee(verifiedItems, targetState);
+    } else if (inferredOption === 'METTUR_PARCEL') {
+      shippingCharge = (allItemsHaveFreeDelivery || hasMetturComboFreeDelivery)
+        ? 0
+        : getDeliveryChargeForOption(inferredOption, totalPlantCount, targetState);
     } else {
       // Full Soil variants and Mettur parcel always compute courier charges
       shippingCharge = getDeliveryChargeForOption(inferredOption, totalPlantCount, targetState);
@@ -964,7 +974,9 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
     // Preserve client-provided shipping charge if valid and consistent
     if (req.body.shippingCharge !== undefined && !isNaN(Number(req.body.shippingCharge))) {
       const clientShipping = Math.max(0, Number(req.body.shippingCharge));
-      if (clientShipping > 0 && (shippingCharge === 0 || Math.abs(clientShipping - shippingCharge) <= 20)) {
+      if (clientShipping === 0 && (allItemsHaveFreeDelivery || hasMetturComboFreeDelivery)) {
+        shippingCharge = 0;
+      } else if (clientShipping > 0 && (shippingCharge === 0 || Math.abs(clientShipping - shippingCharge) <= 20)) {
         shippingCharge = clientShipping;
       }
     }

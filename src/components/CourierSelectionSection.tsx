@@ -24,6 +24,7 @@ export interface CourierSelectionSectionProps {
   deliveryOption?: 'REDUCED_SOIL' | 'FULL_SOIL_6INCH' | 'FULL_SOIL_8INCH' | 'FULL_SOIL' | 'METTUR_PARCEL';
   onChangeDeliveryOption?: (opt: 'REDUCED_SOIL' | 'FULL_SOIL_6INCH' | 'FULL_SOIL_8INCH' | 'FULL_SOIL' | 'METTUR_PARCEL') => void;
   hasFreeDelivery?: boolean;
+  onlyMetturService?: boolean;
   className?: string;
 }
 
@@ -42,6 +43,7 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
   deliveryOption = 'REDUCED_SOIL',
   onChangeDeliveryOption,
   hasFreeDelivery = false,
+  onlyMetturService = false,
   className = ''
 }) => {
   // Sync state & district from address when available
@@ -74,8 +76,21 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
   const fullSoil8InchCharge = totalPlantCount * 190;
   const metturParcelCharge = Math.ceil(Math.max(1, totalPlantCount) / 6) * 60;
 
-  // Auto fallback if Full Soil or Mettur become invalid
+  // Auto-lock to Mettur Parcel Service when onlyMetturService is active
   useEffect(() => {
+    if (onlyMetturService) {
+      if (selectedCourier !== 'METTUR_PARCEL') {
+        onChangeCourier('METTUR_PARCEL');
+      }
+      if (deliveryOption !== 'METTUR_PARCEL' && onChangeDeliveryOption) {
+        onChangeDeliveryOption('METTUR_PARCEL');
+      }
+    }
+  }, [onlyMetturService, selectedCourier, deliveryOption, onChangeCourier, onChangeDeliveryOption]);
+
+  // Auto fallback if Full Soil or Mettur become invalid (unless forced by onlyMetturService)
+  useEffect(() => {
+    if (onlyMetturService) return;
     const isFullSoil = deliveryOption === 'FULL_SOIL_6INCH' || deliveryOption === 'FULL_SOIL_8INCH' || deliveryOption === 'FULL_SOIL';
     if (isFullSoil && (!isFullSoilAllowed || totalPlantCount > 5)) {
       if (onChangeDeliveryOption) onChangeDeliveryOption('REDUCED_SOIL');
@@ -84,7 +99,7 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
       onChangeCourier('PROFESSIONAL_COURIER');
       if (onChangeDeliveryOption) onChangeDeliveryOption('REDUCED_SOIL');
     }
-  }, [isFullSoilAllowed, isMetturAllowed, totalPlantCount, deliveryOption, selectedCourier]);
+  }, [onlyMetturService, isFullSoilAllowed, isMetturAllowed, totalPlantCount, deliveryOption, selectedCourier]);
 
   return (
     <div className={`rounded-3xl border border-slate-200 bg-white p-4 sm:p-5 space-y-4 shadow-xs ${className}`}>
@@ -111,21 +126,36 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
         )}
       </div>
 
+      {onlyMetturService && (
+        <div className="p-3 bg-amber-500/10 border border-amber-300 rounded-2xl flex items-start gap-2.5 text-xs text-amber-950 font-bold">
+          <span className="text-base leading-none shrink-0">🐘</span>
+          <div>
+            <p className="font-extrabold text-amber-900">விநாயகர் சதுர்த்தி சிறப்பு சலுகை • மேட்டூர் பார்சல் சர்வீஸ் (MSSS) மட்டுமே!</p>
+            <p className="text-[11px] font-medium text-amber-800 mt-0.5">
+              இந்த 10 பழச்செடி காம்போவிற்கு 100% இலவச பார்சல் டெலிவரி மற்றும் இலவச பாதுகாப்பு பேக்கிங் வழங்கப்படுகிறது. பார்சல் மேட்டூர் பார்சல் சர்வீஸ் (MSSS) மூலமாக மட்டுமே அனுப்பப்படும்.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Courier Cards */}
       <div className="space-y-2.5">
 
         {/* 1. Professional Courier */}
         <div
           onClick={() => {
+            if (onlyMetturService) return;
             onChangeCourier('PROFESSIONAL_COURIER');
             if (onChangeDeliveryOption && deliveryOption === 'METTUR_PARCEL') {
               onChangeDeliveryOption('REDUCED_SOIL');
             }
           }}
-          className={`p-3.5 sm:p-4 rounded-2xl border-2 transition-all cursor-pointer ${
-            selectedCourier === 'PROFESSIONAL_COURIER'
-              ? 'border-emerald-600 bg-emerald-50/70 ring-2 ring-emerald-500/20 shadow-xs'
-              : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100'
+          className={`p-3.5 sm:p-4 rounded-2xl border-2 transition-all ${
+            onlyMetturService
+              ? 'border-slate-200 bg-slate-100/70 opacity-60 cursor-not-allowed'
+              : selectedCourier === 'PROFESSIONAL_COURIER'
+              ? 'border-emerald-600 bg-emerald-50/70 ring-2 ring-emerald-500/20 shadow-xs cursor-pointer'
+              : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100 cursor-pointer'
           }`}
         >
           <div className="flex items-start justify-between gap-3">
@@ -133,14 +163,16 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
               <input
                 type="radio"
                 name="courierPartner"
+                disabled={onlyMetturService}
                 checked={selectedCourier === 'PROFESSIONAL_COURIER'}
                 onChange={() => {
+                  if (onlyMetturService) return;
                   onChangeCourier('PROFESSIONAL_COURIER');
                   if (onChangeDeliveryOption && deliveryOption === 'METTUR_PARCEL') {
                     onChangeDeliveryOption('REDUCED_SOIL');
                   }
                 }}
-                className="mt-1 accent-emerald-700 cursor-pointer"
+                className="mt-1 accent-emerald-700 cursor-pointer disabled:cursor-not-allowed"
               />
               <div className="space-y-0.5 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5">
@@ -355,10 +387,12 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-600 leading-relaxed">
-                  Self-pickup at your nearest Mettur Parcel Service branch / depot. Delivery charges payable directly at branch counter upon collection.
+                  {onlyMetturService
+                    ? '🎉 விநாயகர் சதுர்த்தி சிறப்பு சலுகை: 100% இலவச ஷிப்பிங் & இலவச பேக்கிங்! உங்கள் அருகிலுள்ள மேட்டூர் பார்சல் சர்வீஸ் கிளையில் பெற்றுக்கொள்ளவும்.'
+                    : 'Self-pickup at your nearest Mettur Parcel Service branch / depot. Delivery charges payable directly at branch counter upon collection.'}
                 </p>
 
-                {!isMetturAllowed && (
+                {!isMetturAllowed && !onlyMetturService && (
                   <p className="text-[10px] text-amber-700 font-bold pt-1">
                     ⚠️ Requires minimum 3 plants (Current count: {totalPlantCount}). Add more plants to unlock Mettur Parcel Service!
                   </p>
@@ -368,9 +402,9 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
 
             <div className="text-right shrink-0">
               <span className="text-xs font-black text-emerald-800 block">
-                Pay at Branch
+                {onlyMetturService || hasFreeDelivery ? 'FREE (₹0)' : 'Pay at Branch'}
               </span>
-              <span className="text-[10px] text-slate-600">Counter pickup</span>
+              <span className="text-[10px] text-slate-600">{onlyMetturService || hasFreeDelivery ? 'Free Delivery' : 'Counter pickup'}</span>
             </div>
           </div>
 

@@ -316,10 +316,20 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
   const inTN = isTamilNadu(address.state);
 
-  // Check if cart has free delivery (e.g. combo bundle offers - active ONLY for Tamil Nadu)
-  const hasAllFreeDelivery = inTN && items.length > 0 && items.every(i => i.freeDelivery === true || (i.product as any).freeDelivery === true);
+  // Check for Vinayagar Chaturthi or exclusive Mettur service combos
+  const isVinayagarCombo = items.some(i =>
+    i.onlyMetturService === true ||
+    (i.product as any).onlyMetturService === true ||
+    (i.comboId && i.comboId.toLowerCase().includes('vinayagar')) ||
+    (i.product.id && i.product.id.toLowerCase().includes('vinayagar'))
+  );
+  const hasOnlyMetturCombo = isVinayagarCombo || items.some(i => i.onlyMetturService === true || (i.product as any).onlyMetturService === true);
+  const hasFreePacking = isVinayagarCombo || items.some(i => i.freePacking === true || (i.product as any).freePacking === true);
+
+  // Check if cart has free delivery (e.g. combo bundle offers - active for Tamil Nadu or exclusive offers)
+  const hasAllFreeDelivery = (inTN && items.length > 0 && items.every(i => i.freeDelivery === true || (i.product as any).freeDelivery === true)) || (isVinayagarCombo && inTN);
   const chargeablePlantCount = items.reduce((sum, i) => {
-    const isFree = inTN && (i.freeDelivery === true || (i.product as any).freeDelivery === true);
+    const isFree = inTN && (i.freeDelivery === true || (i.product as any).freeDelivery === true || isVinayagarCombo);
     if (isFree) return sum;
     const isCombo = i.isCombo || i.product.id.startsWith('combo-') || (i.product as any).isCombo;
     const bundleCount = (i.comboProducts && i.comboProducts.length > 0)
@@ -328,8 +338,13 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     return sum + (isCombo ? bundleCount * i.quantity : i.quantity);
   }, 0);
 
-  // Auto fallback if option becomes unavailable due to state or plant count changes
+  // Auto fallback or lock if option becomes unavailable or forced
   useEffect(() => {
+    if (hasOnlyMetturCombo) {
+      if (courierPartner !== 'METTUR_PARCEL') setCourierPartner('METTUR_PARCEL');
+      if (deliveryOption !== 'METTUR_PARCEL') setDeliveryOption('METTUR_PARCEL');
+      return;
+    }
     const inTNState = isTamilNadu(address.state);
     const isFullSoil = deliveryOption === 'FULL_SOIL_6INCH' || deliveryOption === 'FULL_SOIL_8INCH' || deliveryOption === 'FULL_SOIL';
     if (isFullSoil && (!inTNState || totalPlantCount > 5)) {
@@ -339,7 +354,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       setCourierPartner('PROFESSIONAL_COURIER');
       setDeliveryOption('REDUCED_SOIL');
     }
-  }, [totalPlantCount, deliveryOption, courierPartner, address.state]);
+  }, [hasOnlyMetturCombo, totalPlantCount, deliveryOption, courierPartner, address.state]);
 
   const isMettur = courierPartner === 'METTUR_PARCEL' || deliveryOption === 'METTUR_PARCEL';
   const isReducedSoil = (courierPartner === 'PROFESSIONAL_COURIER' || !courierPartner) && (deliveryOption === 'REDUCED_SOIL' || !deliveryOption);
@@ -348,10 +363,14 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     isReducedSoil ? chargeablePlantCount : totalPlantCount,
     address.state
   );
-  const shippingCharge = isReducedSoil
-    ? (hasAllFreeDelivery ? 0 : (chargeablePlantCount === 0 ? 0 : baseShipping))
+  const shippingCharge = (hasAllFreeDelivery || (isMettur && isVinayagarCombo))
+    ? 0
+    : isReducedSoil
+    ? (chargeablePlantCount === 0 ? 0 : baseShipping)
     : baseShipping;
-  const packingCharge = isMettur
+  const packingCharge = hasFreePacking
+    ? 0
+    : isMettur
     ? (selectedPacking === 'EXTRA_SECURE' ? 10 : selectedPacking === 'MAX_PROTECTION' ? 15 : 0)
     : 0;
   const potCharge = 0;
@@ -1333,7 +1352,8 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 totalPlantCount={totalPlantCount}
                 deliveryOption={deliveryOption}
                 onChangeDeliveryOption={setDeliveryOption}
-                hasFreeDelivery={hasAllFreeDelivery}
+                hasFreeDelivery={hasAllFreeDelivery || (isMettur && isVinayagarCombo)}
+                onlyMetturService={hasOnlyMetturCombo}
               />
 
               {/* Plant Protective Packing Selection ("Pick Protective Packing for Your Plants' Journey") — INSIDE METTUR SERVICE ONLY */}
@@ -1342,6 +1362,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                   items={items}
                   selectedPacking={selectedPacking}
                   onChangePacking={setSelectedPacking}
+                  isFreePacking={hasFreePacking}
                 />
               )}
 
@@ -1391,9 +1412,13 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                     </span>
                     <span className="text-[10px] text-slate-400 block">
                       {isMettur
-                        ? (language === 'ta'
-                            ? `மேட்டூர் பார்சல் டெப்போ (${metturDistrict || 'தமிழ்நாடு'}) • கிளை டெலிவரி கட்டணம் பார்சல் பெறும்போது செலுத்தவும்`
-                            : `Mettur Parcel Depot (${metturDistrict || 'Tamil Nadu'}) • Delivery charges payable extra upon branch pickup`)
+                        ? (hasFreePacking || isVinayagarCombo
+                            ? (language === 'ta'
+                                ? `மேட்டூர் பார்சல் டெப்போ (${metturDistrict || 'தமிழ்நாடு'}) • 🎉 100% இலவச ஷிப்பிங் & இலவச பாதுகாப்பு பேக்கிங்!`
+                                : `Mettur Parcel Depot (${metturDistrict || 'Tamil Nadu'}) • 🎉 100% Free Shipping & Free Protective Packing!`)
+                            : (language === 'ta'
+                                ? `மேட்டூர் பார்சல் டெப்போ (${metturDistrict || 'தமிழ்நாடு'}) • கிளை டெலிவரி கட்டணம் பார்சல் பெறும்போது செலுத்தவும்`
+                                : `Mettur Parcel Depot (${metturDistrict || 'Tamil Nadu'}) • Delivery charges payable extra upon branch pickup`))
                         : hasAllFreeDelivery
                           ? (language === 'ta'
                               ? '100% இலவச வீட்டு டெலிவரி (தமிழ்நாடு காம்போ சலுகை)'
@@ -1414,7 +1439,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                                     ? `புரொபஷனல் கூரியர் (குறைந்த மண் - ${inTN ? 'தமிழ்நாடு' : address.state || 'பிற மாநிலம்'})`
                                     : `Professional Courier (Reduced Soil - ${inTN ? 'TN' : address.state || 'Other State'})`)}
                     </span>
-                    {isMettur && (
+                    {isMettur && !hasFreePacking && !isVinayagarCombo && (
                       <span className="text-[9px] text-amber-800 font-bold block mt-0.5">
                         {language === 'ta'
                           ? '⚠️ டெலிவரி கட்டணத்தை மேட்டூர் பார்சல் கிளையில் நேரடியாகச் செலுத்தவும்.'

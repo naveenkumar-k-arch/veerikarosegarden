@@ -84,6 +84,8 @@ export const comboToProduct = (combo: Combo): Product => {
     updatedAt: combo.updatedAt || new Date().toISOString(),
     status: 'ACTIVE',
     freeDelivery: combo.freeDelivery === true,
+    freePacking: combo.freePacking === true,
+    onlyMetturService: combo.onlyMetturService === true,
     isCombo: true,
     comboProducts: comboProducts
   } as any;
