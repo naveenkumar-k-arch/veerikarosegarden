@@ -185,12 +185,20 @@ export const CartPage: React.FC<CartPageProps> = ({
 
                     {/* Included plants in combo bundle */}
                     {isCombo && (() => {
-                      const isVinayagar = item.product.id === 'combo-vinayagar-chaturthi-10-fruit-plants' || item.product.id.includes('vinayagar') || item.comboId === 'combo-vinayagar-chaturthi-10-fruit-plants';
-                      const rawPlants = (item.comboProducts && item.comboProducts.length > 0)
-                        ? item.comboProducts
-                        : ((item.product as any).comboProducts && (item.product as any).comboProducts.length > 0)
-                          ? (item.product as any).comboProducts
-                          : (isVinayagar ? VINAYAGAR_10_FRUIT_PLANTS : []);
+                      const isVinayagar = item.product.id === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
+                        item.product.id.includes('vinayagar') ||
+                        item.comboId === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
+                        (item.comboId && item.comboId.includes('vinayagar')) ||
+                        (item.product.name && (item.product.name.includes('10 FRUIT') || item.product.name.includes('விநாயகர்') || item.product.name.includes('சதுர்த்தி'))) ||
+                        (item.comboTitle && (item.comboTitle.includes('விநாயகர்') || item.comboTitle.includes('சதுர்த்தி')));
+
+                      const rawPlants = isVinayagar
+                        ? VINAYAGAR_10_FRUIT_PLANTS
+                        : ((item.comboProducts && item.comboProducts.length > 0)
+                          ? item.comboProducts
+                          : ((item.product as any).comboProducts && (item.product as any).comboProducts.length > 0)
+                            ? (item.product as any).comboProducts
+                            : []);
                       if (rawPlants.length === 0) return null;
                       return (
                         <div className="bg-amber-50/80 border border-amber-300/70 rounded-2xl p-3 text-xs text-amber-950 font-medium space-y-2">

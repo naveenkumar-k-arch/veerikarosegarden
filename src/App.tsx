@@ -283,10 +283,28 @@ const AppContent: React.FC = () => {
     try {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed)) {
-        return parsed.map((item: any) => ({
-          ...item,
-          quantity: typeof item.quantity === 'number' && item.quantity > 0 && item.quantity <= 20 ? item.quantity : 1
-        }));
+        return parsed.map((item: any) => {
+          const isVinayagar = item.product?.id === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
+            (item.comboId && item.comboId.includes('vinayagar')) ||
+            (item.product?.id && item.product.id.includes('vinayagar')) ||
+            (item.product?.name && (item.product.name.includes('10 FRUIT') || item.product.name.includes('விநாயகர்') || item.product.name.includes('சதுர்த்தி'))) ||
+            (item.comboTitle && (item.comboTitle.includes('விநாயகர்') || item.comboTitle.includes('சதுர்த்தி')));
+
+          const updatedComboProducts = isVinayagar
+            ? VINAYAGAR_10_FRUIT_PLANTS
+            : item.comboProducts;
+
+          return {
+            ...item,
+            quantity: typeof item.quantity === 'number' && item.quantity > 0 && item.quantity <= 20 ? item.quantity : 1,
+            comboProducts: updatedComboProducts || item.comboProducts,
+            ...(isVinayagar ? {
+              onlyMetturService: true,
+              freeDelivery: true,
+              freePacking: true
+            } : {})
+          };
+        });
       }
       return [];
     } catch {
