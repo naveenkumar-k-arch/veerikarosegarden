@@ -830,12 +830,17 @@ const AppContent: React.FC = () => {
       localStorage.removeItem('vrg_checkout_step');
       sessionStorage.removeItem('vrg_placed_order_id');
     } catch {}
-    const isVinayagar = product.id === 'combo-vinayagar-chaturthi-10-fruit-plants' || product.id.includes('vinayagar') || meta?.comboId === 'combo-vinayagar-chaturthi-10-fruit-plants';
-    const resolvedComboProducts = (meta?.comboProducts && meta.comboProducts.length > 0)
-      ? meta.comboProducts
-      : ((product as any).comboProducts && (product as any).comboProducts.length > 0)
-        ? (product as any).comboProducts
-        : (isVinayagar ? VINAYAGAR_10_FRUIT_PLANTS : []);
+    const isVinayagar = product.id === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
+      product.id.toLowerCase().includes('vinayagar') ||
+      (product.name && (product.name.includes('விநாயகர்') || product.name.toLowerCase().includes('10 fruit'))) ||
+      meta?.comboId === 'combo-vinayagar-chaturthi-10-fruit-plants';
+    const resolvedComboProducts = isVinayagar
+      ? ((meta?.comboProducts && meta.comboProducts.length >= 10) ? meta.comboProducts : VINAYAGAR_10_FRUIT_PLANTS)
+      : ((meta?.comboProducts && meta.comboProducts.length > 0)
+        ? meta.comboProducts
+        : ((product as any).comboProducts && (product as any).comboProducts.length > 0)
+          ? (product as any).comboProducts
+          : []);
 
     const plantLabel = isVinayagar ? '10 plants combo' : (resolvedComboProducts.length > 0 ? `${resolvedComboProducts.length} plants combo` : (quantity > 1 ? quantity + ' items' : '1 item'));
     toast.success(`Added "${product.name}" to cart (${plantLabel})!`, 'Cart Updated');
@@ -900,12 +905,17 @@ const AppContent: React.FC = () => {
       localStorage.removeItem('vrg_checkout_step');
       sessionStorage.removeItem('vrg_placed_order_id');
     } catch {}
-    const isVinayagar = product.id === 'combo-vinayagar-chaturthi-10-fruit-plants' || product.id.includes('vinayagar') || meta?.comboId === 'combo-vinayagar-chaturthi-10-fruit-plants';
-    const resolvedComboProducts = (meta?.comboProducts && meta.comboProducts.length > 0)
-      ? meta.comboProducts
-      : ((product as any).comboProducts && (product as any).comboProducts.length > 0)
-        ? (product as any).comboProducts
-        : (isVinayagar ? VINAYAGAR_10_FRUIT_PLANTS : []);
+    const isVinayagar = product.id === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
+      product.id.toLowerCase().includes('vinayagar') ||
+      (product.name && (product.name.includes('விநாயகர்') || product.name.toLowerCase().includes('10 fruit'))) ||
+      meta?.comboId === 'combo-vinayagar-chaturthi-10-fruit-plants';
+    const resolvedComboProducts = isVinayagar
+      ? ((meta?.comboProducts && meta.comboProducts.length >= 10) ? meta.comboProducts : VINAYAGAR_10_FRUIT_PLANTS)
+      : ((meta?.comboProducts && meta.comboProducts.length > 0)
+        ? meta.comboProducts
+        : ((product as any).comboProducts && (product as any).comboProducts.length > 0)
+          ? (product as any).comboProducts
+          : []);
 
     setCart([{
       product,

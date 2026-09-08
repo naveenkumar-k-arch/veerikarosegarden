@@ -2015,26 +2015,45 @@ class Store {
         return allProducts.find(item => item.id === pid || item.id.toLowerCase() === pid.toLowerCase() || item.sku === pid) || null;
       }).filter(Boolean) as Product[];
 
-      const finalProds = (c.id === 'combo-vinayagar-chaturthi-10-fruit-plants' && matchedProds.length < 10 && Array.isArray(c.products) && c.products.length >= 10)
-        ? c.products
-        : (matchedProds.length > 0 ? matchedProds : (c.products || []));
+      const isVinayagar = c.id === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
+        (c.id && c.id.toLowerCase().includes('vinayagar')) ||
+        (c.title && (c.title.includes('விநாயகர்') || c.title.toLowerCase().includes('10 fruit')));
+
+      let finalProds = matchedProds;
+      if (isVinayagar) {
+        if (finalProds.length < 10 && Array.isArray(c.products) && c.products.length >= 10) {
+          finalProds = c.products;
+        }
+        if (finalProds.length < 10) {
+          const diskVc = diskCombos.find(dc => dc.id === 'combo-vinayagar-chaturthi-10-fruit-plants');
+          if (diskVc && Array.isArray(diskVc.products) && diskVc.products.length >= 10) {
+            finalProds = diskVc.products;
+          }
+        }
+      } else if (finalProds.length === 0 && Array.isArray(c.products)) {
+        finalProds = c.products;
+      }
+
+      const finalProductIds = isVinayagar
+        ? (finalProds.length >= 10 ? finalProds.map(p => p.id) : (pIds.length >= 10 ? pIds : finalProds.map(p => p.id)))
+        : pIds;
 
       return {
         id: c.id,
         title: c.title,
         subtitle: c.subtitle || undefined,
-        badge: c.badge || 'COMBO OFFER',
-        productIds: pIds,
+        badge: isVinayagar ? '10 FRUITS COMBO' : (c.badge || 'COMBO OFFER'),
+        productIds: finalProductIds,
         products: finalProds,
         originalPrice: Number(c.originalPrice || 0),
         comboPrice: Number(c.comboPrice || 0),
         discountPercent: c.discountPercent || (c.originalPrice > c.comboPrice ? Math.round(((c.originalPrice - c.comboPrice) / c.originalPrice) * 100) : 0),
-        imageUrl: c.imageUrl || (finalProds[0]?.images?.[0] || undefined),
+        imageUrl: isVinayagar ? '/products/vrg/combo-vinayagar-chaturthi-10-fruit-plants.jpg' : (c.imageUrl || (finalProds[0]?.images?.[0] || undefined)),
         active: c.active !== false,
-        order: c.order !== undefined ? Number(c.order) : 1,
-        freeDelivery: c.freeDelivery === true,
-        freePacking: (c as any).freePacking === true,
-        onlyMetturService: (c as any).onlyMetturService === true,
+        order: isVinayagar ? 0 : (c.order !== undefined ? Number(c.order) : 1),
+        freeDelivery: true,
+        freePacking: isVinayagar ? true : ((c as any).freePacking === true),
+        onlyMetturService: isVinayagar ? true : ((c as any).onlyMetturService === true),
         description: c.description || undefined,
         createdAt: c.createdAt ? (typeof c.createdAt === 'string' ? c.createdAt : (c.createdAt as any).toISOString?.() || String(c.createdAt)) : new Date().toISOString(),
         updatedAt: c.updatedAt ? (typeof c.updatedAt === 'string' ? c.updatedAt : (c.updatedAt as any).toISOString?.() || String(c.updatedAt)) : new Date().toISOString()

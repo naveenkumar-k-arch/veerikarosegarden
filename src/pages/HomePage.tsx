@@ -78,6 +78,25 @@ export const HomePage: React.FC<HomePageProps> = ({
               if (!c.imageUrl && (!c.products || c.products.length === 0) && (!c.productIds || c.productIds.length === 0)) return false;
               return true;
             })
+            .map((c: Combo) => {
+              const isVin = c.id === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
+                (c.id && c.id.toLowerCase().includes('vinayagar')) ||
+                (c.title && (c.title.includes('விநாயகர்') || c.title.toLowerCase().includes('10 fruit')));
+              if (isVin) {
+                const prods = (Array.isArray(c.products) && c.products.length >= 10) ? c.products : VINAYAGAR_10_FRUIT_PLANTS;
+                return {
+                  ...c,
+                  products: prods,
+                  productIds: prods.map((p: any) => p.id),
+                  badge: '10 FRUITS COMBO',
+                  order: 0,
+                  onlyMetturService: true,
+                  freeDelivery: true,
+                  freePacking: true
+                };
+              }
+              return c;
+            })
             .sort((a: Combo, b: Combo) => (Number(a.order ?? 99) - Number(b.order ?? 99)));
           setCombosList(activeCombos);
           try {

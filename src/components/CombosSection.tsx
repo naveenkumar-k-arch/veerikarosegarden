@@ -70,17 +70,19 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
           })
           .map((c: Combo) => {
             const isVinayagar = c.id === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
-              (c.id && c.id.includes('vinayagar')) ||
-              (c.title && (c.title.includes('விநாயகர்') || c.title.includes('10 FRUIT')));
+              (c.id && c.id.toLowerCase().includes('vinayagar')) ||
+              (c.title && (c.title.includes('விநாயகர்') || c.title.toLowerCase().includes('10 fruit')));
             if (isVinayagar) {
               const currentProds = (c.products && c.products.length >= 10) ? c.products : VINAYAGAR_10_FRUIT_PLANTS;
               return {
                 ...c,
                 order: 0,
                 active: true,
+                badge: '10 FRUITS COMBO',
                 freeDelivery: true,
                 freePacking: true,
                 onlyMetturService: true,
+                productIds: currentProds.map(p => p.id),
                 products: currentProds
               };
             }
@@ -230,12 +232,17 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             {combos.slice(0, 2).map((rawCombo) => {
               const isVinayagar = rawCombo.id === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
-                (rawCombo.id && rawCombo.id.includes('vinayagar')) ||
-                (rawCombo.title && (rawCombo.title.includes('விநாயகர்') || rawCombo.title.includes('10 FRUIT')));
+                (rawCombo.id && rawCombo.id.toLowerCase().includes('vinayagar')) ||
+                (rawCombo.title && (rawCombo.title.includes('விநாயகர்') || rawCombo.title.toLowerCase().includes('10 fruit')));
+              const currentProds = isVinayagar
+                ? ((rawCombo.products && rawCombo.products.length >= 10) ? rawCombo.products : VINAYAGAR_10_FRUIT_PLANTS)
+                : rawCombo.products;
               const combo = isVinayagar
                 ? {
                     ...rawCombo,
-                    products: (rawCombo.products && rawCombo.products.length >= 10) ? rawCombo.products : VINAYAGAR_10_FRUIT_PLANTS
+                    badge: '10 FRUITS COMBO',
+                    productIds: currentProds.map(p => p.id),
+                    products: currentProds
                   }
                 : rawCombo;
 
@@ -329,7 +336,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                         {aggregated.length > 0 && (
                           <div className="bg-amber-50/80 border border-amber-200/60 rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 space-y-1.5 sm:space-y-2">
                             <p className="text-[10px] sm:text-[11px] font-bold text-amber-900 uppercase tracking-wider flex items-center justify-between gap-1.5">
-                              <span>🌿 {isTa ? `சேர்க்கப்பட்ட பண்ணை செடிகள் (${combo.productIds?.length || combo.products?.length || 0}):` : `Includes ${combo.productIds?.length || combo.products?.length || 0} Farm Plants:`}</span>
+                              <span>🌿 {isTa ? `சேர்க்கப்பட்ட பண்ணை செடிகள் (${isVinayagar ? 10 : (combo.products?.length || combo.productIds?.length || 0)}):` : `Includes ${isVinayagar ? 10 : (combo.products?.length || combo.productIds?.length || 0)} Farm Plants:`}</span>
                             </p>
                             <div className="space-y-1">
                               {aggregated.map(({ product: p, count }) => (
@@ -477,12 +484,17 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
       {/* ===== COMBO PACKAGE DETAILS MODAL ===== */}
       {modalCombo && (() => {
         const isVinayagar = modalCombo.id === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
-          (modalCombo.id && modalCombo.id.includes('vinayagar')) ||
-          (modalCombo.title && (modalCombo.title.includes('விநாயகர்') || modalCombo.title.includes('10 FRUIT')));
+          (modalCombo.id && modalCombo.id.toLowerCase().includes('vinayagar')) ||
+          (modalCombo.title && (modalCombo.title.includes('விநாயகர்') || modalCombo.title.toLowerCase().includes('10 fruit')));
+        const currentProds = isVinayagar
+          ? ((modalCombo.products && modalCombo.products.length >= 10) ? modalCombo.products : VINAYAGAR_10_FRUIT_PLANTS)
+          : modalCombo.products;
         const activeModalCombo = isVinayagar
           ? {
               ...modalCombo,
-              products: (modalCombo.products && modalCombo.products.length >= 10) ? modalCombo.products : VINAYAGAR_10_FRUIT_PLANTS
+              badge: '10 FRUITS COMBO',
+              productIds: currentProds.map(p => p.id),
+              products: currentProds
             }
           : modalCombo;
 
@@ -589,7 +601,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                 {/* Included Plants Section */}
                 <div className="space-y-3">
                   <h4 className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
-                    <span>🌿 {isTa ? `இந்த தொகுப்பில் உள்ள செடிகள் (${activeModalCombo.productIds?.length || activeModalCombo.products?.length || 0})` : `Included Saplings in this Package (${activeModalCombo.productIds?.length || activeModalCombo.products?.length || 0})`}</span>
+                    <span>🌿 {isTa ? `இந்த தொகுப்பில் உள்ள செடிகள் (${isVinayagar ? 10 : (activeModalCombo.products?.length || 0)})` : `Included Saplings in this Package (${isVinayagar ? 10 : (activeModalCombo.products?.length || 0)})`}</span>
                   </h4>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -666,7 +678,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                   className="w-full sm:w-auto py-3 px-5 sm:px-6 bg-gradient-to-r from-emerald-700 via-emerald-800 to-amber-700 hover:from-emerald-800 hover:to-amber-800 text-white font-extrabold text-xs rounded-xl sm:rounded-2xl shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
                 >
                   <ShoppingBag className="w-4 h-4" />
-                  <span>{isTa ? `அனைத்து ${activeModalCombo.products?.length || 0} செடிகளையும் கூடையில் சேர்க்கவும்` : `Add All ${activeModalCombo.products?.length || 0} Saplings to Cart`}</span>
+                  <span>{isTa ? `அனைத்து ${isVinayagar ? 10 : (activeModalCombo.products?.length || 0)} செடிகளையும் கூடையில் சேர்க்கவும்` : `Add All ${isVinayagar ? 10 : (activeModalCombo.products?.length || 0)} Saplings to Cart`}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>

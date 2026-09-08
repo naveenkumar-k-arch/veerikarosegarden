@@ -523,18 +523,24 @@ export const getCachedActiveCombos = (): Combo[] => {
   });
 
   // Explicitly ensure Vinayagar Chaturthi combo is active, order 0, has 10 plants and correct festive image
-  if (map.has('combo-vinayagar-chaturthi-10-fruit-plants')) {
-    const vc = map.get('combo-vinayagar-chaturthi-10-fruit-plants');
-    vc.order = 0;
-    vc.active = true;
-    vc.onlyMetturService = true;
-    vc.freeDelivery = true;
-    vc.freePacking = true;
-    vc.imageUrl = '/products/vrg/combo-vinayagar-chaturthi-10-fruit-plants.jpg';
-    if (!vc.products || vc.products.length < 10) {
-      vc.products = VINAYAGAR_10_FRUIT_PLANTS;
+  map.forEach((c) => {
+    const isVin = c.id === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
+      (c.id && c.id.toLowerCase().includes('vinayagar')) ||
+      (c.title && (c.title.includes('விநாயகர்') || c.title.toLowerCase().includes('10 fruit')));
+    if (isVin) {
+      c.order = 0;
+      c.active = true;
+      c.onlyMetturService = true;
+      c.freeDelivery = true;
+      c.freePacking = true;
+      c.badge = '10 FRUITS COMBO';
+      c.imageUrl = '/products/vrg/combo-vinayagar-chaturthi-10-fruit-plants.jpg';
+      if (!c.products || c.products.length < 10) {
+        c.products = VINAYAGAR_10_FRUIT_PLANTS;
+      }
+      c.productIds = (c.products && c.products.length >= 10 ? c.products : VINAYAGAR_10_FRUIT_PLANTS).map((p: any) => p.id);
     }
-  }
+  });
 
   let deletedList: string[] = [];
   try {
@@ -564,10 +570,16 @@ export const getCachedActiveCombos = (): Combo[] => {
       return true;
     })
     .map((c: any) => {
-      if (c.id === 'combo-vinayagar-chaturthi-10-fruit-plants') {
+      const isVin = c.id === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
+        (c.id && c.id.toLowerCase().includes('vinayagar')) ||
+        (c.title && (c.title.includes('விநாயகர்') || c.title.toLowerCase().includes('10 fruit')));
+      if (isVin) {
+        const prods = (Array.isArray(c.products) && c.products.length >= 10) ? c.products : VINAYAGAR_10_FRUIT_PLANTS;
         return {
           ...c,
-          products: (Array.isArray(c.products) && c.products.length >= 10) ? c.products : VINAYAGAR_10_FRUIT_PLANTS,
+          products: prods,
+          productIds: prods.map((p: any) => p.id),
+          badge: '10 FRUITS COMBO',
           onlyMetturService: true,
           freeDelivery: true,
           freePacking: true
