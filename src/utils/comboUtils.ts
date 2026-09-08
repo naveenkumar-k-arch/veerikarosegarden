@@ -91,24 +91,87 @@ export const comboToProduct = (combo: Combo): Product => {
   } as any;
 };
 
+import diskCombosData from '../data/combos_store.json';
+import { INITIAL_PRODUCTS } from '../data/catalogData';
+
 export const getCachedActiveCombos = (): Combo[] => {
+  let list: Combo[] = [];
   try {
     const cached = localStorage.getItem('vrg_combos_cache');
     if (cached) {
       const parsed = JSON.parse(cached);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        let deletedList: string[] = [];
-        try {
-          const rawDel = localStorage.getItem('vrg_deleted_combos');
-          if (rawDel) {
-            const pDel = JSON.parse(rawDel);
-            if (Array.isArray(pDel)) deletedList = pDel;
-          }
-        } catch {}
-        const deletedSet = new Set(deletedList);
-        return parsed.filter((c: Combo) => c && c.id && c.active !== false && !deletedSet.has(c.id));
+        list = parsed;
       }
     }
   } catch {}
-  return [];
+
+  const diskList = (diskCombosData as any[]) || [];
+  const map = new Map<string, any>();
+
+  // 1. Seed with latest disk combos
+  diskList.forEach(c => {
+    if (c && c.id) map.set(c.id, { ...c });
+  });
+
+  // 2. Overlay cached combos while preserving disk overrides (order, freeDelivery, freePacking, onlyMetturService, imageUrl)
+  list.forEach(c => {
+    if (c && c.id) {
+      const existing = map.get(c.id) || {};
+      map.set(c.id, {
+        ...existing,
+        ...c,
+        order: existing.order !== undefined ? existing.order : c.order,
+        freeDelivery: existing.freeDelivery !== undefined ? existing.freeDelivery : c.freeDelivery,
+        freePacking: existing.freePacking !== undefined ? existing.freePacking : c.freePacking,
+        onlyMetturService: existing.onlyMetturService !== undefined ? existing.onlyMetturService : c.onlyMetturService,
+        imageUrl: existing.imageUrl || c.imageUrl
+      });
+    }
+  });
+
+  // Explicitly ensure Vinayagar Chaturthi combo is active, order 0, and has the correct festive image
+  if (map.has('combo-vinayagar-chaturthi-10-fruit-plants')) {
+    const vc = map.get('combo-vinayagar-chaturthi-10-fruit-plants');
+    vc.order = 0;
+    vc.active = true;
+    vc.imageUrl = '/products/vrg/combo-vinayagar-chaturthi-10-fruit-plants.jpg';
+  }
+
+  let deletedList: string[] = [];
+  try {
+    const rawDel = localStorage.getItem('vrg_deleted_combos');
+    if (rawDel) {
+      const pDel = JSON.parse(rawDel);
+      if (Array.isArray(pDel)) deletedList = pDel;
+    }
+  } catch {}
+  const deletedSet = new Set(deletedList);
+
+  const prodMap = new Map<string, Product>();
+  INITIAL_PRODUCTS.forEach(p => {
+    if (p.id) {
+      prodMap.set(p.id, p);
+      prodMap.set(p.id.toLowerCase(), p);
+    }
+  });
+
+  const dummyIds = new Set(['combo-1787635336437', 'combo-1787321846424', 'combo-1787577752349', 'combo-1787127554276']);
+
+  return Array.from(map.values())
+    .filter((c: any) => {
+      if (!c || !c.id || c.active === false || deletedSet.has(c.id)) return false;
+      if (dummyIds.has(c.id)) return false;
+      if (!c.imageUrl && (!c.products || c.products.length === 0) && (!c.productIds || c.productIds.length === 0)) return false;
+      return true;
+    })
+    .map((c: any) => {
+      // If products array is empty, resolve from INITIAL_PRODUCTS by productIds
+      if ((!c.products || c.products.length === 0) && Array.isArray(c.productIds) && c.productIds.length > 0) {
+        const prods = c.productIds.map((pid: string) => prodMap.get(pid) || prodMap.get(pid.toLowerCase())).filter(Boolean);
+        return { ...c, products: prods };
+      }
+      return c;
+    })
+    .sort((a: any, b: any) => (Number(a.order ?? 99) - Number(b.order ?? 99)));
 };

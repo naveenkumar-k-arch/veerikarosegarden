@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Combo, Product } from '../types';
 import { ShoppingBag, Sparkles, CheckCircle2, Tag, ArrowRight, ShieldCheck, Truck } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { getCachedActiveCombos } from '../utils/comboUtils';
 
 interface CombosSectionProps {
   onAddToCart: (product: Product, quantity?: number, meta?: any) => void;
@@ -27,19 +28,7 @@ const getAggregatedProducts = (productsList?: Product[]) => {
 export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSelectProduct, onViewAllCombos }) => {
   const { language, t } = useLanguage();
   const isTa = language === 'ta';
-  const [combos, setCombos] = useState<Combo[]>(() => {
-    try {
-      const cached = localStorage.getItem('vrg_combos_cache');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const deletedSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_combos') || '[]'));
-          return parsed.filter((c: Combo) => c.active !== false && !deletedSet.has(c.id));
-        }
-      }
-    } catch {}
-    return [];
-  });
+  const [combos, setCombos] = useState<Combo[]>(getCachedActiveCombos);
   const [loading, setLoading] = useState(() => combos.length === 0);
   const [addedComboId, setAddedComboId] = useState<string | null>(null);
   const [modalCombo, setModalCombo] = useState<Combo | null>(null);
@@ -71,7 +60,15 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
 
       if (cRes && cRes.success && Array.isArray(cRes.combos)) {
         const deletedSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_combos') || '[]'));
-        const activeCombos = cRes.combos.filter((c: Combo) => c.active !== false && !deletedSet.has(c.id));
+        const dummyIds = new Set(['combo-1787635336437', 'combo-1787321846424', 'combo-1787577752349', 'combo-1787127554276']);
+        const activeCombos = cRes.combos
+          .filter((c: Combo) => {
+            if (!c || !c.id || c.active === false || deletedSet.has(c.id)) return false;
+            if (dummyIds.has(c.id)) return false;
+            if (!c.imageUrl && (!c.products || c.products.length === 0) && (!c.productIds || c.productIds.length === 0)) return false;
+            return true;
+          })
+          .sort((a: Combo, b: Combo) => (Number(a.order ?? 99) - Number(b.order ?? 99)));
         setCombos(activeCombos);
         try {
           localStorage.setItem('vrg_combos_cache', JSON.stringify(activeCombos));
@@ -253,12 +250,22 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
 
                   <div>
                     {/* Header Image Collage */}
-                    <div className="relative h-44 sm:h-52 bg-slate-100 overflow-hidden">
+                    <div className="relative aspect-[16/10] sm:h-56 bg-slate-900 overflow-hidden">
                       {combo.imageUrl ? (
                         <img
                           src={combo.imageUrl}
                           alt={combo.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            if (target.src.endsWith('.webp')) {
+                              target.src = target.src.replace(/\.webp$/, '.jpg');
+                            } else if (target.src.endsWith('.jpg')) {
+                              target.src = target.src.replace(/\.jpg$/, '.webp');
+                            } else if (!target.src.includes('double-delight')) {
+                              target.src = '/products/double-delight.jpeg';
+                            }
+                          }}
                         />
                       ) : combo.products && combo.products.length > 0 ? (
                         <div className="grid grid-cols-2 h-full gap-0.5 bg-slate-200">
@@ -276,22 +283,21 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                           🌿
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/25 to-transparent" />
-                      
-                      <div className="absolute bottom-2.5 sm:bottom-3 left-3 sm:left-4 right-3 sm:right-4 text-white">
-                        <h3 className="font-black text-base sm:text-xl leading-snug drop-shadow-md line-clamp-2">
+                    </div>
+
+                    {/* Card Content */}
+                    <div className="p-3.5 sm:p-5 space-y-3 sm:space-y-4">
+                      {/* Title & Subtitle */}
+                      <div className="space-y-1">
+                        <h3 className="font-black text-base sm:text-lg text-slate-900 leading-snug line-clamp-2 group-hover:text-emerald-800 transition-colors">
                           {isTa ? t(combo.title) : combo.title}
                         </h3>
                         {combo.subtitle && (
-                          <p className="text-[11px] sm:text-xs font-medium text-amber-200/90 truncate drop-shadow-xs mt-0.5">
+                          <p className="text-[11px] sm:text-xs font-semibold text-amber-900/80 line-clamp-2">
                             {isTa ? t(combo.subtitle) : combo.subtitle}
                           </p>
                         )}
                       </div>
-                    </div>
-
-                      {/* Included Plants Section */}
-                      <div className="p-3.5 sm:p-5 space-y-3 sm:space-y-4">
                         {aggregated.length > 0 && (
                           <div className="bg-amber-50/80 border border-amber-200/60 rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 space-y-1.5 sm:space-y-2">
                             <p className="text-[10px] sm:text-[11px] font-bold text-amber-900 uppercase tracking-wider flex items-center justify-between gap-1.5">
@@ -462,9 +468,23 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
               className="bg-white rounded-3xl max-w-2xl w-full overflow-hidden border-2 border-emerald-300 shadow-2xl space-y-0 my-8 relative max-h-[90vh] flex flex-col"
             >
               {/* Cover Image & Close */}
-              <div className="relative h-64 bg-slate-900 shrink-0">
+              <div className="relative aspect-[16/10] sm:h-72 bg-slate-900 shrink-0 overflow-hidden">
                 {modalCombo.imageUrl ? (
-                  <img src={modalCombo.imageUrl} alt={modalCombo.title} className="w-full h-full object-cover" />
+                  <img
+                    src={modalCombo.imageUrl}
+                    alt={modalCombo.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      if (target.src.endsWith('.webp')) {
+                        target.src = target.src.replace(/\.webp$/, '.jpg');
+                      } else if (target.src.endsWith('.jpg')) {
+                        target.src = target.src.replace(/\.jpg$/, '.webp');
+                      } else if (!target.src.includes('double-delight')) {
+                        target.src = '/products/double-delight.jpeg';
+                      }
+                    }}
+                  />
                 ) : modalCombo.products && modalCombo.products.length > 0 ? (
                   <div className="grid grid-cols-2 h-full gap-1 bg-slate-800">
                     {modalCombo.products.slice(0, 4).map((p, idx) => (
@@ -472,40 +492,40 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                     ))}
                   </div>
                 ) : null}
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent" />
 
                 <button
                   onClick={() => setModalCombo(null)}
-                  className="absolute top-3 right-3 bg-slate-950/60 hover:bg-slate-950 text-white rounded-full p-2 backdrop-blur-md cursor-pointer transition-transform hover:scale-110"
+                  className="absolute top-3 right-3 bg-slate-950/70 hover:bg-slate-950 text-white rounded-full p-2 backdrop-blur-md cursor-pointer transition-transform hover:scale-110 z-20 shadow-lg"
                 >
                   <span className="font-bold text-base leading-none">✕</span>
                 </button>
+              </div>
 
-                <div className="absolute bottom-4 left-6 right-6 text-white space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <span className="bg-amber-500 text-white font-black text-xs px-3 py-1 rounded-full uppercase tracking-wider">
-                      {modalBadgeText}
+              {/* Modal Header */}
+              <div className="p-5 sm:p-6 pb-2 border-b border-slate-100 bg-white">
+                <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                  <span className="bg-amber-500 text-white font-black text-xs px-3 py-1 rounded-full uppercase tracking-wider">
+                    {modalBadgeText}
+                  </span>
+                  {modalCombo.freeDelivery && (
+                    <span className="bg-emerald-600 text-white font-black text-xs px-3 py-1 rounded-full">
+                      🚚 {isTa ? 'இலவச டெலிவரி (தமிழ்நாடு மட்டும்)' : 'FREE DELIVERY (TN ONLY)'}
                     </span>
-                    {modalCombo.freeDelivery && (
-                      <span className="bg-emerald-600 text-white font-black text-xs px-3 py-1 rounded-full">
-                        🚚 {isTa ? 'இலவச டெலிவரி (தமிழ்நாடு மட்டும்)' : 'FREE DELIVERY (TN ONLY)'}
-                      </span>
-                    )}
-                    {discount > 0 && (
-                      <span className="bg-rose-600 text-white font-black text-xs px-3 py-1 rounded-full">
-                        {discount}% {isTa ? 'தள்ளுபடி' : 'OFF'}
-                      </span>
-                    )}
-                  </div>
-                  <h3 className="text-2xl sm:text-3xl font-black font-display drop-shadow-md">
-                    {isTa ? t(modalCombo.title) : modalCombo.title}
-                  </h3>
-                  {modalCombo.subtitle && (
-                    <p className="text-xs text-amber-200 font-medium">
-                      {isTa ? t(modalCombo.subtitle) : modalCombo.subtitle}
-                    </p>
+                  )}
+                  {discount > 0 && (
+                    <span className="bg-rose-600 text-white font-black text-xs px-3 py-1 rounded-full">
+                      {discount}% {isTa ? 'தள்ளுபடி' : 'OFF'}
+                    </span>
                   )}
                 </div>
+                <h3 className="text-xl sm:text-2xl font-black font-display text-slate-900 leading-tight">
+                  {isTa ? t(modalCombo.title) : modalCombo.title}
+                </h3>
+                {modalCombo.subtitle && (
+                  <p className="text-xs sm:text-sm text-slate-600 font-semibold mt-1">
+                    {isTa ? t(modalCombo.subtitle) : modalCombo.subtitle}
+                  </p>
+                )}
               </div>
 
               {/* Modal Body */}

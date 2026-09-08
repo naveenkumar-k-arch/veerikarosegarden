@@ -41,7 +41,15 @@ export const ShopPage: React.FC<ShopPageProps> = ({
         const res = await fetch('/api/combos').then(r => r.json()).catch(() => null);
         if (res?.success && Array.isArray(res.combos)) {
           const deletedSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_combos') || '[]'));
-          const activeCombos = res.combos.filter((c: Combo) => c.active !== false && !deletedSet.has(c.id));
+          const dummyIds = new Set(['combo-1787635336437', 'combo-1787321846424', 'combo-1787577752349', 'combo-1787127554276']);
+          const activeCombos = res.combos
+            .filter((c: Combo) => {
+              if (!c || !c.id || c.active === false || deletedSet.has(c.id)) return false;
+              if (dummyIds.has(c.id)) return false;
+              if (!c.imageUrl && (!c.products || c.products.length === 0) && (!c.productIds || c.productIds.length === 0)) return false;
+              return true;
+            })
+            .sort((a: Combo, b: Combo) => (Number(a.order ?? 99) - Number(b.order ?? 99)));
           setCombosList(activeCombos);
           try {
             localStorage.setItem('vrg_combos_cache', JSON.stringify(activeCombos));

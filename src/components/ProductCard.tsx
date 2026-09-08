@@ -128,7 +128,14 @@ export const CompactProductCard: React.FC<CompactProductCardProps> = ({
         <img
           src={displayImg}
           alt={product.name}
-          onError={() => setImgError(true)}
+          onError={(e) => {
+            const target = e.currentTarget;
+            if (target.src.endsWith('.webp')) {
+              target.src = target.src.replace(/\.webp$/, '.jpg');
+            } else {
+              setImgError(true);
+            }
+          }}
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           loading="lazy"
           decoding="async"
@@ -391,7 +398,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <img
           src={displayImg}
           alt={product.name}
-          onError={() => setImgError(true)}
+          onError={(e) => {
+            const target = e.currentTarget;
+            if (target.src.endsWith('.webp')) {
+              target.src = target.src.replace(/\.webp$/, '.jpg');
+            } else {
+              setImgError(true);
+            }
+          }}
           style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s ease' }}
           loading="lazy"
           decoding="async"

@@ -1957,12 +1957,32 @@ class Store {
           const existing = dbMap.get(dc.id);
           if (dc.freePacking !== undefined && (existing as any).freePacking === undefined) (existing as any).freePacking = dc.freePacking;
           if (dc.onlyMetturService !== undefined && (existing as any).onlyMetturService === undefined) (existing as any).onlyMetturService = dc.onlyMetturService;
+          if (dc.order !== undefined) (existing as any).order = dc.order;
+          if (dc.imageUrl) (existing as any).imageUrl = dc.imageUrl;
+          if (dc.title) (existing as any).title = dc.title;
+          if (dc.subtitle) (existing as any).subtitle = dc.subtitle;
         }
       }
     }
 
-    // Return strictly active database combos without stale memory seeds
-    const rawCombos = dbCombos.filter(c => !deletedComboIds.has(c.id) && !deletedComboIds.has(c.id.toLowerCase()));
+    // Filter out dummy/deleted combos
+    const dummyIds = new Set(['combo-1787635336437', 'combo-1787321846424', 'combo-1787577752349', 'combo-1787127554276']);
+    const rawCombos = dbCombos.filter(c => {
+      if (!c || !c.id) return false;
+      if (deletedComboIds.has(c.id) || deletedComboIds.has(c.id.toLowerCase())) return false;
+      if (dummyIds.has(c.id)) return false;
+      if (!c.imageUrl && (!c.products || c.products.length === 0) && (!c.productIds || c.productIds.length === 0)) return false;
+      return true;
+    });
+
+    // Guarantee Vinayagar Chaturthi combo order 0 and correct image
+    rawCombos.forEach(c => {
+      if (c.id === 'combo-vinayagar-chaturthi-10-fruit-plants') {
+        c.order = 0;
+        c.imageUrl = '/products/vrg/combo-vinayagar-chaturthi-10-fruit-plants.jpg';
+        c.active = true;
+      }
+    });
 
     // Fast robust product lookup
     const allProducts = (this.productsCache?.data && this.productsCache.data.length > 0)
@@ -2002,7 +2022,7 @@ class Store {
         discountPercent: c.discountPercent || (c.originalPrice > c.comboPrice ? Math.round(((c.originalPrice - c.comboPrice) / c.originalPrice) * 100) : 0),
         imageUrl: c.imageUrl || (matchedProds[0]?.images?.[0] || undefined),
         active: c.active !== false,
-        order: c.order || 1,
+        order: c.order !== undefined ? Number(c.order) : 1,
         freeDelivery: c.freeDelivery === true,
         freePacking: (c as any).freePacking === true,
         onlyMetturService: (c as any).onlyMetturService === true,
@@ -2010,7 +2030,7 @@ class Store {
         createdAt: c.createdAt ? (typeof c.createdAt === 'string' ? c.createdAt : (c.createdAt as any).toISOString?.() || String(c.createdAt)) : new Date().toISOString(),
         updatedAt: c.updatedAt ? (typeof c.updatedAt === 'string' ? c.updatedAt : (c.updatedAt as any).toISOString?.() || String(c.updatedAt)) : new Date().toISOString()
       };
-    });
+    }).sort((a, b) => (Number(a.order ?? 99) - Number(b.order ?? 99)));
   }
 
   async getComboById(id: string): Promise<Combo | null> {
