@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Combo, Product } from '../types';
 import { ShoppingBag, Sparkles, CheckCircle2, Tag, ArrowRight, ShieldCheck, Truck } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import { getCachedActiveCombos } from '../utils/comboUtils';
+import { getCachedActiveCombos, VINAYAGAR_10_FRUIT_PLANTS } from '../utils/comboUtils';
 
 interface CombosSectionProps {
   onAddToCart: (product: Product, quantity?: number, meta?: any) => void;
@@ -67,6 +67,24 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
             if (dummyIds.has(c.id)) return false;
             if (!c.imageUrl && (!c.products || c.products.length === 0) && (!c.productIds || c.productIds.length === 0)) return false;
             return true;
+          })
+          .map((c: Combo) => {
+            const isVinayagar = c.id === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
+              (c.id && c.id.includes('vinayagar')) ||
+              (c.title && (c.title.includes('விநாயகர்') || c.title.includes('10 FRUIT')));
+            if (isVinayagar) {
+              const currentProds = (c.products && c.products.length >= 10) ? c.products : VINAYAGAR_10_FRUIT_PLANTS;
+              return {
+                ...c,
+                order: 0,
+                active: true,
+                freeDelivery: true,
+                freePacking: true,
+                onlyMetturService: true,
+                products: currentProds
+              };
+            }
+            return c;
           })
           .sort((a: Combo, b: Combo) => (Number(a.order ?? 99) - Number(b.order ?? 99)));
         setCombos(activeCombos);
@@ -210,7 +228,17 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-            {combos.slice(0, 2).map((combo) => {
+            {combos.slice(0, 2).map((rawCombo) => {
+              const isVinayagar = rawCombo.id === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
+                (rawCombo.id && rawCombo.id.includes('vinayagar')) ||
+                (rawCombo.title && (rawCombo.title.includes('விநாயகர்') || rawCombo.title.includes('10 FRUIT')));
+              const combo = isVinayagar
+                ? {
+                    ...rawCombo,
+                    products: (rawCombo.products && rawCombo.products.length >= 10) ? rawCombo.products : VINAYAGAR_10_FRUIT_PLANTS
+                  }
+                : rawCombo;
+
               const discount = combo.discountPercent || (combo.originalPrice > 0 ? Math.round(((combo.originalPrice - combo.comboPrice) / combo.originalPrice) * 100) : 0);
               const savings = combo.originalPrice > combo.comboPrice ? combo.originalPrice - combo.comboPrice : 0;
               const isJustAdded = addedComboId === combo.id;
@@ -448,15 +476,25 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
 
       {/* ===== COMBO PACKAGE DETAILS MODAL ===== */}
       {modalCombo && (() => {
-        const discount = modalCombo.discountPercent || (modalCombo.originalPrice > 0 ? Math.round(((modalCombo.originalPrice - modalCombo.comboPrice) / modalCombo.originalPrice) * 100) : 0);
-        const savings = modalCombo.originalPrice > modalCombo.comboPrice ? modalCombo.originalPrice - modalCombo.comboPrice : 0;
-        const isJustAdded = addedComboId === modalCombo.id;
+        const isVinayagar = modalCombo.id === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
+          (modalCombo.id && modalCombo.id.includes('vinayagar')) ||
+          (modalCombo.title && (modalCombo.title.includes('விநாயகர்') || modalCombo.title.includes('10 FRUIT')));
+        const activeModalCombo = isVinayagar
+          ? {
+              ...modalCombo,
+              products: (modalCombo.products && modalCombo.products.length >= 10) ? modalCombo.products : VINAYAGAR_10_FRUIT_PLANTS
+            }
+          : modalCombo;
+
+        const discount = activeModalCombo.discountPercent || (activeModalCombo.originalPrice > 0 ? Math.round(((activeModalCombo.originalPrice - activeModalCombo.comboPrice) / activeModalCombo.originalPrice) * 100) : 0);
+        const savings = activeModalCombo.originalPrice > activeModalCombo.comboPrice ? activeModalCombo.originalPrice - activeModalCombo.comboPrice : 0;
+        const isJustAdded = addedComboId === activeModalCombo.id;
         const modalBadgeText = isTa
-          ? (modalCombo.badge?.includes('1-IN-1') ? '1-ல்-1 சிறப்பு சலுகை'
-            : modalCombo.badge?.includes('2-IN-1') ? '2-ல்-1 சிறப்பு சலுகை'
-            : modalCombo.badge?.includes('3-IN-1') ? '3-ல்-1 சிறப்பு சலுகை'
+          ? (activeModalCombo.badge?.includes('1-IN-1') ? '1-ல்-1 சிறப்பு சலுகை'
+            : activeModalCombo.badge?.includes('2-IN-1') ? '2-ல்-1 சிறப்பு சலுகை'
+            : activeModalCombo.badge?.includes('3-IN-1') ? '3-ல்-1 சிறப்பு சலுகை'
             : 'சிறப்பு காம்போ')
-          : (modalCombo.badge || 'COMBO OFFER');
+          : (activeModalCombo.badge || 'COMBO OFFER');
 
         return (
           <div
@@ -551,11 +589,11 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                 {/* Included Plants Section */}
                 <div className="space-y-3">
                   <h4 className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
-                    <span>🌿 {isTa ? `இந்த தொகுப்பில் உள்ள செடிகள் (${modalCombo.products?.length || 0})` : `Included Saplings in this Package (${modalCombo.products?.length || 0})`}</span>
+                    <span>🌿 {isTa ? `இந்த தொகுப்பில் உள்ள செடிகள் (${activeModalCombo.products?.length || 0})` : `Included Saplings in this Package (${activeModalCombo.products?.length || 0})`}</span>
                   </h4>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {getAggregatedProducts(modalCombo.products).map(({ product: p, count }) => (
+                    {getAggregatedProducts(activeModalCombo.products).map(({ product: p, count }) => (
                       <div
                         key={p.id}
                         onClick={() => {
@@ -621,14 +659,14 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
 
                 <button
                   onClick={(e) => {
-                    handleAddComboToCart(modalCombo, e);
+                    handleAddComboToCart(activeModalCombo, e);
                     setModalCombo(null);
                   }}
                   disabled={isJustAdded}
                   className="w-full sm:w-auto py-3 px-5 sm:px-6 bg-gradient-to-r from-emerald-700 via-emerald-800 to-amber-700 hover:from-emerald-800 hover:to-amber-800 text-white font-extrabold text-xs rounded-xl sm:rounded-2xl shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
                 >
                   <ShoppingBag className="w-4 h-4" />
-                  <span>{isTa ? `அனைத்து ${modalCombo.products?.length || 0} செடிகளையும் கூடையில் சேர்க்கவும்` : `Add All ${modalCombo.products?.length || 0} Saplings to Cart`}</span>
+                  <span>{isTa ? `அனைத்து ${activeModalCombo.products?.length || 0} செடிகளையும் கூடையில் சேர்க்கவும்` : `Add All ${activeModalCombo.products?.length || 0} Saplings to Cart`}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
