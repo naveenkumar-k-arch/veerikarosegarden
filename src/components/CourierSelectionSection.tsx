@@ -442,7 +442,7 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
           </div>
 
           {/* Mettur Branch Selection Controls */}
-          {selectedCourier === 'METTUR_PARCEL' && (isMetturAllowed || onlyMetturService) && (
+          {(selectedCourier === 'METTUR_PARCEL' || onlyMetturService) && (isMetturAllowed || onlyMetturService) && (
             <div className="mt-3.5 pt-3.5 border-t border-emerald-200/80 space-y-3">
               <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
                 <MapPin className="w-3.5 h-3.5 text-emerald-700" />

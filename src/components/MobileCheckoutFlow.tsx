@@ -423,7 +423,9 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
     (i.product.id && i.product.id.toLowerCase().includes('vinayagar')) ||
     (i.product.id && i.product.id.toLowerCase().includes('10-fruit')) ||
     (i.comboTitle && i.comboTitle.toLowerCase().includes('vinayagar')) ||
-    (i.product.name && i.product.name.toLowerCase().includes('vinayagar'))
+    (i.product.name && i.product.name.toLowerCase().includes('vinayagar')) ||
+    (i.product.name && (i.product.name.includes('விநாயகர்') || i.product.name.includes('சதுர்த்தி'))) ||
+    (i.comboTitle && (i.comboTitle.includes('விநாயகர்') || i.comboTitle.includes('சதுர்த்தி')))
   );
   const hasOnlyMetturCombo = isVinayagarCombo || items.some(i => i.onlyMetturService === true || (i.product as any).onlyMetturService === true);
   const hasFreePacking = isVinayagarCombo || items.some(i => i.freePacking === true || (i.product as any).freePacking === true);
@@ -1502,10 +1504,16 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                   const isVinayagar = item.product.id === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
                     (item.comboId && item.comboId.includes('vinayagar')) ||
                     item.product.id.includes('10-fruit') ||
-                    (item.product.name && item.product.name.includes('10 FRUIT'));
-                  const rawPlants = item.comboProducts || (item.product as any).comboProducts || [];
-                  const comboPlants = rawPlants.length > 0 ? rawPlants : (isVinayagar ? VINAYAGAR_10_FRUIT_PLANTS : []);
-                  const plantCount = comboPlants.length || (isVinayagar ? 10 : (isCombo ? 3 : 1));
+                    item.product.id.includes('vinayagar') ||
+                    (item.product.name && item.product.name.includes('10 FRUIT')) ||
+                    (item.product.name && (item.product.name.includes('விநாயகர்') || item.product.name.includes('சதுர்த்தி')));
+                  const rawPlants = (item.comboProducts && item.comboProducts.length >= 10)
+                    ? item.comboProducts
+                    : ((item.product as any).comboProducts && (item.product as any).comboProducts.length >= 10)
+                      ? (item.product as any).comboProducts
+                      : (isVinayagar ? VINAYAGAR_10_FRUIT_PLANTS : (item.comboProducts || []));
+                  const comboPlants = isVinayagar ? VINAYAGAR_10_FRUIT_PLANTS : (rawPlants.length > 0 ? rawPlants : []);
+                  const plantCount = isVinayagar ? 10 : (comboPlants.length || (isCombo ? 3 : 1));
 
                   return (
                     <div key={item.product.id} className="bg-white p-3 rounded-2xl border border-slate-200 space-y-2">

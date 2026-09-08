@@ -606,9 +606,10 @@ export function getCartItemPlantCount(item: any): number {
     return cp.length * qty;
   }
 
-  // 2. Specific known combos by ID
+  // 2. Specific known combos by ID or Name
   const id = String(item.comboId || item.product?.id || item.productId || '').toLowerCase();
-  if (id.includes('10-fruit') || id.includes('vinayagar')) {
+  const name = String(item.product?.name || item.comboTitle || '').toLowerCase();
+  if (id.includes('10-fruit') || id.includes('vinayagar') || name.includes('விநாயகர்') || name.includes('சதுர்த்தி') || name.includes('10 fruit')) {
     return 10 * qty;
   }
   if (id.includes('water-apple-3') || id.includes('3-variety')) {
