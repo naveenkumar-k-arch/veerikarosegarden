@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Product, Category, Combo } from '../types';
 import { ProductCard, CompactProductCard, HorizontalScrollRow } from '../components/ProductCard';
-import { comboToProduct, getCachedActiveCombos } from '../utils/comboUtils';
+import { comboToProduct, getCachedActiveCombos, VINAYAGAR_10_FRUIT_PLANTS } from '../utils/comboUtils';
 import { Filter, SlidersHorizontal, Search, X, Check, ChevronRight, Sparkles } from 'lucide-react';
 
 interface ShopPageProps {
@@ -199,13 +199,20 @@ export const ShopPage: React.FC<ShopPageProps> = ({
   const handleProductAddToCart = (product: Product) => {
     const matchedCombo = combosList.find(c => c.id === product.id);
     if (matchedCombo) {
+      const isVinayagar = matchedCombo.id === 'combo-vinayagar-chaturthi-10-fruit-plants' || matchedCombo.id.includes('vinayagar');
+      const comboPlants = (matchedCombo.products && matchedCombo.products.length > 0)
+        ? matchedCombo.products
+        : (isVinayagar ? VINAYAGAR_10_FRUIT_PLANTS : []);
+
       onAddToCart(product, 1, {
         isCombo: true,
         comboId: matchedCombo.id,
         comboTitle: matchedCombo.title,
         comboBadge: matchedCombo.badge || 'COMBO OFFER',
         freeDelivery: matchedCombo.freeDelivery === true,
-        comboProducts: matchedCombo.products || []
+        freePacking: (matchedCombo as any).freePacking === true || isVinayagar,
+        onlyMetturService: (matchedCombo as any).onlyMetturService === true || isVinayagar,
+        comboProducts: comboPlants
       });
     } else {
       onAddToCart(product);

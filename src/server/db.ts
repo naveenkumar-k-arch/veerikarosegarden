@@ -1955,8 +1955,10 @@ class Store {
           dbCombos.unshift(dc);
         } else {
           const existing = dbMap.get(dc.id);
-          if (dc.freePacking !== undefined && (existing as any).freePacking === undefined) (existing as any).freePacking = dc.freePacking;
-          if (dc.onlyMetturService !== undefined && (existing as any).onlyMetturService === undefined) (existing as any).onlyMetturService = dc.onlyMetturService;
+          if (dc.freePacking !== undefined) (existing as any).freePacking = dc.freePacking;
+          if (dc.onlyMetturService !== undefined) (existing as any).onlyMetturService = dc.onlyMetturService;
+          if (Array.isArray(dc.products) && dc.products.length > 0) (existing as any).products = dc.products;
+          if (Array.isArray(dc.productIds) && dc.productIds.length > 0) (existing as any).productIds = dc.productIds;
           if (dc.order !== undefined) (existing as any).order = dc.order;
           if (dc.imageUrl) (existing as any).imageUrl = dc.imageUrl;
           if (dc.title) (existing as any).title = dc.title;
@@ -1975,12 +1977,15 @@ class Store {
       return true;
     });
 
-    // Guarantee Vinayagar Chaturthi combo order 0 and correct image
+    // Guarantee Vinayagar Chaturthi combo order 0, correct image, and MSSS + Free Packing flags
     rawCombos.forEach(c => {
       if (c.id === 'combo-vinayagar-chaturthi-10-fruit-plants') {
         c.order = 0;
         c.imageUrl = '/products/vrg/combo-vinayagar-chaturthi-10-fruit-plants.jpg';
         c.active = true;
+        (c as any).onlyMetturService = true;
+        (c as any).freePacking = true;
+        (c as any).freeDelivery = true;
       }
     });
 
@@ -2010,17 +2015,21 @@ class Store {
         return allProducts.find(item => item.id === pid || item.id.toLowerCase() === pid.toLowerCase() || item.sku === pid) || null;
       }).filter(Boolean) as Product[];
 
+      const finalProds = (c.id === 'combo-vinayagar-chaturthi-10-fruit-plants' && matchedProds.length < 10 && Array.isArray(c.products) && c.products.length >= 10)
+        ? c.products
+        : (matchedProds.length > 0 ? matchedProds : (c.products || []));
+
       return {
         id: c.id,
         title: c.title,
         subtitle: c.subtitle || undefined,
         badge: c.badge || 'COMBO OFFER',
         productIds: pIds,
-        products: matchedProds,
+        products: finalProds,
         originalPrice: Number(c.originalPrice || 0),
         comboPrice: Number(c.comboPrice || 0),
         discountPercent: c.discountPercent || (c.originalPrice > c.comboPrice ? Math.round(((c.originalPrice - c.comboPrice) / c.originalPrice) * 100) : 0),
-        imageUrl: c.imageUrl || (matchedProds[0]?.images?.[0] || undefined),
+        imageUrl: c.imageUrl || (finalProds[0]?.images?.[0] || undefined),
         active: c.active !== false,
         order: c.order !== undefined ? Number(c.order) : 1,
         freeDelivery: c.freeDelivery === true,

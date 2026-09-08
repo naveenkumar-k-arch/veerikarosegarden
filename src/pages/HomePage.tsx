@@ -4,7 +4,7 @@ import { ProductCard, CompactProductCard, HorizontalScrollRow } from '../compone
 import { CombosSection } from '../components/CombosSection';
 import { Card3D } from '../components/Card3D';
 import { INITIAL_REVIEWS } from '../data/reviewsData';
-import { comboToProduct, getCachedActiveCombos } from '../utils/comboUtils';
+import { comboToProduct, getCachedActiveCombos, VINAYAGAR_10_FRUIT_PLANTS } from '../utils/comboUtils';
 import { useLanguage } from '../context/LanguageContext';
 import {
   ShieldCheck, Truck, Sprout, HeartHandshake, Star, ArrowRight,
@@ -175,13 +175,20 @@ export const HomePage: React.FC<HomePageProps> = ({
   const handleProductAddToCart = (product: Product) => {
     const matchedCombo = combosList.find(c => c.id === product.id);
     if (matchedCombo) {
+      const isVinayagar = matchedCombo.id === 'combo-vinayagar-chaturthi-10-fruit-plants' || matchedCombo.id.includes('vinayagar');
+      const comboPlants = (matchedCombo.products && matchedCombo.products.length > 0)
+        ? matchedCombo.products
+        : (isVinayagar ? VINAYAGAR_10_FRUIT_PLANTS : []);
+
       onAddToCart(product, 1, {
         isCombo: true,
         comboId: matchedCombo.id,
         comboTitle: matchedCombo.title,
         comboBadge: matchedCombo.badge || 'COMBO OFFER',
         freeDelivery: matchedCombo.freeDelivery === true,
-        comboProducts: matchedCombo.products || []
+        freePacking: (matchedCombo as any).freePacking === true || isVinayagar,
+        onlyMetturService: (matchedCombo as any).onlyMetturService === true || isVinayagar,
+        comboProducts: comboPlants
       });
     } else {
       onAddToCart(product);

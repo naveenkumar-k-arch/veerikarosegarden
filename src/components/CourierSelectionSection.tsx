@@ -57,6 +57,23 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
   const isAvailable = Boolean(metturDistrict) && isMetturServiceAvailable(metturState || shippingState, metturDistrict);
   const branches = metturDistrict ? getBranchesForDistrict(metturState || shippingState, metturDistrict) : [];
 
+  // Auto-match district from shipping address if available and not yet selected
+  useEffect(() => {
+    if (shippingDistrict && !metturDistrict && activeStateDistricts.length > 0) {
+      const cleanShippingDist = shippingDistrict.toLowerCase().replace(/[^a-z]/g, '');
+      const match = activeStateDistricts.find(d => {
+        const cleanD = d.district.toLowerCase().replace(/[^a-z]/g, '');
+        return cleanD === cleanShippingDist || cleanShippingDist.includes(cleanD) || cleanD.includes(cleanShippingDist);
+      });
+      if (match) {
+        onChangeMetturDistrict(match.district);
+        if (match.branches && match.branches.length === 1 && !metturBranch) {
+          onChangeMetturBranch(match.branches[0].name);
+        }
+      }
+    }
+  }, [shippingDistrict, metturDistrict, activeStateDistricts, metturBranch, onChangeMetturDistrict, onChangeMetturBranch]);
+
   // Reset branch if current selection is invalid for district
   useEffect(() => {
     if (branches.length > 0 && metturBranch) {
@@ -69,7 +86,7 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
 
   const inTN = shippingState ? (shippingState.toLowerCase().includes('tamil') || shippingState.toLowerCase() === 'tn') : true;
   const isFullSoilAllowed = inTN;
-  const isMetturAllowed = totalPlantCount >= 3;
+  const isMetturAllowed = totalPlantCount >= 3 || onlyMetturService;
 
   const reducedSoilCharge = (inTN ? 60 : 100) + Math.max(0, totalPlantCount - 1) * 20;
   const fullSoil6InchCharge = totalPlantCount * 140;
@@ -184,8 +201,17 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-600">
-                  Reliable nationwide doorstep delivery covering metro cities and regional hubs across all states.
+                  {onlyMetturService
+                    ? '🚫 Not available for this combo. This special offer is dispatched exclusively via Mettur Parcel Service.'
+                    : 'Reliable nationwide doorstep delivery covering metro cities and regional hubs across all states.'}
                 </p>
+
+                {onlyMetturService && (
+                  <p className="text-[10px] text-amber-700 font-extrabold pt-0.5 flex items-center gap-1">
+                    <span>🔒</span>
+                    <span>Exclusive Offer: Mettur Parcel Service only</span>
+                  </p>
+                )}
 
                 {/* Sub-options: Reduced Soil vs 6 Inch Full Soil vs 8 Inch Full Soil */}
                 {selectedCourier === 'PROFESSIONAL_COURIER' && (
@@ -333,15 +359,22 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
               </div>
             </div>
 
-            {/* Price shown when NOT expanded (courier not selected) */}
-            {selectedCourier !== 'PROFESSIONAL_COURIER' && (
+            {/* Price shown when NOT expanded or when disabled */}
+            {onlyMetturService ? (
+              <div className="text-right shrink-0">
+                <span className="text-[10px] font-black text-slate-400 bg-slate-200 px-2 py-0.5 rounded-md block">
+                  Unavailable
+                </span>
+                <span className="text-[9px] text-slate-400 font-medium">MSSS Only</span>
+              </div>
+            ) : selectedCourier !== 'PROFESSIONAL_COURIER' ? (
               <div className="text-right shrink-0">
                 <span className="text-xs sm:text-sm font-black text-emerald-900 block">
                   {hasFreeDelivery ? '₹0' : `from ₹${reducedSoilCharge}`}
                 </span>
                 <span className="text-[9px] text-slate-400 font-medium">Doorstep</span>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -380,7 +413,7 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
                     🚚 Mettur Parcel Service (Branch / Depot Pickup)
                   </h4>
                   <span className="text-[9px] font-black bg-amber-100 text-amber-900 px-2 py-0.5 rounded-md">
-                    MIN 3 PLANTS
+                    {onlyMetturService || totalPlantCount >= 10 ? '10 PLANTS COMBO' : 'MIN 3 PLANTS'}
                   </span>
                   <span className="text-[9px] font-black bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded-md">
                     SAFE &amp; FAST
@@ -409,7 +442,7 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
           </div>
 
           {/* Mettur Branch Selection Controls */}
-          {selectedCourier === 'METTUR_PARCEL' && isMetturAllowed && (
+          {selectedCourier === 'METTUR_PARCEL' && (isMetturAllowed || onlyMetturService) && (
             <div className="mt-3.5 pt-3.5 border-t border-emerald-200/80 space-y-3">
               <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
                 <MapPin className="w-3.5 h-3.5 text-emerald-700" />
@@ -532,8 +565,12 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
                     </span>
                   </div>
                   <div className="text-[10px] bg-amber-100/70 border border-amber-300/80 rounded-lg p-1.5 text-amber-950 font-bold flex items-center gap-1">
-                    <span>💵</span>
-                    <span>Note: Parcel handling / delivery charge is to be paid directly at the branch counter when collecting your plants.</span>
+                    <span>{onlyMetturService ? '🎉' : '💵'}</span>
+                    <span>
+                      {onlyMetturService
+                        ? '100% Free Shipping & Free Packing: No extra charge to pay at branch counter for this combo offer!'
+                        : 'Note: Parcel handling / delivery charge is to be paid directly at the branch counter when collecting your plants.'}
+                    </span>
                   </div>
                 </div>
               )}

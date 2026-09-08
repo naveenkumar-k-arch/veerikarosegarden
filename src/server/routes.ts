@@ -851,10 +851,10 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
           quantity: validQty,
           image: matchedCombo.imageUrl || matchedCombo.products?.[0]?.images?.[0] || '',
           freeDelivery: matchedCombo.freeDelivery === true,
-          freePacking: (matchedCombo as any).freePacking === true,
-          onlyMetturService: (matchedCombo as any).onlyMetturService === true,
+          freePacking: (matchedCombo as any).freePacking === true || matchedCombo.id.includes('vinayagar'),
+          onlyMetturService: (matchedCombo as any).onlyMetturService === true || matchedCombo.id.includes('vinayagar'),
           isCombo: true,
-          comboProducts: matchedCombo.products || []
+          comboProducts: (matchedCombo.products && matchedCombo.products.length > 0) ? matchedCombo.products : (matchedCombo.id.includes('vinayagar') ? (item.comboProducts || []) : [])
         });
         continue;
       }
@@ -914,9 +914,10 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
     // Total actual plant count expanding combo bundle items
     const totalPlantCount = verifiedItems.reduce((sum, i) => {
       const isCombo = i.isCombo || (i.productId && String(i.productId).startsWith('combo-'));
+      const isVinayagar = i.productId && String(i.productId).toLowerCase().includes('vinayagar');
       const bundleCount = (i.comboProducts && i.comboProducts.length > 0)
         ? i.comboProducts.length
-        : 1;
+        : (isVinayagar ? 10 : 1);
       return sum + (isCombo ? bundleCount * i.quantity : i.quantity);
     }, 0);
 

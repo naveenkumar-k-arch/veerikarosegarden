@@ -4,6 +4,7 @@ import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Tag, Truck, ShieldChec
 import { calculateDeliveryFee } from '../utils/delivery';
 import { computeOrderTotals } from '../utils/orderTotals';
 import { useLanguage } from '../context/LanguageContext';
+import { VINAYAGAR_10_FRUIT_PLANTS } from '../utils/comboUtils';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -173,25 +174,34 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                         </span>
                       )}
                     </div>
-                    {isCombo && (
-                      <div className="bg-amber-50/90 border border-amber-300/80 rounded-xl p-2 mt-1.5 space-y-1.5">
-                        <div className="flex items-center justify-between text-[10px] font-bold text-amber-900 border-b border-amber-200/60 pb-1">
-                          <span>🌿 {language === 'ta' ? `தொகுப்பில் உள்ள செடிகள் (${(item.comboProducts || (item.product as any).comboProducts || []).length}):` : `Included in Bundle (${(item.comboProducts || (item.product as any).comboProducts || []).length} Plants):`}</span>
+                    {isCombo && (() => {
+                      const isVinayagar = item.product.id === 'combo-vinayagar-chaturthi-10-fruit-plants' || item.product.id.includes('vinayagar') || item.comboId === 'combo-vinayagar-chaturthi-10-fruit-plants';
+                      const rawPlants = (item.comboProducts && item.comboProducts.length > 0)
+                        ? item.comboProducts
+                        : ((item.product as any).comboProducts && (item.product as any).comboProducts.length > 0)
+                          ? (item.product as any).comboProducts
+                          : (isVinayagar ? VINAYAGAR_10_FRUIT_PLANTS : []);
+                      if (rawPlants.length === 0) return null;
+                      return (
+                        <div className="bg-amber-50/90 border border-amber-300/80 rounded-xl p-2 mt-1.5 space-y-1.5">
+                          <div className="flex items-center justify-between text-[10px] font-bold text-amber-900 border-b border-amber-200/60 pb-1">
+                            <span>🌿 {language === 'ta' ? `தொகுப்பில் உள்ள செடிகள் (${rawPlants.length}):` : `Included in Bundle (${rawPlants.length} Plants):`}</span>
+                          </div>
+                          <div className="space-y-1">
+                            {rawPlants.map((p: Product, idx: number) => (
+                              <div key={p.id || idx} className="flex items-center gap-1.5 bg-white p-1 rounded-lg border border-amber-200/80 text-[10px]">
+                                {p.images?.[0] ? (
+                                  <img src={p.images[0]} alt={p.name} className="w-5 h-5 rounded object-cover border border-slate-200 shrink-0" />
+                                ) : (
+                                  <span className="text-xs shrink-0">🌿</span>
+                                )}
+                                <span className="truncate flex-1 font-semibold text-slate-800">{getProductName(p)}</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                        <div className="space-y-1">
-                          {(item.comboProducts || (item.product as any).comboProducts || []).map((p: Product, idx: number) => (
-                            <div key={p.id || idx} className="flex items-center gap-1.5 bg-white p-1 rounded-lg border border-amber-200/80 text-[10px]">
-                              {p.images?.[0] ? (
-                                <img src={p.images[0]} alt={p.name} className="w-5 h-5 rounded object-cover border border-slate-200 shrink-0" />
-                              ) : (
-                                <span className="text-xs shrink-0">🌿</span>
-                              )}
-                              <span className="truncate flex-1 font-semibold text-slate-800">{getProductName(p)}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     <div className="flex items-baseline gap-1.5 mt-0.5">
                       <span className="text-xs font-bold text-slate-800">₹{item.product.sellingPrice}</span>

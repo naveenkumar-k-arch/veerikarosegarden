@@ -4,6 +4,7 @@ import { ShoppingBag, ArrowLeft, Trash2, Plus, Minus, Tag, Truck, ShieldCheck, A
 import { INDIAN_STATES, isTamilNadu } from '../utils/delivery';
 import { computeOrderTotals } from '../utils/orderTotals';
 import { useLanguage } from '../context/LanguageContext';
+import { VINAYAGAR_10_FRUIT_PLANTS } from '../utils/comboUtils';
 
 interface CartPageProps {
   items: CartItem[];
@@ -183,33 +184,42 @@ export const CartPage: React.FC<CartPageProps> = ({
                     )}
 
                     {/* Included plants in combo bundle */}
-                    {isCombo && (
-                      <div className="bg-amber-50/80 border border-amber-300/70 rounded-2xl p-3 text-xs text-amber-950 font-medium space-y-2">
-                        <div className="flex items-center justify-between font-bold text-amber-900 border-b border-amber-200/70 pb-1.5 text-xs">
-                          <span className="flex items-center gap-1.5">
-                            <span>🌿 All Plants Included in this Combo ({(item.comboProducts || (item.product as any).comboProducts || []).length} Saplings):</span>
-                          </span>
-                          <span className="bg-amber-200 text-amber-950 text-[10px] font-bold px-2 py-0.5 rounded-full font-mono">
-                            Special Bundle
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
-                          {(item.comboProducts || (item.product as any).comboProducts || []).map((p: Product, idx: number) => (
-                            <div key={p.id || idx} className="flex items-center gap-2.5 bg-white p-2 rounded-xl border border-amber-200/80 shadow-2xs">
-                              <img
-                                src={p.images?.[0] || '/products/double-delight.jpeg'}
-                                alt={p.name}
-                                className="w-9 h-9 rounded-lg object-cover border border-slate-200 shrink-0"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <p className="font-bold text-slate-900 text-xs truncate">{p.name}</p>
-                                {p.tamilName && <p className="text-[10px] text-slate-400 truncate">{p.tamilName}</p>}
+                    {isCombo && (() => {
+                      const isVinayagar = item.product.id === 'combo-vinayagar-chaturthi-10-fruit-plants' || item.product.id.includes('vinayagar') || item.comboId === 'combo-vinayagar-chaturthi-10-fruit-plants';
+                      const rawPlants = (item.comboProducts && item.comboProducts.length > 0)
+                        ? item.comboProducts
+                        : ((item.product as any).comboProducts && (item.product as any).comboProducts.length > 0)
+                          ? (item.product as any).comboProducts
+                          : (isVinayagar ? VINAYAGAR_10_FRUIT_PLANTS : []);
+                      if (rawPlants.length === 0) return null;
+                      return (
+                        <div className="bg-amber-50/80 border border-amber-300/70 rounded-2xl p-3 text-xs text-amber-950 font-medium space-y-2">
+                          <div className="flex items-center justify-between font-bold text-amber-900 border-b border-amber-200/70 pb-1.5 text-xs">
+                            <span className="flex items-center gap-1.5">
+                              <span>🌿 All Plants Included in this Combo ({rawPlants.length} Saplings):</span>
+                            </span>
+                            <span className="bg-amber-200 text-amber-950 text-[10px] font-bold px-2 py-0.5 rounded-full font-mono">
+                              Special Bundle
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
+                            {rawPlants.map((p: Product, idx: number) => (
+                              <div key={p.id || idx} className="flex items-center gap-2.5 bg-white p-2 rounded-xl border border-amber-200/80 shadow-2xs">
+                                <img
+                                  src={p.images?.[0] || '/products/double-delight.jpeg'}
+                                  alt={p.name}
+                                  className="w-9 h-9 rounded-lg object-cover border border-slate-200 shrink-0"
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-bold text-slate-900 text-xs truncate">{p.name}</p>
+                                  {p.tamilName && <p className="text-[10px] text-slate-400 truncate">{p.tamilName}</p>}
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     <div className="flex items-baseline gap-2 pt-0.5">
                       <span className="text-sm sm:text-base font-black text-slate-900">

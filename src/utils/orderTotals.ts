@@ -1,5 +1,6 @@
 import { CartItem } from '../types';
 import { calculateDeliveryFee } from './delivery.js';
+import { getCartItemPlantCount } from './comboUtils';
 
 export interface OrderTotalsInput {
   items: CartItem[];
@@ -28,13 +29,7 @@ export function computeOrderTotals({
   appliedCoupon = null
 }: OrderTotalsInput): OrderTotalsOutput {
   const subtotal = items.reduce((sum, i) => sum + i.product.sellingPrice * i.quantity, 0);
-  const totalPlantCount = items.reduce((sum, i) => {
-    const isCombo = i.isCombo || i.product.id.startsWith('combo-') || (i.product as any).isCombo;
-    const bundleCount = (i.comboProducts && i.comboProducts.length > 0)
-      ? i.comboProducts.length
-      : ((i.product as any).comboProducts?.length || 1);
-    return sum + (isCombo ? bundleCount * i.quantity : i.quantity);
-  }, 0);
+  const totalPlantCount = items.reduce((sum, i) => sum + getCartItemPlantCount(i), 0);
 
   const potUnitFee = selectedPot === '6_INCH' ? 99 : selectedPot === '8_INCH' ? 199 : 0;
   const potCharge = potUnitFee * totalPlantCount;

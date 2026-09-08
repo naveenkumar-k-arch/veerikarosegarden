@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ShieldCheck, Sparkles, Check, Package, Leaf, AlertCircle } from 'lucide-react';
 import { CartItem } from '../types';
+import { getCartItemPlantCount } from '../utils/comboUtils';
 
 export type PackingOptionType = 'STANDARD' | 'EXTRA_SECURE' | 'MAX_PROTECTION';
 
@@ -24,13 +25,7 @@ export const PlantProtectivePackingSection: React.FC<PlantProtectivePackingSecti
   const isInitialMount = useRef(true);
 
   // Total plant count (including combos)
-  const totalPlantCount = items.reduce((sum, i) => {
-    const isCombo = i.isCombo || i.product.id.startsWith('combo-') || (i.product as any).isCombo;
-    const bundleCount = (i.comboProducts && i.comboProducts.length > 0)
-      ? i.comboProducts.length
-      : ((i.product as any).comboProducts?.length || 1);
-    return sum + (isCombo ? bundleCount * i.quantity : i.quantity);
-  }, 0);
+  const totalPlantCount = items.reduce((sum, i) => sum + getCartItemPlantCount(i), 0);
 
   // Check if order contains delicate or flowering plants
   const hasFloweringOrRare = items.some(i =>

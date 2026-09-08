@@ -16,6 +16,118 @@
       "vrg-peanut-butter-fruit-plant",
       "vrg-pomelo-bubly-mass"
     ],
+    "products": [
+      {
+        "id": "vrg-kamala-orange-mandarin",
+        "sku": "VRG-FRUI-007",
+        "name": "Kamala Orange (Mandarin Orange)",
+        "englishName": "Kamala Orange (Mandarin Orange)",
+        "tamilName": "கமலா ஆரஞ்சு செடி",
+        "images": ["/products/vrg/kamala-orange-mandarin.png"],
+        "image": "/products/vrg/kamala-orange-mandarin.png",
+        "sellingPrice": 100,
+        "mrp": 150
+      },
+      {
+        "id": "vrg-red-water-apple-plant",
+        "sku": "VRG-FRUI-002",
+        "name": "Red Water Apple Plant",
+        "englishName": "Red Water Apple Plant",
+        "tamilName": "சிவப்பு நீர் ஆப்பிள் செடி",
+        "images": ["/products/vrg/red-water-apple-plant.png"],
+        "image": "/products/vrg/red-water-apple-plant.png",
+        "sellingPrice": 90,
+        "mrp": 150
+      },
+      {
+        "id": "vrg-green-water-apple-plant",
+        "sku": "VRG-FRUI-003",
+        "name": "Green Water Apple Plant",
+        "englishName": "Green Water Apple Plant",
+        "tamilName": "பச்சை நீர் ஆப்பிள் செடி",
+        "images": ["/products/vrg/green-water-apple-plant.png"],
+        "image": "/products/vrg/green-water-apple-plant.png",
+        "sellingPrice": 90,
+        "mrp": 150
+      },
+      {
+        "id": "vrg-white-water-apple-plant",
+        "sku": "VRG-FRUI-004",
+        "name": "White Water Apple Plant",
+        "englishName": "White Water Apple Plant",
+        "tamilName": "வெள்ளை நீர் ஆப்பிள் செடி",
+        "images": ["/products/vrg/white-water-apple-plant.png"],
+        "image": "/products/vrg/white-water-apple-plant.png",
+        "sellingPrice": 90,
+        "mrp": 150
+      },
+      {
+        "id": "vrg-mul-seetha-soursop-graviola",
+        "sku": "VRG-FRUI-005",
+        "name": "Mul Seetha (Soursop / Graviola)",
+        "englishName": "Mul Seetha (Soursop / Graviola)",
+        "tamilName": "முள் சீத்தா செடி",
+        "images": ["/products/vrg/mul-seetha-soursop-graviola.png"],
+        "image": "/products/vrg/mul-seetha-soursop-graviola.png",
+        "sellingPrice": 60,
+        "mrp": 120
+      },
+      {
+        "id": "vrg-malgova-mango-plant",
+        "sku": "VRG-FRUI-051",
+        "name": "Malgova Mango Plant",
+        "englishName": "Malgova Mango Plant",
+        "tamilName": "மல்கோவா மாம்பழச் செடி",
+        "images": ["/products/vrg/malgova-mango-plant.png"],
+        "image": "/products/vrg/malgova-mango-plant.png",
+        "sellingPrice": 149,
+        "mrp": 200
+      },
+      {
+        "id": "vrg-banganapalli-mango-plant",
+        "sku": "VRG-FRUI-052",
+        "name": "Banganapalli Mango Plant",
+        "englishName": "Banganapalli Mango Plant",
+        "tamilName": "பங்கனபள்ளி மாம்பழச் செடி",
+        "images": ["/products/vrg/banganapalli-mango-plant.png"],
+        "image": "/products/vrg/banganapalli-mango-plant.png",
+        "sellingPrice": 149,
+        "mrp": 200
+      },
+      {
+        "id": "vrg-pkm-sapota-plant",
+        "sku": "VRG-FRUI-053",
+        "name": "PKM 1 Sapota Plant",
+        "englishName": "PKM 1 Sapota Plant",
+        "tamilName": "PKM 1 சப்போட்டா செடி",
+        "images": ["/products/vrg/pkm-sapota-plant.png"],
+        "image": "/products/vrg/pkm-sapota-plant.png",
+        "sellingPrice": 99,
+        "mrp": 150
+      },
+      {
+        "id": "vrg-peanut-butter-fruit-plant",
+        "sku": "VRG-FRUI-030",
+        "name": "Peanut Butter Fruit Plant",
+        "englishName": "Peanut Butter Fruit Plant",
+        "tamilName": "பீனட் பட்டர் பழச் செடி",
+        "images": ["/products/vrg/peanut-butter-fruit-plant.png"],
+        "image": "/products/vrg/peanut-butter-fruit-plant.png",
+        "sellingPrice": 149,
+        "mrp": 250
+      },
+      {
+        "id": "vrg-pomelo-bubly-mass",
+        "sku": "VRG-FRUI-055",
+        "name": "Pomelo (Bubly Mass / Pamblimas)",
+        "englishName": "Pomelo (Bubly Mass / Pamblimas)",
+        "tamilName": "பப்ளிமாஸ் செடி",
+        "images": ["/products/vrg/pomelo-bubly-mass.png"],
+        "image": "/products/vrg/pomelo-bubly-mass.png",
+        "sellingPrice": 150,
+        "mrp": 200
+      }
+    ],
     "originalPrice": 1800,
     "comboPrice": 999,
     "discountPercent": 45,

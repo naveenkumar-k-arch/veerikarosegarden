@@ -11,6 +11,7 @@ import { computeOrderTotals } from '../utils/orderTotals';
 import { CourierSelectionSection, CourierPartnerType } from './CourierSelectionSection';
 import { PlantProtectivePackingSection, PackingOptionType } from './PlantProtectivePackingSection';
 import { useLanguage } from '../context/LanguageContext';
+import { getCartItemPlantCount, VINAYAGAR_10_FRUIT_PLANTS } from '../utils/comboUtils';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types & Constants
@@ -410,13 +411,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
 
   // Total plant count (including plants bundled inside combos)
   const subtotal = items.reduce((sum, i) => sum + i.product.sellingPrice * i.quantity, 0);
-  const totalPlantCount = items.reduce((sum, i) => {
-    const isCombo = i.isCombo || i.product.id.startsWith('combo-') || (i.product as any).isCombo;
-    const bundleCount = (i.comboProducts && i.comboProducts.length > 0)
-      ? i.comboProducts.length
-      : ((i.product as any).comboProducts?.length || 1);
-    return sum + (isCombo ? bundleCount * i.quantity : i.quantity);
-  }, 0);
+  const totalPlantCount = items.reduce((sum, i) => sum + getCartItemPlantCount(i), 0);
 
   const inTN = isTamilNadu(address.state);
 
@@ -425,7 +420,10 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
     i.onlyMetturService === true ||
     (i.product as any).onlyMetturService === true ||
     (i.comboId && i.comboId.toLowerCase().includes('vinayagar')) ||
-    (i.product.id && i.product.id.toLowerCase().includes('vinayagar'))
+    (i.product.id && i.product.id.toLowerCase().includes('vinayagar')) ||
+    (i.product.id && i.product.id.toLowerCase().includes('10-fruit')) ||
+    (i.comboTitle && i.comboTitle.toLowerCase().includes('vinayagar')) ||
+    (i.product.name && i.product.name.toLowerCase().includes('vinayagar'))
   );
   const hasOnlyMetturCombo = isVinayagarCombo || items.some(i => i.onlyMetturService === true || (i.product as any).onlyMetturService === true);
   const hasFreePacking = isVinayagarCombo || items.some(i => i.freePacking === true || (i.product as any).freePacking === true);
@@ -435,11 +433,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
   const chargeablePlantCount = items.reduce((sum, i) => {
     const isFree = inTN && (i.freeDelivery === true || (i.product as any).freeDelivery === true || isVinayagarCombo);
     if (isFree) return sum;
-    const isCombo = i.isCombo || i.product.id.startsWith('combo-') || (i.product as any).isCombo;
-    const bundleCount = (i.comboProducts && i.comboProducts.length > 0)
-      ? i.comboProducts.length
-      : ((i.product as any).comboProducts?.length || 1);
-    return sum + (isCombo ? bundleCount * i.quantity : i.quantity);
+    return sum + getCartItemPlantCount(i);
   }, 0);
 
   // Auto fallback or lock if option becomes unavailable or forced
@@ -1505,8 +1499,13 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
               <div className="space-y-2">
                 {items.map(item => {
                   const isCombo = item.isCombo || item.product.id.startsWith('combo-') || item.product.categoryId === 'combos';
-                  const comboPlants = item.comboProducts || (item.product as any).comboProducts || [];
-                  const plantCount = comboPlants.length || (isCombo ? 4 : 1);
+                  const isVinayagar = item.product.id === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
+                    (item.comboId && item.comboId.includes('vinayagar')) ||
+                    item.product.id.includes('10-fruit') ||
+                    (item.product.name && item.product.name.includes('10 FRUIT'));
+                  const rawPlants = item.comboProducts || (item.product as any).comboProducts || [];
+                  const comboPlants = rawPlants.length > 0 ? rawPlants : (isVinayagar ? VINAYAGAR_10_FRUIT_PLANTS : []);
+                  const plantCount = comboPlants.length || (isVinayagar ? 10 : (isCombo ? 3 : 1));
 
                   return (
                     <div key={item.product.id} className="bg-white p-3 rounded-2xl border border-slate-200 space-y-2">
@@ -1516,7 +1515,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
                           <p className="font-bold text-[11px] text-slate-900 truncate">{item.product.name}</p>
                           <div className="flex items-center gap-1.5 mt-0.5">
                             <span className="text-[10px] text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                              {isCombo ? `Qty: ${item.quantity} Bundle (${plantCount * item.quantity} Plants)` : `Qty: ${item.quantity} Plant${item.quantity > 1 ? 's' : ''}`}
+                              {isCombo ? `Qty: ${item.quantity} Bundle (${plantCount * item.quantity} Live Plants)` : `Qty: ${item.quantity} Plant${item.quantity > 1 ? 's' : ''}`}
                             </span>
                           </div>
                         </div>
@@ -1701,7 +1700,28 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
             </div>
 
             <div className="px-4 pb-6 pt-3 border-t border-slate-100 bg-white">
-              <ProceedBtn label="PROCEED TO DELIVERY TERMS" onClick={() => goTo(5)} />
+              <ProceedBtn
+                label="PROCEED TO DELIVERY TERMS"
+                onClick={() => {
+                  if (courierPartner === 'METTUR_PARCEL') {
+                    if (!metturDistrict || metturDistrict.trim() === '') {
+                      const msg = '⚠️ Please select your District for Mettur Parcel Service before proceeding.';
+                      setOrderError(msg);
+                      const el = document.getElementById('mettur-district-dropdown') || document.querySelector('[name="courierPartner"]');
+                      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      return;
+                    }
+                    if (!metturBranch || metturBranch.trim() === '') {
+                      const msg = '⚠️ Please select your nearest Mettur Parcel Branch / Hub before proceeding.';
+                      setOrderError(msg);
+                      const el = document.getElementById('mettur-branch-dropdown') || document.querySelector('[name="courierPartner"]');
+                      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      return;
+                    }
+                  }
+                  goTo(5);
+                }}
+              />
             </div>
           </div>
         )}

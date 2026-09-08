@@ -1,3 +1,5 @@
+import { getCartItemPlantCount } from './comboUtils';
+
 export interface DeliveryItem {
   quantity: number;
   freeDelivery?: boolean;
@@ -80,13 +82,7 @@ export function calculateDeliveryFee(
     return true;
   });
 
-  const totalChargeableCount = chargeableItems.reduce((sum, item) => {
-    const isCombo = item.isCombo || item.product?.id?.startsWith('combo-') || (item.product as any)?.isCombo;
-    const bundleCount = (item.comboProducts && item.comboProducts.length > 0)
-      ? item.comboProducts.length
-      : ((item.product as any)?.comboProducts?.length || 1);
-    return sum + (isCombo ? bundleCount * (item.quantity || 1) : (item.quantity || 1));
-  }, 0);
+  const totalChargeableCount = chargeableItems.reduce((sum, item) => sum + getCartItemPlantCount(item), 0);
 
   if (totalChargeableCount <= 0) return 0;
 

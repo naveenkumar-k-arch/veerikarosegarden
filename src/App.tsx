@@ -32,6 +32,7 @@ import { INITIAL_PRODUCTS, INITIAL_CATEGORIES } from './data/catalogData';
 
 import { INITIAL_REVIEWS } from './data/reviewsData';
 import { calculateDeliveryFee } from './utils/delivery';
+import { getCartItemPlantCount, VINAYAGAR_10_FRUIT_PLANTS } from './utils/comboUtils';
 import { SITE_CONFIG } from './config/siteConfig';
 import { MaintenancePage } from './pages/MaintenancePage';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
@@ -339,6 +340,7 @@ const AppContent: React.FC = () => {
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountAmount: number } | null>(null);
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const cartPlantCount = cart.reduce((sum, item) => sum + getCartItemPlantCount(item), 0);
 
   // User Auth State - Default to null so every visitor starts as a new user / guest
   const [user, setUser] = useState<User | null>(() => {
@@ -804,28 +806,35 @@ const AppContent: React.FC = () => {
   }, [user]);
 
   // Cart Operations
-  const handleAddToCart = (product: Product, quantity = 1, meta?: {
-    isCombo?: boolean;
-    comboId?: string;
-    comboTitle?: string;
-    comboBadge?: string;
-    freeDelivery?: boolean;
-    freePacking?: boolean;
-    onlyMetturService?: boolean;
-    comboProducts?: Product[];
-  }) => {
+  const handleAddToCart = (product: Product, quantity = 1, meta?: any) => {
     try {
       sessionStorage.removeItem('vrg_checkout_step');
       localStorage.removeItem('vrg_checkout_step');
       sessionStorage.removeItem('vrg_placed_order_id');
     } catch {}
-    toast.success(`Added "${product.name}" to cart (${quantity > 1 ? quantity + ' items' : '1 item'})!`, 'Cart Updated');
+    const isVinayagar = product.id === 'combo-vinayagar-chaturthi-10-fruit-plants' || product.id.includes('vinayagar') || meta?.comboId === 'combo-vinayagar-chaturthi-10-fruit-plants';
+    const resolvedComboProducts = (meta?.comboProducts && meta.comboProducts.length > 0)
+      ? meta.comboProducts
+      : ((product as any).comboProducts && (product as any).comboProducts.length > 0)
+        ? (product as any).comboProducts
+        : (isVinayagar ? VINAYAGAR_10_FRUIT_PLANTS : []);
+
+    const plantLabel = isVinayagar ? '10 plants combo' : (resolvedComboProducts.length > 0 ? `${resolvedComboProducts.length} plants combo` : (quantity > 1 ? quantity + ' items' : '1 item'));
+    toast.success(`Added "${product.name}" to cart (${plantLabel})!`, 'Cart Updated');
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
       if (existing) {
         return prev.map((item) =>
           item.product.id === product.id
-            ? { ...item, quantity: Math.min(20, item.quantity + quantity), ...(meta || {}) }
+            ? {
+                ...item,
+                quantity: Math.min(20, item.quantity + quantity),
+                ...(meta || {}),
+                isCombo: item.isCombo || meta?.isCombo || isVinayagar,
+                freePacking: item.freePacking || meta?.freePacking || isVinayagar,
+                onlyMetturService: item.onlyMetturService || meta?.onlyMetturService || isVinayagar,
+                comboProducts: (item.comboProducts && item.comboProducts.length > 0) ? item.comboProducts : resolvedComboProducts
+              }
             : item
         );
       }
@@ -834,14 +843,14 @@ const AppContent: React.FC = () => {
         {
           product,
           quantity: Math.min(20, Math.max(1, quantity)),
-          isCombo: meta?.isCombo || (product as any).isCombo || product.id.startsWith('combo-'),
-          comboId: meta?.comboId || (product.id.startsWith('combo-') ? product.id : undefined),
+          isCombo: meta?.isCombo || (product as any).isCombo || product.id.startsWith('combo-') || isVinayagar,
+          comboId: meta?.comboId || (product.id.startsWith('combo-') ? product.id : (isVinayagar ? 'combo-vinayagar-chaturthi-10-fruit-plants' : undefined)),
           comboTitle: meta?.comboTitle || (product.id.startsWith('combo-') ? product.name : undefined),
-          comboBadge: meta?.comboBadge,
+          comboBadge: meta?.comboBadge || (isVinayagar ? '10 FRUITS COMBO' : undefined),
           freeDelivery: meta?.freeDelivery ?? (product as any).freeDelivery ?? false,
-          freePacking: meta?.freePacking ?? (product as any).freePacking ?? false,
-          onlyMetturService: meta?.onlyMetturService ?? (product as any).onlyMetturService ?? false,
-          comboProducts: meta?.comboProducts || []
+          freePacking: meta?.freePacking ?? (product as any).freePacking ?? isVinayagar,
+          onlyMetturService: meta?.onlyMetturService ?? (product as any).onlyMetturService ?? isVinayagar,
+          comboProducts: resolvedComboProducts
         }
       ];
     });
@@ -873,17 +882,24 @@ const AppContent: React.FC = () => {
       localStorage.removeItem('vrg_checkout_step');
       sessionStorage.removeItem('vrg_placed_order_id');
     } catch {}
+    const isVinayagar = product.id === 'combo-vinayagar-chaturthi-10-fruit-plants' || product.id.includes('vinayagar') || meta?.comboId === 'combo-vinayagar-chaturthi-10-fruit-plants';
+    const resolvedComboProducts = (meta?.comboProducts && meta.comboProducts.length > 0)
+      ? meta.comboProducts
+      : ((product as any).comboProducts && (product as any).comboProducts.length > 0)
+        ? (product as any).comboProducts
+        : (isVinayagar ? VINAYAGAR_10_FRUIT_PLANTS : []);
+
     setCart([{
       product,
       quantity,
-      isCombo: meta?.isCombo || (product as any).isCombo || product.id.startsWith('combo-'),
-      comboId: meta?.comboId || (product.id.startsWith('combo-') ? product.id : undefined),
+      isCombo: meta?.isCombo || (product as any).isCombo || product.id.startsWith('combo-') || isVinayagar,
+      comboId: meta?.comboId || (product.id.startsWith('combo-') ? product.id : (isVinayagar ? 'combo-vinayagar-chaturthi-10-fruit-plants' : undefined)),
       comboTitle: meta?.comboTitle || (product.id.startsWith('combo-') ? product.name : undefined),
-      comboBadge: meta?.comboBadge,
+      comboBadge: meta?.comboBadge || (isVinayagar ? '10 FRUITS COMBO' : undefined),
       freeDelivery: meta?.freeDelivery ?? (product as any).freeDelivery ?? false,
-      freePacking: meta?.freePacking ?? (product as any).freePacking ?? false,
-      onlyMetturService: meta?.onlyMetturService ?? (product as any).onlyMetturService ?? false,
-      comboProducts: meta?.comboProducts || (product as any).comboProducts || []
+      freePacking: meta?.freePacking ?? (product as any).freePacking ?? isVinayagar,
+      onlyMetturService: meta?.onlyMetturService ?? (product as any).onlyMetturService ?? isVinayagar,
+      comboProducts: resolvedComboProducts
     }]);
     navigateTo('checkout');
   };
@@ -1336,7 +1352,7 @@ const AppContent: React.FC = () => {
       {/* Primary Header for Home page (hidden when mobile checkout is open) */}
       {currentPage === 'home' && !isMobileCheckoutOpen && (
         <Header
-          cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
+          cartCount={cartPlantCount > 0 ? cartPlantCount : cartCount}
           wishlistCount={wishlist.length}
           onOpenCart={() => {
             navigateTo('checkout');
@@ -1726,14 +1742,18 @@ const AppContent: React.FC = () => {
       >
         <div className="relative flex items-center justify-center">
           <ShoppingBag className="w-5 h-5 text-emerald-400" />
-          {cartCount > 0 && (
-            <span className="absolute -top-2.5 -right-2.5 bg-rose-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-slate-900 shadow-md">
-              {cartCount}
+          {cartPlantCount > 0 && (
+            <span className="absolute -top-2.5 -right-2.5 bg-rose-500 text-white text-[10px] font-black min-w-[20px] h-5 px-1 rounded-full flex items-center justify-center border-2 border-slate-900 shadow-md">
+              {cartPlantCount}
             </span>
           )}
         </div>
         <span className="text-xs font-bold tracking-wide">
-          {cartCount > 0 ? (language === 'ta' ? `கூடை (${cartCount})` : `Cart (${cartCount})`) : (language === 'ta' ? 'கூடை' : 'Cart')}
+          {cartPlantCount > 0
+            ? (language === 'ta'
+                ? `கூடை (${cartPlantCount} செடிகள்)`
+                : `Cart (${cartPlantCount} ${cartPlantCount === 1 ? 'Plant' : 'Plants'})`)
+            : (language === 'ta' ? 'கூடை' : 'Cart')}
         </span>
       </button>
 
@@ -1778,7 +1798,7 @@ const AppContent: React.FC = () => {
             navigateTo('checkout');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }} aria-label="Open checkout">
-            {cartCount > 0 && <span className="cart-badge">{cartCount > 9 ? '9+' : cartCount}</span>}
+            {cartPlantCount > 0 && <span className="cart-badge">{cartPlantCount > 99 ? '99+' : cartPlantCount}</span>}
             <ShoppingCart />
             <span>{t('Cart')}</span>
           </button>
