@@ -329,7 +329,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                         {aggregated.length > 0 && (
                           <div className="bg-amber-50/80 border border-amber-200/60 rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 space-y-1.5 sm:space-y-2">
                             <p className="text-[10px] sm:text-[11px] font-bold text-amber-900 uppercase tracking-wider flex items-center justify-between gap-1.5">
-                              <span>🌿 {isTa ? `சேர்க்கப்பட்ட பண்ணை செடிகள் (${combo.products?.length || 0}):` : `Includes ${combo.products?.length || 0} Farm Plants:`}</span>
+                              <span>🌿 {isTa ? `சேர்க்கப்பட்ட பண்ணை செடிகள் (${combo.productIds?.length || combo.products?.length || 0}):` : `Includes ${combo.productIds?.length || combo.products?.length || 0} Farm Plants:`}</span>
                             </p>
                             <div className="space-y-1">
                               {aggregated.map(({ product: p, count }) => (
@@ -589,7 +589,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                 {/* Included Plants Section */}
                 <div className="space-y-3">
                   <h4 className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
-                    <span>🌿 {isTa ? `இந்த தொகுப்பில் உள்ள செடிகள் (${activeModalCombo.products?.length || 0})` : `Included Saplings in this Package (${activeModalCombo.products?.length || 0})`}</span>
+                    <span>🌿 {isTa ? `இந்த தொகுப்பில் உள்ள செடிகள் (${activeModalCombo.productIds?.length || activeModalCombo.products?.length || 0})` : `Included Saplings in this Package (${activeModalCombo.productIds?.length || activeModalCombo.products?.length || 0})`}</span>
                   </h4>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
