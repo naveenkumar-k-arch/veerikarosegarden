@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Combo, Product } from '../types';
 import { ShoppingBag, Sparkles, CheckCircle2, Tag, ArrowRight, ShieldCheck, Truck } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import { getCachedActiveCombos, VINAYAGAR_10_FRUIT_PLANTS } from '../utils/comboUtils';
+import { getCachedActiveCombos, VINAYAGAR_10_FRUIT_PLANTS, resolveComboImage } from '../utils/comboUtils';
 
 interface CombosSectionProps {
   onAddToCart: (product: Product, quantity?: number, meta?: any) => void;
@@ -65,10 +65,11 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
           .filter((c: Combo) => {
             if (!c || !c.id || c.active === false || deletedSet.has(c.id)) return false;
             if (dummyIds.has(c.id)) return false;
-            if (!c.imageUrl && (!c.products || c.products.length === 0) && (!c.productIds || c.productIds.length === 0)) return false;
+            if (!c.title || c.title.trim() === '') return false;
             return true;
           })
           .map((c: Combo) => {
+            const resolvedImg = resolveComboImage(c);
             const isVinayagar = c.id === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
               (c.id && c.id.toLowerCase().includes('vinayagar')) ||
               (c.title && (c.title.includes('விநாயகர்') || c.title.toLowerCase().includes('10 fruit')));
@@ -76,6 +77,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
               const currentProds = (c.products && c.products.length >= 10) ? c.products : VINAYAGAR_10_FRUIT_PLANTS;
               return {
                 ...c,
+                imageUrl: resolvedImg,
                 order: c.order !== undefined ? Number(c.order) : 4,
                 active: true,
                 badge: '10 FRUITS COMBO',
@@ -86,7 +88,10 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                 products: currentProds
               };
             }
-            return c;
+            return {
+              ...c,
+              imageUrl: resolvedImg
+            };
           })
           .sort((a: Combo, b: Combo) => {
             const ordA = Number(a.order ?? 99);
@@ -293,40 +298,23 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                   <div>
                     {/* Header Image Collage */}
                     <div className="relative aspect-[16/10] sm:h-56 bg-slate-900 overflow-hidden">
-                      {combo.imageUrl ? (
-                        <img
-                          src={combo.imageUrl}
-                          alt={combo.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          onError={(e) => {
-                            const target = e.currentTarget;
-                            if (target.src.endsWith('.webp')) {
-                              target.src = target.src.replace(/\.webp$/, '.jpg');
-                            } else if (target.src.endsWith('.jpg')) {
-                              target.src = target.src.replace(/\.jpg$/, '.webp');
-                            } else if (combo.products?.[0]?.images?.[0] || (combo.products?.[0] as any)?.image || (combo.products?.[0] as any)?.imageUrl) {
-                              target.src = combo.products[0].images?.[0] || (combo.products[0] as any).image || (combo.products[0] as any).imageUrl;
-                            } else {
-                              target.src = '/products/vrg/combo-mini-beetroot-guva.jpg';
-                            }
-                          }}
-                        />
-                      ) : combo.products && combo.products.length > 0 ? (
-                        <div className="grid grid-cols-2 h-full gap-0.5 bg-slate-200">
-                          {combo.products.slice(0, 4).map((p, idx) => (
-                            <img
-                              key={p.id || idx}
-                              src={p.images?.[0] || (p as any).image || (p as any).imageUrl || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80'}
-                              alt={p.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-emerald-900/10 text-4xl">
-                          🌿
-                        </div>
-                      )}
+                      <img
+                        src={resolveComboImage(combo)}
+                        alt={combo.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          if (target.src.endsWith('.webp')) {
+                            target.src = target.src.replace(/\.webp$/, '.jpg');
+                          } else if (target.src.endsWith('.jpg')) {
+                            target.src = target.src.replace(/\.jpg$/, '.webp');
+                          } else if (combo.products?.[0]?.images?.[0] || (combo.products?.[0] as any)?.image || (combo.products?.[0] as any)?.imageUrl) {
+                            target.src = combo.products[0].images?.[0] || (combo.products[0] as any).image || (combo.products[0] as any).imageUrl;
+                          } else {
+                            target.src = '/products/vrg/combo-mini-beetroot-guva.jpg';
+                          }
+                        }}
+                      />
                     </div>
 
                     {/* Card Content */}
@@ -481,31 +469,23 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
             >
               {/* Cover Image & Close */}
               <div className="relative aspect-[16/10] sm:h-72 bg-slate-900 shrink-0 overflow-hidden">
-                {modalCombo.imageUrl ? (
-                  <img
-                    src={modalCombo.imageUrl}
-                    alt={modalCombo.title}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      const target = e.currentTarget;
-                      if (target.src.endsWith('.webp')) {
-                        target.src = target.src.replace(/\.webp$/, '.jpg');
-                      } else if (target.src.endsWith('.jpg')) {
-                        target.src = target.src.replace(/\.jpg$/, '.webp');
-                      } else if (modalCombo.products?.[0]?.images?.[0] || (modalCombo.products?.[0] as any)?.image || (modalCombo.products?.[0] as any)?.imageUrl) {
-                        target.src = modalCombo.products[0].images?.[0] || (modalCombo.products[0] as any).image || (modalCombo.products[0] as any).imageUrl;
-                      } else {
-                        target.src = '/products/vrg/combo-mini-beetroot-guva.jpg';
-                      }
-                    }}
-                  />
-                ) : modalCombo.products && modalCombo.products.length > 0 ? (
-                  <div className="grid grid-cols-2 h-full gap-1 bg-slate-800">
-                    {modalCombo.products.slice(0, 4).map((p, idx) => (
-                      <img key={p.id || idx} src={p.images?.[0] || (p as any).image || (p as any).imageUrl || ''} alt={p.name} className="w-full h-full object-cover" />
-                    ))}
-                  </div>
-                ) : null}
+                <img
+                  src={resolveComboImage(modalCombo)}
+                  alt={modalCombo.title}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (target.src.endsWith('.webp')) {
+                      target.src = target.src.replace(/\.webp$/, '.jpg');
+                    } else if (target.src.endsWith('.jpg')) {
+                      target.src = target.src.replace(/\.jpg$/, '.webp');
+                    } else if (modalCombo.products?.[0]?.images?.[0] || (modalCombo.products?.[0] as any)?.image || (modalCombo.products?.[0] as any)?.imageUrl) {
+                      target.src = modalCombo.products[0].images?.[0] || (modalCombo.products[0] as any).image || (modalCombo.products[0] as any).imageUrl;
+                    } else {
+                      target.src = '/products/vrg/combo-mini-beetroot-guva.jpg';
+                    }
+                  }}
+                />
 
                 <button
                   onClick={() => setModalCombo(null)}

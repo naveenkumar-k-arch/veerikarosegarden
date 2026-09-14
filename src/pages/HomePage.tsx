@@ -4,7 +4,7 @@ import { ProductCard, CompactProductCard, HorizontalScrollRow } from '../compone
 import { CombosSection } from '../components/CombosSection';
 import { Card3D } from '../components/Card3D';
 import { INITIAL_REVIEWS } from '../data/reviewsData';
-import { comboToProduct, getCachedActiveCombos, VINAYAGAR_10_FRUIT_PLANTS } from '../utils/comboUtils';
+import { comboToProduct, getCachedActiveCombos, VINAYAGAR_10_FRUIT_PLANTS, resolveComboImage } from '../utils/comboUtils';
 import { useLanguage } from '../context/LanguageContext';
 import {
   ShieldCheck, Truck, Sprout, HeartHandshake, Star, ArrowRight,
@@ -75,10 +75,11 @@ export const HomePage: React.FC<HomePageProps> = ({
             .filter((c: Combo) => {
               if (!c || !c.id || c.active === false || deletedSet.has(c.id)) return false;
               if (dummyIds.has(c.id)) return false;
-              if (!c.imageUrl && (!c.products || c.products.length === 0) && (!c.productIds || c.productIds.length === 0)) return false;
+              if (!c.title || c.title.trim() === '') return false;
               return true;
             })
             .map((c: Combo) => {
+              const resolvedImg = resolveComboImage(c);
               const isVin = c.id === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
                 (c.id && c.id.toLowerCase().includes('vinayagar')) ||
                 (c.title && (c.title.includes('விநாயகர்') || c.title.toLowerCase().includes('10 fruit')));
@@ -86,6 +87,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 const prods = (Array.isArray(c.products) && c.products.length >= 10) ? c.products : VINAYAGAR_10_FRUIT_PLANTS;
                 return {
                   ...c,
+                  imageUrl: resolvedImg,
                   products: prods,
                   productIds: prods.map((p: any) => p.id),
                   badge: '10 FRUITS COMBO',
@@ -95,7 +97,10 @@ export const HomePage: React.FC<HomePageProps> = ({
                   freePacking: true
                 };
               }
-              return c;
+              return {
+                ...c,
+                imageUrl: resolvedImg
+              };
             })
             .sort((a: Combo, b: Combo) => {
               const ordA = Number(a.order ?? 99);

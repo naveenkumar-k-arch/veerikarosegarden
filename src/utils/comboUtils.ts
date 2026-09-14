@@ -485,6 +485,54 @@ export const comboToProduct = (combo: Combo): Product => {
 import diskCombosData from '../data/combos_store.json';
 import { INITIAL_PRODUCTS } from '../data/catalogData';
 
+export const resolveComboImage = (combo: any): string => {
+  if (combo?.imageUrl && typeof combo.imageUrl === 'string' && combo.imageUrl.trim() !== '' && !combo.imageUrl.includes('null') && !combo.imageUrl.includes('undefined')) {
+    return combo.imageUrl.trim();
+  }
+  // Check products list
+  if (Array.isArray(combo?.products) && combo.products.length > 0) {
+    const p0 = combo.products[0];
+    const pImg = p0?.images?.[0] || p0?.image || p0?.imageUrl;
+    if (pImg && typeof pImg === 'string' && pImg.trim() !== '') return pImg.trim();
+  }
+  // Title / ID heuristics matching actual images in /products/vrg/
+  const title = (combo?.title || combo?.name || combo?.id || '').toLowerCase();
+  if (title.includes('vinayagar') || title.includes('10 fruit') || title.includes('விநாயகர்')) {
+    return '/products/vrg/combo-vinayagar-chaturthi-10-fruit-plants.jpg';
+  }
+  if (title.includes('mini beetroot') || title.includes('beetroot')) {
+    return '/products/vrg/combo-mini-beetroot-guva.jpg';
+  }
+  if (title.includes('guva')) {
+    return '/products/vrg/combo-guva-combo-offer.jpg';
+  }
+  if (title.includes('restock')) {
+    return '/products/vrg/combo-restock-alert.jpg';
+  }
+  if (title.includes('sunday') || title.includes('7-days') || title.includes('seven days') || title.includes('paneer')) {
+    return '/products/vrg/7-days-red-rose.png';
+  }
+  if (title.includes('water apple')) {
+    return '/products/vrg/red-water-apple-plant.png';
+  }
+  if (title.includes('fairy rose') || title.includes('fairy')) {
+    return '/products/vrg/pink-fairy-polyantha-rose.png';
+  }
+  if (title.includes('orchid') || title.includes('sweet fragrance')) {
+    return '/products/vrg/orchid-rose.png';
+  }
+  if (title.includes('apple red') || title.includes('calcutta')) {
+    return '/products/vrg/apple-red-rose.png';
+  }
+  if (title.includes('mysore malli') || title.includes('malli')) {
+    return '/products/vrg/7-days-red-rose.png';
+  }
+  if (title.includes('birthday party')) {
+    return '/products/vrg/pink-fairy-polyantha-rose.png';
+  }
+  return '/products/vrg/combo-mini-beetroot-guva.jpg';
+};
+
 export const getCachedActiveCombos = (): Combo[] => {
   let list: Combo[] = [];
   try {
@@ -559,14 +607,13 @@ export const getCachedActiveCombos = (): Combo[] => {
       prodMap.set(p.id.toLowerCase(), p);
     }
   });
-
   const dummyIds = new Set(['combo-1787635336437', 'combo-1787321846424', 'combo-1787577752349', 'combo-1787127554276']);
 
   return Array.from(map.values())
     .filter((c: any) => {
       if (!c || !c.id || c.active === false || deletedSet.has(c.id)) return false;
       if (dummyIds.has(c.id)) return false;
-      if (!c.imageUrl && (!c.products || c.products.length === 0) && (!c.productIds || c.productIds.length === 0)) return false;
+      if (!c.title || c.title.trim() === '') return false;
       return true;
     })
     .map((c: any) => {
@@ -582,15 +629,20 @@ export const getCachedActiveCombos = (): Combo[] => {
           badge: '10 FRUITS COMBO',
           onlyMetturService: true,
           freeDelivery: true,
-          freePacking: true
+          freePacking: true,
+          imageUrl: resolveComboImage(c)
         };
       }
       // If products array is empty, resolve from INITIAL_PRODUCTS by productIds
-      if ((!c.products || c.products.length === 0) && Array.isArray(c.productIds) && c.productIds.length > 0) {
-        const prods = c.productIds.map((pid: string) => prodMap.get(pid) || prodMap.get(pid.toLowerCase())).filter(Boolean);
-        return { ...c, products: prods };
+      let prods = c.products;
+      if ((!prods || prods.length === 0) && Array.isArray(c.productIds) && c.productIds.length > 0) {
+        prods = c.productIds.map((pid: string) => prodMap.get(pid) || prodMap.get(pid.toLowerCase())).filter(Boolean);
       }
-      return c;
+      return {
+        ...c,
+        products: prods,
+        imageUrl: resolveComboImage(c)
+      };
     })
     .sort((a: any, b: any) => {
       const ordA = Number(a.order ?? 99);

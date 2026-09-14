@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Product, Category, Combo } from '../types';
 import { ProductCard, CompactProductCard, HorizontalScrollRow } from '../components/ProductCard';
-import { comboToProduct, getCachedActiveCombos, VINAYAGAR_10_FRUIT_PLANTS } from '../utils/comboUtils';
+import { comboToProduct, getCachedActiveCombos, VINAYAGAR_10_FRUIT_PLANTS, resolveComboImage } from '../utils/comboUtils';
 import { Filter, SlidersHorizontal, Search, X, Check, ChevronRight, Sparkles } from 'lucide-react';
 
 interface ShopPageProps {
@@ -46,10 +46,11 @@ export const ShopPage: React.FC<ShopPageProps> = ({
             .filter((c: Combo) => {
               if (!c || !c.id || c.active === false || deletedSet.has(c.id)) return false;
               if (dummyIds.has(c.id)) return false;
-              if (!c.imageUrl && (!c.products || c.products.length === 0) && (!c.productIds || c.productIds.length === 0)) return false;
+              if (!c.title || c.title.trim() === '') return false;
               return true;
             })
             .map((c: Combo) => {
+              const resolvedImg = resolveComboImage(c);
               const isVin = c.id === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
                 (c.id && c.id.toLowerCase().includes('vinayagar')) ||
                 (c.title && (c.title.includes('விநாயகர்') || c.title.toLowerCase().includes('10 fruit')));
@@ -57,6 +58,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
                 const prods = (Array.isArray(c.products) && c.products.length >= 10) ? c.products : VINAYAGAR_10_FRUIT_PLANTS;
                 return {
                   ...c,
+                  imageUrl: resolvedImg,
                   products: prods,
                   productIds: prods.map((p: any) => p.id),
                   badge: '10 FRUITS COMBO',
@@ -66,7 +68,10 @@ export const ShopPage: React.FC<ShopPageProps> = ({
                   freePacking: true
                 };
               }
-              return c;
+              return {
+                ...c,
+                imageUrl: resolvedImg
+              };
             })
             .sort((a: Combo, b: Combo) => {
               const ordA = Number(a.order ?? 99);
