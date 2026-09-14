@@ -60,7 +60,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
                   products: prods,
                   productIds: prods.map((p: any) => p.id),
                   badge: '10 FRUITS COMBO',
-                  order: 0,
+                  order: c.order !== undefined ? Number(c.order) : 4,
                   onlyMetturService: true,
                   freeDelivery: true,
                   freePacking: true
@@ -68,7 +68,14 @@ export const ShopPage: React.FC<ShopPageProps> = ({
               }
               return c;
             })
-            .sort((a: Combo, b: Combo) => (Number(a.order ?? 99) - Number(b.order ?? 99)));
+            .sort((a: Combo, b: Combo) => {
+              const ordA = Number(a.order ?? 99);
+              const ordB = Number(b.order ?? 99);
+              if (ordA !== ordB) return ordA - ordB;
+              const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+              const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+              return dateB - dateA;
+            });
           setCombosList(activeCombos);
           try {
             localStorage.setItem('vrg_combos_cache', JSON.stringify(activeCombos));

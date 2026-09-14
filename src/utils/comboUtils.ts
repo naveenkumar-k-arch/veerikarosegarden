@@ -433,7 +433,7 @@ export const comboToProduct = (combo: Combo): Product => {
     ? combo.products.filter(Boolean)
     : (isVinayagar ? VINAYAGAR_10_FRUIT_PLANTS : []);
 
-  const firstImg = combo.imageUrl || comboProducts[0]?.images?.[0] || '/products/double-delight.jpeg';
+  const firstImg = combo.imageUrl || comboProducts[0]?.images?.[0] || (comboProducts[0] as any)?.image || (comboProducts[0] as any)?.imageUrl || '/products/vrg/combo-mini-beetroot-guva.jpg';
   const comboId = combo.id || 'combo-unknown';
   const plantCount = comboProducts.length || (isVinayagar ? 10 : (combo.productIds?.length || 3));
 
@@ -512,23 +512,23 @@ export const getCachedActiveCombos = (): Combo[] => {
       map.set(c.id, {
         ...existing,
         ...c,
-        order: existing.order !== undefined ? existing.order : c.order,
+        order: c.order !== undefined ? Number(c.order) : (existing.order !== undefined ? Number(existing.order) : 99),
         freeDelivery: existing.freeDelivery !== undefined ? existing.freeDelivery : c.freeDelivery,
         freePacking: existing.freePacking !== undefined ? existing.freePacking : c.freePacking,
         onlyMetturService: existing.onlyMetturService !== undefined ? existing.onlyMetturService : c.onlyMetturService,
-        imageUrl: existing.imageUrl || c.imageUrl,
-        products: (existing.products && existing.products.length > 0) ? existing.products : c.products
+        imageUrl: c.imageUrl || existing.imageUrl,
+        products: (c.products && c.products.length > 0) ? c.products : (existing.products || [])
       });
     }
   });
 
-  // Explicitly ensure Vinayagar Chaturthi combo is active, order 0, has 10 plants and correct festive image
+  // Explicitly ensure Vinayagar Chaturthi combo is active, has 10 plants and correct festive image
   map.forEach((c) => {
     const isVin = c.id === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
       (c.id && c.id.toLowerCase().includes('vinayagar')) ||
       (c.title && (c.title.includes('விநாயகர்') || c.title.toLowerCase().includes('10 fruit')));
     if (isVin) {
-      c.order = 0;
+      c.order = c.order !== undefined ? Number(c.order) : 4;
       c.active = true;
       c.onlyMetturService = true;
       c.freeDelivery = true;
@@ -592,7 +592,14 @@ export const getCachedActiveCombos = (): Combo[] => {
       }
       return c;
     })
-    .sort((a: any, b: any) => (Number(a.order ?? 99) - Number(b.order ?? 99)));
+    .sort((a: any, b: any) => {
+      const ordA = Number(a.order ?? 99);
+      const ordB = Number(b.order ?? 99);
+      if (ordA !== ordB) return ordA - ordB;
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    });
 };
 
 /**

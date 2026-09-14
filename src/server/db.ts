@@ -1977,10 +1977,10 @@ class Store {
       return true;
     });
 
-    // Guarantee Vinayagar Chaturthi combo order 0, correct image, and MSSS + Free Packing flags
+    // Ensure Vinayagar Chaturthi combo has correct image and flags
     rawCombos.forEach(c => {
       if (c.id === 'combo-vinayagar-chaturthi-10-fruit-plants') {
-        c.order = 0;
+        c.order = c.order !== undefined ? Number(c.order) : 4;
         c.imageUrl = '/products/vrg/combo-vinayagar-chaturthi-10-fruit-plants.jpg';
         c.active = true;
         (c as any).onlyMetturService = true;
@@ -2048,9 +2048,9 @@ class Store {
         originalPrice: Number(c.originalPrice || 0),
         comboPrice: Number(c.comboPrice || 0),
         discountPercent: c.discountPercent || (c.originalPrice > c.comboPrice ? Math.round(((c.originalPrice - c.comboPrice) / c.originalPrice) * 100) : 0),
-        imageUrl: isVinayagar ? '/products/vrg/combo-vinayagar-chaturthi-10-fruit-plants.jpg' : (c.imageUrl || (finalProds[0]?.images?.[0] || undefined)),
+        imageUrl: isVinayagar ? '/products/vrg/combo-vinayagar-chaturthi-10-fruit-plants.jpg' : (c.imageUrl || (finalProds[0]?.images?.[0] || (finalProds[0] as any)?.image || (finalProds[0] as any)?.imageUrl || undefined)),
         active: c.active !== false,
-        order: isVinayagar ? 0 : (c.order !== undefined ? Number(c.order) : 1),
+        order: c.order !== undefined ? Number(c.order) : (isVinayagar ? 4 : 99),
         freeDelivery: true,
         freePacking: isVinayagar ? true : ((c as any).freePacking === true),
         onlyMetturService: isVinayagar ? true : ((c as any).onlyMetturService === true),
@@ -2058,7 +2058,14 @@ class Store {
         createdAt: c.createdAt ? (typeof c.createdAt === 'string' ? c.createdAt : (c.createdAt as any).toISOString?.() || String(c.createdAt)) : new Date().toISOString(),
         updatedAt: c.updatedAt ? (typeof c.updatedAt === 'string' ? c.updatedAt : (c.updatedAt as any).toISOString?.() || String(c.updatedAt)) : new Date().toISOString()
       };
-    }).sort((a, b) => (Number(a.order ?? 99) - Number(b.order ?? 99)));
+    }).sort((a, b) => {
+      const ordA = Number(a.order ?? 99);
+      const ordB = Number(b.order ?? 99);
+      if (ordA !== ordB) return ordA - ordB;
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    });
   }
 
   async getComboById(id: string): Promise<Combo | null> {
@@ -2111,10 +2118,10 @@ class Store {
       originalPrice,
       comboPrice,
       discountPercent,
-      imageUrl: imageUrl || matchedProds[0]?.images?.[0] || '/products/double-delight.jpeg',
+      imageUrl: imageUrl || matchedProds[0]?.images?.[0] || (matchedProds[0] as any)?.image || (matchedProds[0] as any)?.imageUrl || '/products/vrg/combo-mini-beetroot-guva.jpg',
       active,
       freeDelivery,
-      order: 1,
+      order: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };

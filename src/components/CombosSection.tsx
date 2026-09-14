@@ -76,7 +76,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
               const currentProds = (c.products && c.products.length >= 10) ? c.products : VINAYAGAR_10_FRUIT_PLANTS;
               return {
                 ...c,
-                order: 0,
+                order: c.order !== undefined ? Number(c.order) : 4,
                 active: true,
                 badge: '10 FRUITS COMBO',
                 freeDelivery: true,
@@ -88,7 +88,14 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
             }
             return c;
           })
-          .sort((a: Combo, b: Combo) => (Number(a.order ?? 99) - Number(b.order ?? 99)));
+          .sort((a: Combo, b: Combo) => {
+            const ordA = Number(a.order ?? 99);
+            const ordB = Number(b.order ?? 99);
+            if (ordA !== ordB) return ordA - ordB;
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return dateB - dateA;
+          });
         setCombos(activeCombos);
         try {
           localStorage.setItem('vrg_combos_cache', JSON.stringify(activeCombos));
@@ -105,7 +112,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
     if (e) e.stopPropagation();
 
     const comboProducts = combo.products || [];
-    const firstImg = combo.imageUrl || comboProducts[0]?.images?.[0] || '/products/double-delight.jpeg';
+    const firstImg = combo.imageUrl || comboProducts[0]?.images?.[0] || comboProducts[0]?.image || comboProducts[0]?.imageUrl || '/products/vrg/combo-mini-beetroot-guva.jpg';
 
     // Create a virtual Product representation for the Combo bundle
     const comboCartProduct: Product = {
@@ -230,7 +237,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-            {combos.slice(0, 2).map((rawCombo) => {
+            {combos.map((rawCombo) => {
               const isVinayagar = rawCombo.id === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
                 (rawCombo.id && rawCombo.id.toLowerCase().includes('vinayagar')) ||
                 (rawCombo.title && (rawCombo.title.includes('விநாயகர்') || rawCombo.title.toLowerCase().includes('10 fruit')));
@@ -297,8 +304,10 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                               target.src = target.src.replace(/\.webp$/, '.jpg');
                             } else if (target.src.endsWith('.jpg')) {
                               target.src = target.src.replace(/\.jpg$/, '.webp');
-                            } else if (!target.src.includes('double-delight')) {
-                              target.src = '/products/double-delight.jpeg';
+                            } else if (combo.products?.[0]?.images?.[0] || (combo.products?.[0] as any)?.image || (combo.products?.[0] as any)?.imageUrl) {
+                              target.src = combo.products[0].images?.[0] || (combo.products[0] as any).image || (combo.products[0] as any).imageUrl;
+                            } else {
+                              target.src = '/products/vrg/combo-mini-beetroot-guva.jpg';
                             }
                           }}
                         />
@@ -307,7 +316,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                           {combo.products.slice(0, 4).map((p, idx) => (
                             <img
                               key={p.id || idx}
-                              src={p.images?.[0] || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80'}
+                              src={p.images?.[0] || (p as any).image || (p as any).imageUrl || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80'}
                               alt={p.name}
                               className="w-full h-full object-cover"
                             />
@@ -430,53 +439,6 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                 </div>
               );
             })}
-
-            {/* 3rd Card: View All Combos & Special Offers (Navigates to Shop) */}
-            <div
-              onClick={() => {
-                if (onViewAllCombos) onViewAllCombos();
-                else window.location.hash = '#/shop';
-              }}
-              className="group bg-gradient-to-br from-emerald-900 via-teal-950 to-slate-950 border-2 border-emerald-500/40 hover:border-emerald-400 rounded-2xl sm:rounded-3xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 flex flex-col justify-between relative transform hover:-translate-y-1.5 cursor-pointer p-6 sm:p-7 text-white"
-            >
-              {/* Ambient Decorative Glows */}
-              <div className="absolute -top-10 -right-10 w-44 h-44 bg-emerald-400/20 rounded-full blur-2xl pointer-events-none group-hover:scale-125 transition-transform duration-500" />
-              <div className="absolute -bottom-10 -left-10 w-44 h-44 bg-amber-400/15 rounded-full blur-2xl pointer-events-none group-hover:scale-125 transition-transform duration-500" />
-
-              <div className="relative z-10 flex flex-col items-center justify-center text-center space-y-4 my-auto py-3">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-black text-[11px] uppercase tracking-wider shadow-inner">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
-                  <span>{isTa ? 'அனைத்து சேர்க்கைகள்' : 'Special Collection'}</span>
-                </div>
-
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-amber-500 flex items-center justify-center shadow-xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 text-3xl sm:text-4xl">
-                  🌹
-                </div>
-
-                <div className="space-y-1.5 max-w-xs">
-                  <h3 className="font-black text-xl sm:text-2xl text-white tracking-tight drop-shadow-sm leading-snug">
-                    {isTa ? 'அனைத்து காம்போக்களையும் பார்க்க' : 'View All Combo Offers'}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-emerald-100/80 font-medium leading-relaxed">
-                    {isTa
-                      ? `வீரிகா ரோஜா கார்டன் பண்ணையின் அனைத்து ${combos.length > 2 ? `${combos.length}+` : ''} சேர்க்கை சலுகைகளையும் கடையின் பக்கத்தில் காண்க.`
-                      : `Explore all ${combos.length > 2 ? `${combos.length}+` : ''} curated nursery bundles with exclusive savings & free doorstep delivery.`}
-                  </p>
-                </div>
-
-                <div className="pt-2 w-full max-w-xs">
-                  <div className="w-full py-3 sm:py-3.5 px-4 rounded-xl sm:rounded-2xl bg-gradient-to-r from-amber-400 via-emerald-400 to-teal-300 text-slate-950 font-black text-xs sm:text-sm shadow-lg group-hover:shadow-xl transition-all flex items-center justify-center gap-2 group-hover:gap-3">
-                    <span>{isTa ? 'கடைக்குச் செல்லவும் (Shop Now)' : 'Explore All in Shop'}</span>
-                    <ArrowRight className="w-4 h-4 text-slate-950 transition-transform group-hover:translate-x-1" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="relative z-10 pt-3 border-t border-emerald-800/60 flex items-center justify-between text-[11px] text-emerald-300/80 font-bold">
-                <span>🌱 {isTa ? 'பண்ணை நேரடி பேக்கிங்' : 'Direct Nursery Packing'}</span>
-                <span>🚚 {isTa ? 'இலவச டெலிவரி' : 'Free Home Delivery'}</span>
-              </div>
-            </div>
           </div>
         )}
       </div>
@@ -530,15 +492,17 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                         target.src = target.src.replace(/\.webp$/, '.jpg');
                       } else if (target.src.endsWith('.jpg')) {
                         target.src = target.src.replace(/\.jpg$/, '.webp');
-                      } else if (!target.src.includes('double-delight')) {
-                        target.src = '/products/double-delight.jpeg';
+                      } else if (modalCombo.products?.[0]?.images?.[0] || (modalCombo.products?.[0] as any)?.image || (modalCombo.products?.[0] as any)?.imageUrl) {
+                        target.src = modalCombo.products[0].images?.[0] || (modalCombo.products[0] as any).image || (modalCombo.products[0] as any).imageUrl;
+                      } else {
+                        target.src = '/products/vrg/combo-mini-beetroot-guva.jpg';
                       }
                     }}
                   />
                 ) : modalCombo.products && modalCombo.products.length > 0 ? (
                   <div className="grid grid-cols-2 h-full gap-1 bg-slate-800">
                     {modalCombo.products.slice(0, 4).map((p, idx) => (
-                      <img key={p.id || idx} src={p.images?.[0] || ''} alt={p.name} className="w-full h-full object-cover" />
+                      <img key={p.id || idx} src={p.images?.[0] || (p as any).image || (p as any).imageUrl || ''} alt={p.name} className="w-full h-full object-cover" />
                     ))}
                   </div>
                 ) : null}
@@ -620,9 +584,14 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                           </span>
                         )}
                         <img
-                          src={p.images?.[0] || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=200&q=80'}
+                          src={p.images?.[0] || (p as any).image || (p as any).imageUrl || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=200&q=80'}
                           alt={p.name}
                           className="w-14 h-14 rounded-xl object-cover border border-slate-200 shrink-0 group-hover:scale-105 transition-transform"
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            if (target.src.endsWith('.webp')) target.src = target.src.replace(/\.webp$/, '.jpg');
+                            else if (target.src.endsWith('.jpg')) target.src = target.src.replace(/\.jpg$/, '.webp');
+                          }}
                         />
                         <div className="flex-1 min-w-0">
                           <h5 className="font-bold text-slate-900 text-xs truncate group-hover:text-emerald-800">
