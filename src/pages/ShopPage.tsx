@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { Product, Category, Combo } from '../types';
 import { ProductCard, CompactProductCard, HorizontalScrollRow } from '../components/ProductCard';
 import { comboToProduct, getCachedActiveCombos, VINAYAGAR_10_FRUIT_PLANTS, resolveComboImage } from '../utils/comboUtils';
@@ -62,7 +62,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
               const resolvedImg = resolveComboImage(c);
               const isVin = c.id === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
                 (c.id && c.id.toLowerCase().includes('vinayagar')) ||
-                (c.title && (c.title.includes('விநாயகர்') || c.title.toLowerCase().includes('10 fruit')));
+                (c.title && (c.title.includes('à®µà®¿à®¨à®¾à®¯à®•à®°à¯') || c.title.toLowerCase().includes('10 fruit')));
               if (isVin) {
                 const prods = (Array.isArray(c.products) && c.products.length >= 10) ? c.products : VINAYAGAR_10_FRUIT_PLANTS;
                 return {
@@ -92,7 +92,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
             });
           setCombosList(activeCombos);
           try {
-            localStorage.setItem('vrg_combos_cache', JSON.stringify(activeCombos));
+            localStorage.setItem('vrg_combos_cache_v2', JSON.stringify(activeCombos));
           } catch {}
         }
       } catch {}
@@ -151,7 +151,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
       targetSlug === 'combos' ||
       targetName.includes('combo') ||
       targetName.includes('offer') ||
-      targetName.includes('சேர்க்கை')
+      targetName.includes('à®šà¯‡à®°à¯à®•à¯à®•à¯ˆ')
     ) {
       return (
         pCatId === 'cat-combos' ||
@@ -173,15 +173,15 @@ export const ShopPage: React.FC<ShopPageProps> = ({
     if (pCatName && (pCatName.includes(targetName) || targetName.includes(pCatName))) return true;
 
     // 3. Specific Category Mappings
-    if (targetId === 'cat-herbals' || targetSlug === 'herbals' || targetName.includes('herbal') || targetName.includes('மூலிகை')) {
+    if (targetId === 'cat-herbals' || targetSlug === 'herbals' || targetName.includes('herbal') || targetName.includes('à®®à¯‚à®²à®¿à®•à¯ˆ')) {
       return pCatId === 'cat-herbals' || pCatName.includes('herbal') || pTags.includes('herbal') || pTags.includes('herbals') || pTags.includes('herbal plants') || pName.includes('panner leaf') || pName.includes('ranakalli') || pName.includes('rosemary') || pName.includes('miracle leaf');
     }
 
-    if (targetId === 'cat-jasmine' || targetSlug === 'jasmine-varieties' || targetName.includes('jasmine') || targetName.includes('மல்லி')) {
+    if (targetId === 'cat-jasmine' || targetSlug === 'jasmine-varieties' || targetName.includes('jasmine') || targetName.includes('à®®à®²à¯à®²à®¿')) {
       return pCatId === 'cat-jasmine' || pCatName.includes('jasmine') || pTags.includes('jasmine') || pTags.includes('malli') || pName.includes('malli') || pName.includes('kakattan');
     }
 
-    if (targetId === 'cat-fruits' || targetSlug === 'fruit-plants' || targetName.includes('fruit') || targetName.includes('பழ')) {
+    if (targetId === 'cat-fruits' || targetSlug === 'fruit-plants' || targetName.includes('fruit') || targetName.includes('à®ªà®´')) {
       return pCatId === 'cat-fruits' || pCatName.includes('fruit') || pTags.includes('fruit') || pName.includes('mango') || pName.includes('guava') || pName.includes('apple') || pName.includes('grape');
     }
 
@@ -307,7 +307,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
                   boxShadow: isSel ? '0 2px 6px rgba(22,163,74,0.3)' : 'none'
                 }}
               >
-                <span>🌱</span> {cat.name}
+                <span>ðŸŒ±</span> {cat.name}
               </button>
             );
           })}
@@ -380,7 +380,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
           <div className="space-y-2 pt-4 border-t border-slate-200">
             <div className="flex justify-between items-center text-xs">
               <h4 className="font-bold text-slate-700 uppercase tracking-wider">Max Price:</h4>
-              <span className="font-black text-emerald-800">₹{maxPrice}</span>
+              <span className="font-black text-emerald-800">â‚¹{maxPrice}</span>
             </div>
             <input
               type="range"
@@ -392,9 +392,9 @@ export const ShopPage: React.FC<ShopPageProps> = ({
               className="w-full accent-emerald-700 cursor-pointer"
             />
             <div className="flex justify-between text-[10px] text-slate-400 font-mono">
-              <span>₹50</span>
-              <span>₹250</span>
-              <span>₹500</span>
+              <span>â‚¹50</span>
+              <span>â‚¹250</span>
+              <span>â‚¹500</span>
             </div>
           </div>
 
@@ -479,7 +479,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
                       <div key={cat.id} className="space-y-2">
                         <div className="flex items-center justify-between px-1">
                           <div className="flex items-center gap-1.5 font-bold text-slate-900 text-sm">
-                            <span>🌱</span> {cat.name}
+                            <span>ðŸŒ±</span> {cat.name}
                           </div>
                           <button
                             onClick={() => onSelectCategory(cat.id)}
@@ -564,7 +564,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
             <div className="space-y-2">
               <div className="flex justify-between text-xs font-bold">
                 <span>Max Price:</span>
-                <span>₹{maxPrice}</span>
+                <span>â‚¹{maxPrice}</span>
               </div>
               <input
                 type="range"
@@ -589,3 +589,4 @@ export const ShopPage: React.FC<ShopPageProps> = ({
     </div>
   );
 };
+

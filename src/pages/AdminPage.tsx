@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Product, Category, Order, Coupon, Banner, Review, SiteSettings, PaymentLog, FinancialEntry, Combo, PaymentStatus, OrderStatus } from '../types';
 import { LayoutDashboard, Package, ShoppingBag, FolderTree, Tag, Image, Star, Settings as SettingsIcon, ShieldCheck, Plus, Edit, Trash2, Check, X, RefreshCw, Printer, AlertTriangle, Search, Lock, ExternalLink, DollarSign, TrendingUp, TrendingDown, Camera, CreditCard, ChevronDown, User, Phone, MapPin, Upload, MessageSquare, ThumbsUp, Eye, EyeOff, Sparkles, Monitor, Sprout, Menu, LogOut, Truck, Globe, ZoomIn } from 'lucide-react';
 
@@ -14,7 +14,7 @@ import { AIOrderImageUpload } from '../components/AIOrderImageUpload';
 import { ExtractedOrderData } from '../utils/geminiOrderExtractor';
 
 
-// ── Inline Coupon Creation Form ──────────────────────────────────────────────
+// â”€â”€ Inline Coupon Creation Form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const CouponForm: React.FC<{ categories: Category[]; onSave: (data: any) => Promise<void> }> = ({ onSave }) => {
   const [form, setForm] = useState({
     code: '', discountType: 'PERCENTAGE', discountValue: 10,
@@ -32,11 +32,11 @@ const CouponForm: React.FC<{ categories: Category[]; onSave: (data: any) => Prom
     try {
       await onSave({ ...form, code: form.code.toUpperCase().trim() });
       toast.success(`Coupon ${form.code.toUpperCase().trim()} created successfully!`, 'Coupon Created');
-      setMsg('✅ Coupon created!');
+      setMsg('âœ… Coupon created!');
       setForm({ code: '', discountType: 'PERCENTAGE', discountValue: 10, minOrderAmount: 0, maxUsageCount: 100, expiryDate: '', isActive: true, description: '' });
     } catch {
       toast.error('Failed to create coupon', 'Coupon Error');
-      setMsg('❌ Failed to create coupon');
+      setMsg('âŒ Failed to create coupon');
     }
     setSaving(false);
   };
@@ -63,7 +63,7 @@ const CouponForm: React.FC<{ categories: Category[]; onSave: (data: any) => Prom
           <select value={form.discountType} onChange={e => setForm({ ...form, discountType: e.target.value })}
             className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold">
             <option value="PERCENTAGE">Percentage (%)</option>
-            <option value="FLAT">Flat Amount (₹)</option>
+            <option value="FLAT">Flat Amount (â‚¹)</option>
           </select>
         </div>
         <div>
@@ -73,7 +73,7 @@ const CouponForm: React.FC<{ categories: Category[]; onSave: (data: any) => Prom
             className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold" />
         </div>
         <div>
-          <label className="font-bold text-slate-700 block mb-1">Min Order Amount (₹)</label>
+          <label className="font-bold text-slate-700 block mb-1">Min Order Amount (â‚¹)</label>
           <input type="number" min={0} value={form.minOrderAmount}
             onChange={e => setForm({ ...form, minOrderAmount: Number(e.target.value) })}
             className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold" />
@@ -101,7 +101,7 @@ const CouponForm: React.FC<{ categories: Category[]; onSave: (data: any) => Prom
           </select>
         </div>
       </div>
-      {msg && <p className={`text-xs font-bold ${msg.startsWith('✅') ? 'text-emerald-700' : 'text-rose-600'}`}>{msg}</p>}
+      {msg && <p className={`text-xs font-bold ${msg.startsWith('âœ…') ? 'text-emerald-700' : 'text-rose-600'}`}>{msg}</p>}
       <button type="submit" disabled={saving}
         className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-black text-xs rounded-xl flex items-center gap-2">
         <Plus className="w-4 h-4" /> {saving ? 'Creating...' : 'Create Coupon'}
@@ -641,7 +641,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
     orderStatus: 'CONFIRMED' as OrderStatus,
     notes: '',
     trackingNumber: '',
-    courierName: 'Professional Courier – Reduced Soil'
+    courierName: 'Professional Courier â€“ Reduced Soil'
   });
 
   // Category Modal & Reassignment State
@@ -1037,7 +1037,7 @@ const silentRefresh = async (): Promise<boolean> => {
     verifySession();
 
     // Poll every 60 seconds for live order feed (bootstrap cache is 60s TTL)
-    const ADMIN_POLL_INTERVAL_MS = 60_000; // 60 seconds — matches server bootstrap cache TTL
+    const ADMIN_POLL_INTERVAL_MS = 60_000; // 60 seconds â€” matches server bootstrap cache TTL
     const interval = setInterval(() => {
       fetchData();
     }, ADMIN_POLL_INTERVAL_MS);
@@ -1074,7 +1074,7 @@ const silentRefresh = async (): Promise<boolean> => {
   }, []);
 
   const [productSaveError, setProductSaveError] = useState<string | null>(null);
-  // Handle Save Product (Create or Edit) — Instant Zero-Latency Optimistic Save (<10ms)
+  // Handle Save Product (Create or Edit) â€” Instant Zero-Latency Optimistic Save (<10ms)
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     setProductSaveError(null);
@@ -1108,7 +1108,7 @@ const silentRefresh = async (): Promise<boolean> => {
       sellingPrice,
       discount: discountVal,
       stock: Number(prodForm.stock) >= 0 ? Number(prodForm.stock) : 25,
-      plantHeight: prodForm.plantHeight || '1–2 Feet',
+      plantHeight: prodForm.plantHeight || '1â€“2 Feet',
       potSize: prodForm.potSize || '8 Inch Bag',
       sunlight: prodForm.sunlight || 'Full Sun',
       waterRequirement: prodForm.waterRequirement || 'Daily',
@@ -1261,7 +1261,7 @@ const silentRefresh = async (): Promise<boolean> => {
 
   // Handle Delete All Products
   const handleDeleteAllProducts = async () => {
-    if (!confirm('⚠️ WARNING: Are you sure you want to delete ALL products from the catalog? This action cannot be undone.')) return;
+    if (!confirm('âš ï¸ WARNING: Are you sure you want to delete ALL products from the catalog? This action cannot be undone.')) return;
     try {
       const allIds = products.map(p => p.id);
       localStorage.setItem('vrg_deleted_products', JSON.stringify(allIds));
@@ -1417,7 +1417,7 @@ const silentRefresh = async (): Promise<boolean> => {
 
   // Handle Delete All Categories
   const handleDeleteAllCategories = async () => {
-    if (!confirm('⚠️ WARNING: Are you sure you want to delete ALL categories? This action cannot be undone.')) return;
+    if (!confirm('âš ï¸ WARNING: Are you sure you want to delete ALL categories? This action cannot be undone.')) return;
     setCategories([]);
     persistAdminCache(c => ({ ...c, categories: [] }));
     toast.success('All categories removed.', 'Categories Cleared');
@@ -1431,7 +1431,7 @@ const silentRefresh = async (): Promise<boolean> => {
   };
 
   const handleDeleteOrder = async (orderId: string) => {
-    if (!confirm(`⚠️ Are you sure you want to permanently delete Order #${orderId}? This action cannot be undone.`)) return;
+    if (!confirm(`âš ï¸ Are you sure you want to permanently delete Order #${orderId}? This action cannot be undone.`)) return;
 
     // 1. Remove order from UI state & all local storage lists
     setOrders(prev => {
@@ -1720,7 +1720,7 @@ const silentRefresh = async (): Promise<boolean> => {
     window.open(`https://wa.me/${targetPhone}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
-  // Handle Quick Stock Update — optimistic with pending tracker to prevent poll revert
+  // Handle Quick Stock Update â€” optimistic with pending tracker to prevent poll revert
   const handleQuickStockUpdate = async (productId: string, newStock: number) => {
     const validStock = Math.max(0, newStock);
     let updatedProduct: Product | undefined;
@@ -1769,16 +1769,16 @@ const silentRefresh = async (): Promise<boolean> => {
       const data = await res.json();
       if (data.success && data.settings) {
         toast.success('Store & payment settings saved successfully!', 'Settings Saved');
-        setSettingsMsg('✅ Settings saved successfully!');
+        setSettingsMsg('âœ… Settings saved successfully!');
         setSettings(data.settings);
       } else {
         toast.error(data.message || 'Failed to save settings', 'Settings Error');
-        setSettingsMsg(`❌ ${data.message || 'Failed to save settings'}`);
+        setSettingsMsg(`âŒ ${data.message || 'Failed to save settings'}`);
       }
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || 'Network error saving settings', 'Error');
-      setSettingsMsg(`❌ Network error: ${err.message}`);
+      setSettingsMsg(`âŒ Network error: ${err.message}`);
     } finally {
       setSettingsSaving(false);
       setTimeout(() => setSettingsMsg(null), 4000);
@@ -1813,14 +1813,14 @@ const silentRefresh = async (): Promise<boolean> => {
 
   // Handle Refund Trigger
   const handleTriggerRefund = async (merchantTransactionId: string, amount: number) => {
-    if (!confirm(`Are you sure you want to trigger PhonePe refund of ₹${amount}?`)) return;
+    if (!confirm(`Are you sure you want to trigger PhonePe refund of â‚¹${amount}?`)) return;
     try {
       const res = await authFetch('/api/phonepe/refund', {
         method: 'POST',
         body: JSON.stringify({ merchantTransactionId, amount })
       });
       const data = await res.json();
-      toast.success(data.message || `Refund of ₹${amount} initiated!`, 'Refund Status');
+      toast.success(data.message || `Refund of â‚¹${amount} initiated!`, 'Refund Status');
       alert(data.message);
       fetchData();
     } catch (err) {
@@ -1855,7 +1855,7 @@ const silentRefresh = async (): Promise<boolean> => {
       orderStatus: 'CONFIRMED',
       notes: mode === 'ai_image' ? 'Order from scanned image' : 'WhatsApp Order',
       trackingNumber: '',
-      courierName: 'Professional Courier – Reduced Soil'
+      courierName: 'Professional Courier â€“ Reduced Soil'
     });
     setShowWhatsAppOrderModal(true);
   };
@@ -1874,7 +1874,7 @@ const silentRefresh = async (): Promise<boolean> => {
     const updatedItems = [...whatsAppOrderForm.items, newItem];
     const newPlantsText = updatedItems
       .filter(it => it.name && it.name.trim())
-      .map(it => `${it.quantity > 1 ? `${it.quantity}x ` : ''}${it.name}${it.price > 0 ? ` (₹${it.price})` : ''}`)
+      .map(it => `${it.quantity > 1 ? `${it.quantity}x ` : ''}${it.name}${it.price > 0 ? ` (â‚¹${it.price})` : ''}`)
       .join('\n');
     setWhatsAppOrderForm(prev => ({
       ...prev,
@@ -1890,7 +1890,7 @@ const silentRefresh = async (): Promise<boolean> => {
     });
     const newPlantsText = updatedItems
       .filter(it => it.name && it.name.trim())
-      .map(it => `${it.quantity > 1 ? `${it.quantity}x ` : ''}${it.name}${it.price > 0 ? ` (₹${it.price})` : ''}`)
+      .map(it => `${it.quantity > 1 ? `${it.quantity}x ` : ''}${it.name}${it.price > 0 ? ` (â‚¹${it.price})` : ''}`)
       .join('\n');
     setWhatsAppOrderForm(prev => ({
       ...prev,
@@ -1903,7 +1903,7 @@ const silentRefresh = async (): Promise<boolean> => {
     const updatedItems = whatsAppOrderForm.items.filter((_, idx) => idx !== index);
     const newPlantsText = updatedItems
       .filter(it => it.name && it.name.trim())
-      .map(it => `${it.quantity > 1 ? `${it.quantity}x ` : ''}${it.name}${it.price > 0 ? ` (₹${it.price})` : ''}`)
+      .map(it => `${it.quantity > 1 ? `${it.quantity}x ` : ''}${it.name}${it.price > 0 ? ` (â‚¹${it.price})` : ''}`)
       .join('\n');
     setWhatsAppOrderForm(prev => ({
       ...prev,
@@ -1916,7 +1916,7 @@ const silentRefresh = async (): Promise<boolean> => {
     const sum = (whatsAppOrderForm.items || []).reduce((acc, it) => acc + ((Number(it.price) || 0) * (Number(it.quantity) || 1)), 0);
     if (sum > 0) {
       setWhatsAppOrderForm(prev => ({ ...prev, grandTotal: sum }));
-      toast.success(`Grand total updated to ₹${sum}`, 'Total Updated');
+      toast.success(`Grand total updated to â‚¹${sum}`, 'Total Updated');
     }
   };
 
@@ -1929,7 +1929,7 @@ const silentRefresh = async (): Promise<boolean> => {
           productId: `custom-ai-${Date.now()}-${idx}`,
           sku: `PLANT-${idx + 1}`,
           name: it.name || `Plant ${idx + 1}`,
-          tamilName: it.tamilName || it.name || `நர்சரி செடி ${idx + 1}`,
+          tamilName: it.tamilName || it.name || `à®¨à®°à¯à®šà®°à®¿ à®šà¯†à®Ÿà®¿ ${idx + 1}`,
           price: Number(it.price) || 0,
           mrp: Number(it.price) || 0,
           quantity: Number(it.quantity) || 1,
@@ -1938,7 +1938,7 @@ const silentRefresh = async (): Promise<boolean> => {
       : [];
 
     const computedPlantsText = mappedItems.length > 0
-      ? mappedItems.map(it => `${it.quantity > 1 ? `${it.quantity}x ` : ''}${it.name}${it.price > 0 ? ` (₹${it.price})` : ''}`).join('\n')
+      ? mappedItems.map(it => `${it.quantity > 1 ? `${it.quantity}x ` : ''}${it.name}${it.price > 0 ? ` (â‚¹${it.price})` : ''}`).join('\n')
       : (data.plantsText || '');
 
     const itemsSum = mappedItems.reduce((acc, it) => acc + (it.price * it.quantity), 0);
@@ -1961,7 +1961,7 @@ const silentRefresh = async (): Promise<boolean> => {
       plantsText: computedPlantsText,
       items: mappedItems,
       grandTotal: computedTotal,
-      courierName: data.courierName || prev.courierName || 'Professional Courier – Reduced Soil',
+      courierName: data.courierName || prev.courierName || 'Professional Courier â€“ Reduced Soil',
       paymentMethod: (data.paymentMethod as any) || prev.paymentMethod || 'WHATSAPP',
       paymentStatus: (data.paymentStatus as any) || 'SUCCESS',
       orderStatus: (data.orderStatus as any) || 'CONFIRMED',
@@ -2009,7 +2009,7 @@ const silentRefresh = async (): Promise<boolean> => {
       orderStatus: o.orderStatus || 'CONFIRMED',
       notes: o.notes || '',
       trackingNumber: (o as any).trackingNumber || '',
-      courierName: (o as any).courierName || 'Professional Courier – Reduced Soil'
+      courierName: (o as any).courierName || 'Professional Courier â€“ Reduced Soil'
     });
     setShowWhatsAppOrderModal(true);
   };
@@ -2038,7 +2038,7 @@ const silentRefresh = async (): Promise<boolean> => {
         productId: it.productId || `custom-wa-${Date.now()}-${idx}`,
         sku: it.sku || `WA-${idx + 1}`,
         name: it.name || `Ordered Plant ${idx + 1}`,
-        tamilName: it.tamilName || it.name || `நர்சரி செடி ${idx + 1}`,
+        tamilName: it.tamilName || it.name || `à®¨à®°à¯à®šà®°à®¿ à®šà¯†à®Ÿà®¿ ${idx + 1}`,
         price: Number(it.price) || (Number(whatsAppOrderForm.grandTotal || 0) / (whatsAppOrderForm.items.length || 1)),
         mrp: Number(it.mrp || it.price) || (Number(whatsAppOrderForm.grandTotal || 0) / (whatsAppOrderForm.items.length || 1)),
         quantity: Number(it.quantity) || 1,
@@ -2059,7 +2059,7 @@ const silentRefresh = async (): Promise<boolean> => {
           productId: `custom-wa-${Date.now()}-${idx}`,
           sku: `WA-${idx + 1}`,
           name: cleanName || `Ordered Plant ${idx + 1}`,
-          tamilName: cleanName || `நர்சரி செடி ${idx + 1}`,
+          tamilName: cleanName || `à®¨à®°à¯à®šà®°à®¿ à®šà¯†à®Ÿà®¿ ${idx + 1}`,
           price: Number(whatsAppOrderForm.grandTotal || 0) / (lines.length || 1),
           mrp: Number(whatsAppOrderForm.grandTotal || 0) / (lines.length || 1),
           quantity: qty,
@@ -2071,7 +2071,7 @@ const silentRefresh = async (): Promise<boolean> => {
         productId: `custom-wa-${Date.now()}-0`,
         sku: 'WA-1',
         name: 'Ordered Plants (WhatsApp / Offline)',
-        tamilName: 'நர்சரி செடிகள்',
+        tamilName: 'à®¨à®°à¯à®šà®°à®¿ à®šà¯†à®Ÿà®¿à®•à®³à¯',
         price: Number(whatsAppOrderForm.grandTotal || 0),
         mrp: Number(whatsAppOrderForm.grandTotal || 0),
         quantity: 1,
@@ -2118,7 +2118,7 @@ const silentRefresh = async (): Promise<boolean> => {
       orderStatus: whatsAppOrderForm.orderStatus || 'CONFIRMED',
       notes: whatsAppOrderForm.notes || (isFromImage ? 'Uploaded by Image (AI Extracted)' : ''),
       trackingNumber: whatsAppOrderForm.trackingNumber || '',
-      courierName: whatsAppOrderForm.courierName || 'Professional Courier – Reduced Soil'
+      courierName: whatsAppOrderForm.courierName || 'Professional Courier â€“ Reduced Soil'
     };
 
     if (editingOrder) {
@@ -2322,7 +2322,7 @@ const silentRefresh = async (): Promise<boolean> => {
             <div className="p-4 sm:p-5 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-emerald-800 to-teal-900 text-white">
               <div className="flex items-center gap-3">
                 <span className="p-2.5 bg-white/10 rounded-2xl text-xl backdrop-blur-md">
-                  {editingOrder ? '✏️' : addOrderMode === 'ai_image' ? '📸' : '💬'}
+                  {editingOrder ? 'âœï¸' : addOrderMode === 'ai_image' ? 'ðŸ“¸' : 'ðŸ’¬'}
                 </span>
                 <div>
                   <h3 className="font-extrabold text-base sm:text-lg flex items-center gap-2">
@@ -2338,7 +2338,7 @@ const silentRefresh = async (): Promise<boolean> => {
                     {editingOrder
                       ? 'Update order details, plant list & courier partner'
                       : addOrderMode === 'ai_image'
-                      ? 'Upload local bill or chat photo → Gemini extracts details → Edit preview → Add as New Order'
+                      ? 'Upload local bill or chat photo â†’ Gemini extracts details â†’ Edit preview â†’ Add as New Order'
                       : 'Enter customer contact, address & ordered plants manually'}
                   </p>
                 </div>
@@ -2369,7 +2369,7 @@ const silentRefresh = async (): Promise<boolean> => {
                         : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    <span>✍️ Option 1: Manual Entry</span>
+                    <span>âœï¸ Option 1: Manual Entry</span>
                   </button>
                   <button
                     type="button"
@@ -2381,7 +2381,7 @@ const silentRefresh = async (): Promise<boolean> => {
                     }`}
                   >
                     <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                    <span>📸 Option 2: Upload Image (Gemini AI)</span>
+                    <span>ðŸ“¸ Option 2: Upload Image (Gemini AI)</span>
                   </button>
                 </div>
               </div>
@@ -2391,7 +2391,7 @@ const silentRefresh = async (): Promise<boolean> => {
             {addOrderMode === 'ai_image' && !uploadedOrderImagePreview && !editingOrder ? (
               <div className="overflow-y-auto p-5 sm:p-6 space-y-4 flex-1 text-xs">
                 <div className="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-4 flex items-start gap-3">
-                  <span className="text-2xl shrink-0">📸</span>
+                  <span className="text-2xl shrink-0">ðŸ“¸</span>
                   <div className="space-y-1">
                     <h4 className="font-extrabold text-emerald-950 text-sm">
                       Upload Order Photo / Bill / WhatsApp Chat Screenshot
@@ -2400,7 +2400,7 @@ const silentRefresh = async (): Promise<boolean> => {
                       Select an image from your local computer or phone. Google Gemini AI will read and extract the customer name, phone number, doorstep address, pincode, ordered plants with quantities, and total amount.
                     </p>
                     <p className="text-[11px] text-emerald-700 font-bold">
-                      💡 You will see a full Order Preview with complete edit options before adding as a new order!
+                      ðŸ’¡ You will see a full Order Preview with complete edit options before adding as a new order!
                     </p>
                   </div>
                 </div>
@@ -2471,7 +2471,7 @@ const silentRefresh = async (): Promise<boolean> => {
                           className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 cursor-pointer"
                         >
                           <ZoomIn className="w-3.5 h-3.5" />
-                          <span>🔍 View Full Resolution Image</span>
+                          <span>ðŸ” View Full Resolution Image</span>
                         </button>
                       </div>
                     </div>
@@ -2660,7 +2660,7 @@ const silentRefresh = async (): Promise<boolean> => {
 
                           {/* Unit Price */}
                           <div className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 shrink-0">
-                            <span className="text-[10px] font-bold text-slate-500">₹</span>
+                            <span className="text-[10px] font-bold text-slate-500">â‚¹</span>
                             <input
                               type="number"
                               min="0"
@@ -2674,7 +2674,7 @@ const silentRefresh = async (): Promise<boolean> => {
                           {/* Line Subtotal */}
                           <div className="w-20 text-right shrink-0">
                             <span className="text-[11px] font-black text-emerald-800">
-                              ₹{(Number(item.price) || 0) * (Number(item.quantity) || 1)}
+                              â‚¹{(Number(item.price) || 0) * (Number(item.quantity) || 1)}
                             </span>
                           </div>
 
@@ -2698,7 +2698,7 @@ const silentRefresh = async (): Promise<boolean> => {
                           className="text-[11px] font-bold text-emerald-800 hover:underline flex items-center gap-1 cursor-pointer"
                         >
                           <span>
-                            ⚡ Set Grand Total to sum of items (₹
+                            âš¡ Set Grand Total to sum of items (â‚¹
                             {whatsAppOrderForm.items.reduce(
                               (s, it) => s + (Number(it.price) || 0) * (Number(it.quantity) || 1),
                               0
@@ -2711,7 +2711,7 @@ const silentRefresh = async (): Promise<boolean> => {
                           onClick={() => setShowPlantsTextToggle(!showPlantsTextToggle)}
                           className="text-[11px] font-bold text-slate-600 hover:text-slate-900 cursor-pointer"
                         >
-                          {showPlantsTextToggle ? '▲ Hide Raw Text' : '▼ View / Edit Raw WhatsApp Text'}
+                          {showPlantsTextToggle ? 'â–² Hide Raw Text' : 'â–¼ View / Edit Raw WhatsApp Text'}
                         </button>
                       </div>
                     </div>
@@ -2728,7 +2728,7 @@ const silentRefresh = async (): Promise<boolean> => {
                       />
                       <div className="flex items-center justify-between">
                         <p className="text-[10.5px] text-emerald-900 font-medium">
-                          💡 Type or paste plant names directly.
+                          ðŸ’¡ Type or paste plant names directly.
                         </p>
                         <button
                           type="button"
@@ -2764,10 +2764,10 @@ const silentRefresh = async (): Promise<boolean> => {
                   <div className="bg-emerald-100/70 p-3 rounded-xl border border-emerald-300">
                     <label className="font-black text-emerald-950 block mb-1 text-xs flex items-center gap-1">
                       <DollarSign className="w-3.5 h-3.5 text-emerald-700" />
-                      <span>Price / Amount Received (₹) *</span>
+                      <span>Price / Amount Received (â‚¹) *</span>
                     </label>
                     <div className="relative">
-                      <span className="absolute left-3 top-2 font-black text-emerald-900 text-sm">₹</span>
+                      <span className="absolute left-3 top-2 font-black text-emerald-900 text-sm">â‚¹</span>
                       <input
                         type="number"
                         required
@@ -2790,14 +2790,14 @@ const silentRefresh = async (): Promise<boolean> => {
                       onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, courierName: e.target.value })}
                       className="w-full px-3 py-2 bg-white border border-blue-300 rounded-xl font-bold text-slate-900 focus:outline-none text-xs"
                     >
-                      <option value="Professional Courier – Reduced Soil">
-                        🚚 Professional Courier – Reduced Soil (Doorstep Delivery)
+                      <option value="Professional Courier â€“ Reduced Soil">
+                        ðŸšš Professional Courier â€“ Reduced Soil (Doorstep Delivery)
                       </option>
-                      <option value="Professional Courier – Full Soil">
-                        🌱 Professional Courier – Full Soil (Tamil Nadu Only)
+                      <option value="Professional Courier â€“ Full Soil">
+                        ðŸŒ± Professional Courier â€“ Full Soil (Tamil Nadu Only)
                       </option>
                       <option value="Mettur Parcel Service (MSS)">
-                        📦 Mettur Parcel Service / MSS (Branch Pickup Depot)
+                        ðŸ“¦ Mettur Parcel Service / MSS (Branch Pickup Depot)
                       </option>
                     </select>
                   </div>
@@ -2812,12 +2812,12 @@ const silentRefresh = async (): Promise<boolean> => {
                       onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, paymentMethod: e.target.value as any })}
                       className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900 focus:outline-none text-xs"
                     >
-                      <option value="WHATSAPP">💬 WhatsApp Direct</option>
-                      <option value="UPI">📱 UPI</option>
+                      <option value="WHATSAPP">ðŸ’¬ WhatsApp Direct</option>
+                      <option value="UPI">ðŸ“± UPI</option>
                       <option value="GPAY">Google Pay</option>
                       <option value="PHONEPE">PhonePe</option>
-                      <option value="COD">💵 Cash On Delivery</option>
-                      <option value="BANK_TRANSFER">🏦 Bank Transfer</option>
+                      <option value="COD">ðŸ’µ Cash On Delivery</option>
+                      <option value="BANK_TRANSFER">ðŸ¦ Bank Transfer</option>
                     </select>
                   </div>
 
@@ -2828,9 +2828,9 @@ const silentRefresh = async (): Promise<boolean> => {
                       onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, paymentStatus: e.target.value as any })}
                       className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900 focus:outline-none text-xs"
                     >
-                      <option value="SUCCESS">✅ Paid (Success)</option>
-                      <option value="PENDING">⏳ Payment Pending</option>
-                      <option value="FAILED">❌ Failed</option>
+                      <option value="SUCCESS">âœ… Paid (Success)</option>
+                      <option value="PENDING">â³ Payment Pending</option>
+                      <option value="FAILED">âŒ Failed</option>
                     </select>
                   </div>
 
@@ -2841,10 +2841,10 @@ const silentRefresh = async (): Promise<boolean> => {
                       onChange={e => setWhatsAppOrderForm({ ...whatsAppOrderForm, orderStatus: e.target.value as any })}
                       className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900 focus:outline-none text-xs"
                     >
-                      <option value="CONFIRMED">📦 Confirmed (Ready to Pack)</option>
-                      <option value="PACKED">📦 Packed</option>
-                      <option value="SHIPPED">🚚 Shipped</option>
-                      <option value="DELIVERED">🎉 Delivered</option>
+                      <option value="CONFIRMED">ðŸ“¦ Confirmed (Ready to Pack)</option>
+                      <option value="PACKED">ðŸ“¦ Packed</option>
+                      <option value="SHIPPED">ðŸšš Shipped</option>
+                      <option value="DELIVERED">ðŸŽ‰ Delivered</option>
                     </select>
                   </div>
                 </div>
@@ -2886,12 +2886,12 @@ const silentRefresh = async (): Promise<boolean> => {
                       </>
                     ) : editingOrder ? (
                       <>
-                        <span>💾 Update Order</span>
+                        <span>ðŸ’¾ Update Order</span>
                       </>
                     ) : (
                       <>
                         <Check className="w-4 h-4" />
-                        <span>➕ Add as New Order</span>
+                        <span>âž• Add as New Order</span>
                       </>
                     )}
                   </button>
@@ -2939,7 +2939,7 @@ const silentRefresh = async (): Promise<boolean> => {
         <div className="hidden lg:flex items-center justify-between bg-slate-900 text-white px-6 py-2.5 text-xs shadow-md">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="font-bold">📱 VRG Nursery Mobile Redesign Mode (12-Step Order Workflow)</span>
+            <span className="font-bold">ðŸ“± VRG Nursery Mobile Redesign Mode (12-Step Order Workflow)</span>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -3048,7 +3048,7 @@ const silentRefresh = async (): Promise<boolean> => {
               sellingPrice,
               discount: discountVal,
               stock: Number(prod.stock) >= 0 ? Number(prod.stock) : 25,
-              plantHeight: prod.plantHeight || '1–2 Feet',
+              plantHeight: prod.plantHeight || '1â€“2 Feet',
               potSize: prod.potSize || '8 Inch Bag',
               sunlight: prod.sunlight || 'Full Sun',
               waterRequirement: prod.waterRequirement || 'Daily',
@@ -3313,7 +3313,7 @@ const silentRefresh = async (): Promise<boolean> => {
                   const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
                   cached.combos = next;
                   localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
-                  localStorage.setItem('vrg_combos_cache', JSON.stringify(next));
+                  localStorage.setItem('vrg_combos_cache_v2', JSON.stringify(next));
                 } catch {}
                 return next;
               });
@@ -3325,7 +3325,7 @@ const silentRefresh = async (): Promise<boolean> => {
                   const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
                   cached.combos = next;
                   localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
-                  localStorage.setItem('vrg_combos_cache', JSON.stringify(next));
+                  localStorage.setItem('vrg_combos_cache_v2', JSON.stringify(next));
                 } catch {}
                 return next;
               });
@@ -3349,7 +3349,7 @@ const silentRefresh = async (): Promise<boolean> => {
                     const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
                     cached.combos = next;
                     localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
-                    localStorage.setItem('vrg_combos_cache', JSON.stringify(next));
+                    localStorage.setItem('vrg_combos_cache_v2', JSON.stringify(next));
                   } catch {}
                   return next;
                 });
@@ -3380,7 +3380,7 @@ const silentRefresh = async (): Promise<boolean> => {
                 const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
                 cached.combos = next;
                 localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
-                localStorage.setItem('vrg_combos_cache', JSON.stringify(next));
+                localStorage.setItem('vrg_combos_cache_v2', JSON.stringify(next));
               } catch {}
               return next;
             });
@@ -3570,7 +3570,7 @@ const silentRefresh = async (): Promise<boolean> => {
             className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all cursor-pointer active:scale-95"
             title="Create new order manually"
           >
-            <span>✍️</span>
+            <span>âœï¸</span>
             <span>+ Add Order</span>
           </button>
           <button
@@ -3579,7 +3579,7 @@ const silentRefresh = async (): Promise<boolean> => {
             title="Upload bill or WhatsApp screenshot to auto-extract with Gemini AI"
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-            <span>📸 AI Scan Order</span>
+            <span>ðŸ“¸ AI Scan Order</span>
           </button>
 
           <button
@@ -3655,7 +3655,7 @@ const silentRefresh = async (): Promise<boolean> => {
                 className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-emerald-50 text-emerald-900 font-extrabold hover:bg-emerald-100 transition-colors cursor-pointer"
               >
                 <Sprout className="w-4 h-4 text-emerald-700" />
-                <span>📱 12-Step Order Pipeline</span>
+                <span>ðŸ“± 12-Step Order Pipeline</span>
               </button>
 
               <div className="px-3 pt-3 pb-1.5 text-[10px] uppercase tracking-wider text-slate-400 font-extrabold">
@@ -3810,13 +3810,13 @@ const silentRefresh = async (): Promise<boolean> => {
 
             return (
               <div className="space-y-6">
-                {/* Stats cards — live calculated from real API data */}
+                {/* Stats cards â€” live calculated from real API data */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   {[
-                    { label: 'Total Revenue', value: `₹${realTotalRevenue.toLocaleString('en-IN')}`, sub: 'Verified via Cash & PhonePe PG', color: 'text-emerald-800', icon: '💰' },
-                    { label: 'Today Sales', value: `₹${realTodaySales.toLocaleString('en-IN')}`, sub: "Today's farm orders", color: 'text-slate-900', icon: '📅' },
-                    { label: 'Total Orders', value: orders.length, sub: `${realPendingOrders} pending dispatch`, color: 'text-slate-900', icon: '📦' },
-                    { label: 'Products', value: products.length, sub: `${lowStockList.length} low stock alert${lowStockList.length !== 1 ? 's' : ''}`, color: 'text-blue-800', icon: '🌿' },
+                    { label: 'Total Revenue', value: `â‚¹${realTotalRevenue.toLocaleString('en-IN')}`, sub: 'Verified via Cash & PhonePe PG', color: 'text-emerald-800', icon: 'ðŸ’°' },
+                    { label: 'Today Sales', value: `â‚¹${realTodaySales.toLocaleString('en-IN')}`, sub: "Today's farm orders", color: 'text-slate-900', icon: 'ðŸ“…' },
+                    { label: 'Total Orders', value: orders.length, sub: `${realPendingOrders} pending dispatch`, color: 'text-slate-900', icon: 'ðŸ“¦' },
+                    { label: 'Products', value: products.length, sub: `${lowStockList.length} low stock alert${lowStockList.length !== 1 ? 's' : ''}`, color: 'text-blue-800', icon: 'ðŸŒ¿' },
                   ].map(c => (
                     <div key={c.label} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-2xs space-y-1">
                       <div className="flex items-center gap-1.5">
@@ -3834,10 +3834,10 @@ const silentRefresh = async (): Promise<boolean> => {
                 <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-2xs space-y-3">
                   <div className="flex justify-between items-center">
                     <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
-                      <span>🌿 Nursery Order Processing (4 Categorized Stages)</span>
+                      <span>ðŸŒ¿ Nursery Order Processing (4 Categorized Stages)</span>
                     </h3>
                     <button onClick={() => { setOrderFilterStage('all'); setActiveTab('orders'); }} className="text-xs font-bold text-emerald-700 hover:underline">
-                      Manage All Orders ({orders.length}) →
+                      Manage All Orders ({orders.length}) â†’
                     </button>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
@@ -3845,7 +3845,7 @@ const silentRefresh = async (): Promise<boolean> => {
                       onClick={() => { setOrderFilterStage('confirmed'); setActiveTab('orders'); }}
                       className="p-3 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-2xl text-left space-y-1 transition-all cursor-pointer"
                     >
-                      <span className="text-lg">🌸</span>
+                      <span className="text-lg">ðŸŒ¸</span>
                       <p className="font-black text-xl text-amber-900">{orders.filter(o => getOrderStage(o.orderStatus) === 'confirmed').length}</p>
                       <p className="font-bold text-amber-800 text-[11px]">1. Order Confirmed</p>
                     </button>
@@ -3854,7 +3854,7 @@ const silentRefresh = async (): Promise<boolean> => {
                       onClick={() => { setOrderFilterStage('packing'); setActiveTab('orders'); }}
                       className="p-3 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-2xl text-left space-y-1 transition-all cursor-pointer"
                     >
-                      <span className="text-lg">🌿</span>
+                      <span className="text-lg">ðŸŒ¿</span>
                       <p className="font-black text-xl text-purple-900">{orders.filter(o => getOrderStage(o.orderStatus) === 'packing').length}</p>
                       <p className="font-bold text-purple-800 text-[11px]">2. Nursery Packed</p>
                     </button>
@@ -3863,7 +3863,7 @@ const silentRefresh = async (): Promise<boolean> => {
                       onClick={() => { setOrderFilterStage('dispatched'); setActiveTab('orders'); }}
                       className="p-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-2xl text-left space-y-1 transition-all cursor-pointer"
                     >
-                      <span className="text-lg">🚚</span>
+                      <span className="text-lg">ðŸšš</span>
                       <p className="font-black text-xl text-blue-900">{orders.filter(o => getOrderStage(o.orderStatus) === 'dispatched').length}</p>
                       <p className="font-bold text-blue-800 text-[11px]">3. Dispatched</p>
                     </button>
@@ -3872,7 +3872,7 @@ const silentRefresh = async (): Promise<boolean> => {
                       onClick={() => { setOrderFilterStage('delivered'); setActiveTab('orders'); }}
                       className="p-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-2xl text-left space-y-1 transition-all cursor-pointer"
                     >
-                      <span className="text-lg">✅</span>
+                      <span className="text-lg">âœ…</span>
                       <p className="font-black text-xl text-emerald-900">{orders.filter(o => getOrderStage(o.orderStatus) === 'delivered').length}</p>
                       <p className="font-bold text-emerald-800 text-[11px]">4. Delivered</p>
                     </button>
@@ -3883,10 +3883,10 @@ const silentRefresh = async (): Promise<boolean> => {
                 {/* Quick Stats Row */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {[
-                    { label: 'Products', value: products.length, icon: '🌿', bg: 'bg-emerald-50', text: 'text-emerald-800' },
-                    { label: 'Categories', value: categories.length, icon: '📁', bg: 'bg-blue-50', text: 'text-blue-800' },
-                    { label: 'Active Coupons', value: coupons.filter(c => (c.active ?? (c as any).isActive) !== false).length, icon: '🏷️', bg: 'bg-amber-50', text: 'text-amber-800' },
-                    { label: 'Catalog Value', value: `₹${products.reduce((s, p) => s + p.sellingPrice, 0)}`, icon: '💰', bg: 'bg-purple-50', text: 'text-purple-800' },
+                    { label: 'Products', value: products.length, icon: 'ðŸŒ¿', bg: 'bg-emerald-50', text: 'text-emerald-800' },
+                    { label: 'Categories', value: categories.length, icon: 'ðŸ“', bg: 'bg-blue-50', text: 'text-blue-800' },
+                    { label: 'Active Coupons', value: coupons.filter(c => (c.active ?? (c as any).isActive) !== false).length, icon: 'ðŸ·ï¸', bg: 'bg-amber-50', text: 'text-amber-800' },
+                    { label: 'Catalog Value', value: `â‚¹${products.reduce((s, p) => s + p.sellingPrice, 0)}`, icon: 'ðŸ’°', bg: 'bg-purple-50', text: 'text-purple-800' },
                   ].map(c => (
                     <div key={c.label} className={`${c.bg} p-4 rounded-2xl border border-slate-200 flex items-center gap-3`}>
                       <span className="text-2xl">{c.icon}</span>
@@ -3907,7 +3907,7 @@ const silentRefresh = async (): Promise<boolean> => {
                         onClick={() => handleOpenAddWhatsAppOrder('manual')}
                         className="text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-xl border border-emerald-200 flex items-center gap-1.5 cursor-pointer transition-colors"
                       >
-                        <span>✍️</span>
+                        <span>âœï¸</span>
                         <span>+ Add Order</span>
                       </button>
                       <button
@@ -3915,20 +3915,20 @@ const silentRefresh = async (): Promise<boolean> => {
                         className="text-xs font-bold text-teal-800 hover:text-teal-900 bg-teal-50 hover:bg-teal-100 px-2.5 py-1.5 rounded-xl border border-teal-200 flex items-center gap-1 cursor-pointer transition-colors"
                       >
                         <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                        <span>📸 AI Scan</span>
+                        <span>ðŸ“¸ AI Scan</span>
                       </button>
                       <button
                         onClick={() => setActiveTab('orders')}
                         className="text-xs font-bold text-emerald-800 hover:underline cursor-pointer"
                       >
-                        View All Orders →
+                        View All Orders â†’
                       </button>
                     </div>
                   </div>
 
                   {recentOrdersList.length === 0 ? (
                     <div className="text-center py-10 space-y-2">
-                      <p className="text-4xl">📦</p>
+                      <p className="text-4xl">ðŸ“¦</p>
                       <p className="text-slate-500 font-semibold text-sm">No orders yet</p>
                       <p className="text-slate-400 text-xs">Orders placed by customers will appear here</p>
                     </div>
@@ -3986,7 +3986,7 @@ const silentRefresh = async (): Promise<boolean> => {
                                     </p>
                                   </div>
                                 </td>
-                                <td className="py-2.5 px-3 font-bold text-emerald-800">₹{o.grandTotal}</td>
+                                <td className="py-2.5 px-3 font-bold text-emerald-800">â‚¹{o.grandTotal}</td>
                                 <td className="py-2.5 px-3">
                                   <span className={`font-bold px-2.5 py-0.5 rounded-full text-[10px] flex items-center gap-1 w-fit ${
                                     isWA
@@ -4017,12 +4017,12 @@ const silentRefresh = async (): Promise<boolean> => {
                 {lowStockList.length > 0 && (
                   <div className="bg-amber-50 border border-amber-200 rounded-3xl p-5 space-y-3">
                     <div className="flex justify-between items-center">
-                      <h3 className="font-bold text-sm text-amber-900">⚠️ Low Stock Inventory Alert ({lowStockList.length} Plants)</h3>
+                      <h3 className="font-bold text-sm text-amber-900">âš ï¸ Low Stock Inventory Alert ({lowStockList.length} Plants)</h3>
                       <button
                         onClick={() => setActiveTab('inventory')}
                         className="text-xs font-bold text-amber-800 hover:underline"
                       >
-                        Manage Stock Inventory →
+                        Manage Stock Inventory â†’
                       </button>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -4129,7 +4129,7 @@ const silentRefresh = async (): Promise<boolean> => {
                             </td>
                             <td className="py-3 px-3 font-semibold text-emerald-800">{p.tamilName}</td>
                             <td className="py-3 px-3">{p.categoryName}</td>
-                            <td className="py-3 px-3 font-bold text-slate-900">₹{p.sellingPrice} <s className="text-[10px] text-slate-400">₹{p.mrp}</s></td>
+                            <td className="py-3 px-3 font-bold text-slate-900">â‚¹{p.sellingPrice} <s className="text-[10px] text-slate-400">â‚¹{p.mrp}</s></td>
                             <td className="py-3 px-3 font-bold">{p.stock} left</td>
                             <td className="py-3 px-3 text-right space-x-1">
                               <button
@@ -4221,7 +4221,7 @@ const silentRefresh = async (): Promise<boolean> => {
                       <tr className="bg-slate-50 border-b border-slate-200 font-bold text-slate-500 uppercase text-[10px]">
                         <th className="py-3 px-3">Order</th>
                         <th className="py-3 px-3">Category Image & Name</th>
-                        <th className="py-3 px-3">Tamil Name (தமிழ்)</th>
+                        <th className="py-3 px-3">Tamil Name (à®¤à®®à®¿à®´à¯)</th>
                         <th className="py-3 px-3">Slug</th>
                         <th className="py-3 px-3 text-center">Products</th>
                         <th className="py-3 px-3 text-center">Featured</th>
@@ -4264,10 +4264,10 @@ const silentRefresh = async (): Promise<boolean> => {
                             <td className="py-3 px-3 text-center">
                               {c.isFeatured ? (
                                 <span className="px-2 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 font-bold rounded-full text-[10px]">
-                                  ★ Featured
+                                  â˜… Featured
                                 </span>
                               ) : (
-                                <span className="text-slate-400 text-[10px]">—</span>
+                                <span className="text-slate-400 text-[10px]">â€”</span>
                               )}
                             </td>
                             <td className="py-3 px-3 text-center">
@@ -4383,7 +4383,7 @@ const silentRefresh = async (): Promise<boolean> => {
             const deliveredList = sortOrdersList(filteredBySource.filter(o => getOrderStage(o.orderStatus) === 'delivered'));
             const holdingList = sortOrdersList(filteredBySource.filter(o => holdingOrderIds.includes(o.id) || (o as any).isHolding === true));
 
-            // ── Week-Based Grouping (Sunday to Saturday/Monday) ───────────────────
+            // â”€â”€ Week-Based Grouping (Sunday to Saturday/Monday) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             interface WeekGroup {
               key: string;
               startDate: Date;
@@ -4433,8 +4433,8 @@ const silentRefresh = async (): Promise<boolean> => {
                   key,
                   startDate: bounds.start,
                   endDate: bounds.end,
-                  label: `Sunday, ${startStr} – Saturday, ${endStr}`,
-                  shortLabel: `${startStr} – ${endStr}`,
+                  label: `Sunday, ${startStr} â€“ Saturday, ${endStr}`,
+                  shortLabel: `${startStr} â€“ ${endStr}`,
                   orders: [],
                   confirmedOrders: [],
                   packingOrders: [],
@@ -4513,7 +4513,7 @@ const silentRefresh = async (): Promise<boolean> => {
                   {isOnHold && (
                     <div className="bg-amber-100 border-2 border-amber-400 rounded-xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-amber-950 font-bold shadow-xs">
                       <div className="flex items-center gap-2">
-                        <span className="text-lg">⏸️</span>
+                        <span className="text-lg">â¸ï¸</span>
                         <div>
                           <span className="font-extrabold uppercase text-xs tracking-wider block text-amber-900">ORDER CURRENTLY ON HOLD</span>
                           <span className="text-[11px] font-medium text-amber-800">
@@ -4525,7 +4525,7 @@ const silentRefresh = async (): Promise<boolean> => {
                         onClick={(e) => handleToggleHolding(o.id, e)}
                         className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-black text-xs cursor-pointer shadow-xs transition-colors shrink-0"
                       >
-                        ▶️ Release from Hold
+                        â–¶ï¸ Release from Hold
                       </button>
                     </div>
                   )}
@@ -4553,7 +4553,7 @@ const silentRefresh = async (): Promise<boolean> => {
                         )}
                         {isOnHold && (
                           <span className="inline-flex items-center gap-1 bg-amber-500 text-white font-extrabold px-2.5 py-0.5 rounded-full text-[11px] shadow-xs">
-                            ⏸️ ON HOLD
+                            â¸ï¸ ON HOLD
                           </span>
                         )}
                         <span className={`px-2.5 py-0.5 rounded-full font-bold text-[11px] flex items-center gap-1 ${
@@ -4574,14 +4574,14 @@ const silentRefresh = async (): Promise<boolean> => {
                             {isWA
                               ? 'WhatsApp / Offline'
                               : (o.paymentStatus === 'FAILED' || (o.orderStatus || '').toUpperCase() === 'CANCELLED')
-                              ? (o.paymentMethod === 'RAZORPAY' ? '❌ Razorpay (Cancelled / Failed)' : '❌ Order Cancelled')
+                              ? (o.paymentMethod === 'RAZORPAY' ? 'âŒ Razorpay (Cancelled / Failed)' : 'âŒ Order Cancelled')
                               : isCod 
-                              ? '💵 Cash on Delivery (COD)' 
+                              ? 'ðŸ’µ Cash on Delivery (COD)' 
                               : o.paymentMethod === 'RAZORPAY'
-                              ? (o.paymentStatus === 'SUCCESS' ? '⚡ Razorpay (Auto-Verified)' : '⏳ Razorpay (Incomplete / Pending)')
+                              ? (o.paymentStatus === 'SUCCESS' ? 'âš¡ Razorpay (Auto-Verified)' : 'â³ Razorpay (Incomplete / Pending)')
                               : (o.paymentMethod === 'QR_PAYMENT' || o.paymentMethod === 'UPI_DIRECT' || o.paymentProofUrl)
-                              ? '📸 Scan QR Code Payment'
-                              : '📱 PhonePe (Auto-Verified)'}
+                              ? 'ðŸ“¸ Scan QR Code Payment'
+                              : 'ðŸ“± PhonePe (Auto-Verified)'}
                           </span>
                         </span>
                         {(o.paymentMethod === 'QR_PAYMENT' || o.paymentMethod === 'UPI_DIRECT' || Boolean(o.paymentProofUrl) || isFromImg) && (o.paymentProofUrl || (o as any).orderImageUrl) && (
@@ -4598,7 +4598,7 @@ const silentRefresh = async (): Promise<boolean> => {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className={`font-bold px-3 py-1 rounded-full text-xs ${o.paymentStatus === 'SUCCESS' ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : o.paymentStatus === 'FAILED' ? 'bg-rose-100 text-rose-800 border border-rose-300' : 'bg-amber-100 text-amber-900'}`}>
-                        Payment: {o.paymentStatus === 'SUCCESS' ? '✅ SUCCESS' : o.paymentStatus === 'FAILED' ? '❌ FAILED' : '⏳ PENDING'}
+                        Payment: {o.paymentStatus === 'SUCCESS' ? 'âœ… SUCCESS' : o.paymentStatus === 'FAILED' ? 'âŒ FAILED' : 'â³ PENDING'}
                       </span>
                       <span className={`font-bold px-3 py-1 rounded-full text-xs ${isDelivered ? 'bg-emerald-700 text-white' : isDispatched ? 'bg-blue-600 text-white' : isPacking ? 'bg-purple-700 text-white' : 'bg-amber-600 text-white'}`}>
                         Status: {o.orderStatus}
@@ -4608,7 +4608,7 @@ const silentRefresh = async (): Promise<boolean> => {
 
                   {/* 4-Stage Live Delivery Progress Visualizer */}
                   <div className="bg-slate-50 rounded-2xl p-3 border border-slate-200 space-y-2">
-                    <p className="font-bold text-slate-700">🚚 Live Nursery Delivery Progress:</p>
+                    <p className="font-bold text-slate-700">ðŸšš Live Nursery Delivery Progress:</p>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-[11px]">
                       <div className={`p-2 rounded-xl border font-bold ${!isPacking && !isDispatched && !isDelivered ? 'bg-amber-100 border-amber-400 text-amber-900' : 'bg-white border-slate-200 text-slate-400'}`}>
                         1. Order Confirmed
@@ -4629,7 +4629,7 @@ const silentRefresh = async (): Promise<boolean> => {
                   <div className="bg-amber-50/90 border-2 border-amber-300 rounded-2xl p-4 space-y-3 shadow-xs">
                     <div className="flex items-center gap-2 border-b border-amber-200/80 pb-2">
                       <span className="bg-amber-600 text-white px-2.5 py-0.5 rounded-lg text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-2xs">
-                        <User className="w-3.5 h-3.5" /> 👤 CUSTOMER DETAILS
+                        <User className="w-3.5 h-3.5" /> ðŸ‘¤ CUSTOMER DETAILS
                       </span>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
@@ -4665,14 +4665,14 @@ const silentRefresh = async (): Promise<boolean> => {
                   <div className="bg-emerald-50/90 border-2 border-emerald-300 rounded-2xl p-4 space-y-3 shadow-xs">
                     <div className="flex items-center justify-between border-b border-emerald-200/80 pb-2">
                       <span className="bg-emerald-800 text-white px-2.5 py-0.5 rounded-lg text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-2xs">
-                        <Truck className="w-3.5 h-3.5" /> 🚚 COURIER & DELIVERY DETAILS
+                        <Truck className="w-3.5 h-3.5" /> ðŸšš COURIER & DELIVERY DETAILS
                       </span>
                       <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] border ${
                         (o.courierName || '').toLowerCase().includes('mettur')
                           ? 'bg-amber-100 text-amber-900 border-amber-300'
                           : 'bg-emerald-100 text-emerald-950 border-emerald-300'
                       }`}>
-                        {(o.courierName || '').toLowerCase().includes('mettur') ? '📦 Mettur Branch Depot Pickup' : '🚚 Doorstep Courier Delivery'}
+                        {(o.courierName || '').toLowerCase().includes('mettur') ? 'ðŸ“¦ Mettur Branch Depot Pickup' : 'ðŸšš Doorstep Courier Delivery'}
                       </span>
                     </div>
 
@@ -4684,7 +4684,7 @@ const silentRefresh = async (): Promise<boolean> => {
                           {o.courierName || 'Professional Courier'}
                         </p>
                         <p className="text-[11px] text-emerald-800 font-bold">
-                          Shipping Fee: {o.shippingCharge === 0 ? 'FREE' : `₹${o.shippingCharge}`}
+                          Shipping Fee: {o.shippingCharge === 0 ? 'FREE' : `â‚¹${o.shippingCharge}`}
                         </p>
                       </div>
 
@@ -4693,11 +4693,11 @@ const silentRefresh = async (): Promise<boolean> => {
                         <span className="text-[10px] font-extrabold uppercase text-slate-500 tracking-wider block">Soil & Packaging Option</span>
                         <p className="font-bold text-slate-800 text-xs flex items-center gap-1">
                           {o.potOption === 'FULL_SOIL' || (o.courierName || '').toLowerCase().includes('full soil')
-                            ? '🪴 Full Soil Root Pot'
-                            : '🌱 Reduced Soil (Transit Safe)'}
+                            ? 'ðŸª´ Full Soil Root Pot'
+                            : 'ðŸŒ± Reduced Soil (Transit Safe)'}
                         </p>
                         <p className="text-[11px] text-slate-600 font-medium">
-                          Packaging: {o.packingOption === 'EXTRA_SECURE' ? '📦 Extra Secure (+₹10)' : o.packingOption === 'MAX_PROTECTION' ? '🛡️ Max Protection (+₹15)' : 'Standard Safe Box'}
+                          Packaging: {o.packingOption === 'EXTRA_SECURE' ? 'ðŸ“¦ Extra Secure (+â‚¹10)' : o.packingOption === 'MAX_PROTECTION' ? 'ðŸ›¡ï¸ Max Protection (+â‚¹15)' : 'Standard Safe Box'}
                         </p>
                       </div>
 
@@ -4705,7 +4705,7 @@ const silentRefresh = async (): Promise<boolean> => {
                       <div className="bg-white p-3 rounded-xl border border-emerald-200 shadow-2xs space-y-1">
                         {o.courierBranch || o.courierDistrict ? (
                           <>
-                            <span className="text-[10px] font-extrabold uppercase text-amber-900 tracking-wider block">📍 Pickup Branch Depot</span>
+                            <span className="text-[10px] font-extrabold uppercase text-amber-900 tracking-wider block">ðŸ“ Pickup Branch Depot</span>
                             <p className="font-extrabold text-slate-900 text-xs">
                               {o.courierBranch || 'Customer selected depot'}
                             </p>
@@ -4745,7 +4745,7 @@ const silentRefresh = async (): Promise<boolean> => {
                       <div className="flex items-center gap-2 flex-wrap">
                         <ChevronDown className="w-4 h-4 text-slate-600 transition-transform duration-200 group-open:rotate-180 shrink-0" />
                         <span className="font-extrabold text-slate-900 text-xs flex items-center gap-1.5">
-                          📦 Ordered Products ({o.items?.length || 0}) & QR Check-up
+                          ðŸ“¦ Ordered Products ({o.items?.length || 0}) & QR Check-up
                         </span>
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
@@ -4757,7 +4757,7 @@ const silentRefresh = async (): Promise<boolean> => {
                               ? 'bg-rose-100 text-rose-800 border-rose-300' 
                               : 'bg-amber-100 text-amber-900 border-amber-300'
                           }`}>
-                            {o.paymentStatus === 'SUCCESS' ? '✅ QR Verified' : o.paymentStatus === 'FAILED' ? '❌ QR Rejected' : '⏳ QR Pending Check-up'}
+                            {o.paymentStatus === 'SUCCESS' ? 'âœ… QR Verified' : o.paymentStatus === 'FAILED' ? 'âŒ QR Rejected' : 'â³ QR Pending Check-up'}
                           </span>
                         )}
                         <span className="text-[11px] text-emerald-800 font-bold truncate max-w-[180px] sm:max-w-[260px] bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200">
@@ -4770,7 +4770,7 @@ const silentRefresh = async (): Promise<boolean> => {
                       {/* Items Snapshot List */}
                       <div className="pt-2 space-y-2">
                         <p className="font-bold text-slate-800 text-xs flex items-center gap-1">
-                          <span>📦 Ordered Item Details:</span>
+                          <span>ðŸ“¦ Ordered Item Details:</span>
                         </p>
                         {o.items && o.items.length > 0 ? (
                           o.items.map((item, idx) => (
@@ -4793,9 +4793,9 @@ const silentRefresh = async (): Promise<boolean> => {
                               </div>
                               <div className="text-right shrink-0">
                                 <span className="font-bold text-slate-900 text-xs">Qty: {item.quantity}</span>
-                                <span className="text-emerald-800 font-bold block text-xs">₹{item.price * item.quantity}</span>
+                                <span className="text-emerald-800 font-bold block text-xs">â‚¹{item.price * item.quantity}</span>
                                 {item.quantity > 1 && (
-                                  <span className="text-[10px] text-slate-400 block">(₹{item.price} each)</span>
+                                  <span className="text-[10px] text-slate-400 block">(â‚¹{item.price} each)</span>
                                 )}
                               </div>
                             </div>
@@ -4811,19 +4811,19 @@ const silentRefresh = async (): Promise<boolean> => {
                           <div className="bg-emerald-50 border border-emerald-300 rounded-2xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
                             <div className="flex items-center gap-2.5">
                               <div className="w-8 h-8 rounded-xl bg-emerald-700 text-white flex items-center justify-center font-black text-xs shrink-0">
-                                ⚡
+                                âš¡
                               </div>
                               <div>
                                 <p className="font-extrabold text-emerald-950 text-xs">
-                                  {o.paymentMethod === 'RAZORPAY' ? '⚡ Razorpay Payment Gateway' : '📱 PhonePe Online Gateway'} • Auto-Verified
+                                  {o.paymentMethod === 'RAZORPAY' ? 'âš¡ Razorpay Payment Gateway' : 'ðŸ“± PhonePe Online Gateway'} â€¢ Auto-Verified
                                 </p>
                                 <p className="text-[11px] text-emerald-800 font-medium">
-                                  Gateway Transaction: <span className="font-mono font-bold">{o.merchantTransactionId || o.id}</span> • Verified Amount: <strong className="font-mono">₹{o.grandTotal}</strong>
+                                  Gateway Transaction: <span className="font-mono font-bold">{o.merchantTransactionId || o.id}</span> â€¢ Verified Amount: <strong className="font-mono">â‚¹{o.grandTotal}</strong>
                                 </p>
                               </div>
                             </div>
                             <span className="px-3 py-1 bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-2xs shrink-0">
-                              ✅ 100% PAID
+                              âœ… 100% PAID
                             </span>
                           </div>
                         ) : (
@@ -4831,7 +4831,7 @@ const silentRefresh = async (): Promise<boolean> => {
                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-indigo-200/80 pb-2.5">
                               <div className="flex items-center gap-2">
                                 <div className="w-7 h-7 rounded-lg bg-indigo-700 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-xs">
-                                  📸
+                                  ðŸ“¸
                                 </div>
                                 <div>
                                   <p className="font-extrabold text-indigo-950 text-xs">
@@ -4865,15 +4865,15 @@ const silentRefresh = async (): Promise<boolean> => {
                                     />
                                     <div className="absolute inset-0 bg-slate-900/40 group-hover:bg-slate-900/10 flex items-center justify-center transition-opacity opacity-90">
                                       <span className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-[11px] px-2.5 py-1 rounded-lg shadow-md flex items-center gap-1">
-                                        <Camera className="w-3.5 h-3.5" /> 🔍 Zoom Receipt
+                                        <Camera className="w-3.5 h-3.5" /> ðŸ” Zoom Receipt
                                       </span>
                                     </div>
                                   </div>
-                                  <span className="text-[10px] text-indigo-900 font-bold text-center">📸 Customer Receipt Attached</span>
+                                  <span className="text-[10px] text-indigo-900 font-bold text-center">ðŸ“¸ Customer Receipt Attached</span>
                                 </div>
                               ) : (
                                 <div className="p-3 bg-amber-100/90 text-amber-900 rounded-xl text-center text-xs font-bold w-full md:w-44 shrink-0 border border-amber-300 space-y-0.5">
-                                  <p className="text-xs">⚠️ No Screenshot Photo</p>
+                                  <p className="text-xs">âš ï¸ No Screenshot Photo</p>
                                   <p className="text-[10px] text-amber-800 font-normal">Check nursery bank / UTR ref</p>
                                 </div>
                               )}
@@ -4881,8 +4881,8 @@ const silentRefresh = async (): Promise<boolean> => {
                               {/* Manual Admin Verification Controls */}
                               <div className="flex-1 w-full space-y-2 bg-white p-3 rounded-xl border border-indigo-100">
                                 <p className="text-xs text-slate-900 font-black flex items-center justify-between">
-                                  <span>⚙️ Manual Admin Payment Verification:</span>
-                                  <span className="text-[11px] text-slate-500 font-normal">Verify amount ₹{o.grandTotal} in nursery UPI app</span>
+                                  <span>âš™ï¸ Manual Admin Payment Verification:</span>
+                                  <span className="text-[11px] text-slate-500 font-normal">Verify amount â‚¹{o.grandTotal} in nursery UPI app</span>
                                 </p>
 
                               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -4895,7 +4895,7 @@ const silentRefresh = async (): Promise<boolean> => {
                                   }`}
                                 >
                                   <Check className="w-4 h-4" />
-                                  <span>✅ Mark Verified & Paid</span>
+                                  <span>âœ… Mark Verified & Paid</span>
                                 </button>
 
                                 <button
@@ -4907,7 +4907,7 @@ const silentRefresh = async (): Promise<boolean> => {
                                   }`}
                                 >
                                   <RefreshCw className="w-4 h-4" />
-                                  <span>⏳ Keep Unverified / Pending</span>
+                                  <span>â³ Keep Unverified / Pending</span>
                                 </button>
 
                                 <button
@@ -4919,7 +4919,7 @@ const silentRefresh = async (): Promise<boolean> => {
                                   }`}
                                 >
                                   <X className="w-4 h-4" />
-                                  <span>❌ Reject & Cancel Order</span>
+                                  <span>âŒ Reject & Cancel Order</span>
                                 </button>
                               </div>
                               </div>
@@ -4933,13 +4933,13 @@ const silentRefresh = async (): Promise<boolean> => {
                   {/* Cash Collection Banner */}
                   {isCod && (
                     <div className={`p-3 rounded-xl font-bold flex flex-col sm:flex-row justify-between items-center gap-2 border ${o.paymentStatus === 'SUCCESS' ? 'bg-emerald-50 text-emerald-900 border-emerald-300' : 'bg-amber-50 text-amber-900 border-amber-300'}`}>
-                      <span>💵 Cash on Delivery Amount: ₹{o.grandTotal}</span>
-                      <span>{o.paymentStatus === 'SUCCESS' ? '✅ Cash Collected at Doorstep' : '⏳ Cash Pending (Collect ₹' + o.grandTotal + ' upon arrival)'}</span>
+                      <span>ðŸ’µ Cash on Delivery Amount: â‚¹{o.grandTotal}</span>
+                      <span>{o.paymentStatus === 'SUCCESS' ? 'âœ… Cash Collected at Doorstep' : 'â³ Cash Pending (Collect â‚¹' + o.grandTotal + ' upon arrival)'}</span>
                     </div>
                   )}
 
                   <div className="flex flex-wrap items-center justify-between pt-2 border-t border-slate-100 gap-2">
-                    <span className="font-bold text-slate-900 text-sm">Grand Total: ₹{o.grandTotal}</span>
+                    <span className="font-bold text-slate-900 text-sm">Grand Total: â‚¹{o.grandTotal}</span>
 
                     {/* Interactive Stage Controls & Customer Alerts */}
                     <div className="flex flex-wrap items-center gap-2">
@@ -4953,14 +4953,14 @@ const silentRefresh = async (): Promise<boolean> => {
                         }`}
                         title={isOnHold ? "Click to release from holding and resume shipment" : "Hold back this order manually (not delivered this week)"}
                       >
-                        <span>{isOnHold ? '▶️ Resume Flow' : '⏸️ Put on Hold'}</span>
+                        <span>{isOnHold ? 'â–¶ï¸ Resume Flow' : 'â¸ï¸ Put on Hold'}</span>
                       </button>
 
                       <button
                         onClick={() => handleSendWhatsAppUpdate(o)}
                         className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-[11px] flex items-center gap-1 shadow-xs cursor-pointer"
                       >
-                        📲 WhatsApp Alert
+                        ðŸ“² WhatsApp Alert
                       </button>
 
                       <button
@@ -5039,7 +5039,7 @@ const silentRefresh = async (): Promise<boolean> => {
                       onClick={() => handleOpenAddWhatsAppOrder('manual')}
                       className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer transition-all hover:scale-102 active:scale-98"
                     >
-                      <span>✍️</span>
+                      <span>âœï¸</span>
                       <span>+ Manual Order</span>
                     </button>
                     <button
@@ -5047,10 +5047,10 @@ const silentRefresh = async (): Promise<boolean> => {
                       className="px-3.5 py-2 bg-gradient-to-r from-teal-700 to-emerald-800 hover:from-teal-800 hover:to-emerald-900 text-white font-extrabold text-xs rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer transition-all hover:scale-102 active:scale-98"
                     >
                       <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                      <span>📸 AI Image Scan Order</span>
+                      <span>ðŸ“¸ AI Image Scan Order</span>
                     </button>
                     <span className="text-xs bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold px-3 py-1.5 rounded-xl">
-                      🚚 Neon PostgreSQL Synced
+                      ðŸšš Neon PostgreSQL Synced
                     </span>
                   </div>
                 </div>
@@ -5068,7 +5068,7 @@ const silentRefresh = async (): Promise<boolean> => {
                           : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200'
                       }`}
                     >
-                      <span>📦 All Orders</span>
+                      <span>ðŸ“¦ All Orders</span>
                       <span className="px-1.5 py-0.2 rounded-full bg-white/20 text-[10px] font-mono">{orders.length}</span>
                     </button>
 
@@ -5095,7 +5095,7 @@ const silentRefresh = async (): Promise<boolean> => {
                           : 'bg-blue-50 text-blue-900 hover:bg-blue-100 border-blue-200'
                       }`}
                     >
-                      <span>🌐 Website Orders</span>
+                      <span>ðŸŒ Website Orders</span>
                       <span className="px-1.5 py-0.2 rounded-full bg-white/30 text-[10px] font-mono">{websiteOrdersCount}</span>
                     </button>
 
@@ -5136,7 +5136,7 @@ const silentRefresh = async (): Promise<boolean> => {
                         : 'bg-indigo-50 text-indigo-950 hover:bg-indigo-100 border border-indigo-200'
                     }`}
                   >
-                    <span>📅 Week Based</span>
+                    <span>ðŸ“… Week Based</span>
                     <span className="px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-mono">{weekGroups.length} Weeks</span>
                   </button>
 
@@ -5144,7 +5144,7 @@ const silentRefresh = async (): Promise<boolean> => {
                     onClick={() => setOrderFilterStage('confirmed')}
                     className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${orderFilterStage === 'confirmed' ? 'bg-amber-500 text-white shadow-xs' : 'bg-amber-50 text-amber-900 hover:bg-amber-100'}`}
                   >
-                    <span>🌸 1. Confirmed</span>
+                    <span>ðŸŒ¸ 1. Confirmed</span>
                     <span className="px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-mono">{pendingList.length}</span>
                   </button>
 
@@ -5152,7 +5152,7 @@ const silentRefresh = async (): Promise<boolean> => {
                     onClick={() => setOrderFilterStage('packing')}
                     className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${orderFilterStage === 'packing' ? 'bg-purple-600 text-white shadow-xs' : 'bg-purple-50 text-purple-900 hover:bg-purple-100'}`}
                   >
-                    <span>🌿 2. Packing</span>
+                    <span>ðŸŒ¿ 2. Packing</span>
                     <span className="px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-mono">{packingList.length}</span>
                   </button>
 
@@ -5160,7 +5160,7 @@ const silentRefresh = async (): Promise<boolean> => {
                     onClick={() => setOrderFilterStage('dispatched')}
                     className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${orderFilterStage === 'dispatched' ? 'bg-blue-600 text-white shadow-xs' : 'bg-blue-50 text-blue-900 hover:bg-blue-100'}`}
                   >
-                    <span>🚚 3. Courier</span>
+                    <span>ðŸšš 3. Courier</span>
                     <span className="px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-mono">{dispatchedList.length}</span>
                   </button>
 
@@ -5168,7 +5168,7 @@ const silentRefresh = async (): Promise<boolean> => {
                     onClick={() => setOrderFilterStage('delivered')}
                     className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${orderFilterStage === 'delivered' ? 'bg-emerald-700 text-white shadow-xs' : 'bg-emerald-50 text-emerald-900 hover:bg-emerald-100'}`}
                   >
-                    <span>✅ 4. Delivered</span>
+                    <span>âœ… 4. Delivered</span>
                     <span className="px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-mono">{deliveredList.length}</span>
                   </button>
 
@@ -5181,7 +5181,7 @@ const silentRefresh = async (): Promise<boolean> => {
                           : 'bg-amber-100 text-amber-950 hover:bg-amber-200 border border-amber-300'
                       }`}
                     >
-                      <span>⏸️ On Hold</span>
+                      <span>â¸ï¸ On Hold</span>
                       <span className="px-1.5 py-0.5 rounded-full bg-white/30 text-[10px] font-mono">{holdingList.length}</span>
                     </button>
                   )}
@@ -5200,8 +5200,8 @@ const silentRefresh = async (): Promise<boolean> => {
                           : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200'
                       }`}
                     >
-                      <span>📅</span>
-                      <span>{orderSortBy === 'date_asc' ? 'Date: Oldest First ↑' : 'Date: Newest First ↓'}</span>
+                      <span>ðŸ“…</span>
+                      <span>{orderSortBy === 'date_asc' ? 'Date: Oldest First â†‘' : 'Date: Newest First â†“'}</span>
                     </button>
                   </div>
 
@@ -5210,14 +5210,14 @@ const silentRefresh = async (): Promise<boolean> => {
                   </span>
                 </div>
 
-                {/* ── SECTION: WEEK BASED GROUPING (DROPDOWN ACCORDIONS) ───────────── */}
+                {/* â”€â”€ SECTION: WEEK BASED GROUPING (DROPDOWN ACCORDIONS) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
                 {orderFilterStage === 'week_based' && (
                   <div className="space-y-4">
                     {/* Week-Based Header Toolbar */}
                     <div className="bg-gradient-to-r from-indigo-900 to-indigo-800 text-white p-5 rounded-2xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                       <div>
                         <h4 className="font-black text-base flex items-center gap-2">
-                          <span>📅</span> WEEK-BASED BATCH DISPATCH PIPELINE ({weekGroups.length} Weeks)
+                          <span>ðŸ“…</span> WEEK-BASED BATCH DISPATCH PIPELINE ({weekGroups.length} Weeks)
                         </h4>
                         <p className="text-xs text-indigo-200 font-medium">
                           Organized by Sunday to Saturday weekly cycles with live fulfillment status & Manual Holding control.
@@ -5270,41 +5270,41 @@ const silentRefresh = async (): Promise<boolean> => {
                                   <div className="flex items-center gap-2 flex-wrap">
                                     <ChevronDown className={`w-5 h-5 text-slate-600 transition-transform duration-200 ${expanded ? 'rotate-180 text-indigo-700' : ''}`} />
                                     <span className="font-black text-sm text-slate-900">
-                                      📅 {group.label}
+                                      ðŸ“… {group.label}
                                     </span>
                                     {group.isCurrentWeek && (
                                       <span className="bg-indigo-700 text-white font-extrabold text-[10px] px-2 py-0.5 rounded-full shadow-2xs">
-                                        ⚡ CURRENT WEEK
+                                        âš¡ CURRENT WEEK
                                       </span>
                                     )}
                                     {hasDelayedOrders && (
                                       <span className="bg-amber-500 text-white font-extrabold text-[10px] px-2 py-0.5 rounded-full shadow-2xs">
-                                        ⚠️ {undeliveredCount} PENDING
+                                        âš ï¸ {undeliveredCount} PENDING
                                       </span>
                                     )}
                                   </div>
                                   <p className="text-[11px] text-slate-500 font-medium pl-7">
-                                    Weekly Cycle: Sunday to Saturday • Total: <strong className="text-slate-800">{group.orders.length} Orders</strong>
+                                    Weekly Cycle: Sunday to Saturday â€¢ Total: <strong className="text-slate-800">{group.orders.length} Orders</strong>
                                   </p>
                                 </div>
 
                                 {/* WEEK STAGE BREAKDOWN PILLS */}
                                 <div className="flex items-center gap-1.5 flex-wrap pl-7 lg:pl-0">
                                   <span className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-amber-50 text-amber-900 border border-amber-200">
-                                    🌸 {group.confirmedOrders.length} Confirmed
+                                    ðŸŒ¸ {group.confirmedOrders.length} Confirmed
                                   </span>
                                   <span className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-purple-50 text-purple-900 border border-purple-200">
-                                    🌿 {group.packingOrders.length} Packing
+                                    ðŸŒ¿ {group.packingOrders.length} Packing
                                   </span>
                                   <span className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-blue-50 text-blue-900 border border-blue-200">
-                                    🚚 {group.dispatchedOrders.length} Courier
+                                    ðŸšš {group.dispatchedOrders.length} Courier
                                   </span>
                                   <span className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-emerald-50 text-emerald-900 border border-emerald-200">
-                                    ✅ {group.deliveredOrders.length} Delivered
+                                    âœ… {group.deliveredOrders.length} Delivered
                                   </span>
                                   {group.holdingOrders.length > 0 && (
                                     <span className="px-2.5 py-1 rounded-xl text-[11px] font-extrabold bg-amber-500 text-white shadow-2xs">
-                                      ⏸️ {group.holdingOrders.length} On Hold
+                                      â¸ï¸ {group.holdingOrders.length} On Hold
                                     </span>
                                   )}
                                 </div>
@@ -5317,9 +5317,9 @@ const silentRefresh = async (): Promise<boolean> => {
                                   {hasDelayedOrders && (
                                     <div className="mt-3 bg-amber-50 border-2 border-amber-300 rounded-xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-amber-950 text-xs">
                                       <div className="flex items-center gap-2">
-                                        <span className="text-base">⚠️</span>
+                                        <span className="text-base">âš ï¸</span>
                                         <span>
-                                          <strong>Notice:</strong> {undeliveredCount} order(s) from this past week are not yet delivered. If shipment is delayed, click <strong>"⏸️ Put on Hold"</strong> on that order card.
+                                          <strong>Notice:</strong> {undeliveredCount} order(s) from this past week are not yet delivered. If shipment is delayed, click <strong>"â¸ï¸ Put on Hold"</strong> on that order card.
                                         </span>
                                       </div>
                                     </div>
@@ -5338,13 +5338,13 @@ const silentRefresh = async (): Promise<boolean> => {
                   </div>
                 )}
 
-                {/* ── SECTION: HOLDING ORDERS ONLY VIEW ────────────────────────────── */}
+                {/* â”€â”€ SECTION: HOLDING ORDERS ONLY VIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
                 {orderFilterStage === 'holding' && (
                   <div className="space-y-4">
                     <div className="bg-amber-500 text-white p-4 rounded-2xl shadow-sm flex items-center justify-between">
                       <div>
                         <h4 className="font-black text-base flex items-center gap-2">
-                          <span>⏸️</span> ORDERS ON HOLD / DELAYED SHIPMENTS ({holdingList.length})
+                          <span>â¸ï¸</span> ORDERS ON HOLD / DELAYED SHIPMENTS ({holdingList.length})
                         </h4>
                         <p className="text-xs text-amber-100 font-medium">
                           These orders have been held back from the current weekly shipment batch. Click "Resume Flow" when ready to dispatch.
@@ -5364,7 +5364,7 @@ const silentRefresh = async (): Promise<boolean> => {
                   </div>
                 )}
 
-                {/* ── 4 CATEGORIZED SECTIONS DISPLAY (ALL / STAGE VIEWS) ──────────── */}
+                {/* â”€â”€ 4 CATEGORIZED SECTIONS DISPLAY (ALL / STAGE VIEWS) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
                 {orderFilterStage !== 'week_based' && orderFilterStage !== 'holding' && (
                   <div className="space-y-8">
                     {/* SECTION 1: ORDER CONFIRMED */}
@@ -5372,7 +5372,7 @@ const silentRefresh = async (): Promise<boolean> => {
                       <div className="space-y-3">
                         <div className="flex items-center justify-between bg-amber-50 p-3.5 rounded-2xl border border-amber-200">
                           <h4 className="font-black text-sm text-amber-950 flex items-center gap-2">
-                            <span className="text-base">🌸</span> SECTION 1: ORDER CONFIRMED ({pendingList.length})
+                            <span className="text-base">ðŸŒ¸</span> SECTION 1: ORDER CONFIRMED ({pendingList.length})
                           </h4>
                           <span className="text-[11px] font-bold text-amber-800 bg-white/80 px-2.5 py-0.5 rounded-lg border border-amber-200">
                             Ready for Nursery Moisture Packing
@@ -5393,7 +5393,7 @@ const silentRefresh = async (): Promise<boolean> => {
                       <div className="space-y-3">
                         <div className="flex items-center justify-between bg-purple-50 p-3.5 rounded-2xl border border-purple-200">
                           <h4 className="font-black text-sm text-purple-950 flex items-center gap-2">
-                            <span className="text-base">🌿</span> SECTION 2: NURSERY PACKED ({packingList.length})
+                            <span className="text-base">ðŸŒ¿</span> SECTION 2: NURSERY PACKED ({packingList.length})
                           </h4>
                           <span className="text-[11px] font-bold text-purple-800 bg-white/80 px-2.5 py-0.5 rounded-lg border border-purple-200">
                             Root Moisture Sealed & Packed
@@ -5414,7 +5414,7 @@ const silentRefresh = async (): Promise<boolean> => {
                       <div className="space-y-3">
                         <div className="flex items-center justify-between bg-blue-50 p-3.5 rounded-2xl border border-blue-200">
                           <h4 className="font-black text-sm text-blue-950 flex items-center gap-2">
-                            <span className="text-base">🚚</span> SECTION 3: DISPATCHED & IN TRANSIT ({dispatchedList.length})
+                            <span className="text-base">ðŸšš</span> SECTION 3: DISPATCHED & IN TRANSIT ({dispatchedList.length})
                           </h4>
                           <span className="text-[11px] font-bold text-blue-800 bg-white/80 px-2.5 py-0.5 rounded-lg border border-blue-200">
                             Handed to Courier Partner / Farm Driver
@@ -5435,7 +5435,7 @@ const silentRefresh = async (): Promise<boolean> => {
                       <div className="space-y-3">
                         <div className="flex items-center justify-between bg-emerald-50 p-3.5 rounded-2xl border border-emerald-200">
                           <h4 className="font-black text-sm text-emerald-950 flex items-center gap-2">
-                            <span className="text-base">✅</span> SECTION 4: DELIVERED & COMPLETED ({deliveredList.length})
+                            <span className="text-base">âœ…</span> SECTION 4: DELIVERED & COMPLETED ({deliveredList.length})
                           </h4>
                           <span className="text-[11px] font-bold text-emerald-800 bg-white/80 px-2.5 py-0.5 rounded-lg border border-emerald-200">
                             Customer Delivered & Payment Collected
@@ -5520,7 +5520,7 @@ const silentRefresh = async (): Promise<boolean> => {
                 </div>
                 {coupons.length === 0 ? (
                   <div className="p-10 text-center">
-                    <p className="text-3xl mb-2">🏷️</p>
+                    <p className="text-3xl mb-2">ðŸ·ï¸</p>
                     <p className="text-slate-500 font-semibold">No coupons created yet</p>
                     <p className="text-slate-400 text-[11px]">Create your first discount coupon above</p>
                   </div>
@@ -5531,9 +5531,9 @@ const silentRefresh = async (): Promise<boolean> => {
                         <div>
                           <p className="font-black text-slate-900 text-sm font-mono">{c.code}</p>
                           <p className="text-slate-500 text-[10px]">
-                            {(c.type || (c as any).discountType) === 'PERCENT' || (c as any).discountType === 'PERCENTAGE' ? `${c.value ?? (c as any).discountValue}% off` : `₹${c.value ?? (c as any).discountValue} off`}
-                            {(c.minOrder ?? (c as any).minOrderAmount) ? ` · Min ₹${c.minOrder ?? (c as any).minOrderAmount}` : ''}
-                            {c.expiryDate ? ` · Expires ${new Date(c.expiryDate).toLocaleDateString('en-IN')}` : ''}
+                            {(c.type || (c as any).discountType) === 'PERCENT' || (c as any).discountType === 'PERCENTAGE' ? `${c.value ?? (c as any).discountValue}% off` : `â‚¹${c.value ?? (c as any).discountValue} off`}
+                            {(c.minOrder ?? (c as any).minOrderAmount) ? ` Â· Min â‚¹${c.minOrder ?? (c as any).minOrderAmount}` : ''}
+                            {c.expiryDate ? ` Â· Expires ${new Date(c.expiryDate).toLocaleDateString('en-IN')}` : ''}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
@@ -5580,7 +5580,7 @@ const silentRefresh = async (): Promise<boolean> => {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-4">
                   <div>
                     <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
-                      <span>🎁 Special Plant Combo Packages & Offers ({combos.length})</span>
+                      <span>ðŸŽ Special Plant Combo Packages & Offers ({combos.length})</span>
                     </h3>
                     <p className="text-slate-500 text-xs mt-0.5">Group multiple plants together, set special combo pricing, and showcase bundles above categories on the store homepage.</p>
                   </div>
@@ -5608,7 +5608,7 @@ const silentRefresh = async (): Promise<boolean> => {
 
                 {combos.length === 0 ? (
                   <div className="p-8 text-center bg-slate-50 rounded-2xl border border-slate-200">
-                    <p className="text-3xl mb-2">🎁</p>
+                    <p className="text-3xl mb-2">ðŸŽ</p>
                     <p className="text-slate-700 font-bold">No Combo Packages Created</p>
                     <p className="text-slate-500 text-xs">Create your first plant bundle combo above to showcase special offers on the homepage!</p>
                   </div>
@@ -5635,7 +5635,7 @@ const silentRefresh = async (): Promise<boolean> => {
                                 </span>
                                 {combo.freeDelivery && (
                                   <span className="bg-emerald-600 text-white font-black text-[10px] px-2 py-0.5 rounded-full">
-                                    🚚 FREE DELIVERY
+                                    ðŸšš FREE DELIVERY
                                   </span>
                                 )}
                                 {discount > 0 && (
@@ -5658,7 +5658,7 @@ const silentRefresh = async (): Promise<boolean> => {
                             <div className="flex flex-wrap gap-1">
                               {comboProducts?.map(p => (
                                 <span key={p?.id} className="bg-emerald-50 text-emerald-900 font-semibold px-2 py-0.5 rounded-md border border-emerald-200 text-[10px]">
-                                  🌿 {p?.name}
+                                  ðŸŒ¿ {p?.name}
                                 </span>
                               ))}
                             </div>
@@ -5667,8 +5667,8 @@ const silentRefresh = async (): Promise<boolean> => {
                           {/* Pricing & Actions */}
                           <div className="flex items-center justify-between pt-1 border-t border-slate-200/60">
                             <div>
-                              <span className="text-slate-400 line-through font-bold mr-1.5">₹{combo.originalPrice}</span>
-                              <span className="font-black text-slate-900 text-base">₹{combo.comboPrice}</span>
+                              <span className="text-slate-400 line-through font-bold mr-1.5">â‚¹{combo.originalPrice}</span>
+                              <span className="font-black text-slate-900 text-base">â‚¹{combo.comboPrice}</span>
                             </div>
 
                             <div className="flex items-center gap-1.5">
@@ -5729,7 +5729,7 @@ const silentRefresh = async (): Promise<boolean> => {
                                       const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
                                       cached.combos = next;
                                       localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
-                                      localStorage.setItem('vrg_combos_cache', JSON.stringify(next));
+                                      localStorage.setItem('vrg_combos_cache_v2', JSON.stringify(next));
                                     } catch {}
                                     return next;
                                   });
@@ -5778,7 +5778,7 @@ const silentRefresh = async (): Promise<boolean> => {
                     }}
                     className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl text-xs shadow-xs"
                   >
-                    ⚡ Set Bulk Stock (100 Units All)
+                    âš¡ Set Bulk Stock (100 Units All)
                   </button>
                 </div>
               </div>
@@ -5790,7 +5790,7 @@ const silentRefresh = async (): Promise<boolean> => {
                     <p className="text-xs font-bold text-emerald-800 uppercase">In Stock Plants</p>
                     <p className="text-2xl font-black text-emerald-900">{products.filter(p => p.stock > 10).length}</p>
                   </div>
-                  <span className="text-3xl">🌿</span>
+                  <span className="text-3xl">ðŸŒ¿</span>
                 </div>
 
                 <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center justify-between">
@@ -5798,7 +5798,7 @@ const silentRefresh = async (): Promise<boolean> => {
                     <p className="text-xs font-bold text-amber-800 uppercase">Low Stock Alert (&le;10)</p>
                     <p className="text-2xl font-black text-amber-900">{products.filter(p => p.stock <= 10 && p.stock > 0).length}</p>
                   </div>
-                  <span className="text-3xl">⚠️</span>
+                  <span className="text-3xl">âš ï¸</span>
                 </div>
 
                 <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-center justify-between">
@@ -5806,7 +5806,7 @@ const silentRefresh = async (): Promise<boolean> => {
                     <p className="text-xs font-bold text-rose-800 uppercase">Out of Stock (0 Units)</p>
                     <p className="text-2xl font-black text-rose-900">{products.filter(p => p.stock === 0).length}</p>
                   </div>
-                  <span className="text-3xl">❌</span>
+                  <span className="text-3xl">âŒ</span>
                 </div>
               </div>
 
@@ -5837,8 +5837,8 @@ const silentRefresh = async (): Promise<boolean> => {
                             </div>
                             <div className="flex items-center gap-2 mt-0.5 text-slate-500 font-medium text-[11px]">
                               <span>SKU: {p.sku}</span>
-                              <span>• Price: ₹{p.sellingPrice}</span>
-                              <span>• Category: {p.categoryName}</span>
+                              <span>â€¢ Price: â‚¹{p.sellingPrice}</span>
+                              <span>â€¢ Category: {p.categoryName}</span>
                             </div>
                           </div>
                         </div>
@@ -5849,7 +5849,7 @@ const silentRefresh = async (): Promise<boolean> => {
                             isLow ? 'bg-amber-100 text-amber-900 border border-amber-300' :
                             'bg-emerald-100 text-emerald-900 border border-emerald-300'
                           }`}>
-                            {isZero ? '❌ Out of Stock' : isLow ? `⚠️ Low Stock (${p.stock})` : `✅ In Stock (${p.stock})`}
+                            {isZero ? 'âŒ Out of Stock' : isLow ? `âš ï¸ Low Stock (${p.stock})` : `âœ… In Stock (${p.stock})`}
                           </span>
 
                           {/* Stock Controls */}
@@ -6010,7 +6010,7 @@ const silentRefresh = async (): Promise<boolean> => {
                   />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Free Shipping Above (₹):</label>
+                  <label className="font-bold text-slate-700 block mb-1">Free Shipping Above (â‚¹):</label>
                   <input
                     type="number"
                     placeholder="499"
@@ -6023,7 +6023,7 @@ const silentRefresh = async (): Promise<boolean> => {
 
               {/* PAYMENT METHODS MANAGEMENT TOGGLES */}
               <h3 className="font-bold text-base text-slate-900 border-b border-slate-100 pb-2 pt-4 flex items-center justify-between">
-                <span>💳 Payment Methods Enable / Disable Controls</span>
+                <span>ðŸ’³ Payment Methods Enable / Disable Controls</span>
                 <span className="text-xs bg-indigo-100 text-indigo-900 px-3 py-1 rounded-full font-bold">
                   Active Store Options
                 </span>
@@ -6254,7 +6254,7 @@ const silentRefresh = async (): Promise<boolean> => {
                 </div>
               </div>
 
-              {/* Live QR Preview — shows exactly what customer sees */}
+              {/* Live QR Preview â€” shows exactly what customer sees */}
               <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4 flex flex-col sm:flex-row items-center gap-5">
                 <div className="text-center shrink-0">
                   <img
@@ -6270,18 +6270,18 @@ const silentRefresh = async (): Promise<boolean> => {
                     }}
                     className="w-32 h-32 rounded-xl border-2 border-indigo-300 bg-white shadow-sm mx-auto object-contain p-1"
                   />
-                  <p className="text-[10px] font-bold text-indigo-900 mt-1.5">📱 Live QR Preview</p>
+                  <p className="text-[10px] font-bold text-indigo-900 mt-1.5">ðŸ“± Live QR Preview</p>
                   <p className="text-[10px] text-slate-500">What customer sees at checkout</p>
                 </div>
                 <div className="flex-1 space-y-1 text-xs">
-                  <p className="font-bold text-indigo-900 text-sm">✅ Auto-Generated UPI QR Code</p>
-                  <p className="text-slate-600">The QR code is auto-generated from your UPI ID and merchant name above — no manual URL needed.</p>
+                  <p className="font-bold text-indigo-900 text-sm">âœ… Auto-Generated UPI QR Code</p>
+                  <p className="text-slate-600">The QR code is auto-generated from your UPI ID and merchant name above â€” no manual URL needed.</p>
                   <div className="mt-2 p-2 bg-white rounded-xl border border-indigo-200 font-mono text-[11px] space-y-0.5">
                     <p><span className="text-slate-400">UPI ID:</span> <span className="font-bold text-indigo-900">{settings?.upiId || 'Not set'}</span></p>
                     <p><span className="text-slate-400">Name:</span> <span className="font-bold text-indigo-900">{settings?.upiName || 'Not set'}</span></p>
                     <p><span className="text-slate-400">QR Data:</span> <span className="text-indigo-700 break-all">upi://pay?pa={settings?.upiId || ''}&pn={settings?.upiName || ''}&cu=INR</span></p>
                   </div>
-                  <p className="text-[10px] text-slate-400 mt-1">💡 Change UPI ID or Name above and the QR updates automatically after Save.</p>
+                  <p className="text-[10px] text-slate-400 mt-1">ðŸ’¡ Change UPI ID or Name above and the QR updates automatically after Save.</p>
                 </div>
               </div>
 
@@ -6309,7 +6309,7 @@ const silentRefresh = async (): Promise<boolean> => {
                   )}
                 </button>
                 {settingsMsg && (
-                  <p className={`text-xs font-bold ${settingsMsg.startsWith('✅') ? 'text-emerald-700' : 'text-rose-600'}`}>
+                  <p className={`text-xs font-bold ${settingsMsg.startsWith('âœ…') ? 'text-emerald-700' : 'text-rose-600'}`}>
                     {settingsMsg}
                   </p>
                 )}
@@ -6330,7 +6330,7 @@ const silentRefresh = async (): Promise<boolean> => {
                     <div key={log.id} className="p-3 bg-slate-900 text-slate-200 rounded-2xl text-[11px] space-y-1">
                       <div className="flex justify-between text-emerald-400 font-bold">
                         <span>Txn: {log.merchantTransactionId}</span>
-                        <span>Amount: ₹{log.amount} ({log.status})</span>
+                        <span>Amount: â‚¹{log.amount} ({log.status})</span>
                       </div>
                       <p className="text-slate-400">Checksum: {log.checksum}</p>
                       <p className="text-slate-500 text-[10px]">Logged at: {log.createdAt}</p>
@@ -6360,7 +6360,7 @@ const silentRefresh = async (): Promise<boolean> => {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-5 rounded-3xl border border-slate-200 shadow-2xs">
                   <div>
                     <h3 className="font-black text-lg text-slate-900 flex items-center gap-2">
-                      <span>💰 Farm Expenses, Sales & Profit Calculator</span>
+                      <span>ðŸ’° Farm Expenses, Sales & Profit Calculator</span>
                     </h3>
                     <p className="text-xs text-slate-500 font-medium mt-0.5">Track extra operational spending, fertilizer costs, wholesale sales, and live profit/loss</p>
                   </div>
@@ -6377,25 +6377,25 @@ const silentRefresh = async (): Promise<boolean> => {
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-2xs space-y-1">
                     <span className="text-xs font-bold text-slate-400 uppercase">Total Sales Revenue</span>
-                    <p className="text-2xl font-black text-emerald-800">₹{totalSales}</p>
+                    <p className="text-2xl font-black text-emerald-800">â‚¹{totalSales}</p>
                     <p className="text-[10px] text-slate-500 font-medium">Includes {orders.length} store orders + custom sales</p>
                   </div>
 
                   <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-2xs space-y-1">
                     <span className="text-xs font-bold text-slate-400 uppercase">Total Farm Spending</span>
-                    <p className="text-2xl font-black text-rose-700">₹{totalSpending}</p>
+                    <p className="text-2xl font-black text-rose-700">â‚¹{totalSpending}</p>
                     <p className="text-[10px] text-slate-500 font-medium">Fertilizer, bags, soil, labor & freight</p>
                   </div>
 
                   <div className={`p-5 rounded-3xl border shadow-2xs space-y-1 ${isProfit ? 'bg-emerald-50 border-emerald-300' : 'bg-rose-50 border-rose-300'}`}>
                     <span className={`text-xs font-bold uppercase ${isProfit ? 'text-emerald-900' : 'text-rose-900'}`}>
-                      {isProfit ? '📈 Net Profit' : '📉 Net Loss'}
+                      {isProfit ? 'ðŸ“ˆ Net Profit' : 'ðŸ“‰ Net Loss'}
                     </span>
                     <p className={`text-2xl font-black ${isProfit ? 'text-emerald-800' : 'text-rose-700'}`}>
-                      {isProfit ? `+₹${netProfit}` : `-₹${Math.abs(netProfit)}`}
+                      {isProfit ? `+â‚¹${netProfit}` : `-â‚¹${Math.abs(netProfit)}`}
                     </p>
                     <p className={`text-[10px] font-bold ${isProfit ? 'text-emerald-700' : 'text-rose-700'}`}>
-                      {isProfit ? '✅ Profitable Farm Operation' : '⚠️ Expenses Exceed Revenue'}
+                      {isProfit ? 'âœ… Profitable Farm Operation' : 'âš ï¸ Expenses Exceed Revenue'}
                     </p>
                   </div>
 
@@ -6419,7 +6419,7 @@ const silentRefresh = async (): Promise<boolean> => {
 
                   {finances.length === 0 ? (
                     <div className="text-center py-10 space-y-2">
-                      <p className="text-4xl">💰</p>
+                      <p className="text-4xl">ðŸ’°</p>
                       <p className="text-slate-500 font-semibold text-sm">No expenses or sales logged yet</p>
                       <p className="text-slate-400 text-xs">Click "+ Add Spending / Sale Log" to record farm spending or custom sales</p>
                     </div>
@@ -6450,24 +6450,24 @@ const silentRefresh = async (): Promise<boolean> => {
                                 <td className="py-3 px-3 font-mono text-slate-600 text-[11px]">{f.date}</td>
                                 <td className="py-3 px-3">
                                   <span className={`font-bold px-2.5 py-0.5 rounded-full text-[10px] ${f.type === 'SALE' ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : 'bg-rose-100 text-rose-900 border border-rose-300'}`}>
-                                    {f.type === 'SALE' ? '🛍️ Sale' : '💸 Spending'}
+                                    {f.type === 'SALE' ? 'ðŸ›ï¸ Sale' : 'ðŸ’¸ Spending'}
                                   </span>
                                 </td>
                                 <td className="py-3 px-3">
                                   <p className="font-bold text-slate-900 text-sm">{f.title}</p>
-                                  <p className="text-[11px] text-slate-500 font-medium">{f.category} {f.notes ? `• ${f.notes}` : ''}</p>
+                                  <p className="text-[11px] text-slate-500 font-medium">{f.category} {f.notes ? `â€¢ ${f.notes}` : ''}</p>
                                 </td>
                                 <td className="py-3 px-3 text-center font-bold font-mono">{f.quantity}</td>
-                                <td className="py-3 px-3 font-bold text-rose-700 font-mono">₹{itemCost}</td>
-                                <td className="py-3 px-3 font-bold text-emerald-800 font-mono">{f.type === 'SALE' ? `₹${itemSell}` : '—'}</td>
+                                <td className="py-3 px-3 font-bold text-rose-700 font-mono">â‚¹{itemCost}</td>
+                                <td className="py-3 px-3 font-bold text-emerald-800 font-mono">{f.type === 'SALE' ? `â‚¹${itemSell}` : 'â€”'}</td>
                                 <td className="py-3 px-3">
                                   {f.type === 'SALE' ? (
                                     <span className={`font-black px-2.5 py-1 rounded-xl text-[11px] ${isItemProfit ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : 'bg-rose-100 text-rose-900 border border-rose-300'}`}>
-                                      {isItemProfit ? `+₹${itemDiff} Profit` : `-₹${Math.abs(itemDiff)} Loss`}
+                                      {isItemProfit ? `+â‚¹${itemDiff} Profit` : `-â‚¹${Math.abs(itemDiff)} Loss`}
                                     </span>
                                   ) : (
                                     <span className="font-bold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-xl border border-rose-200">
-                                      -₹{itemCost} Expense
+                                      -â‚¹{itemCost} Expense
                                     </span>
                                   )}
                                 </td>
@@ -6528,7 +6528,7 @@ const silentRefresh = async (): Promise<boolean> => {
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-black tracking-wider uppercase">
-                        ★ Live Review Management
+                        â˜… Live Review Management
                       </span>
                     </div>
                     <h2 className="text-2xl font-black font-display">Customer Reviews & Photo Section</h2>
@@ -6573,12 +6573,12 @@ const silentRefresh = async (): Promise<boolean> => {
                     <p className="text-[10px] text-emerald-600">Visible on Store Front</p>
                   </div>
                   <div className="bg-white p-4 rounded-2xl border border-amber-200 shadow-2xs space-y-1">
-                    <p className="text-amber-700 uppercase text-[10px]">With Plant Photos 📸</p>
+                    <p className="text-amber-700 uppercase text-[10px]">With Plant Photos ðŸ“¸</p>
                     <p className="text-2xl font-black text-amber-800">{photoCount}</p>
                     <p className="text-[10px] text-amber-600">Local & Buyer Uploads</p>
                   </div>
                   <div className="bg-white p-4 rounded-2xl border border-purple-200 shadow-2xs space-y-1">
-                    <p className="text-purple-700 uppercase text-[10px]">Pending Approval ⏳</p>
+                    <p className="text-purple-700 uppercase text-[10px]">Pending Approval â³</p>
                     <p className="text-2xl font-black text-purple-800">{pendingCount}</p>
                     <p className="text-[10px] text-purple-600">Awaiting Admin Action</p>
                   </div>
@@ -6589,9 +6589,9 @@ const silentRefresh = async (): Promise<boolean> => {
                   <div className="flex gap-2 overflow-x-auto w-full sm:w-auto">
                     {[
                       { key: 'all', label: `All (${reviews.length})` },
-                      { key: 'approved', label: `Approved ✅ (${approvedCount})` },
-                      { key: 'pending', label: `Pending ⏳ (${pendingCount})` },
-                      { key: 'photos', label: `With Photos 📸 (${photoCount})` },
+                      { key: 'approved', label: `Approved âœ… (${approvedCount})` },
+                      { key: 'pending', label: `Pending â³ (${pendingCount})` },
+                      { key: 'photos', label: `With Photos ðŸ“¸ (${photoCount})` },
                     ].map(f => (
                       <button
                         key={f.key}
@@ -6651,11 +6651,11 @@ const silentRefresh = async (): Promise<boolean> => {
                                 <h4 className="font-extrabold text-slate-900 text-sm">{r.userName}</h4>
                                 {r.isVerified && (
                                   <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full font-bold text-[9px] border border-emerald-300">
-                                    ✓ Verified Buyer
+                                    âœ“ Verified Buyer
                                   </span>
                                 )}
                               </div>
-                              <p className="text-[11px] text-slate-400 font-medium">{r.location || 'Tamil Nadu'} • {r.createdAt}</p>
+                              <p className="text-[11px] text-slate-400 font-medium">{r.location || 'Tamil Nadu'} â€¢ {r.createdAt}</p>
                             </div>
                           </div>
 
@@ -6671,7 +6671,7 @@ const silentRefresh = async (): Promise<boolean> => {
 
                         {/* Plant Tag */}
                         <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-800 rounded-xl text-xs font-bold">
-                          <span>🌱 Plant:</span>
+                          <span>ðŸŒ± Plant:</span>
                           <span className="text-emerald-800">{r.productName || 'Nursery Plant'}</span>
                         </div>
 
@@ -6683,7 +6683,7 @@ const silentRefresh = async (): Promise<boolean> => {
                         {/* Admin Reply */}
                         {r.reply && (
                           <div className="bg-emerald-50 border-l-4 border-emerald-600 p-3 rounded-r-2xl space-y-1 text-xs">
-                            <span className="font-bold text-emerald-950 block">🌿 Veerika Rose Garden Team Reply:</span>
+                            <span className="font-bold text-emerald-950 block">ðŸŒ¿ Veerika Rose Garden Team Reply:</span>
                             <p className="text-emerald-800">{r.reply}</p>
                           </div>
                         )}
@@ -6739,7 +6739,7 @@ const silentRefresh = async (): Promise<boolean> => {
                               }`}
                             >
                               <Star className="w-3.5 h-3.5" />
-                              <span>{r.featured ? 'Featured ★' : 'Feature'}</span>
+                              <span>{r.featured ? 'Featured â˜…' : 'Feature'}</span>
                             </button>
                           </div>
 
@@ -6788,7 +6788,7 @@ const silentRefresh = async (): Promise<boolean> => {
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-4">
                     <div>
                       <h3 className="font-extrabold text-lg text-slate-900 flex items-center gap-2">
-                        <span>⚡ Payment Gateway Transaction Logs</span>
+                        <span>âš¡ Payment Gateway Transaction Logs</span>
                         <span className="text-xs px-2.5 py-0.5 bg-indigo-100 text-indigo-900 rounded-full font-bold">
                           {paymentLogs.length} Records
                         </span>
@@ -6809,7 +6809,7 @@ const silentRefresh = async (): Promise<boolean> => {
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-xs font-bold">
                     <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-2xl">
                       <p className="text-[10px] uppercase text-emerald-700 font-extrabold">Successful Volume</p>
-                      <p className="text-xl font-black text-emerald-950">₹{totalVol.toLocaleString('en-IN')}</p>
+                      <p className="text-xl font-black text-emerald-950">â‚¹{totalVol.toLocaleString('en-IN')}</p>
                       <p className="text-[10px] text-emerald-700">{successLogs.length} Completed</p>
                     </div>
                     <div className="bg-indigo-50 border border-indigo-200 p-3.5 rounded-2xl">
@@ -6862,7 +6862,7 @@ const silentRefresh = async (): Promise<boolean> => {
                                   <p className="font-mono text-[10px] text-slate-400 truncate max-w-[180px]">Txn: {log.merchantTransactionId}</p>
                                 </td>
                                 <td className="py-3 px-3 font-mono font-black text-emerald-800 text-sm whitespace-nowrap">
-                                  ₹{log.amount}
+                                  â‚¹{log.amount}
                                 </td>
                                 <td className="py-3 px-3 whitespace-nowrap">
                                   <span className={`font-bold px-2.5 py-1 rounded-xl text-[10px] border ${
@@ -6872,7 +6872,7 @@ const silentRefresh = async (): Promise<boolean> => {
                                       ? 'bg-rose-100 text-rose-900 border-rose-300'
                                       : 'bg-amber-100 text-amber-900 border-amber-300'
                                   }`}>
-                                    {isSucc ? '✓ SUCCESS' : isFail ? '✗ FAILED / CANCELLED' : '⏳ PENDING'}
+                                    {isSucc ? 'âœ“ SUCCESS' : isFail ? 'âœ— FAILED / CANCELLED' : 'â³ PENDING'}
                                   </span>
                                 </td>
                                 <td className="py-3 px-3">
@@ -6922,11 +6922,11 @@ const silentRefresh = async (): Promise<boolean> => {
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Tamil Name (தமிழ்) *</label>
+                  <label className="font-bold text-slate-700 block mb-1">Tamil Name (à®¤à®®à®¿à®´à¯) *</label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. சிவப்பு ரோஜா"
+                    placeholder="e.g. à®šà®¿à®µà®ªà¯à®ªà¯ à®°à¯‹à®œà®¾"
                     value={prodForm.tamilName}
                     onChange={(e) => setProdForm({ ...prodForm, tamilName: e.target.value })}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-emerald-800"
@@ -6952,7 +6952,7 @@ const silentRefresh = async (): Promise<boolean> => {
 
               <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1 text-[11px] sm:text-xs">Selling Price (₹) *</label>
+                  <label className="font-bold text-slate-700 block mb-1 text-[11px] sm:text-xs">Selling Price (â‚¹) *</label>
                   <input
                     type="number"
                     inputMode="numeric"
@@ -6964,7 +6964,7 @@ const silentRefresh = async (): Promise<boolean> => {
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1 text-[11px] sm:text-xs">MRP Price (₹)</label>
+                  <label className="font-bold text-slate-700 block mb-1 text-[11px] sm:text-xs">MRP Price (â‚¹)</label>
                   <input
                     type="number"
                     inputMode="numeric"
@@ -6993,7 +6993,7 @@ const silentRefresh = async (): Promise<boolean> => {
                 <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px] font-extrabold text-emerald-800">
                   <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                   <span>
-                    Save ₹{(prodForm.mrp || 0) - (prodForm.sellingPrice || 0)} ({Math.round((((prodForm.mrp || 0) - (prodForm.sellingPrice || 0)) / (prodForm.mrp || 1)) * 100)}% Discount)
+                    Save â‚¹{(prodForm.mrp || 0) - (prodForm.sellingPrice || 0)} ({Math.round((((prodForm.mrp || 0) - (prodForm.sellingPrice || 0)) / (prodForm.mrp || 1)) * 100)}% Discount)
                   </span>
                 </div>
               )}
@@ -7010,14 +7010,14 @@ const silentRefresh = async (): Promise<boolean> => {
                       onClick={() => setProdImgTab('upload')}
                       className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${prodImgTab === 'upload' ? 'bg-white text-emerald-800 shadow-xs font-black' : 'text-slate-600 hover:text-slate-900'}`}
                     >
-                      📁 Upload Local File
+                      ðŸ“ Upload Local File
                     </button>
                     <button
                       type="button"
                       onClick={() => setProdImgTab('url')}
                       className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${prodImgTab === 'url' ? 'bg-white text-emerald-800 shadow-xs font-black' : 'text-slate-600 hover:text-slate-900'}`}
                     >
-                      🔗 Paste Image URL
+                      ðŸ”— Paste Image URL
                     </button>
                   </div>
                 </div>
@@ -7107,7 +7107,7 @@ const silentRefresh = async (): Promise<boolean> => {
                   </div>
                 ) : (
                   <p className="text-rose-600 font-semibold text-[11px]">
-                    ⚠️ No image selected yet. Please upload an image from local storage or paste an image URL.
+                    âš ï¸ No image selected yet. Please upload an image from local storage or paste an image URL.
                   </p>
                 )}
               </div>
@@ -7153,7 +7153,7 @@ const silentRefresh = async (): Promise<boolean> => {
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase text-amber-900 tracking-wider">Customer Preference:</span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-200 text-amber-950">
-                  {(dispatchOrder.courierName || '').toLowerCase().includes('mettur') ? '📦 Branch Pickup' : '🚚 Doorstep Delivery'}
+                  {(dispatchOrder.courierName || '').toLowerCase().includes('mettur') ? 'ðŸ“¦ Branch Pickup' : 'ðŸšš Doorstep Delivery'}
                 </span>
               </div>
               <p className="font-black text-xs text-amber-950 flex items-center gap-1.5 mt-0.5">
@@ -7162,7 +7162,7 @@ const silentRefresh = async (): Promise<boolean> => {
               </p>
               {(dispatchOrder.courierBranch || dispatchOrder.courierDistrict) && (
                 <p className="text-[11px] text-amber-900 font-bold pl-5">
-                  📍 Pickup Branch: {dispatchOrder.courierBranch} {dispatchOrder.courierDistrict ? `(${dispatchOrder.courierDistrict} District)` : ''}
+                  ðŸ“ Pickup Branch: {dispatchOrder.courierBranch} {dispatchOrder.courierDistrict ? `(${dispatchOrder.courierDistrict} District)` : ''}
                 </p>
               )}
             </div>
@@ -7174,9 +7174,9 @@ const silentRefresh = async (): Promise<boolean> => {
                 onChange={(e) => setCourierName(e.target.value)}
                 className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-xs"
               >
-                <option value="Professional Courier – Reduced Soil">🚚 Professional Courier – Reduced Soil (Doorstep Delivery)</option>
-                <option value="Professional Courier – Full Soil">🌱 Professional Courier – Full Soil (Tamil Nadu Only)</option>
-                <option value="Mettur Parcel Service (MSS)">📦 Mettur Parcel Service / MSS (Branch Pickup Depot)</option>
+                <option value="Professional Courier â€“ Reduced Soil">ðŸšš Professional Courier â€“ Reduced Soil (Doorstep Delivery)</option>
+                <option value="Professional Courier â€“ Full Soil">ðŸŒ± Professional Courier â€“ Full Soil (Tamil Nadu Only)</option>
+                <option value="Mettur Parcel Service (MSS)">ðŸ“¦ Mettur Parcel Service / MSS (Branch Pickup Depot)</option>
               </select>
             </div>
 
@@ -7194,13 +7194,13 @@ const silentRefresh = async (): Promise<boolean> => {
             </div>
 
             <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 text-emerald-800 space-y-1">
-              <p className="font-bold">🌿 Delivering directly by yourself?</p>
+              <p className="font-bold">ðŸŒ¿ Delivering directly by yourself?</p>
               <p className="text-[11px] text-emerald-700">Click below to dispatch instantly without entering a courier tracking code.</p>
               <button
                 onClick={() => handleDispatchOrder('VRG-SELF-DELIVERY', 'Self Delivery (Nursery Farm Team)')}
                 className="mt-1.5 w-full py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl text-center shadow-xs"
               >
-                🛵 One-Click Self-Delivery Dispatch (No AWB)
+                ðŸ›µ One-Click Self-Delivery Dispatch (No AWB)
               </button>
             </div>
 
@@ -7233,7 +7233,7 @@ const silentRefresh = async (): Promise<boolean> => {
                   <span>{isUploadedByImage(selectedProofOrder) ? 'Uploaded Order Image / Bill (AI Scanned)' : 'Customer Payment Receipt Proof'}</span>
                 </h3>
                 <p className="text-[11px] text-slate-500 font-mono">
-                  Order #{selectedProofOrder.id} • Txn: {selectedProofOrder.merchantTransactionId}
+                  Order #{selectedProofOrder.id} â€¢ Txn: {selectedProofOrder.merchantTransactionId}
                 </p>
               </div>
               <button 
@@ -7250,7 +7250,7 @@ const silentRefresh = async (): Promise<boolean> => {
                   Customer: <span className="text-slate-950 font-black">{selectedProofOrder.customerName}</span> (+91 {selectedProofOrder.customerPhone})
                 </p>
                 <p className="font-black text-emerald-800 text-sm">
-                  Amount Paid: ₹{selectedProofOrder.grandTotal}
+                  Amount Paid: â‚¹{selectedProofOrder.grandTotal}
                 </p>
               </div>
               {selectedProofOrder.transactionId && (
@@ -7274,7 +7274,7 @@ const silentRefresh = async (): Promise<boolean> => {
                 />
               ) : (
                 <div className="p-8 text-center bg-slate-900 rounded-2xl text-slate-400 font-semibold space-y-1">
-                  <p className="text-sm">⚠️ No screenshot photo attached to this order.</p>
+                  <p className="text-sm">âš ï¸ No screenshot photo attached to this order.</p>
                   <p className="text-[11px] text-slate-500 font-normal">This payment was placed via direct gateway or manual UTR reference.</p>
                 </div>
               )}
@@ -7431,11 +7431,11 @@ const silentRefresh = async (): Promise<boolean> => {
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Tamil Name (தமிழ்) *</label>
+                  <label className="font-bold text-slate-700 block mb-1">Tamil Name (à®¤à®®à®¿à®´à¯) *</label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. ரோஜா செடிகள்"
+                    placeholder="e.g. à®°à¯‹à®œà®¾ à®šà¯†à®Ÿà®¿à®•à®³à¯"
                     value={catForm.tamilName}
                     onChange={(e) => setCatForm({ ...catForm, tamilName: e.target.value })}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-emerald-800"
@@ -7495,7 +7495,7 @@ const silentRefresh = async (): Promise<boolean> => {
                 {/* Upload Local File or Pick from Nursery Photos */}
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <label className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg font-bold text-[10px] cursor-pointer inline-flex items-center gap-1 transition-colors">
-                    <span>📁 Upload Local Photo</span>
+                    <span>ðŸ“ Upload Local Photo</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -7515,15 +7515,15 @@ const silentRefresh = async (): Promise<boolean> => {
 
                   <span className="text-[10px] text-slate-400">or quick select:</span>
                   {[
-                    { label: '🌹 Rose', url: '/products/double-delight.jpeg' },
-                    { label: '🌿 Herbal', url: '/products/ww.jpeg' },
-                    { label: '🌸 Jasmine', url: '/products/sgssg.jpeg' },
-                    { label: '🧗 Creeper', url: '/products/white-creeper.jpeg' },
-                    { label: '🌱 Miniature', url: '/products/button-rose.jpeg' },
-                    { label: '✨ Rare', url: '/products/rejtrjtj.jpeg' },
-                    { label: '🍎 Fruit', url: '/products/red-water-apple.jpeg' },
-                    { label: '🌺 Hibiscus', url: '/products/new_plant_13.jpg' },
-                    { label: '🌼 Flower', url: '/products/new_plant_05.jpg' },
+                    { label: 'ðŸŒ¹ Rose', url: '/products/double-delight.jpeg' },
+                    { label: 'ðŸŒ¿ Herbal', url: '/products/ww.jpeg' },
+                    { label: 'ðŸŒ¸ Jasmine', url: '/products/sgssg.jpeg' },
+                    { label: 'ðŸ§— Creeper', url: '/products/white-creeper.jpeg' },
+                    { label: 'ðŸŒ± Miniature', url: '/products/button-rose.jpeg' },
+                    { label: 'âœ¨ Rare', url: '/products/rejtrjtj.jpeg' },
+                    { label: 'ðŸŽ Fruit', url: '/products/red-water-apple.jpeg' },
+                    { label: 'ðŸŒº Hibiscus', url: '/products/new_plant_13.jpg' },
+                    { label: 'ðŸŒ¼ Flower', url: '/products/new_plant_05.jpg' },
                   ].map((p, idx) => (
                     <button
                       key={idx}
@@ -7567,7 +7567,7 @@ const silentRefresh = async (): Promise<boolean> => {
                       onChange={(e) => setCatForm({ ...catForm, isFeatured: e.target.checked })}
                       className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500"
                     />
-                    <span className="font-bold text-amber-900">★ Featured Category</span>
+                    <span className="font-bold text-amber-900">â˜… Featured Category</span>
                   </label>
                 </div>
               </div>
@@ -7579,8 +7579,8 @@ const silentRefresh = async (): Promise<boolean> => {
                   onClick={() => setShowSeoFields(!showSeoFields)}
                   className="w-full px-4 py-2.5 bg-slate-100 hover:bg-slate-200/80 font-bold text-slate-800 flex justify-between items-center transition-colors"
                 >
-                  <span>🔍 SEO Meta Data & Schema (Optional)</span>
-                  <span>{showSeoFields ? '▲ Hide' : '▼ Expand'}</span>
+                  <span>ðŸ” SEO Meta Data & Schema (Optional)</span>
+                  <span>{showSeoFields ? 'â–² Hide' : 'â–¼ Expand'}</span>
                 </button>
 
                 {showSeoFields && (
@@ -7589,7 +7589,7 @@ const silentRefresh = async (): Promise<boolean> => {
                       <label className="font-semibold text-slate-700 block mb-1">SEO Title Tag</label>
                       <input
                         type="text"
-                        placeholder="Roses (ரோஜா செடிகள்) - Farm Direct Hybrid Rose Plants"
+                        placeholder="Roses (à®°à¯‹à®œà®¾ à®šà¯†à®Ÿà®¿à®•à®³à¯) - Farm Direct Hybrid Rose Plants"
                         value={catForm.metaTitle}
                         onChange={(e) => setCatForm({ ...catForm, metaTitle: e.target.value })}
                         className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
@@ -7650,7 +7650,7 @@ const silentRefresh = async (): Promise<boolean> => {
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 my-8 border border-slate-200 shadow-2xl">
             <div className="flex justify-between items-center border-b border-slate-200 pb-3">
               <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
-                <span>{editingFinance ? '✏️ Edit Farm Expense or Sale Entry' : '💰 Add Farm Expense or Sale Entry'}</span>
+                <span>{editingFinance ? 'âœï¸ Edit Farm Expense or Sale Entry' : 'ðŸ’° Add Farm Expense or Sale Entry'}</span>
               </h3>
               <button onClick={() => { setShowFinanceModal(false); setEditingFinance(null); }} className="p-1 text-slate-400 hover:text-slate-800 cursor-pointer">
                 <X className="w-5 h-5" />
@@ -7666,14 +7666,14 @@ const silentRefresh = async (): Promise<boolean> => {
                   onClick={() => setFinanceForm({ ...financeForm, type: 'EXPENSE' })}
                   className={`py-2 rounded-xl font-bold transition-all cursor-pointer ${financeForm.type === 'EXPENSE' ? 'bg-rose-600 text-white shadow-xs' : 'text-slate-700 hover:text-slate-900'}`}
                 >
-                  💸 Farm Spending / Cost
+                  ðŸ’¸ Farm Spending / Cost
                 </button>
                 <button
                   type="button"
                   onClick={() => setFinanceForm({ ...financeForm, type: 'SALE' })}
                   className={`py-2 rounded-xl font-bold transition-all cursor-pointer ${financeForm.type === 'SALE' ? 'bg-emerald-700 text-white shadow-xs' : 'text-slate-700 hover:text-slate-900'}`}
                 >
-                  🛍️ Farm / Wholesale Sale
+                  ðŸ›ï¸ Farm / Wholesale Sale
                 </button>
               </div>
 
@@ -7722,7 +7722,7 @@ const silentRefresh = async (): Promise<boolean> => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Spending / Cost Incurred (₹) *</label>
+                  <label className="font-bold text-slate-700 block mb-1">Spending / Cost Incurred (â‚¹) *</label>
                   <input
                     type="number"
                     min={0}
@@ -7735,7 +7735,7 @@ const silentRefresh = async (): Promise<boolean> => {
 
                 {financeForm.type === 'SALE' && (
                   <div>
-                    <label className="font-bold text-slate-700 block mb-1">Selling Price / Revenue (₹) *</label>
+                    <label className="font-bold text-slate-700 block mb-1">Selling Price / Revenue (â‚¹) *</label>
                     <input
                       type="number"
                       min={0}
@@ -7756,8 +7756,8 @@ const silentRefresh = async (): Promise<boolean> => {
                   <span>Calculated Net Profit/Loss:</span>
                   <span className="font-mono text-sm">
                     {(financeForm.sellAmount - financeForm.costAmount) >= 0
-                      ? `+₹${financeForm.sellAmount - financeForm.costAmount} PROFIT`
-                      : `-₹${Math.abs(financeForm.sellAmount - financeForm.costAmount)} LOSS`}
+                      ? `+â‚¹${financeForm.sellAmount - financeForm.costAmount} PROFIT`
+                      : `-â‚¹${Math.abs(financeForm.sellAmount - financeForm.costAmount)} LOSS`}
                   </span>
                 </div>
               )}
@@ -7801,7 +7801,7 @@ const silentRefresh = async (): Promise<boolean> => {
               <div>
                 <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-amber-500" />
-                  <span>🎁 {editingCombo ? 'Edit Plant Combo Package' : 'Create New Plant Combo Package'}</span>
+                  <span>ðŸŽ {editingCombo ? 'Edit Plant Combo Package' : 'Create New Plant Combo Package'}</span>
                 </h3>
                 <p className="text-slate-500 text-xs mt-0.5">Select grouped plants, adjust quantities, set offer badge & combo discount price.</p>
               </div>
@@ -7866,7 +7866,7 @@ const silentRefresh = async (): Promise<boolean> => {
                       const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
                       cached.combos = next;
                       localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
-                      localStorage.setItem('vrg_combos_cache', JSON.stringify(next));
+                      localStorage.setItem('vrg_combos_cache_v2', JSON.stringify(next));
                     } catch {}
                     return next;
                   });
@@ -7888,7 +7888,7 @@ const silentRefresh = async (): Promise<boolean> => {
                           const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
                           cached.combos = next;
                           localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
-                          localStorage.setItem('vrg_combos_cache', JSON.stringify(next));
+                          localStorage.setItem('vrg_combos_cache_v2', JSON.stringify(next));
                         } catch {}
                         return next;
                       });
@@ -7906,7 +7906,7 @@ const silentRefresh = async (): Promise<boolean> => {
                           const cached = JSON.parse(localStorage.getItem('vrg_admin_bootstrap_cache') || '{}');
                           cached.combos = next;
                           localStorage.setItem('vrg_admin_bootstrap_cache', JSON.stringify(cached));
-                          localStorage.setItem('vrg_combos_cache', JSON.stringify(next));
+                          localStorage.setItem('vrg_combos_cache_v2', JSON.stringify(next));
                         } catch {}
                         return next;
                       });
@@ -7988,7 +7988,7 @@ const silentRefresh = async (): Promise<boolean> => {
                   <div className="relative mb-2">
                     <input
                       type="text"
-                      placeholder="🔍 Search plant by name, Tamil name, or category..."
+                      placeholder="ðŸ” Search plant by name, Tamil name, or category..."
                       value={comboSearchQuery}
                       onChange={(e) => setComboSearchQuery(e.target.value)}
                       className="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-300 rounded-xl font-semibold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -7999,7 +7999,7 @@ const silentRefresh = async (): Promise<boolean> => {
                         onClick={() => setComboSearchQuery('')}
                         className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-700 text-xs font-bold"
                       >
-                        ✕
+                        âœ•
                       </button>
                     )}
                   </div>
@@ -8065,7 +8065,7 @@ const silentRefresh = async (): Promise<boolean> => {
                                   {p.name}
                                 </p>
                                 <p className="text-[10px] text-slate-500 font-medium truncate">
-                                  {p.tamilName ? `${p.tamilName} • ` : ''}₹{p.sellingPrice} (MRP ₹{p.mrp})
+                                  {p.tamilName ? `${p.tamilName} â€¢ ` : ''}â‚¹{p.sellingPrice} (MRP â‚¹{p.mrp})
                                 </p>
                               </div>
                             </div>
@@ -8114,7 +8114,7 @@ const silentRefresh = async (): Promise<boolean> => {
                 {/* Pricing Section */}
                 <div className="grid grid-cols-2 gap-3 bg-amber-50/70 p-3.5 rounded-2xl border border-amber-200">
                   <div>
-                    <label className="font-bold text-amber-900 block mb-1">Original Total MRP (₹)</label>
+                    <label className="font-bold text-amber-900 block mb-1">Original Total MRP (â‚¹)</label>
                     <input
                       type="number"
                       required
@@ -8126,7 +8126,7 @@ const silentRefresh = async (): Promise<boolean> => {
                   </div>
 
                   <div>
-                    <label className="font-bold text-emerald-900 block mb-1">Combo Special Price (₹) *</label>
+                    <label className="font-bold text-emerald-900 block mb-1">Combo Special Price (â‚¹) *</label>
                     <input
                       type="number"
                       required
@@ -8141,14 +8141,14 @@ const silentRefresh = async (): Promise<boolean> => {
                 {/* Discount Tag Preview */}
                 {comboForm.originalPrice > comboForm.comboPrice && (
                   <div className="bg-emerald-100 text-emerald-900 p-2.5 rounded-xl font-extrabold text-center text-xs border border-emerald-300">
-                    🎉 Customer Saves ₹{comboForm.originalPrice - comboForm.comboPrice} ({Math.round(((comboForm.originalPrice - comboForm.comboPrice) / comboForm.originalPrice) * 100)}% OFF)
+                    ðŸŽ‰ Customer Saves â‚¹{comboForm.originalPrice - comboForm.comboPrice} ({Math.round(((comboForm.originalPrice - comboForm.comboPrice) / comboForm.originalPrice) * 100)}% OFF)
                   </div>
                 )}
 
                 {/* Free Delivery Toggle Button */}
                 <div className="flex items-center justify-between p-3.5 bg-emerald-50/80 rounded-2xl border border-emerald-200 shadow-2xs">
                   <div className="flex items-center gap-2.5">
-                    <span className="text-xl">🚚</span>
+                    <span className="text-xl">ðŸšš</span>
                     <div>
                       <label htmlFor="comboFreeDelivery" className="font-extrabold text-emerald-950 text-xs cursor-pointer block">
                         Free Delivery for this Combo Package
@@ -8368,7 +8368,7 @@ const silentRefresh = async (): Promise<boolean> => {
                     onChange={e => setReviewForm({ ...reviewForm, featured: e.target.checked })}
                     className="w-4 h-4 text-amber-600 rounded"
                   />
-                  <span className="font-bold text-amber-900">★ Feature on Homepage</span>
+                  <span className="font-bold text-amber-900">â˜… Feature on Homepage</span>
                 </label>
               </div>
 
@@ -8435,4 +8435,5 @@ const silentRefresh = async (): Promise<boolean> => {
     </div>
   );
 };
+
 

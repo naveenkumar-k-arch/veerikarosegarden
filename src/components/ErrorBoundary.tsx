@@ -1,4 +1,4 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+﻿import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { RefreshCw, RotateCcw, AlertTriangle, Home } from 'lucide-react';
 
 interface Props {
@@ -55,7 +55,7 @@ export class ErrorBoundary extends Component<Props, State> {
         'vrg_categories',
         'vrg_banners',
         'vrg_reviews',
-        'vrg_combos_cache',
+        'vrg_combos_cache_v2',
         'vrg_deleted_combos',
         'vrg_deleted_products',
         'vrg_deleted_reviews',
@@ -221,3 +221,4 @@ export class ErrorBoundary extends Component<Props, State> {
     return this.props.children;
   }
 }
+
