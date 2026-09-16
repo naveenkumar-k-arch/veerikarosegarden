@@ -1949,7 +1949,7 @@ class Store {
       dbCombos = loadDiskCombos();
     }
 
-    // Filter out dummy/deleted combos
+    // Filter out dummy/deleted combos — ALWAYS check dummyIds FIRST, regardless of other fields
     const dummyIds = new Set([
       'combo-1787635336437',
       'combo-1787321846424',
@@ -1962,8 +1962,12 @@ class Store {
     ]);
     const rawCombos = dbCombos.filter(c => {
       if (!c || !c.id) return false;
+      // Hard block phantom IDs first — no exceptions
+      if (dummyIds.has(c.id) || dummyIds.has(c.id.toLowerCase())) return false;
       if (deletedComboIds.has(c.id) || deletedComboIds.has(c.id.toLowerCase())) return false;
-      if (dummyIds.has(c.id)) return false;
+      // Block inactive combos
+      if (c.active === false) return false;
+      // Block combos with no image AND no products
       if (!c.imageUrl && (!c.products || c.products.length === 0) && (!c.productIds || c.productIds.length === 0)) return false;
       return true;
     });
