@@ -1,4 +1,4 @@
-﻿import { Combo, Product } from '../types';
+import { Combo, Product } from '../types';
 
 export const VINAYAGAR_10_FRUIT_PLANTS: Product[] = [
   {
@@ -426,14 +426,15 @@ export const comboToProduct = (combo: Combo): Product => {
   }
 
   const isVinayagar = combo.id === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
-    (combo.title && combo.title.includes('10 FRUIT')) ||
+    (combo.id && combo.id.toLowerCase().includes('vinayagar')) ||
+    (combo.title && (combo.title.includes('10 FRUIT') || combo.title.includes('விநாயகர்'))) ||
     (combo.subtitle && combo.subtitle.includes('10 FRUIT'));
 
   const comboProducts: Product[] = Array.isArray(combo.products) && combo.products.length > 0
     ? combo.products.filter(Boolean)
     : (isVinayagar ? VINAYAGAR_10_FRUIT_PLANTS : []);
 
-  const firstImg = combo.imageUrl || comboProducts[0]?.images?.[0] || (comboProducts[0] as any)?.image || (comboProducts[0] as any)?.imageUrl || '/products/vrg/combo-mini-beetroot-guva.jpg';
+  const firstImg = resolveComboImage(combo) || comboProducts[0]?.images?.[0] || (comboProducts[0] as any)?.image || (comboProducts[0] as any)?.imageUrl || '/products/vrg/combo-mini-beetroot-guva.jpg';
   const comboId = combo.id || 'combo-unknown';
   const plantCount = comboProducts.length || (isVinayagar ? 10 : (combo.productIds?.length || 3));
 
