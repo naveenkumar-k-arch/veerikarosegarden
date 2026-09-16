@@ -29,7 +29,9 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
   isWishlisted = false,
   onToggleWishlist
 }) => {
-  const [selectedImg, setSelectedImg] = useState<string>(product.images[0] || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80');
+  const [selectedImg, setSelectedImg] = useState<string>(
+    (product as any).imageUrl || product.images?.[0] || product.image || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80'
+  );
   const [qty, setQty] = useState<number>(1);
   const [copied, setCopied] = useState(false);
 
@@ -98,7 +100,18 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({
         {/* Gallery Column */}
         <div className="space-y-4">
           <div className="aspect-[16/9] sm:aspect-[16/10] max-h-72 sm:max-h-80 w-full rounded-2xl overflow-hidden bg-slate-100 relative border border-slate-200 shadow-xs flex items-center justify-center">
-            <img src={selectedImg} alt={product.name} className="w-full h-full object-cover object-center" decoding="async" />
+            <img
+              src={selectedImg}
+              alt={product.name}
+              className="w-full h-full object-cover object-center"
+              decoding="async"
+              onError={(e) => {
+                const fallback = (product as any).imageUrl || product.images?.[0] || product.image;
+                if (fallback && (e.target as HTMLImageElement).src !== fallback) {
+                  (e.target as HTMLImageElement).src = fallback;
+                }
+              }}
+            />
             <span className="absolute top-3 left-3 bg-emerald-800 text-white text-xs font-bold px-3 py-1 rounded-full shadow-xs">
               {product.categoryName}
             </span>
