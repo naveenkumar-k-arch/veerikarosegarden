@@ -607,7 +607,16 @@ export const getCachedActiveCombos = (): Combo[] => {
       prodMap.set(p.id.toLowerCase(), p);
     }
   });
-  const dummyIds = new Set(['combo-1787635336437', 'combo-1787321846424', 'combo-1787577752349', 'combo-1787127554276']);
+  const dummyIds = new Set([
+    'combo-1787635336437',
+    'combo-1787321846424',
+    'combo-1787577752349',
+    'combo-1786876625168',
+    'combo-1786878791522',
+    'combo-1786873534914',
+    'combo-1786968264680',
+    'combo-1787127554276'
+  ]);
 
   return Array.from(map.values())
     .filter((c: any) => {

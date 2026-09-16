@@ -60,7 +60,16 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
 
       if (cRes && cRes.success && Array.isArray(cRes.combos)) {
         const deletedSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_combos') || '[]'));
-        const dummyIds = new Set(['combo-1787635336437', 'combo-1787321846424', 'combo-1787577752349', 'combo-1787127554276']);
+        const dummyIds = new Set([
+          'combo-1787635336437',
+          'combo-1787321846424',
+          'combo-1787577752349',
+          'combo-1786876625168',
+          'combo-1786878791522',
+          'combo-1786873534914',
+          'combo-1786968264680',
+          'combo-1787127554276'
+        ]);
         const activeCombos = cRes.combos
           .filter((c: Combo) => {
             if (!c || !c.id || c.active === false || deletedSet.has(c.id)) return false;

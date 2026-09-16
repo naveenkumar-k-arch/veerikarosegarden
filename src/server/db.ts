@@ -1945,30 +1945,21 @@ class Store {
       }
     }
 
-    const diskCombos = loadDiskCombos();
     if (dbCombos.length === 0) {
-      dbCombos = diskCombos;
-    } else {
-      const dbMap = new Map(dbCombos.map(c => [c.id, c]));
-      for (const dc of diskCombos) {
-        if (!dbMap.has(dc.id)) {
-          dbCombos.unshift(dc);
-        } else {
-          const existing = dbMap.get(dc.id);
-          if (dc.freePacking !== undefined) (existing as any).freePacking = dc.freePacking;
-          if (dc.onlyMetturService !== undefined) (existing as any).onlyMetturService = dc.onlyMetturService;
-          if (Array.isArray(dc.products) && dc.products.length > 0) (existing as any).products = dc.products;
-          if (Array.isArray(dc.productIds) && dc.productIds.length > 0) (existing as any).productIds = dc.productIds;
-          if (dc.order !== undefined) (existing as any).order = dc.order;
-          if (dc.imageUrl) (existing as any).imageUrl = dc.imageUrl;
-          if (dc.title) (existing as any).title = dc.title;
-          if (dc.subtitle) (existing as any).subtitle = dc.subtitle;
-        }
-      }
+      dbCombos = loadDiskCombos();
     }
 
     // Filter out dummy/deleted combos
-    const dummyIds = new Set(['combo-1787635336437', 'combo-1787321846424', 'combo-1787577752349', 'combo-1787127554276']);
+    const dummyIds = new Set([
+      'combo-1787635336437',
+      'combo-1787321846424',
+      'combo-1787577752349',
+      'combo-1786876625168',
+      'combo-1786878791522',
+      'combo-1786873534914',
+      'combo-1786968264680',
+      'combo-1787127554276'
+    ]);
     const rawCombos = dbCombos.filter(c => {
       if (!c || !c.id) return false;
       if (deletedComboIds.has(c.id) || deletedComboIds.has(c.id.toLowerCase())) return false;
