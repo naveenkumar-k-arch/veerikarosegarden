@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Combo, Product } from '../types';
 import { ShoppingBag, Sparkles, CheckCircle2, Tag, ArrowRight, ShieldCheck, Truck } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
@@ -308,19 +308,38 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                     {/* Header Image Collage */}
                     <div className="relative aspect-[16/10] sm:h-56 bg-slate-900 overflow-hidden">
                       <img
-                        src={resolveComboImage(combo)}
+                        src={(() => {
+                          const raw = resolveComboImage(combo);
+                          // Prefer .webp for faster load; all combo images have a .webp version
+                          if (raw && (raw.startsWith('/products/') || raw.startsWith('/categories/'))) {
+                            return raw.replace(/\.(png|jpg|jpeg)$/i, '.webp');
+                          }
+                          return raw;
+                        })()}
                         alt={combo.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         onError={(e) => {
                           const target = e.currentTarget;
-                          if (target.src.endsWith('.webp')) {
-                            target.src = target.src.replace(/\.webp$/, '.jpg');
-                          } else if (target.src.endsWith('.jpg')) {
-                            target.src = target.src.replace(/\.jpg$/, '.webp');
-                          } else if (combo.products?.[0]?.images?.[0] || (combo.products?.[0] as any)?.image || (combo.products?.[0] as any)?.imageUrl) {
-                            target.src = combo.products[0].images?.[0] || (combo.products[0] as any).image || (combo.products[0] as any).imageUrl;
+                          // Use data-errored to track fallback steps and prevent infinite loops
+                          const step = parseInt(target.getAttribute('data-errored') || '0', 10);
+                          target.setAttribute('data-errored', String(step + 1));
+                          if (step === 0) {
+                            // Step 1: webp failed → try original format (.jpg or .png)
+                            const resolvedRaw = resolveComboImage(combo);
+                            // Try .jpg if original is .webp, otherwise try .png
+                            if (resolvedRaw && resolvedRaw.endsWith('.webp')) {
+                              target.src = resolvedRaw.replace(/\.webp$/, '.jpg');
+                            } else {
+                              target.src = resolvedRaw || '/products/vrg/combo-mini-beetroot-guva.webp';
+                            }
+                          } else if (step === 1) {
+                            // Step 2: original format failed → try first product image
+                            const prodImg = combo.products?.[0]?.images?.[0] || (combo.products?.[0] as any)?.image || (combo.products?.[0] as any)?.imageUrl;
+                            target.src = prodImg || '/products/vrg/combo-mini-beetroot-guva.webp';
                           } else {
-                            target.src = '/products/vrg/combo-mini-beetroot-guva.jpg';
+                            // Step 3: give up — show reliable known-good fallback
+                            target.onerror = null;
+                            target.src = '/products/vrg/combo-mini-beetroot-guva.webp';
                           }
                         }}
                       />
@@ -479,19 +498,33 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
               {/* Cover Image & Close */}
               <div className="relative aspect-[16/10] sm:h-72 bg-slate-900 shrink-0 overflow-hidden">
                 <img
-                  src={resolveComboImage(modalCombo)}
+                  src={(() => {
+                    const raw = resolveComboImage(modalCombo);
+                    if (raw && (raw.startsWith('/products/') || raw.startsWith('/categories/'))) {
+                      return raw.replace(/\.(png|jpg|jpeg)$/i, '.webp');
+                    }
+                    return raw;
+                  })()}
                   alt={modalCombo.title}
                   className="w-full h-full object-cover"
                   onError={(e) => {
                     const target = e.currentTarget;
-                    if (target.src.endsWith('.webp')) {
-                      target.src = target.src.replace(/\.webp$/, '.jpg');
-                    } else if (target.src.endsWith('.jpg')) {
-                      target.src = target.src.replace(/\.jpg$/, '.webp');
-                    } else if (modalCombo.products?.[0]?.images?.[0] || (modalCombo.products?.[0] as any)?.image || (modalCombo.products?.[0] as any)?.imageUrl) {
-                      target.src = modalCombo.products[0].images?.[0] || (modalCombo.products[0] as any).image || (modalCombo.products[0] as any).imageUrl;
+                    const step = parseInt(target.getAttribute('data-errored') || '0', 10);
+                    target.setAttribute('data-errored', String(step + 1));
+                    if (step === 0) {
+                      // Step 1: webp failed → try original format (.jpg or .png)
+                      const resolvedRaw = resolveComboImage(modalCombo);
+                      if (resolvedRaw && resolvedRaw.endsWith('.webp')) {
+                        target.src = resolvedRaw.replace(/\.webp$/, '.jpg');
+                      } else {
+                        target.src = resolvedRaw || '/products/vrg/combo-mini-beetroot-guva.webp';
+                      }
+                    } else if (step === 1) {
+                      const prodImg = modalCombo.products?.[0]?.images?.[0] || (modalCombo.products?.[0] as any)?.image || (modalCombo.products?.[0] as any)?.imageUrl;
+                      target.src = prodImg || '/products/vrg/combo-mini-beetroot-guva.webp';
                     } else {
-                      target.src = '/products/vrg/combo-mini-beetroot-guva.jpg';
+                      target.onerror = null;
+                      target.src = '/products/vrg/combo-mini-beetroot-guva.webp';
                     }
                   }}
                 />
