@@ -6,7 +6,7 @@ export const VINAYAGAR_10_FRUIT_PLANTS: Product[] = [
     sku: 'VRG-FRUI-007',
     name: 'Kamala Orange (Mandarin Orange)',
     englishName: 'Kamala Orange (Mandarin Orange)',
-    tamilName: 'à®•à®®à®²à®¾ à®†à®°à®žà¯à®šà¯ à®šà¯†à®Ÿà®¿',
+    tamilName: 'கமலா ஆரஞ்சு செடி',
     scientificName: 'Citrus reticulata',
     categoryId: 'cat-fruits',
     categoryName: 'Fruit Plants',
@@ -44,7 +44,7 @@ export const VINAYAGAR_10_FRUIT_PLANTS: Product[] = [
     sku: 'VRG-FRUI-002',
     name: 'Red Water Apple Plant',
     englishName: 'Red Water Apple Plant',
-    tamilName: 'à®šà®¿à®µà®ªà¯à®ªà¯ à®¨à¯€à®°à¯ à®†à®ªà¯à®ªà®¿à®³à¯ à®šà¯†à®Ÿà®¿',
+    tamilName: 'சிவப்பு நீர் ஆப்பிள் செடி',
     scientificName: 'Syzygium samarangense',
     categoryId: 'cat-fruits',
     categoryName: 'Fruit Plants',
@@ -82,7 +82,7 @@ export const VINAYAGAR_10_FRUIT_PLANTS: Product[] = [
     sku: 'VRG-FRUI-003',
     name: 'Green Water Apple Plant',
     englishName: 'Green Water Apple Plant',
-    tamilName: 'à®ªà®šà¯à®šà¯ˆ à®¨à¯€à®°à¯ à®†à®ªà¯à®ªà®¿à®³à¯ à®šà¯†à®Ÿà®¿',
+    tamilName: 'பச்சை நீர் ஆப்பிள் செடி',
     scientificName: 'Syzygium samarangense',
     categoryId: 'cat-fruits',
     categoryName: 'Fruit Plants',
@@ -120,7 +120,7 @@ export const VINAYAGAR_10_FRUIT_PLANTS: Product[] = [
     sku: 'VRG-FRUI-004',
     name: 'White Water Apple Plant',
     englishName: 'White Water Apple Plant',
-    tamilName: 'à®µà¯†à®³à¯à®³à¯ˆ à®¨à¯€à®°à¯ à®†à®ªà¯à®ªà®¿à®³à¯ à®šà¯†à®Ÿà®¿',
+    tamilName: 'வெள்ளை நீர் ஆப்பிள் செடி',
     scientificName: 'Syzygium samarangense',
     categoryId: 'cat-fruits',
     categoryName: 'Fruit Plants',
@@ -158,7 +158,7 @@ export const VINAYAGAR_10_FRUIT_PLANTS: Product[] = [
     sku: 'VRG-FRUI-005',
     name: 'Mul Seetha (Soursop / Graviola)',
     englishName: 'Mul Seetha (Soursop / Graviola)',
-    tamilName: 'à®®à¯à®³à¯ à®šà¯€à®¤à¯à®¤à®¾ à®šà¯†à®Ÿà®¿',
+    tamilName: 'முள் சீத்தா செடி',
     scientificName: 'Annona muricata',
     categoryId: 'cat-fruits',
     categoryName: 'Fruit Plants',
@@ -196,7 +196,7 @@ export const VINAYAGAR_10_FRUIT_PLANTS: Product[] = [
     sku: 'VRG-FRUI-051',
     name: 'Malgova Mango Plant',
     englishName: 'Malgova Mango Plant',
-    tamilName: 'à®®à®²à¯à®•à¯‹à®µà®¾ à®®à®¾à®®à¯à®ªà®´à®šà¯ à®šà¯†à®Ÿà®¿',
+    tamilName: 'மல்கோவா மாம்பழச் செடி',
     scientificName: "Mangifera indica 'Malgova'",
     categoryId: 'cat-fruits',
     categoryName: 'Fruit Plants',
@@ -234,7 +234,7 @@ export const VINAYAGAR_10_FRUIT_PLANTS: Product[] = [
     sku: 'VRG-FRUI-052',
     name: 'Banganapalli Mango Plant',
     englishName: 'Banganapalli Mango Plant',
-    tamilName: 'à®ªà®™à¯à®•à®©à®ªà®³à¯à®³à®¿ à®®à®¾à®®à¯à®ªà®´à®šà¯ à®šà¯†à®Ÿà®¿',
+    tamilName: 'பங்கனபள்ளி மாம்பழச் செடி',
     scientificName: "Mangifera indica 'Banganapalli'",
     categoryId: 'cat-fruits',
     categoryName: 'Fruit Plants',
@@ -272,7 +272,7 @@ export const VINAYAGAR_10_FRUIT_PLANTS: Product[] = [
     sku: 'VRG-FRUI-053',
     name: 'PKM 1 Sapota Plant',
     englishName: 'PKM 1 Sapota Plant',
-    tamilName: 'PKM 1 à®šà®ªà¯à®ªà¯‹à®Ÿà¯à®Ÿà®¾ à®šà¯†à®Ÿà®¿',
+    tamilName: 'PKM 1 சப்போட்டா செடி',
     scientificName: "Manilkara zapota 'PKM 1'",
     categoryId: 'cat-fruits',
     categoryName: 'Fruit Plants',
@@ -310,7 +310,7 @@ export const VINAYAGAR_10_FRUIT_PLANTS: Product[] = [
     sku: 'VRG-FRUI-030',
     name: 'Peanut Butter Fruit Plant',
     englishName: 'Peanut Butter Fruit Plant',
-    tamilName: 'à®ªà¯€à®©à®Ÿà¯ à®ªà®Ÿà¯à®Ÿà®°à¯ à®ªà®´à®šà¯ à®šà¯†à®Ÿà®¿',
+    tamilName: 'பீனட் பட்டர் பழச் செடி',
     scientificName: 'Bunchosia armeniaca',
     categoryId: 'cat-fruits',
     categoryName: 'Fruit Plants',
@@ -348,7 +348,7 @@ export const VINAYAGAR_10_FRUIT_PLANTS: Product[] = [
     sku: 'VRG-FRUI-055',
     name: 'Pomelo (Bubly Mass / Pamblimas)',
     englishName: 'Pomelo (Bubly Mass / Pamblimas)',
-    tamilName: 'à®ªà®ªà¯à®³à®¿à®®à®¾à®¸à¯ à®šà¯†à®Ÿà®¿',
+    tamilName: 'பப்ளிமாஸ் செடி',
     scientificName: 'Citrus maxima',
     categoryId: 'cat-fruits',
     categoryName: 'Fruit Plants',
@@ -390,7 +390,7 @@ export const comboToProduct = (combo: Combo): Product => {
       sku: 'CMB-FALLBACK',
       name: 'Special Combo Pack',
       englishName: 'Special Combo Pack',
-      tamilName: 'à®šà®¿à®±à®ªà¯à®ªà¯ à®šà¯‡à®°à¯à®•à¯à®•à¯ˆ à®¤à¯Šà®•à¯à®ªà¯à®ªà¯',
+      tamilName: 'சிறப்பு சேர்க்கை தொகுப்பு',
       scientificName: '',
       categoryId: 'cat-combos',
       categoryName: 'Combos & Offers',
@@ -426,15 +426,14 @@ export const comboToProduct = (combo: Combo): Product => {
   }
 
   const isVinayagar = combo.id === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
-    (combo.id && combo.id.toLowerCase().includes('vinayagar')) ||
-    (combo.title && (combo.title.includes('10 FRUIT') || combo.title.includes('விநாயகர்'))) ||
+    (combo.title && combo.title.includes('10 FRUIT')) ||
     (combo.subtitle && combo.subtitle.includes('10 FRUIT'));
 
   const comboProducts: Product[] = Array.isArray(combo.products) && combo.products.length > 0
     ? combo.products.filter(Boolean)
     : (isVinayagar ? VINAYAGAR_10_FRUIT_PLANTS : []);
 
-  const firstImg = resolveComboImage(combo) || comboProducts[0]?.images?.[0] || (comboProducts[0] as any)?.image || (comboProducts[0] as any)?.imageUrl || '/products/vrg/combo-mini-beetroot-guva.jpg';
+  const firstImg = combo.imageUrl || comboProducts[0]?.images?.[0] || (comboProducts[0] as any)?.image || (comboProducts[0] as any)?.imageUrl || '/products/vrg/combo-mini-beetroot-guva.jpg';
   const comboId = combo.id || 'combo-unknown';
   const plantCount = comboProducts.length || (isVinayagar ? 10 : (combo.productIds?.length || 3));
 
@@ -443,7 +442,7 @@ export const comboToProduct = (combo: Combo): Product => {
     sku: 'CMB-' + (comboId.startsWith('combo-') ? comboId.replace('combo-', '') : comboId).slice(-6),
     name: combo.title || 'Special Combo Bundle',
     englishName: combo.title || 'Special Combo Bundle',
-    tamilName: combo.subtitle || 'à®šà®¿à®±à®ªà¯à®ªà¯ à®šà¯‡à®°à¯à®•à¯à®•à¯ˆ à®¤à¯Šà®•à¯à®ªà¯à®ªà¯',
+    tamilName: combo.subtitle || 'சிறப்பு சேர்க்கை தொகுப்பு',
     scientificName: '',
     categoryId: 'cat-combos',
     categoryName: 'Combos & Offers',
@@ -483,8 +482,8 @@ export const comboToProduct = (combo: Combo): Product => {
   } as any;
 };
 
-import diskCombosData from '../data/combos_store.json';
-import { INITIAL_PRODUCTS } from '../data/catalogData';
+import diskCombosData from '../data/combosStore.js';
+import { INITIAL_PRODUCTS } from '../data/catalogData.js';
 
 export const resolveComboImage = (combo: any): string => {
   if (combo?.imageUrl && typeof combo.imageUrl === 'string' && combo.imageUrl.trim() !== '' && !combo.imageUrl.includes('null') && !combo.imageUrl.includes('undefined')) {
@@ -498,7 +497,7 @@ export const resolveComboImage = (combo: any): string => {
   }
   // Title / ID heuristics matching actual images in /products/vrg/
   const title = (combo?.title || combo?.name || combo?.id || '').toLowerCase();
-  if (title.includes('vinayagar') || title.includes('10 fruit') || title.includes('à®µà®¿à®¨à®¾à®¯à®•à®°à¯')) {
+  if (title.includes('vinayagar') || title.includes('10 fruit') || title.includes('விநாயகர்')) {
     return '/products/vrg/combo-vinayagar-chaturthi-10-fruit-plants.jpg';
   }
   if (title.includes('mini beetroot') || title.includes('beetroot')) {
@@ -537,7 +536,7 @@ export const resolveComboImage = (combo: any): string => {
 export const getCachedActiveCombos = (): Combo[] => {
   let list: Combo[] = [];
   try {
-    const cached = localStorage.getItem('vrg_combos_cache_v2');
+    const cached = localStorage.getItem('vrg_combos_cache');
     if (cached) {
       const parsed = JSON.parse(cached);
       if (Array.isArray(parsed) && parsed.length > 0) {
@@ -575,7 +574,7 @@ export const getCachedActiveCombos = (): Combo[] => {
   map.forEach((c) => {
     const isVin = c.id === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
       (c.id && c.id.toLowerCase().includes('vinayagar')) ||
-      (c.title && (c.title.includes('à®µà®¿à®¨à®¾à®¯à®•à®°à¯') || c.title.toLowerCase().includes('10 fruit')));
+      (c.title && (c.title.includes('விநாயகர்') || c.title.toLowerCase().includes('10 fruit')));
     if (isVin) {
       c.order = c.order !== undefined ? Number(c.order) : 4;
       c.active = true;
@@ -629,7 +628,7 @@ export const getCachedActiveCombos = (): Combo[] => {
     .map((c: any) => {
       const isVin = c.id === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
         (c.id && c.id.toLowerCase().includes('vinayagar')) ||
-        (c.title && (c.title.includes('à®µà®¿à®¨à®¾à®¯à®•à®°à¯') || c.title.toLowerCase().includes('10 fruit')));
+        (c.title && (c.title.includes('விநாயகர்') || c.title.toLowerCase().includes('10 fruit')));
       if (isVin) {
         const prods = (Array.isArray(c.products) && c.products.length >= 10) ? c.products : VINAYAGAR_10_FRUIT_PLANTS;
         return {
@@ -690,7 +689,7 @@ export function getCartItemPlantCount(item: any): number {
   // 2. Specific known combos by ID or Name
   const id = String(item.comboId || item.product?.id || item.productId || '').toLowerCase();
   const name = String(item.product?.name || item.comboTitle || '').toLowerCase();
-  if (id.includes('10-fruit') || id.includes('vinayagar') || name.includes('à®µà®¿à®¨à®¾à®¯à®•à®°à¯') || name.includes('à®šà®¤à¯à®°à¯à®¤à¯à®¤à®¿') || name.includes('10 fruit')) {
+  if (id.includes('10-fruit') || id.includes('vinayagar') || name.includes('விநாயகர்') || name.includes('சதுர்த்தி') || name.includes('10 fruit')) {
     return 10 * qty;
   }
   if (id.includes('water-apple-3') || id.includes('3-variety')) {
@@ -719,4 +718,3 @@ export function getCartItemPlantCount(item: any): number {
 
   return 3 * qty; // Safe bundle fallback (never 1!)
 }
-

@@ -2020,7 +2020,8 @@ class Store {
           finalProds = c.products;
         }
         if (finalProds.length < 10) {
-          const diskVc = diskCombos.find(dc => dc.id === 'combo-vinayagar-chaturthi-10-fruit-plants');
+          const allDisk = loadDiskCombos();
+          const diskVc = (dbCombos || allDisk).find((dc: any) => dc.id === 'combo-vinayagar-chaturthi-10-fruit-plants') || allDisk.find((dc: any) => dc.id === 'combo-vinayagar-chaturthi-10-fruit-plants');
           if (diskVc && Array.isArray(diskVc.products) && diskVc.products.length >= 10) {
             finalProds = diskVc.products;
           }

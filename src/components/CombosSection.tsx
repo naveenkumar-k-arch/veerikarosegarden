@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Combo, Product } from '../types';
 import { ShoppingBag, Sparkles, CheckCircle2, Tag, ArrowRight, ShieldCheck, Truck } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import { getCachedActiveCombos, VINAYAGAR_10_FRUIT_PLANTS, resolveComboImage } from '../utils/comboUtils';
+import { resolveComboImage } from '../utils/comboUtils';
 
 interface CombosSectionProps {
   onAddToCart: (product: Product, quantity?: number, meta?: any) => void;
@@ -28,7 +28,19 @@ const getAggregatedProducts = (productsList?: Product[]) => {
 export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSelectProduct, onViewAllCombos }) => {
   const { language, t } = useLanguage();
   const isTa = language === 'ta';
-  const [combos, setCombos] = useState<Combo[]>(getCachedActiveCombos);
+  const [combos, setCombos] = useState<Combo[]>(() => {
+    try {
+      const cached = localStorage.getItem('vrg_combos_cache');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const deletedSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_combos') || '[]'));
+          return parsed.filter((c: Combo) => c.active !== false && !deletedSet.has(c.id));
+        }
+      }
+    } catch {}
+    return [];
+  });
   const [loading, setLoading] = useState(() => combos.length === 0);
   const [addedComboId, setAddedComboId] = useState<string | null>(null);
   const [modalCombo, setModalCombo] = useState<Combo | null>(null);
@@ -56,63 +68,14 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
 
   const fetchCombos = async () => {
     try {
-      const cRes = await fetch(`/api/combos?_t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json()).catch(() => null);
+      const cRes = await fetch('/api/combos').then(r => r.json()).catch(() => null);
 
       if (cRes && cRes.success && Array.isArray(cRes.combos)) {
         const deletedSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_combos') || '[]'));
-        const dummyIds = new Set([
-          'combo-1787635336437',
-          'combo-1787321846424',
-          'combo-1787577752349',
-          'combo-1786876625168',
-          'combo-1786878791522',
-          'combo-1786873534914',
-          'combo-1786968264680',
-          'combo-1787127554276'
-        ]);
-        const activeCombos = cRes.combos
-          .filter((c: Combo) => {
-            if (!c || !c.id || c.active === false || deletedSet.has(c.id)) return false;
-            if (dummyIds.has(c.id)) return false;
-            if (!c.title || c.title.trim() === '') return false;
-            return true;
-          })
-          .map((c: Combo) => {
-            const resolvedImg = resolveComboImage(c);
-            const isVinayagar = c.id === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
-              (c.id && c.id.toLowerCase().includes('vinayagar')) ||
-              (c.title && (c.title.includes('à®µà®¿à®¨à®¾à®¯à®•à®°à¯') || c.title.toLowerCase().includes('10 fruit')));
-            if (isVinayagar) {
-              const currentProds = (c.products && c.products.length >= 10) ? c.products : VINAYAGAR_10_FRUIT_PLANTS;
-              return {
-                ...c,
-                imageUrl: resolvedImg,
-                order: c.order !== undefined ? Number(c.order) : 4,
-                active: true,
-                badge: '10 FRUITS COMBO',
-                freeDelivery: true,
-                freePacking: true,
-                onlyMetturService: true,
-                productIds: currentProds.map(p => p.id),
-                products: currentProds
-              };
-            }
-            return {
-              ...c,
-              imageUrl: resolvedImg
-            };
-          })
-          .sort((a: Combo, b: Combo) => {
-            const ordA = Number(a.order ?? 99);
-            const ordB = Number(b.order ?? 99);
-            if (ordA !== ordB) return ordA - ordB;
-            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-            return dateB - dateA;
-          });
+        const activeCombos = cRes.combos.filter((c: Combo) => c.active !== false && !deletedSet.has(c.id));
         setCombos(activeCombos);
         try {
-          localStorage.setItem('vrg_combos_cache_v2', JSON.stringify(activeCombos));
+          localStorage.setItem('vrg_combos_cache', JSON.stringify(activeCombos));
         } catch {}
       }
     } catch (err) {
@@ -126,7 +89,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
     if (e) e.stopPropagation();
 
     const comboProducts = combo.products || [];
-    const firstImg = combo.imageUrl || comboProducts[0]?.images?.[0] || comboProducts[0]?.image || comboProducts[0]?.imageUrl || '/products/vrg/combo-mini-beetroot-guva.jpg';
+    const firstImg = combo.imageUrl || comboProducts[0]?.images?.[0] || '/products/double-delight.jpeg';
 
     // Create a virtual Product representation for the Combo bundle
     const comboCartProduct: Product = {
@@ -134,7 +97,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
       sku: 'CMB-' + (combo.id.startsWith('combo-') ? combo.id.replace('combo-', '') : combo.id).slice(-6),
       name: combo.title,
       englishName: combo.title,
-      tamilName: combo.subtitle || 'à®šà®¿à®±à®ªà¯à®ªà¯ à®šà¯‡à®°à¯à®•à¯à®•à¯ˆ à®¤à¯Šà®•à¯à®ªà¯à®ªà¯',
+      tamilName: combo.subtitle || 'சிறப்பு சேர்க்கை தொகுப்பு',
       scientificName: '',
       categoryId: 'combos',
       categoryName: 'Combos & Offers',
@@ -172,8 +135,6 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
       comboTitle: combo.title,
       comboBadge: combo.badge || 'COMBO OFFER',
       freeDelivery: combo.freeDelivery === true,
-      freePacking: (combo as any).freePacking === true,
-      onlyMetturService: (combo as any).onlyMetturService === true,
       comboProducts
     });
 
@@ -197,17 +158,17 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
           <div>
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-amber-500/10 to-emerald-500/10 border border-amber-300/50 text-amber-900 text-xs font-bold uppercase tracking-wider mb-2 shadow-2xs">
               <Sparkles className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
-              <span>{isTa ? 'à®•à®¾à®®à¯à®ªà¯‹ à®šà®²à¯à®•à¯ˆà®•à®³à¯' : 'Combos & Offers'}</span>
+              <span>{isTa ? 'காம்போ சலுகைகள்' : 'Combos & Offers'}</span>
               <span className="bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full font-black">
-                {isTa ? 'à®•à¯‚à®Ÿà¯à®¤à®²à¯ à®šà¯‡à®®à®¿à®ªà¯à®ªà¯' : 'EXTRA SAVINGS'}
+                {isTa ? 'கூடுதல் சேமிப்பு' : 'EXTRA SAVINGS'}
               </span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              {isTa ? 'ðŸ”¥ à®šà®¿à®±à®ªà¯à®ªà¯ à®šà¯†à®Ÿà®¿ à®•à®¾à®®à¯à®ªà¯‹ à®šà®²à¯à®•à¯ˆà®•à®³à¯' : 'ðŸ”¥ Special Plant Combo Offers'}
+              {isTa ? '🔥 சிறப்பு செடி காம்போ சலுகைகள்' : '🔥 Special Plant Combo Offers'}
             </h2>
             <p className="text-sm text-slate-600 mt-1 max-w-xl font-medium">
               {isTa
-                ? 'à®µà¯€à®°à®¿à®•à®¾ à®°à¯‹à®œà®¾ à®•à®¾à®°à¯à®Ÿà®©à¯ à®ªà®£à¯à®£à¯ˆà®¯à®¿à®²à®¿à®°à¯à®¨à¯à®¤à¯ à®¨à¯‡à®°à®Ÿà®¿à®¯à®¾à®• à®ªà®¿à®°à®¤à¯à®¯à¯‡à®• à®•à®¾à®®à¯à®ªà¯‹ à®¤à®³à¯à®³à¯à®ªà®Ÿà®¿ & à®ªà®£à¯à®£à¯ˆ à®Ÿà¯†à®²à®¿à®µà®°à®¿à®¯à¯à®Ÿà®©à¯ à®•à¯‚à®Ÿà®¿à®¯ à®šà¯†à®Ÿà®¿à®•à®³à¯ à®¤à¯Šà®•à¯à®ªà¯à®ªà¯.'
+                ? 'வீரிகா ரோஜா கார்டன் பண்ணையிலிருந்து நேரடியாக பிரத்யேக காம்போ தள்ளுபடி & பண்ணை டெலிவரியுடன் கூடிய செடிகள் தொகுப்பு.'
                 : 'Hand-picked plant bundles directly from Veerika Rose Garden with exclusive combo discounts & free doorstep farm delivery.'}
             </p>
           </div>
@@ -215,11 +176,11 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap self-start md:self-auto">
             <div className="flex items-center gap-2 sm:gap-3 text-xs font-bold text-slate-600 bg-white/80 backdrop-blur-md px-3 sm:px-4 py-2 rounded-2xl border border-slate-200 shadow-2xs">
               <span className="flex items-center gap-1 text-emerald-700">
-                <ShieldCheck className="w-4 h-4" /> {isTa ? 'à®†à®°à¯‹à®•à¯à®•à®¿à®¯à®®à®¾à®© à®’à®Ÿà¯à®Ÿà¯à®šà¯à®šà¯†à®Ÿà®¿à®•à®³à¯' : 'Healthy Grafted Saplings'}
+                <ShieldCheck className="w-4 h-4" /> {isTa ? 'ஆரோக்கியமான ஒட்டுச்செடிகள்' : 'Healthy Grafted Saplings'}
               </span>
-              <span className="text-slate-300">â€¢</span>
+              <span className="text-slate-300">•</span>
               <span className="flex items-center gap-1 text-amber-700">
-                <Truck className="w-4 h-4" /> {isTa ? 'à®ˆà®°à®ªà¯à®ªà®¤à®®à¯ à®•à¯à®±à¯ˆà®¯à®¾à®¤ à®ªà¯‡à®•à¯à®•à®¿à®™à¯' : 'Express Moisture Packed'}
+                <Truck className="w-4 h-4" /> {isTa ? 'ஈரப்பதம் குறையாத பேக்கிங்' : 'Express Moisture Packed'}
               </span>
             </div>
 
@@ -231,7 +192,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
               }}
               className="px-3.5 sm:px-4 py-2 bg-gradient-to-r from-emerald-700 to-emerald-800 hover:from-emerald-800 hover:to-emerald-900 text-white font-black text-xs rounded-2xl flex items-center gap-1.5 shadow-xs hover:shadow-md transition-all cursor-pointer"
             >
-              <span>{isTa ? 'à®…à®©à¯ˆà®¤à¯à®¤à¯ à®•à®¾à®®à¯à®ªà¯‹à®•à¯à®•à®³à¯ˆà®¯à¯à®®à¯ à®ªà®¾à®°à¯à®•à¯à®•' : 'View All Combos'}</span>
+              <span>{isTa ? 'அனைத்து காம்போக்களையும் பார்க்க' : 'View All Combos'}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -251,32 +212,17 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-            {combos.map((rawCombo) => {
-              const isVinayagar = rawCombo.id === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
-                (rawCombo.id && rawCombo.id.toLowerCase().includes('vinayagar')) ||
-                (rawCombo.title && (rawCombo.title.includes('à®µà®¿à®¨à®¾à®¯à®•à®°à¯') || rawCombo.title.toLowerCase().includes('10 fruit')));
-              const currentProds = isVinayagar
-                ? ((rawCombo.products && rawCombo.products.length >= 10) ? rawCombo.products : VINAYAGAR_10_FRUIT_PLANTS)
-                : rawCombo.products;
-              const combo = isVinayagar
-                ? {
-                    ...rawCombo,
-                    badge: '10 FRUITS COMBO',
-                    productIds: currentProds.map(p => p.id),
-                    products: currentProds
-                  }
-                : rawCombo;
-
+            {combos.slice(0, 2).map((combo) => {
               const discount = combo.discountPercent || (combo.originalPrice > 0 ? Math.round(((combo.originalPrice - combo.comboPrice) / combo.originalPrice) * 100) : 0);
               const savings = combo.originalPrice > combo.comboPrice ? combo.originalPrice - combo.comboPrice : 0;
               const isJustAdded = addedComboId === combo.id;
               const aggregated = getAggregatedProducts(combo.products);
 
               const badgeText = isTa
-                ? (combo.badge?.includes('1-IN-1') ? '1-à®²à¯-1 à®šà®¿à®±à®ªà¯à®ªà¯ à®šà®²à¯à®•à¯ˆ'
-                  : combo.badge?.includes('2-IN-1') ? '2-à®²à¯-1 à®šà®¿à®±à®ªà¯à®ªà¯ à®šà®²à¯à®•à¯ˆ'
-                  : combo.badge?.includes('3-IN-1') ? '3-à®²à¯-1 à®šà®¿à®±à®ªà¯à®ªà¯ à®šà®²à¯à®•à¯ˆ'
-                  : 'à®šà®¿à®±à®ªà¯à®ªà¯ à®•à®¾à®®à¯à®ªà¯‹')
+                ? (combo.badge?.includes('1-IN-1') ? '1-ல்-1 சிறப்பு சலுகை'
+                  : combo.badge?.includes('2-IN-1') ? '2-ல்-1 சிறப்பு சலுகை'
+                  : combo.badge?.includes('3-IN-1') ? '3-ல்-1 சிறப்பு சலுகை'
+                  : 'சிறப்பு காம்போ')
                 : (combo.badge || 'COMBO OFFER');
 
               return (
@@ -293,75 +239,84 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                       </span>
                       {combo.freeDelivery && (
                         <span className="bg-emerald-600 text-white font-black text-[10px] sm:text-[11px] px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full shadow-md flex items-center gap-1">
-                          <Truck className="w-3 h-3" /> {isTa ? 'à®‡à®²à®µà®š à®Ÿà¯†à®²à®¿à®µà®°à®¿' : 'FREE SHIPPING'}
+                          <Truck className="w-3 h-3" /> {isTa ? 'இலவச டெலிவரி' : 'FREE SHIPPING'}
                         </span>
                       )}
                     </div>
                     {discount > 0 && (
                       <span className="bg-emerald-800 text-white font-black text-[10px] sm:text-[11px] px-2 py-0.5 sm:py-1 rounded-full shadow-md shrink-0">
-                        {discount}% {isTa ? 'à®¤à®³à¯à®³à¯à®ªà®Ÿà®¿' : 'OFF'}
+                        {discount}% {isTa ? 'தள்ளுபடி' : 'OFF'}
                       </span>
                     )}
                   </div>
 
                   <div>
                     {/* Header Image Collage */}
-                    <div className="relative aspect-[16/10] sm:h-56 bg-slate-900 overflow-hidden">
-                      <img
-                        src={(() => {
-                          const raw = resolveComboImage(combo);
-                          // Prefer .webp for faster load; all combo images have a .webp version
-                          if (raw && (raw.startsWith('/products/') || raw.startsWith('/categories/'))) {
-                            return raw.replace(/\.(png|jpg|jpeg)$/i, '.webp');
-                          }
-                          return raw;
-                        })()}
-                        alt={combo.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        onError={(e) => {
-                          const target = e.currentTarget;
-                          // Use data-errored to track fallback steps and prevent infinite loops
-                          const step = parseInt(target.getAttribute('data-errored') || '0', 10);
-                          target.setAttribute('data-errored', String(step + 1));
-                          if (step === 0) {
-                            // Step 1: webp failed → try original format (.jpg or .png)
-                            const resolvedRaw = resolveComboImage(combo);
-                            // Try .jpg if original is .webp, otherwise try .png
-                            if (resolvedRaw && resolvedRaw.endsWith('.webp')) {
-                              target.src = resolvedRaw.replace(/\.webp$/, '.jpg');
+                    <div className="relative h-44 sm:h-52 bg-slate-100 overflow-hidden">
+                      {(combo.imageUrl || resolveComboImage(combo)) ? (
+                        <img
+                          src={resolveComboImage(combo)}
+                          alt={combo.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            const step = parseInt(target.getAttribute('data-errored') || '0', 10);
+                            target.setAttribute('data-errored', String(step + 1));
+                            if (step === 0) {
+                              if (target.src.endsWith('.webp')) {
+                                target.src = target.src.replace(/\.webp$/, '.jpg');
+                              } else if (target.src.endsWith('.jpg')) {
+                                target.src = target.src.replace(/\.jpg$/, '.webp');
+                              } else if (target.src.endsWith('.png')) {
+                                target.src = target.src.replace(/\.png$/, '.webp');
+                              } else {
+                                target.src = '/products/vrg/combo-mini-beetroot-guva.webp';
+                              }
+                            } else if (step === 1) {
+                              const prodImg = combo.products?.[0]?.images?.[0] || (combo.products?.[0] as any)?.image || (combo.products?.[0] as any)?.imageUrl;
+                              target.src = prodImg || '/products/vrg/combo-mini-beetroot-guva.webp';
                             } else {
-                              target.src = resolvedRaw || '/products/vrg/combo-mini-beetroot-guva.webp';
+                              target.onerror = null;
+                              target.src = '/products/vrg/combo-mini-beetroot-guva.webp';
                             }
-                          } else if (step === 1) {
-                            // Step 2: original format failed → try first product image
-                            const prodImg = combo.products?.[0]?.images?.[0] || (combo.products?.[0] as any)?.image || (combo.products?.[0] as any)?.imageUrl;
-                            target.src = prodImg || '/products/vrg/combo-mini-beetroot-guva.webp';
-                          } else {
-                            // Step 3: give up — show reliable known-good fallback
-                            target.onerror = null;
-                            target.src = '/products/vrg/combo-mini-beetroot-guva.webp';
-                          }
-                        }}
-                      />
-                    </div>
-
-                    {/* Card Content */}
-                    <div className="p-3.5 sm:p-5 space-y-3 sm:space-y-4">
-                      {/* Title & Subtitle */}
-                      <div className="space-y-1">
-                        <h3 className="font-black text-base sm:text-lg text-slate-900 leading-snug line-clamp-2 group-hover:text-emerald-800 transition-colors">
+                          }}
+                        />
+                      ) : combo.products && combo.products.length > 0 ? (
+                        <div className="grid grid-cols-2 h-full gap-0.5 bg-slate-200">
+                          {combo.products.slice(0, 4).map((p, idx) => (
+                            <img
+                              key={p.id || idx}
+                              src={p.images?.[0] || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80'}
+                              alt={p.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-emerald-900/10 text-4xl">
+                          🌿
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/25 to-transparent" />
+                      
+                      <div className="absolute bottom-2.5 sm:bottom-3 left-3 sm:left-4 right-3 sm:right-4 text-white">
+                        <h3 className="font-black text-base sm:text-xl leading-snug drop-shadow-md line-clamp-2">
                           {isTa ? t(combo.title) : combo.title}
                         </h3>
                         {combo.subtitle && (
-                          <p className="text-[11px] sm:text-xs font-semibold text-amber-900/80 line-clamp-2">
+                          <p className="text-[11px] sm:text-xs font-medium text-amber-200/90 truncate drop-shadow-xs mt-0.5">
                             {isTa ? t(combo.subtitle) : combo.subtitle}
                           </p>
                         )}
                       </div>
+                    </div>
+
+                      {/* Included Plants Section */}
+                      <div className="p-3.5 sm:p-5 space-y-3 sm:space-y-4">
                         {aggregated.length > 0 && (
                           <div className="bg-amber-50/80 border border-amber-200/60 rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 space-y-1.5 sm:space-y-2">
                             <p className="text-[10px] sm:text-[11px] font-bold text-amber-900 uppercase tracking-wider flex items-center justify-between gap-1.5">
-                              <span>ðŸŒ¿ {isTa ? `à®šà¯‡à®°à¯à®•à¯à®•à®ªà¯à®ªà®Ÿà¯à®Ÿ à®ªà®£à¯à®£à¯ˆ à®šà¯†à®Ÿà®¿à®•à®³à¯ (${isVinayagar ? 10 : (combo.products?.length || combo.productIds?.length || 0)}):` : `Includes ${isVinayagar ? 10 : (combo.products?.length || combo.productIds?.length || 0)} Farm Plants:`}</span>
+                              <span>🌿 {isTa ? `சேர்க்கப்பட்ட பண்ணை செடிகள் (${combo.products?.length || 0}):` : `Includes ${combo.products?.length || 0} Farm Plants:`}</span>
                             </p>
                             <div className="space-y-1">
                               {aggregated.map(({ product: p, count }) => (
@@ -376,7 +331,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                                   <span className="flex items-center gap-1.5 truncate">
                                     {count > 1 ? (
                                       <span className="bg-gradient-to-r from-emerald-700 to-amber-700 text-white font-black text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded shadow-2xs shrink-0 font-mono">
-                                        {count}Ã—
+                                        {count}×
                                       </span>
                                     ) : (
                                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 group-hover/item:scale-125 transition-transform shrink-0" />
@@ -394,34 +349,25 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                         <div>
                           <div className="flex items-baseline gap-2">
                             <span className="text-xl sm:text-3xl font-black text-slate-900">
-                              â‚¹{combo.comboPrice}
+                              ₹{combo.comboPrice}
                             </span>
                             {combo.originalPrice > combo.comboPrice && (
                               <span className="text-xs sm:text-sm font-bold text-slate-400 line-through">
-                                â‚¹{combo.originalPrice}
+                                ₹{combo.originalPrice}
                               </span>
                             )}
                           </div>
                           {savings > 0 && (
                             <p className="text-[11px] sm:text-xs font-extrabold text-emerald-700 mt-0.5">
-                              ðŸŽ‰ {isTa ? `à®°à¯‚. ${savings} à®šà¯‡à®®à®¿à®ªà¯à®ªà¯ (${discount}% à®¤à®³à¯à®³à¯à®ªà®Ÿà®¿)` : `Save â‚¹${savings} (${discount}% OFF)`}
+                              🎉 {isTa ? `ரூ. ${savings} சேமிப்பு (${discount}% தள்ளுபடி)` : `Save ₹${savings} (${discount}% OFF)`}
                             </p>
                           )}
                         </div>
-                        {(combo as any).onlyMetturService ? (
-                          <div className="flex flex-col gap-1 items-end">
-                            <span className="bg-amber-100 text-amber-950 font-black text-[9px] sm:text-[10px] px-2 py-0.5 rounded-md border border-amber-300">
-                              ðŸ“¦ {isTa ? 'à®®à¯‡à®Ÿà¯à®Ÿà¯‚à®°à¯ à®ªà®¾à®°à¯à®šà®²à¯ à®®à®Ÿà¯à®Ÿà¯à®®à¯‡' : 'Only Mettur Parcel'}
-                            </span>
-                            <span className="bg-emerald-100 text-emerald-900 font-extrabold text-[9px] sm:text-[10px] px-2 py-0.5 rounded-md border border-emerald-300">
-                              ðŸšš {isTa ? 'à®‡à®²à®µà®š à®Ÿà¯†à®²à®¿à®µà®°à®¿ & à®ªà¯‡à®•à¯à®•à®¿à®™à¯' : 'Free Delivery & Packing'}
-                            </span>
-                          </div>
-                        ) : combo.freeDelivery ? (
+                        {combo.freeDelivery && (
                           <span className="bg-emerald-100 text-emerald-900 font-extrabold text-[10px] sm:text-[11px] px-2 py-0.5 rounded-lg border border-emerald-300">
-                            ðŸšš {isTa ? 'à®‡à®²à®µà®š à®Ÿà¯†à®²à®¿à®µà®°à®¿ (TN)' : 'Free Delivery (TN)'}
+                            🚚 {isTa ? 'இலவச டெலிவரி (TN)' : 'Free Delivery (TN)'}
                           </span>
-                        ) : null}
+                        )}
                       </div>
                     </div>
                   </div>
@@ -440,13 +386,13 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                       {isJustAdded ? (
                         <>
                           <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 animate-bounce" />
-                          <span>{isTa ? 'à®•à¯‚à®Ÿà¯ˆà®¯à®¿à®²à¯ à®šà¯‡à®°à¯à®•à¯à®•à®ªà¯à®ªà®Ÿà¯à®Ÿà®¤à¯!' : 'Added to Cart!'}</span>
+                          <span>{isTa ? 'கூடையில் சேர்க்கப்பட்டது!' : 'Added to Cart!'}</span>
                         </>
                       ) : (
                         <>
                           <ShoppingBag className="w-4 h-4" />
-                          <span className="sm:hidden">{isTa ? `à®•à¯‚à®Ÿà¯ˆà®¯à®¿à®²à¯ à®šà¯‡à®°à¯à®•à¯à®• â€¢ â‚¹${combo.comboPrice}` : `Add Bundle â€¢ â‚¹${combo.comboPrice}`}</span>
-                          <span className="hidden sm:inline">{isTa ? `à®•à®¾à®®à¯à®ªà¯‹ à®¤à¯Šà®•à¯à®ªà¯à®ªà¯ˆ à®•à¯‚à®Ÿà¯ˆà®¯à®¿à®²à¯ à®šà¯‡à®°à¯à®•à¯à®•à®µà¯à®®à¯ (â‚¹${combo.comboPrice})` : `Add Combo Package to Cart (â‚¹${combo.comboPrice})`}</span>
+                          <span className="sm:hidden">{isTa ? `கூடையில் சேர்க்க • ₹${combo.comboPrice}` : `Add Bundle • ₹${combo.comboPrice}`}</span>
+                          <span className="hidden sm:inline">{isTa ? `காம்போ தொகுப்பை கூடையில் சேர்க்கவும் (₹${combo.comboPrice})` : `Add Combo Package to Cart (₹${combo.comboPrice})`}</span>
                           <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </>
                       )}
@@ -455,36 +401,68 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                 </div>
               );
             })}
+
+            {/* 3rd Card: View All Combos & Special Offers (Navigates to Shop) */}
+            <div
+              onClick={() => {
+                if (onViewAllCombos) onViewAllCombos();
+                else window.location.hash = '#/shop';
+              }}
+              className="group bg-gradient-to-br from-emerald-900 via-teal-950 to-slate-950 border-2 border-emerald-500/40 hover:border-emerald-400 rounded-2xl sm:rounded-3xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 flex flex-col justify-between relative transform hover:-translate-y-1.5 cursor-pointer p-6 sm:p-7 text-white"
+            >
+              {/* Ambient Decorative Glows */}
+              <div className="absolute -top-10 -right-10 w-44 h-44 bg-emerald-400/20 rounded-full blur-2xl pointer-events-none group-hover:scale-125 transition-transform duration-500" />
+              <div className="absolute -bottom-10 -left-10 w-44 h-44 bg-amber-400/15 rounded-full blur-2xl pointer-events-none group-hover:scale-125 transition-transform duration-500" />
+
+              <div className="relative z-10 flex flex-col items-center justify-center text-center space-y-4 my-auto py-3">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-black text-[11px] uppercase tracking-wider shadow-inner">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+                  <span>{isTa ? 'அனைத்து சேர்க்கைகள்' : 'Special Collection'}</span>
+                </div>
+
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-amber-500 flex items-center justify-center shadow-xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 text-3xl sm:text-4xl">
+                  🌹
+                </div>
+
+                <div className="space-y-1.5 max-w-xs">
+                  <h3 className="font-black text-xl sm:text-2xl text-white tracking-tight drop-shadow-sm leading-snug">
+                    {isTa ? 'அனைத்து காம்போக்களையும் பார்க்க' : 'View All Combo Offers'}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-emerald-100/80 font-medium leading-relaxed">
+                    {isTa
+                      ? `வீரிகா ரோஜா கார்டன் பண்ணையின் அனைத்து ${combos.length > 2 ? `${combos.length}+` : ''} சேர்க்கை சலுகைகளையும் கடையின் பக்கத்தில் காண்க.`
+                      : `Explore all ${combos.length > 2 ? `${combos.length}+` : ''} curated nursery bundles with exclusive savings & free doorstep delivery.`}
+                  </p>
+                </div>
+
+                <div className="pt-2 w-full max-w-xs">
+                  <div className="w-full py-3 sm:py-3.5 px-4 rounded-xl sm:rounded-2xl bg-gradient-to-r from-amber-400 via-emerald-400 to-teal-300 text-slate-950 font-black text-xs sm:text-sm shadow-lg group-hover:shadow-xl transition-all flex items-center justify-center gap-2 group-hover:gap-3">
+                    <span>{isTa ? 'கடைக்குச் செல்லவும் (Shop Now)' : 'Explore All in Shop'}</span>
+                    <ArrowRight className="w-4 h-4 text-slate-950 transition-transform group-hover:translate-x-1" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative z-10 pt-3 border-t border-emerald-800/60 flex items-center justify-between text-[11px] text-emerald-300/80 font-bold">
+                <span>🌱 {isTa ? 'பண்ணை நேரடி பேக்கிங்' : 'Direct Nursery Packing'}</span>
+                <span>🚚 {isTa ? 'இலவச டெலிவரி' : 'Free Home Delivery'}</span>
+              </div>
+            </div>
           </div>
         )}
       </div>
 
       {/* ===== COMBO PACKAGE DETAILS MODAL ===== */}
       {modalCombo && (() => {
-        const isVinayagar = modalCombo.id === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
-          (modalCombo.id && modalCombo.id.toLowerCase().includes('vinayagar')) ||
-          (modalCombo.title && (modalCombo.title.includes('à®µà®¿à®¨à®¾à®¯à®•à®°à¯') || modalCombo.title.toLowerCase().includes('10 fruit')));
-        const currentProds = isVinayagar
-          ? ((modalCombo.products && modalCombo.products.length >= 10) ? modalCombo.products : VINAYAGAR_10_FRUIT_PLANTS)
-          : modalCombo.products;
-        const activeModalCombo = isVinayagar
-          ? {
-              ...modalCombo,
-              badge: '10 FRUITS COMBO',
-              productIds: currentProds.map(p => p.id),
-              products: currentProds
-            }
-          : modalCombo;
-
-        const discount = activeModalCombo.discountPercent || (activeModalCombo.originalPrice > 0 ? Math.round(((activeModalCombo.originalPrice - activeModalCombo.comboPrice) / activeModalCombo.originalPrice) * 100) : 0);
-        const savings = activeModalCombo.originalPrice > activeModalCombo.comboPrice ? activeModalCombo.originalPrice - activeModalCombo.comboPrice : 0;
-        const isJustAdded = addedComboId === activeModalCombo.id;
+        const discount = modalCombo.discountPercent || (modalCombo.originalPrice > 0 ? Math.round(((modalCombo.originalPrice - modalCombo.comboPrice) / modalCombo.originalPrice) * 100) : 0);
+        const savings = modalCombo.originalPrice > modalCombo.comboPrice ? modalCombo.originalPrice - modalCombo.comboPrice : 0;
+        const isJustAdded = addedComboId === modalCombo.id;
         const modalBadgeText = isTa
-          ? (activeModalCombo.badge?.includes('1-IN-1') ? '1-à®²à¯-1 à®šà®¿à®±à®ªà¯à®ªà¯ à®šà®²à¯à®•à¯ˆ'
-            : activeModalCombo.badge?.includes('2-IN-1') ? '2-à®²à¯-1 à®šà®¿à®±à®ªà¯à®ªà¯ à®šà®²à¯à®•à¯ˆ'
-            : activeModalCombo.badge?.includes('3-IN-1') ? '3-à®²à¯-1 à®šà®¿à®±à®ªà¯à®ªà¯ à®šà®²à¯à®•à¯ˆ'
-            : 'à®šà®¿à®±à®ªà¯à®ªà¯ à®•à®¾à®®à¯à®ªà¯‹')
-          : (activeModalCombo.badge || 'COMBO OFFER');
+          ? (modalCombo.badge?.includes('1-IN-1') ? '1-ல்-1 சிறப்பு சலுகை'
+            : modalCombo.badge?.includes('2-IN-1') ? '2-ல்-1 சிறப்பு சலுகை'
+            : modalCombo.badge?.includes('3-IN-1') ? '3-ல்-1 சிறப்பு சலுகை'
+            : 'சிறப்பு காம்போ')
+          : (modalCombo.badge || 'COMBO OFFER');
 
         return (
           <div
@@ -496,72 +474,74 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
               className="bg-white rounded-3xl max-w-2xl w-full overflow-hidden border-2 border-emerald-300 shadow-2xl space-y-0 my-8 relative max-h-[90vh] flex flex-col"
             >
               {/* Cover Image & Close */}
-              <div className="relative aspect-[16/10] sm:h-72 bg-slate-900 shrink-0 overflow-hidden">
-                <img
-                  src={(() => {
-                    const raw = resolveComboImage(modalCombo);
-                    if (raw && (raw.startsWith('/products/') || raw.startsWith('/categories/'))) {
-                      return raw.replace(/\.(png|jpg|jpeg)$/i, '.webp');
-                    }
-                    return raw;
-                  })()}
-                  alt={modalCombo.title}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    const target = e.currentTarget;
-                    const step = parseInt(target.getAttribute('data-errored') || '0', 10);
-                    target.setAttribute('data-errored', String(step + 1));
-                    if (step === 0) {
-                      // Step 1: webp failed → try original format (.jpg or .png)
-                      const resolvedRaw = resolveComboImage(modalCombo);
-                      if (resolvedRaw && resolvedRaw.endsWith('.webp')) {
-                        target.src = resolvedRaw.replace(/\.webp$/, '.jpg');
+              <div className="relative h-64 bg-slate-900 shrink-0">
+                {(modalCombo.imageUrl || resolveComboImage(modalCombo)) ? (
+                  <img
+                    src={resolveComboImage(modalCombo)}
+                    alt={modalCombo.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      const step = parseInt(target.getAttribute('data-errored') || '0', 10);
+                      target.setAttribute('data-errored', String(step + 1));
+                      if (step === 0) {
+                        if (target.src.endsWith('.webp')) {
+                          target.src = target.src.replace(/\.webp$/, '.jpg');
+                        } else if (target.src.endsWith('.jpg')) {
+                          target.src = target.src.replace(/\.jpg$/, '.webp');
+                        } else {
+                          target.src = '/products/vrg/combo-mini-beetroot-guva.webp';
+                        }
+                      } else if (step === 1) {
+                        const prodImg = modalCombo.products?.[0]?.images?.[0] || (modalCombo.products?.[0] as any)?.image || (modalCombo.products?.[0] as any)?.imageUrl;
+                        target.src = prodImg || '/products/vrg/combo-mini-beetroot-guva.webp';
                       } else {
-                        target.src = resolvedRaw || '/products/vrg/combo-mini-beetroot-guva.webp';
+                        target.onerror = null;
+                        target.src = '/products/vrg/combo-mini-beetroot-guva.webp';
                       }
-                    } else if (step === 1) {
-                      const prodImg = modalCombo.products?.[0]?.images?.[0] || (modalCombo.products?.[0] as any)?.image || (modalCombo.products?.[0] as any)?.imageUrl;
-                      target.src = prodImg || '/products/vrg/combo-mini-beetroot-guva.webp';
-                    } else {
-                      target.onerror = null;
-                      target.src = '/products/vrg/combo-mini-beetroot-guva.webp';
-                    }
-                  }}
-                />
+                    }}
+                  />
+                ) : modalCombo.products && modalCombo.products.length > 0 ? (
+                  <div className="grid grid-cols-2 h-full gap-1 bg-slate-800">
+                    {modalCombo.products.slice(0, 4).map((p, idx) => (
+                      <img key={p.id || idx} src={p.images?.[0] || ''} alt={p.name} className="w-full h-full object-cover" />
+                    ))}
+                  </div>
+                ) : null}
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent" />
 
                 <button
                   onClick={() => setModalCombo(null)}
-                  className="absolute top-3 right-3 bg-slate-950/70 hover:bg-slate-950 text-white rounded-full p-2 backdrop-blur-md cursor-pointer transition-transform hover:scale-110 z-20 shadow-lg"
+                  className="absolute top-3 right-3 bg-slate-950/60 hover:bg-slate-950 text-white rounded-full p-2 backdrop-blur-md cursor-pointer transition-transform hover:scale-110"
                 >
-                  <span className="font-bold text-base leading-none">âœ•</span>
+                  <span className="font-bold text-base leading-none">✕</span>
                 </button>
-              </div>
 
-              {/* Modal Header */}
-              <div className="p-5 sm:p-6 pb-2 border-b border-slate-100 bg-white">
-                <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                  <span className="bg-amber-500 text-white font-black text-xs px-3 py-1 rounded-full uppercase tracking-wider">
-                    {modalBadgeText}
-                  </span>
-                  {modalCombo.freeDelivery && (
-                    <span className="bg-emerald-600 text-white font-black text-xs px-3 py-1 rounded-full">
-                      ðŸšš {isTa ? 'à®‡à®²à®µà®š à®Ÿà¯†à®²à®¿à®µà®°à®¿ (à®¤à®®à®¿à®´à¯à®¨à®¾à®Ÿà¯ à®®à®Ÿà¯à®Ÿà¯à®®à¯)' : 'FREE DELIVERY (TN ONLY)'}
+                <div className="absolute bottom-4 left-6 right-6 text-white space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className="bg-amber-500 text-white font-black text-xs px-3 py-1 rounded-full uppercase tracking-wider">
+                      {modalBadgeText}
                     </span>
-                  )}
-                  {discount > 0 && (
-                    <span className="bg-rose-600 text-white font-black text-xs px-3 py-1 rounded-full">
-                      {discount}% {isTa ? 'à®¤à®³à¯à®³à¯à®ªà®Ÿà®¿' : 'OFF'}
-                    </span>
+                    {modalCombo.freeDelivery && (
+                      <span className="bg-emerald-600 text-white font-black text-xs px-3 py-1 rounded-full">
+                        🚚 {isTa ? 'இலவச டெலிவரி (தமிழ்நாடு மட்டும்)' : 'FREE DELIVERY (TN ONLY)'}
+                      </span>
+                    )}
+                    {discount > 0 && (
+                      <span className="bg-rose-600 text-white font-black text-xs px-3 py-1 rounded-full">
+                        {discount}% {isTa ? 'தள்ளுபடி' : 'OFF'}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-2xl sm:text-3xl font-black font-display drop-shadow-md">
+                    {isTa ? t(modalCombo.title) : modalCombo.title}
+                  </h3>
+                  {modalCombo.subtitle && (
+                    <p className="text-xs text-amber-200 font-medium">
+                      {isTa ? t(modalCombo.subtitle) : modalCombo.subtitle}
+                    </p>
                   )}
                 </div>
-                <h3 className="text-xl sm:text-2xl font-black font-display text-slate-900 leading-tight">
-                  {isTa ? t(modalCombo.title) : modalCombo.title}
-                </h3>
-                {modalCombo.subtitle && (
-                  <p className="text-xs sm:text-sm text-slate-600 font-semibold mt-1">
-                    {isTa ? t(modalCombo.subtitle) : modalCombo.subtitle}
-                  </p>
-                )}
               </div>
 
               {/* Modal Body */}
@@ -570,16 +550,16 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                 {savings > 0 && (
                   <div className="bg-gradient-to-r from-emerald-500 to-emerald-700 text-white p-4 rounded-2xl shadow-md flex items-center justify-between font-bold">
                     <div className="flex items-center gap-3">
-                      <span className="text-2xl">ðŸŽ‰</span>
+                      <span className="text-2xl">🎉</span>
                       <div>
-                        <p className="text-sm font-black">{isTa ? 'à®¨à®°à¯à®šà®°à®¿ à®¨à¯‡à®°à®Ÿà®¿ à®šà®¿à®±à®ªà¯à®ªà¯ à®¤à®³à¯à®³à¯à®ªà®Ÿà®¿!' : 'Nursery Direct Special Discount!'}</p>
+                        <p className="text-sm font-black">{isTa ? 'நர்சரி நேரடி சிறப்பு தள்ளுபடி!' : 'Nursery Direct Special Discount!'}</p>
                         <p className="text-xs text-emerald-100 font-medium">
-                          {isTa ? `à®¤à®©à®¿à®¤à¯à®¤à®©à®¿à®¯à®¾à®• à®µà®¾à®™à¯à®•à¯à®µà®¤à¯ˆ à®µà®¿à®Ÿ à®°à¯‚.${savings} à®®à®¿à®šà¯à®šà®ªà¯à®ªà®Ÿà¯à®¤à¯à®¤à¯à®•à®¿à®±à¯€à®°à¯à®•à®³à¯` : `You save â‚¹${savings} compared to buying saplings individually`}
+                          {isTa ? `தனித்தனியாக வாங்குவதை விட ரூ.${savings} மிச்சப்படுத்துகிறீர்கள்` : `You save ₹${savings} compared to buying saplings individually`}
                         </p>
                       </div>
                     </div>
                     <span className="text-xl font-black bg-white/20 px-3 py-1.5 rounded-xl border border-white/30 shrink-0">
-                      {discount}% {isTa ? 'à®¤à®³à¯à®³à¯à®ªà®Ÿà®¿' : 'OFF'}
+                      {discount}% {isTa ? 'தள்ளுபடி' : 'OFF'}
                     </span>
                   </div>
                 )}
@@ -587,11 +567,11 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                 {/* Included Plants Section */}
                 <div className="space-y-3">
                   <h4 className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
-                    <span>ðŸŒ¿ {isTa ? `à®‡à®¨à¯à®¤ à®¤à¯Šà®•à¯à®ªà¯à®ªà®¿à®²à¯ à®‰à®³à¯à®³ à®šà¯†à®Ÿà®¿à®•à®³à¯ (${isVinayagar ? 10 : (activeModalCombo.products?.length || 0)})` : `Included Saplings in this Package (${isVinayagar ? 10 : (activeModalCombo.products?.length || 0)})`}</span>
+                    <span>🌿 {isTa ? `இந்த தொகுப்பில் உள்ள செடிகள் (${modalCombo.products?.length || 0})` : `Included Saplings in this Package (${modalCombo.products?.length || 0})`}</span>
                   </h4>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {getAggregatedProducts(activeModalCombo.products).map(({ product: p, count }) => (
+                    {getAggregatedProducts(modalCombo.products).map(({ product: p, count }) => (
                       <div
                         key={p.id}
                         onClick={() => {
@@ -602,29 +582,24 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                       >
                         {count > 1 && (
                           <span className="absolute top-2 right-2 bg-gradient-to-r from-amber-500 to-emerald-700 text-white font-black text-[11px] px-2.5 py-0.5 rounded-full shadow-xs font-mono z-10">
-                            {count}Ã— {isTa ? 'à®šà¯†à®Ÿà®¿à®•à®³à¯' : 'Saplings Bundle'}
+                            {count}× {isTa ? 'செடிகள்' : 'Saplings Bundle'}
                           </span>
                         )}
                         <img
-                          src={p.images?.[0] || (p as any).image || (p as any).imageUrl || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=200&q=80'}
+                          src={p.images?.[0] || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=200&q=80'}
                           alt={p.name}
                           className="w-14 h-14 rounded-xl object-cover border border-slate-200 shrink-0 group-hover:scale-105 transition-transform"
-                          onError={(e) => {
-                            const target = e.currentTarget;
-                            if (target.src.endsWith('.webp')) target.src = target.src.replace(/\.webp$/, '.jpg');
-                            else if (target.src.endsWith('.jpg')) target.src = target.src.replace(/\.jpg$/, '.webp');
-                          }}
                         />
                         <div className="flex-1 min-w-0">
                           <h5 className="font-bold text-slate-900 text-xs truncate group-hover:text-emerald-800">
                             {isTa ? (p.tamilName && p.tamilName !== p.name ? p.tamilName : t(p.name)) : p.name}
                           </h5>
                           <p className="text-[10px] text-slate-400 font-medium truncate">
-                            {isTa ? 'ðŸŒ± à®¨à¯‡à®°à®Ÿà®¿ à®ªà®£à¯à®£à¯ˆ à®šà¯†à®Ÿà®¿' : (p.tamilName || '')}
+                            {isTa ? '🌱 நேரடி பண்ணை செடி' : (p.tamilName || '')}
                           </p>
                           <div className="flex items-center justify-between mt-1">
                             <span className="text-[10px] text-emerald-700 font-bold bg-white px-2 py-0.5 rounded border border-slate-200">
-                              {isTa ? 'à®‰à®¯à®¿à®°à¯à®³à¯à®³ à®ªà®£à¯à®£à¯ˆ à®šà¯†à®Ÿà®¿' : (p.potSize || 'Bag Plant')}
+                              {isTa ? 'உயிருள்ள பண்ணை செடி' : (p.potSize || 'Bag Plant')}
                             </span>
                           </div>
                         </div>
@@ -637,11 +612,11 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                 <div className="grid grid-cols-2 gap-3 pt-2 text-[11px] font-bold text-slate-700">
                   <div className="flex items-center gap-2 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200">
                     <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
-                    <span>{isTa ? '7-à®¨à®¾à®³à¯ à®µà¯‡à®°à¯ à®ˆà®°à®ªà¯à®ªà®¤à®®à¯ à®ªà®¾à®¤à¯à®•à®¾à®ªà¯à®ªà¯' : '7-Day Root Moisture Moisturelock'}</span>
+                    <span>{isTa ? '7-நாள் வேர் ஈரப்பதம் பாதுகாப்பு' : '7-Day Root Moisture Moisturelock'}</span>
                   </div>
                   <div className="flex items-center gap-2 bg-amber-50 p-2.5 rounded-xl border border-amber-200">
                     <Truck className="w-4 h-4 text-amber-700 shrink-0" />
-                    <span>{isTa ? 'à®ªà®¾à®¤à¯à®•à®¾à®ªà¯à®ªà®¾à®© à®µà®¿à®°à¯ˆà®µà¯ à®Ÿà¯†à®²à®¿à®µà®°à®¿' : 'Safe All-India Express Delivery'}</span>
+                    <span>{isTa ? 'பாதுகாப்பான விரைவு டெலிவரி' : 'Safe All-India Express Delivery'}</span>
                   </div>
                 </div>
               </div>
@@ -650,26 +625,26 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
               <div className="p-3.5 sm:p-4 bg-slate-50 border-t border-slate-200 shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
                 <div className="flex items-center justify-between sm:block">
                   <span className="text-[10px] sm:text-[11px] text-slate-500 font-bold block">
-                    {isTa ? 'à®•à®¾à®®à¯à®ªà¯‹ à®µà®¿à®²à¯ˆ' : 'Combo Package Price'}
+                    {isTa ? 'காம்போ விலை' : 'Combo Package Price'}
                   </span>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-xl sm:text-2xl font-black text-slate-900">â‚¹{modalCombo.comboPrice}</span>
+                    <span className="text-xl sm:text-2xl font-black text-slate-900">₹{modalCombo.comboPrice}</span>
                     {modalCombo.originalPrice > modalCombo.comboPrice && (
-                      <span className="text-xs text-slate-400 font-bold line-through">â‚¹{modalCombo.originalPrice}</span>
+                      <span className="text-xs text-slate-400 font-bold line-through">₹{modalCombo.originalPrice}</span>
                     )}
                   </div>
                 </div>
 
                 <button
                   onClick={(e) => {
-                    handleAddComboToCart(activeModalCombo, e);
+                    handleAddComboToCart(modalCombo, e);
                     setModalCombo(null);
                   }}
                   disabled={isJustAdded}
                   className="w-full sm:w-auto py-3 px-5 sm:px-6 bg-gradient-to-r from-emerald-700 via-emerald-800 to-amber-700 hover:from-emerald-800 hover:to-amber-800 text-white font-extrabold text-xs rounded-xl sm:rounded-2xl shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
                 >
                   <ShoppingBag className="w-4 h-4" />
-                  <span>{isTa ? `à®…à®©à¯ˆà®¤à¯à®¤à¯ ${isVinayagar ? 10 : (activeModalCombo.products?.length || 0)} à®šà¯†à®Ÿà®¿à®•à®³à¯ˆà®¯à¯à®®à¯ à®•à¯‚à®Ÿà¯ˆà®¯à®¿à®²à¯ à®šà¯‡à®°à¯à®•à¯à®•à®µà¯à®®à¯` : `Add All ${isVinayagar ? 10 : (activeModalCombo.products?.length || 0)} Saplings to Cart`}</span>
+                  <span>{isTa ? `அனைத்து ${modalCombo.products?.length || 0} செடிகளையும் கூடையில் சேர்க்கவும்` : `Add All ${modalCombo.products?.length || 0} Saplings to Cart`}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
@@ -680,4 +655,3 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
     </section>
   );
 };
-

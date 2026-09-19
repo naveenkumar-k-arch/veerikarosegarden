@@ -1,6 +1,6 @@
 import { CartItem } from '../types';
 import { calculateDeliveryFee } from './delivery.js';
-import { getCartItemPlantCount } from './comboUtils';
+import { getCartItemPlantCount } from './comboUtils.js';
 
 export interface OrderTotalsInput {
   items: CartItem[];

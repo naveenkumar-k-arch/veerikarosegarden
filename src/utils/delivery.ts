@@ -1,4 +1,4 @@
-import { getCartItemPlantCount } from './comboUtils';
+import { getCartItemPlantCount } from './comboUtils.js';
 
 export interface DeliveryItem {
   quantity: number;
