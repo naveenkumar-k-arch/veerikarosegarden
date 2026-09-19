@@ -274,10 +274,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
     return [];
   });
   const [expandedWeeks, setExpandedWeeks] = useState<Record<string, boolean>>({});
-  const [ordersPage, setOrdersPage] = useState(1);
-  const [ordersTotalCount, setOrdersTotalCount] = useState<number>(() => initialCache?.stats?.totalOrders || initialCache?.orders?.length || 0);
-  const [hasMoreOrders, setHasMoreOrders] = useState<boolean>(true);
-  const [isLoadingMoreOrders, setIsLoadingMoreOrders] = useState<boolean>(false);
 
   const [coupons, setCoupons] = useState<Coupon[]>(() => Array.isArray(initialCache?.coupons) ? initialCache.coupons : []);
   const [combos, setCombos] = useState<Combo[]>(() => Array.isArray(initialCache?.combos) ? initialCache.combos : []);
@@ -983,108 +979,6 @@ const silentRefresh = async (): Promise<boolean> => {
     }
   };
 
-  // Tracks tabs loaded on-demand to prevent redundant network calls
-  const fetchedTabsRef = React.useRef<Set<string>>(new Set(['dashboard']));
-
-  const loadTabData = async (rawTab: string) => {
-    const tab = (rawTab || '').toLowerCase().trim();
-    if (!tab || tab === 'dashboard') return;
-    if (fetchedTabsRef.current.has(tab)) return;
-    fetchedTabsRef.current.add(tab);
-
-    try {
-      if (tab === 'finances') {
-        const res = await authFetch('/api/admin/finances').then(r => r.json()).catch(() => null);
-        if (res?.success && Array.isArray(res.entries)) {
-          const deletedFinSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_finances') || '[]'));
-          const filtered = res.entries.filter((f: FinancialEntry) => !deletedFinSet.has(f.id));
-          setFinances(filtered);
-          persistAdminCache(c => ({ ...c, finances: filtered }));
-        }
-      } else if (tab === 'payment_logs' || tab === 'audit') {
-        const res = await authFetch('/api/admin/payment-logs').then(r => r.json()).catch(() => null);
-        if (res?.success && Array.isArray(res.logs)) {
-          setPaymentLogs(res.logs);
-          persistAdminCache(c => ({ ...c, paymentLogs: res.logs }));
-        }
-      } else if (tab === 'reviews') {
-        const res = await fetch('/api/reviews').then(r => r.json()).catch(() => null);
-        if (res?.success && Array.isArray(res.reviews)) {
-          saveReviewsState(res.reviews);
-        }
-      } else if (tab === 'coupons') {
-        const res = await fetch('/api/coupons').then(r => r.json()).catch(() => null);
-        if (res?.success && Array.isArray(res.coupons)) {
-          setCoupons(res.coupons);
-          persistAdminCache(c => ({ ...c, coupons: res.coupons }));
-        }
-      } else if (tab === 'banners') {
-        const res = await fetch('/api/banners').then(r => r.json()).catch(() => null);
-        if (res?.success && Array.isArray(res.banners)) {
-          setBanners(res.banners);
-          persistAdminCache(c => ({ ...c, banners: res.banners }));
-        }
-      } else if (tab === 'combos') {
-        const res = await fetch('/api/combos').then(r => r.json()).catch(() => null);
-        if (res?.success && Array.isArray(res.combos)) {
-          const deletedComboSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_combos') || '[]'));
-          const filtered = res.combos.filter((c: Combo) => !deletedComboSet.has(c.id));
-          setCombos(filtered);
-          persistAdminCache(c => ({ ...c, combos: filtered }));
-        }
-      } else if (tab === 'orders' || tab === 'orders_list') {
-        if (orders.length < 30) {
-          fetchMoreOrders();
-        }
-      }
-    } catch (e) {
-      console.warn(`[Admin] Failed on-demand load for tab ${tab}:`, e);
-    }
-  };
-
-  const fetchMoreOrders = async () => {
-    if (isLoadingMoreOrders || !hasMoreOrders) return;
-    setIsLoadingMoreOrders(true);
-    const nextPage = ordersPage + 1;
-    try {
-      const res = await authFetch(`/api/admin/orders?page=${nextPage}&limit=30`).then(r => r.json()).catch(() => null);
-      if (res?.success && Array.isArray(res.orders)) {
-        let deletedOrderSet = new Set<string>();
-        try {
-          const d = localStorage.getItem('vrg_deleted_orders');
-          if (d) deletedOrderSet = new Set(JSON.parse(d));
-        } catch {}
-
-        const newValidOrders = res.orders.filter((o: Order) => {
-          if (!o || !o.id) return false;
-          if (deletedOrderSet.has(o.id) || deletedOrderSet.has(o.merchantTransactionId || '') || deletedOrderSet.has(o.orderNumber || '')) return false;
-          return isValidAdminOrder(o);
-        });
-
-        setOrders(prev => {
-          const existingIds = new Set(prev.map(o => o.id));
-          const toAdd = newValidOrders.filter((o: Order) => !existingIds.has(o.id));
-          const merged = [...prev, ...toAdd];
-          persistAdminCache(c => ({ ...c, orders: merged }));
-          return merged;
-        });
-
-        setOrdersPage(nextPage);
-        if (res.totalCount) setOrdersTotalCount(res.totalCount);
-        setHasMoreOrders(Boolean(res.hasMore));
-      } else {
-        setHasMoreOrders(false);
-      }
-    } catch {
-      setHasMoreOrders(false);
-    } finally {
-      setIsLoadingMoreOrders(false);
-    }
-  };
-
-  useEffect(() => {
-    loadTabData(activeTab);
-  }, [activeTab]);
 
   useEffect(() => {
     // Purge legacy local storage keys that may contain stale snapshots
@@ -3079,11 +2973,6 @@ const silentRefresh = async (): Promise<boolean> => {
           settings={settings}
           finances={finances}
           adminUser={adminUser}
-          onScreenChange={loadTabData}
-          onLoadMoreOrders={fetchMoreOrders}
-          hasMoreOrders={hasMoreOrders}
-          isLoadingMoreOrders={isLoadingMoreOrders}
-          ordersTotalCount={ordersTotalCount}
           onUpdateOrderStatus={handleUpdateOrderStatus}
           onToggleOrderPrinted={handleToggleOrderPrinted}
           onOpenAddWhatsAppOrder={handleOpenAddWhatsAppOrder}

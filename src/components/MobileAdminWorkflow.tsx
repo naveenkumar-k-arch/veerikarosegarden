@@ -105,11 +105,6 @@ export interface MobileAdminWorkflowProps {
   onOpenDesktopTab?: (tabKey: string) => void;
   onBackToStore: () => void;
   onLogout?: () => void;
-  onScreenChange?: (screen: ScreenType) => void;
-  onLoadMoreOrders?: () => Promise<void>;
-  hasMoreOrders?: boolean;
-  isLoadingMoreOrders?: boolean;
-  ordersTotalCount?: number;
 }
 
 export type ScreenType =
@@ -168,22 +163,10 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   onOpenDesktopTab,
   onBackToStore,
   onLogout,
-  onScreenChange,
-  onLoadMoreOrders,
-  hasMoreOrders = false,
-  isLoadingMoreOrders = false,
-  ordersTotalCount
 }) => {
   // Current screen state
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('dashboard');
   const [activeBottomTab, setActiveBottomTab] = useState<'dashboard' | 'orders' | 'plants' | 'labels' | 'customers' | 'more'>('dashboard');
-
-  // Trigger parent lazy-loader when screen changes
-  useEffect(() => {
-    if (onScreenChange) {
-      onScreenChange(currentScreen);
-    }
-  }, [currentScreen, onScreenChange]);
   
   // Dashboard sales period filter
   const [salesPeriod, setSalesPeriod] = useState<'this_month' | 'last_month' | 'this_week' | 'all_time'>('this_month');
@@ -3164,29 +3147,6 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                   )}
 
                   {filteredOrders.map(order => renderMobileOrderCard(order))}
-
-                  {hasMoreOrders && onLoadMoreOrders && (
-                    <div className="pt-2 text-center">
-                      <button
-                        type="button"
-                        onClick={onLoadMoreOrders}
-                        disabled={isLoadingMoreOrders}
-                        className="w-full py-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-2xl font-bold text-xs text-slate-700 shadow-xs flex items-center justify-center gap-2 active:scale-[0.99] transition-all cursor-pointer disabled:opacity-60"
-                      >
-                        {isLoadingMoreOrders ? (
-                          <>
-                            <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-600" />
-                            <span>Loading more orders...</span>
-                          </>
-                        ) : (
-                          <>
-                            <span>Load More Orders ({orders.length} loaded{ordersTotalCount ? ` of ${ordersTotalCount}` : ''})</span>
-                            <ChevronDown className="w-4 h-4 text-slate-400" />
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  )}
 
                   {filteredOrders.length === 0 && (
                     <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-3">

@@ -50,14 +50,9 @@ apiRouter.get('/health', async (req, res) => {
 
 // In-memory bootstrap response cache — eliminates repeated DB hits from polling
 const BOOTSTRAP_CACHE_TTL_MS = 60_000; // 60 seconds — must match ADMIN_POLL_INTERVAL_MS in AdminPage
-let bootstrapCache: {
-  full?: { data: any; expiresAt: number } | null;
-  summary?: { data: any; expiresAt: number } | null;
-  data?: any;
-  expiresAt?: number;
-} = {};
+let bootstrapCache: { data: any; expiresAt: number } = { data: null, expiresAt: 0 };
 export const invalidateBootstrapCache = () => {
-  bootstrapCache = {};
+  bootstrapCache = { data: null, expiresAt: 0 };
 };
 
 // ================= PRODUCT ROUTES =================
@@ -1274,18 +1269,37 @@ apiRouter.get('/orders', requireAuth, async (req: AuthenticatedRequest, res) => 
   }
 });
 
-// Lightweight serializers for admin bootstrap listing: preserves all unique image URLs and static paths
+// Lightweight serializers for admin bootstrap listing — aggressively strip heavy fields to keep payload <500 KB
 function sanitizeBootstrapProducts(prods: any[]): any[] {
   return prods.map(p => {
     const images = Array.isArray(p.images) && p.images.length > 0 ? p.images.filter(Boolean) : (p.image ? [p.image] : []);
+    const primaryImage = images[0] || p.image || '/products/double-delight.jpeg';
     return {
-      ...p,
-      images: images.length > 0 ? images : ['https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80'],
-      image: images[0] || p.image || '/products/double-delight.jpeg'
+      id: p.id,
+      name: p.name,
+      tamilName: p.tamilName,
+      slug: p.slug,
+      price: p.price,
+      originalPrice: p.originalPrice,
+      sellingPrice: p.sellingPrice,
+      costPrice: p.costPrice,
+      stock: p.stock,
+      category: p.category,
+      categoryId: p.categoryId,
+      isActive: p.isActive,
+      isFeatured: p.isFeatured,
+      isNewArrival: p.isNewArrival,
+      images: images.length > 0 ? [primaryImage] : ['https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80'],
+      image: primaryImage,
+      imageUrl: primaryImage,
+      description: (p.description || '').slice(0, 120),
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt,
     };
   });
 }
 
+// Strip massive notes (68 KB/order) and slim items to essential listing fields only
 function sanitizeBootstrapOrders(ords: any[]): any[] {
   const getOrderTime = (o: any): number => {
     if (o.createdAt) {
@@ -1310,122 +1324,116 @@ function sanitizeBootstrapOrders(ords: any[]): any[] {
 
   return sorted.map(o => {
     const hasProof = Boolean(o.paymentProofUrl);
-    if (o.paymentProofUrl && typeof o.paymentProofUrl === 'string' && o.paymentProofUrl.startsWith('data:image/') && o.paymentProofUrl.length > 20000) {
-      return {
-        ...o,
-        hasPaymentProof: true,
-        paymentProofUrl: undefined
-      };
-    }
+    // Slim down items to only what the admin listing/detail UI needs
+    const slimItems = Array.isArray(o.items) ? o.items.map((item: any) => ({
+      id: item.id,
+      productId: item.productId,
+      name: item.name,
+      price: item.price,
+      sellingPrice: item.sellingPrice,
+      quantity: item.quantity,
+      image: item.image,
+    })) : o.items;
+
     return {
-      ...o,
-      hasPaymentProof: hasProof
+      id: o.id,
+      orderNumber: o.orderNumber,
+      merchantTransactionId: o.merchantTransactionId,
+      customerName: o.customerName,
+      customerEmail: o.customerEmail,
+      customerPhone: o.customerPhone,
+      shippingAddress: o.shippingAddress,
+      items: slimItems,
+      subtotal: o.subtotal,
+      shippingFee: o.shippingFee,
+      protectivePacking: o.protectivePacking,
+      protectivePackingCharge: o.protectivePackingCharge,
+      discount: o.discount,
+      couponCode: o.couponCode,
+      grandTotal: o.grandTotal,
+      paymentMethod: o.paymentMethod,
+      paymentStatus: o.paymentStatus,
+      orderStatus: o.orderStatus,
+      status: o.status,
+      isPrinted: o.isPrinted,
+      courierName: o.courierName,
+      trackingNumber: o.trackingNumber,
+      estimatedDelivery: o.estimatedDelivery,
+      orderSource: o.orderSource,
+      userId: o.userId,
+      createdAt: o.createdAt,
+      updatedAt: o.updatedAt,
+      hasPaymentProof: hasProof,
+      paymentProofUrl: (hasProof && typeof o.paymentProofUrl === 'string' && o.paymentProofUrl.startsWith('data:image/') && o.paymentProofUrl.length > 20000) ? undefined : o.paymentProofUrl,
     };
   });
+}
+
+// Strip embedded full-product objects from combos (238 KB each) — admin only needs product IDs
+function sanitizeBootstrapCombos(combos: any[]): any[] {
+  return combos.map(c => ({
+    ...c,
+    products: undefined,
+  }));
 }
 
 apiRouter.get('/admin/bootstrap', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const now = Date.now();
     const isFresh = req.query.fresh === 'true' || req.headers['cache-control'] === 'no-cache';
-    const isFull = req.query.full === 'true';
 
-    // Separate cache bucket for full vs fast summary bootstrap
-    const cacheKey = isFull ? 'full' : 'summary';
-    const cachedEntry = bootstrapCache[cacheKey];
-    if (!isFresh && cachedEntry && now < cachedEntry.expiresAt) {
+    if (!isFresh && bootstrapCache.data && now < bootstrapCache.expiresAt) {
       res.setHeader('Cache-Control', 'private, no-cache, no-transform');
       res.setHeader('X-Bootstrap-Cache', 'HIT');
-      return res.json(cachedEntry.data);
+      return res.json(bootstrapCache.data);
     }
 
-    if (isFull) {
-      const [
-        orders,
-        products,
-        categories,
-        coupons,
-        banners,
-        reviews,
-        settings,
-        paymentLogs,
-        finances,
-        combos
-      ] = await Promise.all([
-        db.getOrders().catch(() => []),
-        db.getProducts().catch(() => []),
-        db.getCategories().catch(() => []),
-        db.getCoupons().catch(() => []),
-        db.getBanners().catch(() => []),
-        db.getReviews().catch(() => []),
-        db.getSettings().catch(() => null),
-        db.getPaymentLogs().catch(() => []),
-        db.getFinancialEntries().catch(() => []),
-        db.getCombos().catch(() => [])
-      ]);
-
-      const sanitizedOrders = sanitizeBootstrapOrders(orders);
-      const stats = await db.getDashboardStats(sanitizedOrders, products);
-
-      const responsePayload = {
-        success: true,
-        stats,
-        products: sanitizeBootstrapProducts(products),
-        categories,
-        orders: sanitizedOrders,
-        coupons,
-        banners,
-        reviews,
-        settings,
-        paymentLogs,
-        finances,
-        combos
-      };
-
-      bootstrapCache.full = { data: responsePayload, expiresAt: Date.now() + BOOTSTRAP_CACHE_TTL_MS };
-      res.setHeader('Cache-Control', 'private, no-cache, no-transform');
-      res.setHeader('X-Bootstrap-Cache', 'MISS');
-      return res.json(responsePayload);
-    }
-
-    // High-Performance Fast Bootstrap (<200ms):
-    // Loads dashboard stats, top 30 active orders, categories, settings, combos & products.
-    // Heavy secondary datasets (finances, paymentLogs, reviews, coupons, banners) load on-demand.
+    // Full eager-load: fetch ALL data in parallel, but aggressively strip payload
     const [
       orders,
       products,
       categories,
+      coupons,
+      banners,
+      reviews,
       settings,
+      paymentLogs,
+      finances,
       combos
     ] = await Promise.all([
-      db.getOrders({ take: 30 }).catch(() => []),
+      db.getOrders().catch(() => []),
       db.getProducts().catch(() => []),
       db.getCategories().catch(() => []),
+      db.getCoupons().catch(() => []),
+      db.getBanners().catch(() => []),
+      db.getReviews().catch(() => []),
       db.getSettings().catch(() => null),
+      db.getPaymentLogs().catch(() => []),
+      db.getFinancialEntries().catch(() => []),
       db.getCombos().catch(() => [])
     ]);
 
     const sanitizedOrders = sanitizeBootstrapOrders(orders);
-    const stats = await db.getDashboardStats(sanitizedOrders, products);
+    const rawStats = await db.getDashboardStats(sanitizedOrders, products);
+    // Strip recentOrders from stats (720 KB of duplicate data — orders are already in the orders array)
+    const stats = { ...rawStats, recentOrders: undefined };
 
     const responsePayload = {
       success: true,
-      isSummary: true,
       stats,
       products: sanitizeBootstrapProducts(products),
       categories,
       orders: sanitizedOrders,
-      coupons: [],
-      banners: [],
-      reviews: [],
+      coupons,
+      banners,
+      reviews,
       settings,
-      paymentLogs: [],
-      finances: [],
-      combos
+      paymentLogs,
+      finances,
+      combos: sanitizeBootstrapCombos(combos)
     };
 
-    bootstrapCache.summary = { data: responsePayload, expiresAt: Date.now() + BOOTSTRAP_CACHE_TTL_MS };
-
+    bootstrapCache = { data: responsePayload, expiresAt: Date.now() + BOOTSTRAP_CACHE_TTL_MS };
     res.setHeader('Cache-Control', 'private, no-cache, no-transform');
     res.setHeader('X-Bootstrap-Cache', 'MISS');
     res.json(responsePayload);
