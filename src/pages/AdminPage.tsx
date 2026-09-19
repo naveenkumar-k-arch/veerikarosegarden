@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Product, Category, Order, Coupon, Banner, Review, SiteSettings, PaymentLog, FinancialEntry, Combo, PaymentStatus, OrderStatus } from '../types';
 import { LayoutDashboard, Package, ShoppingBag, FolderTree, Tag, Image, Star, Settings as SettingsIcon, ShieldCheck, Plus, Edit, Trash2, Check, X, RefreshCw, Printer, AlertTriangle, Search, Lock, ExternalLink, DollarSign, TrendingUp, TrendingDown, Camera, CreditCard, ChevronDown, User, Phone, MapPin, Upload, MessageSquare, ThumbsUp, Eye, EyeOff, Sparkles, Monitor, Sprout, Menu, LogOut, Truck, Globe, ZoomIn } from 'lucide-react';
 
@@ -274,6 +274,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
     return [];
   });
   const [expandedWeeks, setExpandedWeeks] = useState<Record<string, boolean>>({});
+  const [ordersPage, setOrdersPage] = useState(1);
+  const [ordersTotalCount, setOrdersTotalCount] = useState<number>(() => initialCache?.stats?.totalOrders || initialCache?.orders?.length || 0);
+  const [hasMoreOrders, setHasMoreOrders] = useState<boolean>(true);
+  const [isLoadingMoreOrders, setIsLoadingMoreOrders] = useState<boolean>(false);
 
   const [coupons, setCoupons] = useState<Coupon[]>(() => Array.isArray(initialCache?.coupons) ? initialCache.coupons : []);
   const [combos, setCombos] = useState<Combo[]>(() => Array.isArray(initialCache?.combos) ? initialCache.combos : []);
@@ -979,6 +983,109 @@ const silentRefresh = async (): Promise<boolean> => {
     }
   };
 
+  // Tracks tabs loaded on-demand to prevent redundant network calls
+  const fetchedTabsRef = React.useRef<Set<string>>(new Set(['dashboard']));
+
+  const loadTabData = async (rawTab: string) => {
+    const tab = (rawTab || '').toLowerCase().trim();
+    if (!tab || tab === 'dashboard') return;
+    if (fetchedTabsRef.current.has(tab)) return;
+    fetchedTabsRef.current.add(tab);
+
+    try {
+      if (tab === 'finances') {
+        const res = await authFetch('/api/admin/finances').then(r => r.json()).catch(() => null);
+        if (res?.success && Array.isArray(res.entries)) {
+          const deletedFinSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_finances') || '[]'));
+          const filtered = res.entries.filter((f: FinancialEntry) => !deletedFinSet.has(f.id));
+          setFinances(filtered);
+          persistAdminCache(c => ({ ...c, finances: filtered }));
+        }
+      } else if (tab === 'payment_logs' || tab === 'audit') {
+        const res = await authFetch('/api/admin/payment-logs').then(r => r.json()).catch(() => null);
+        if (res?.success && Array.isArray(res.logs)) {
+          setPaymentLogs(res.logs);
+          persistAdminCache(c => ({ ...c, paymentLogs: res.logs }));
+        }
+      } else if (tab === 'reviews') {
+        const res = await fetch('/api/reviews').then(r => r.json()).catch(() => null);
+        if (res?.success && Array.isArray(res.reviews)) {
+          saveReviewsState(res.reviews);
+        }
+      } else if (tab === 'coupons') {
+        const res = await fetch('/api/coupons').then(r => r.json()).catch(() => null);
+        if (res?.success && Array.isArray(res.coupons)) {
+          setCoupons(res.coupons);
+          persistAdminCache(c => ({ ...c, coupons: res.coupons }));
+        }
+      } else if (tab === 'banners') {
+        const res = await fetch('/api/banners').then(r => r.json()).catch(() => null);
+        if (res?.success && Array.isArray(res.banners)) {
+          setBanners(res.banners);
+          persistAdminCache(c => ({ ...c, banners: res.banners }));
+        }
+      } else if (tab === 'combos') {
+        const res = await fetch('/api/combos').then(r => r.json()).catch(() => null);
+        if (res?.success && Array.isArray(res.combos)) {
+          const deletedComboSet = new Set(JSON.parse(localStorage.getItem('vrg_deleted_combos') || '[]'));
+          const filtered = res.combos.filter((c: Combo) => !deletedComboSet.has(c.id));
+          setCombos(filtered);
+          persistAdminCache(c => ({ ...c, combos: filtered }));
+        }
+      } else if (tab === 'orders' || tab === 'orders_list') {
+        if (orders.length < 30) {
+          fetchMoreOrders();
+        }
+      }
+    } catch (e) {
+      console.warn(`[Admin] Failed on-demand load for tab ${tab}:`, e);
+    }
+  };
+
+  const fetchMoreOrders = async () => {
+    if (isLoadingMoreOrders || !hasMoreOrders) return;
+    setIsLoadingMoreOrders(true);
+    const nextPage = ordersPage + 1;
+    try {
+      const res = await authFetch(`/api/admin/orders?page=${nextPage}&limit=30`).then(r => r.json()).catch(() => null);
+      if (res?.success && Array.isArray(res.orders)) {
+        let deletedOrderSet = new Set<string>();
+        try {
+          const d = localStorage.getItem('vrg_deleted_orders');
+          if (d) deletedOrderSet = new Set(JSON.parse(d));
+        } catch {}
+
+        const newValidOrders = res.orders.filter((o: Order) => {
+          if (!o || !o.id) return false;
+          if (deletedOrderSet.has(o.id) || deletedOrderSet.has(o.merchantTransactionId || '') || deletedOrderSet.has(o.orderNumber || '')) return false;
+          return isValidAdminOrder(o);
+        });
+
+        setOrders(prev => {
+          const existingIds = new Set(prev.map(o => o.id));
+          const toAdd = newValidOrders.filter((o: Order) => !existingIds.has(o.id));
+          const merged = [...prev, ...toAdd];
+          persistAdminCache(c => ({ ...c, orders: merged }));
+          return merged;
+        });
+
+        setOrdersPage(nextPage);
+        if (res.totalCount) setOrdersTotalCount(res.totalCount);
+        setHasMoreOrders(Boolean(res.hasMore));
+      } else {
+        setHasMoreOrders(false);
+      }
+    } catch {
+      setHasMoreOrders(false);
+    } finally {
+      setIsLoadingMoreOrders(false);
+    }
+  };
+
+  useEffect(() => {
+    loadTabData(activeTab);
+  }, [activeTab]);
+
   useEffect(() => {
     // Purge legacy local storage keys that may contain stale snapshots
     const legacyKeys = [
@@ -1009,7 +1116,7 @@ const silentRefresh = async (): Promise<boolean> => {
 
     fetchData();
 
-    // Security Re-validation: Verify session token server-side on mount with auto-refresh support
+    // Non-blocking background session verification (delayed 1.5s to grant first paint instant network priority)
     const verifySession = async () => {
       try {
         let res = await fetch('/api/auth/me', { credentials: 'include' });
@@ -1034,7 +1141,9 @@ const silentRefresh = async (): Promise<boolean> => {
         // If backend auth check fails, fallback to standard error handling in authFetch
       }
     };
-    verifySession();
+    const sessionTimer = setTimeout(() => {
+      verifySession();
+    }, 1500);
 
     // Poll every 60 seconds for live order feed (bootstrap cache is 60s TTL)
     const ADMIN_POLL_INTERVAL_MS = 60_000; // 60 seconds â€” matches server bootstrap cache TTL
@@ -1062,6 +1171,7 @@ const silentRefresh = async (): Promise<boolean> => {
     window.addEventListener('storage', handleProductSync);
 
     return () => {
+      clearTimeout(sessionTimer);
       clearInterval(interval);
       window.removeEventListener('focus', handleSync);
       window.removeEventListener('visibilitychange', handleVisibilitySync);
@@ -2969,6 +3079,11 @@ const silentRefresh = async (): Promise<boolean> => {
           settings={settings}
           finances={finances}
           adminUser={adminUser}
+          onScreenChange={loadTabData}
+          onLoadMoreOrders={fetchMoreOrders}
+          hasMoreOrders={hasMoreOrders}
+          isLoadingMoreOrders={isLoadingMoreOrders}
+          ordersTotalCount={ordersTotalCount}
           onUpdateOrderStatus={handleUpdateOrderStatus}
           onToggleOrderPrinted={handleToggleOrderPrinted}
           onOpenAddWhatsAppOrder={handleOpenAddWhatsAppOrder}

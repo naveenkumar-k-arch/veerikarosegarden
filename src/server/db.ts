@@ -2864,8 +2864,12 @@ class Store {
     this.ordersCache = null;
   }
 
-  async getOrders(userId?: string): Promise<Order[]> {
-    if (!userId && this.ordersCache && Date.now() < this.ordersCache.expiresAt) {
+  async getOrders(userIdOrOptions?: string | { userId?: string; take?: number; skip?: number; stage?: string; search?: string }): Promise<Order[]> {
+    const userId = typeof userIdOrOptions === 'string' ? userIdOrOptions : userIdOrOptions?.userId;
+    const take = typeof userIdOrOptions === 'object' ? userIdOrOptions?.take : undefined;
+    const skip = typeof userIdOrOptions === 'object' ? userIdOrOptions?.skip : undefined;
+
+    if (!userId && !take && !skip && this.ordersCache && Date.now() < this.ordersCache.expiresAt) {
       return this.ordersCache.data;
     }
 
@@ -2875,12 +2879,13 @@ class Store {
     if (prisma) {
       try {
         const ORDER_QUERY_TAKE_USER  = 200; // per-customer history cap
-        const ORDER_QUERY_TAKE_ADMIN = 500; // admin/bootstrap full-list cap
+        const ORDER_QUERY_TAKE_ADMIN = take ? Math.min(take, 500) : 500; // admin/bootstrap cap
         const items = await prisma.order.findMany({
           where: userId ? { userId } : {},
           include: { items: true },
           orderBy: { createdAt: 'desc' },
-          take: userId ? ORDER_QUERY_TAKE_USER : ORDER_QUERY_TAKE_ADMIN
+          take: userId ? ORDER_QUERY_TAKE_USER : ORDER_QUERY_TAKE_ADMIN,
+          skip: skip ? Math.max(0, skip) : undefined
         });
 
         dbOrders = items.map(o => {
@@ -3136,10 +3141,10 @@ class Store {
       }
       return isValidAdminOrder(o);
     });
-    if (!userId) {
+    if (!userId && !take && !skip) {
       this.ordersCache = { data: result, expiresAt: Date.now() + 60000 };
     }
-    return result;
+    return take ? result.slice(0, take) : result;
   }
 
   async syncAllVerifiedOrdersToDatabase(): Promise<Order[]> {

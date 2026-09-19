@@ -50,10 +50,14 @@ apiRouter.get('/health', async (req, res) => {
 
 // In-memory bootstrap response cache — eliminates repeated DB hits from polling
 const BOOTSTRAP_CACHE_TTL_MS = 60_000; // 60 seconds — must match ADMIN_POLL_INTERVAL_MS in AdminPage
-let bootstrapCache: { data: any; expiresAt: number } = { data: null, expiresAt: 0 };
+let bootstrapCache: {
+  full?: { data: any; expiresAt: number } | null;
+  summary?: { data: any; expiresAt: number } | null;
+  data?: any;
+  expiresAt?: number;
+} = {};
 export const invalidateBootstrapCache = () => {
-  bootstrapCache.expiresAt = 0;
-  bootstrapCache.data = null;
+  bootstrapCache = {};
 };
 
 // ================= PRODUCT ROUTES =================
@@ -1324,33 +1328,80 @@ apiRouter.get('/admin/bootstrap', requireAdmin, async (req: AuthenticatedRequest
   try {
     const now = Date.now();
     const isFresh = req.query.fresh === 'true' || req.headers['cache-control'] === 'no-cache';
-    if (!isFresh && bootstrapCache.data && now < bootstrapCache.expiresAt) {
-      res.setHeader('Cache-Control', 'no-store');
+    const isFull = req.query.full === 'true';
+
+    // Separate cache bucket for full vs fast summary bootstrap
+    const cacheKey = isFull ? 'full' : 'summary';
+    const cachedEntry = bootstrapCache[cacheKey];
+    if (!isFresh && cachedEntry && now < cachedEntry.expiresAt) {
+      res.setHeader('Cache-Control', 'private, no-cache, no-transform');
       res.setHeader('X-Bootstrap-Cache', 'HIT');
-      return res.json(bootstrapCache.data);
+      return res.json(cachedEntry.data);
     }
 
+    if (isFull) {
+      const [
+        orders,
+        products,
+        categories,
+        coupons,
+        banners,
+        reviews,
+        settings,
+        paymentLogs,
+        finances,
+        combos
+      ] = await Promise.all([
+        db.getOrders().catch(() => []),
+        db.getProducts().catch(() => []),
+        db.getCategories().catch(() => []),
+        db.getCoupons().catch(() => []),
+        db.getBanners().catch(() => []),
+        db.getReviews().catch(() => []),
+        db.getSettings().catch(() => null),
+        db.getPaymentLogs().catch(() => []),
+        db.getFinancialEntries().catch(() => []),
+        db.getCombos().catch(() => [])
+      ]);
+
+      const sanitizedOrders = sanitizeBootstrapOrders(orders);
+      const stats = await db.getDashboardStats(sanitizedOrders, products);
+
+      const responsePayload = {
+        success: true,
+        stats,
+        products: sanitizeBootstrapProducts(products),
+        categories,
+        orders: sanitizedOrders,
+        coupons,
+        banners,
+        reviews,
+        settings,
+        paymentLogs,
+        finances,
+        combos
+      };
+
+      bootstrapCache.full = { data: responsePayload, expiresAt: Date.now() + BOOTSTRAP_CACHE_TTL_MS };
+      res.setHeader('Cache-Control', 'private, no-cache, no-transform');
+      res.setHeader('X-Bootstrap-Cache', 'MISS');
+      return res.json(responsePayload);
+    }
+
+    // High-Performance Fast Bootstrap (<200ms):
+    // Loads dashboard stats, top 30 active orders, categories, settings, combos & products.
+    // Heavy secondary datasets (finances, paymentLogs, reviews, coupons, banners) load on-demand.
     const [
       orders,
       products,
       categories,
-      coupons,
-      banners,
-      reviews,
       settings,
-      paymentLogs,
-      finances,
       combos
     ] = await Promise.all([
-      db.getOrders().catch(() => []),
+      db.getOrders({ take: 30 }).catch(() => []),
       db.getProducts().catch(() => []),
       db.getCategories().catch(() => []),
-      db.getCoupons().catch(() => []),
-      db.getBanners().catch(() => []),
-      db.getReviews().catch(() => []),
       db.getSettings().catch(() => null),
-      db.getPaymentLogs().catch(() => []),
-      db.getFinancialEntries().catch(() => []),
       db.getCombos().catch(() => [])
     ]);
 
@@ -1359,22 +1410,23 @@ apiRouter.get('/admin/bootstrap', requireAdmin, async (req: AuthenticatedRequest
 
     const responsePayload = {
       success: true,
+      isSummary: true,
       stats,
       products: sanitizeBootstrapProducts(products),
       categories,
       orders: sanitizedOrders,
-      coupons,
-      banners,
-      reviews,
+      coupons: [],
+      banners: [],
+      reviews: [],
       settings,
-      paymentLogs,
-      finances,
+      paymentLogs: [],
+      finances: [],
       combos
     };
 
-    bootstrapCache = { data: responsePayload, expiresAt: Date.now() + BOOTSTRAP_CACHE_TTL_MS };
+    bootstrapCache.summary = { data: responsePayload, expiresAt: Date.now() + BOOTSTRAP_CACHE_TTL_MS };
 
-    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Cache-Control', 'private, no-cache, no-transform');
     res.setHeader('X-Bootstrap-Cache', 'MISS');
     res.json(responsePayload);
   } catch (error: any) {
@@ -1536,12 +1588,49 @@ apiRouter.get('/orders/:id', async (req: AuthenticatedRequest, res) => {
   }
 });
 
-// Admin GET all orders - strictly sanitized for admin panel (no pending / unconfirmed orders)
+// Admin GET orders with pagination, stage filter, and search support
 apiRouter.get('/admin/orders', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
+    const isAll = req.query.all === 'true';
+    const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+    const limit = isAll ? 500 : Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 30));
+    const stage = (req.query.stage as string || '').toLowerCase().trim();
+    const search = (req.query.search as string || '').toLowerCase().trim();
+
     const orders = await db.getOrders();
-    const sanitized = sanitizeBootstrapOrders(orders);
-    res.json({ success: true, count: sanitized.length, orders: sanitized });
+    let sanitized = sanitizeBootstrapOrders(orders);
+
+    if (stage && stage !== 'all') {
+      sanitized = sanitized.filter(o => {
+        const orderStage = getOrderStage(o.orderStatus).toLowerCase();
+        return orderStage === stage || (o.orderStatus || '').toLowerCase() === stage;
+      });
+    }
+
+    if (search) {
+      sanitized = sanitized.filter(o =>
+        (o.id && o.id.toLowerCase().includes(search)) ||
+        (o.customerName && o.customerName.toLowerCase().includes(search)) ||
+        (o.customerPhone && o.customerPhone.includes(search)) ||
+        (o.trackingNumber && o.trackingNumber.toLowerCase().includes(search)) ||
+        (o.orderNumber && o.orderNumber.toLowerCase().includes(search))
+      );
+    }
+
+    const totalCount = sanitized.length;
+    const totalPages = Math.ceil(totalCount / limit) || 1;
+    const skip = (page - 1) * limit;
+    const pagedOrders = isAll ? sanitized : sanitized.slice(skip, skip + limit);
+
+    res.json({
+      success: true,
+      count: pagedOrders.length,
+      totalCount,
+      page,
+      totalPages,
+      hasMore: page < totalPages,
+      orders: pagedOrders
+    });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
   }
