@@ -890,6 +890,23 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       setOrderError('Please wait — processing payment screenshot.');
       return;
     }
+
+    // Pre-flight check: prevent placing order for out of stock items
+    const outItem = items.find(i => (i.product.stock !== undefined && i.product.stock <= 0) || i.product.status === 'DISABLED');
+    if (outItem) {
+      const msg = `"${outItem.product.name}" is currently out of stock. Please return to your cart and remove it to proceed.`;
+      setOrderError(msg);
+      toast.error(msg, 'Out of Stock');
+      return;
+    }
+    const exceededItem = items.find(i => i.product.stock !== undefined && i.product.stock > 0 && i.quantity > i.product.stock);
+    if (exceededItem) {
+      const msg = `Only ${exceededItem.product.stock} units of "${exceededItem.product.name}" are available. Please adjust your quantity in cart.`;
+      setOrderError(msg);
+      toast.error(msg, 'Stock Limit');
+      return;
+    }
+
     const effectivePM: PaymentMethod = (paymentMethod === 'QR_PAYMENT' || Boolean(paymentProofUrl)) ? 'QR_PAYMENT' : paymentMethod;
     if (effectivePM === 'QR_PAYMENT' && !paymentProofUrl) {
       setOrderError('📸 Please upload payment screenshot before placing order.');
@@ -1821,17 +1838,29 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
               )}
             </div>
 
-            <div className="px-4 sm:px-6 pb-6 pt-3 border-t border-slate-100 bg-white">
+            <div className="px-4 sm:px-6 pb-6 pt-3 border-t border-slate-100 bg-white space-y-2">
+              {items.some(i => (i.product.stock !== undefined && i.product.stock <= 0) || i.product.status === 'DISABLED') && (
+                <div className="p-3 bg-rose-50 border border-rose-300 rounded-xl flex items-center justify-between gap-2 text-xs text-rose-800 font-bold">
+                  <span>⚠️ Some plants in your cart are currently out of stock.</span>
+                  <button onClick={onBackToCart} className="px-2.5 py-1 bg-rose-600 text-white rounded-lg text-xs font-bold hover:bg-rose-700 cursor-pointer">
+                    Back to Cart
+                  </button>
+                </div>
+              )}
               <button
                 onClick={handlePlaceOrder}
-                disabled={loading || !paymentMethod}
+                disabled={loading || !paymentMethod || items.some(i => (i.product.stock !== undefined && i.product.stock <= 0) || i.product.status === 'DISABLED')}
                 className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 text-white font-black text-sm rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <>
-                    <span>CONFIRM & PLACE NURSERY ORDER (₹{grandTotal})</span>
+                    <span>
+                      {items.some(i => (i.product.stock !== undefined && i.product.stock <= 0) || i.product.status === 'DISABLED')
+                        ? 'OUT OF STOCK ITEMS IN CART'
+                        : `CONFIRM & PLACE NURSERY ORDER (₹${grandTotal})`}
+                    </span>
                     <Check className="w-4 h-4" />
                   </>
                 )}

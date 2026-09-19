@@ -12,6 +12,7 @@ import { CourierSelectionSection, CourierPartnerType } from './CourierSelectionS
 import { PlantProtectivePackingSection, PackingOptionType } from './PlantProtectivePackingSection';
 import { useLanguage } from '../context/LanguageContext';
 import { getCartItemPlantCount, VINAYAGAR_10_FRUIT_PLANTS } from '../utils/comboUtils';
+import { toast } from '../utils/toast';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types & Constants
@@ -914,6 +915,23 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
       return;
     }
     if (uploadingImage) { setOrderError('Please wait — processing payment screenshot.'); return; }
+
+    // Pre-flight check: prevent placing order for out of stock items
+    const outItem = items.find(i => (i.product.stock !== undefined && i.product.stock <= 0) || i.product.status === 'DISABLED');
+    if (outItem) {
+      const msg = `"${outItem.product.name}" is currently out of stock. Please return to your cart and remove it to proceed.`;
+      setOrderError(msg);
+      toast.error(msg, 'Out of Stock');
+      return;
+    }
+    const exceededItem = items.find(i => i.product.stock !== undefined && i.product.stock > 0 && i.quantity > i.product.stock);
+    if (exceededItem) {
+      const msg = `Only ${exceededItem.product.stock} units of "${exceededItem.product.name}" are available. Please adjust your quantity in cart.`;
+      setOrderError(msg);
+      toast.error(msg, 'Stock Limit');
+      return;
+    }
+
     const effectivePM: PaymentMethod = (paymentMethod === 'QR_PAYMENT' || Boolean(paymentProofUrl)) ? 'QR_PAYMENT' : paymentMethod;
     if (effectivePM === 'QR_PAYMENT' && !paymentProofUrl) {
       setOrderError('📸 Please upload payment screenshot before placing order.');
@@ -1944,7 +1962,15 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
               )}
             </div>
 
-            <div className="px-4 pb-6 pt-3 border-t border-slate-100 bg-white">
+            <div className="px-4 pb-6 pt-3 border-t border-slate-100 bg-white space-y-2">
+              {items.some(i => (i.product.stock !== undefined && i.product.stock <= 0) || i.product.status === 'DISABLED') && (
+                <div className="p-3 bg-rose-50 border border-rose-300 rounded-xl flex items-center justify-between gap-2 text-xs text-rose-800 font-bold">
+                  <span>⚠️ Some plants in your cart are currently out of stock.</span>
+                  <button onClick={onClose} className="px-2.5 py-1 bg-rose-600 text-white rounded-lg text-xs font-bold hover:bg-rose-700 cursor-pointer">
+                    Back to Cart
+                  </button>
+                </div>
+              )}
               {!paymentMethod && (
                 <p className="text-center text-[11px] text-amber-700 font-bold mb-2">
                   👆 Please tap to select your payment option above
@@ -1952,18 +1978,26 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
               )}
               <button
                 onClick={handlePlaceOrder}
-                disabled={loading || !user || !paymentMethod}
+                disabled={loading || !user || !paymentMethod || items.some(i => (i.product.stock !== undefined && i.product.stock <= 0) || i.product.status === 'DISABLED')}
                 className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 text-white font-extrabold text-sm rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
               >
                 {loading ? (
                   <div className="flex items-center gap-2">
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Connecting to Secure Razorpay...</span>
+                    <span>Connecting to Secure Gateway...</span>
                   </div>
                 ) : (
                   <>
-                    <span>{!paymentMethod ? 'SELECT PAYMENT METHOD' : `CONFIRM & PLACE NURSERY ORDER (₹${grandTotal})`}</span>
-                    {paymentMethod && <Check className="w-4 h-4" />}
+                    <span>
+                      {items.some(i => (i.product.stock !== undefined && i.product.stock <= 0) || i.product.status === 'DISABLED')
+                        ? 'OUT OF STOCK ITEMS IN CART'
+                        : !paymentMethod
+                        ? 'SELECT PAYMENT METHOD'
+                        : `CONFIRM & PLACE NURSERY ORDER (₹${grandTotal})`}
+                    </span>
+                    {paymentMethod && !items.some(i => (i.product.stock !== undefined && i.product.stock <= 0) || i.product.status === 'DISABLED') && (
+                      <Check className="w-4 h-4" />
+                    )}
                   </>
                 )}
               </button>

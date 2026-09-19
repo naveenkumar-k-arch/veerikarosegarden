@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CartItem, Product, User } from '../types';
-import { ShoppingBag, ArrowLeft, Trash2, Plus, Minus, Tag, Truck, ShieldCheck, ArrowRight, Sparkles, CheckCircle2, MapPin } from 'lucide-react';
+import { ShoppingBag, ArrowLeft, Trash2, Plus, Minus, Tag, Truck, ShieldCheck, ArrowRight, Sparkles, CheckCircle2, MapPin, AlertTriangle } from 'lucide-react';
 import { INDIAN_STATES, isTamilNadu } from '../utils/delivery';
 import { computeOrderTotals } from '../utils/orderTotals';
 import { useLanguage } from '../context/LanguageContext';
@@ -11,6 +11,7 @@ interface CartPageProps {
   user?: User | null;
   onUpdateQuantity: (productId: string, qty: number) => void;
   onRemoveItem: (productId: string) => void;
+  onRemoveOutOfStockItems?: () => void;
   onProceedToCheckout: () => void;
   onContinueShopping: () => void;
   appliedCoupon: { code: string; discountAmount: number } | null;
@@ -23,6 +24,7 @@ export const CartPage: React.FC<CartPageProps> = ({
   user,
   onUpdateQuantity,
   onRemoveItem,
+  onRemoveOutOfStockItems,
   onProceedToCheckout,
   onContinueShopping,
   appliedCoupon,
@@ -35,6 +37,17 @@ export const CartPage: React.FC<CartPageProps> = ({
   const [couponMsg, setCouponMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [selectedState, setSelectedState] = useState<string>('Tamil Nadu');
   const [selectedPot, setSelectedPot] = useState<'NONE' | '6_INCH' | '8_INCH'>('NONE');
+
+  const outOfStockItems = items.filter(
+    (i) => (i.product.stock !== undefined && i.product.stock <= 0) || i.product.status === 'DISABLED'
+  );
+  const hasOutOfStock = outOfStockItems.length > 0;
+
+  const quantityExceededItems = items.filter(
+    (i) => i.product.stock !== undefined && i.product.stock > 0 && i.quantity > i.product.stock
+  );
+  const hasQuantityExceeded = quantityExceededItems.length > 0;
+  const canCheckout = !hasOutOfStock && !hasQuantityExceeded && items.length > 0;
 
   const {
     subtotal,
@@ -123,6 +136,35 @@ export const CartPage: React.FC<CartPageProps> = ({
         </div>
       </div>
 
+      {/* Out of Stock / Inventory Limit Alert Banner */}
+      {(hasOutOfStock || hasQuantityExceeded) && (
+        <div className="bg-rose-50 border-2 border-rose-300 rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-rose-100 flex items-center justify-center shrink-0 text-rose-600 mt-0.5">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-black text-rose-900 text-sm sm:text-base">
+                {hasOutOfStock ? '⚠️ Out of Stock Items in Cart' : '⚠️ Order Quantity Exceeds Available Stock'}
+              </h4>
+              <p className="text-xs sm:text-sm text-rose-700 mt-0.5 font-medium">
+                {hasOutOfStock
+                  ? `${outOfStockItems.length} plant item(s) in your cart are currently out of stock. Please remove them before proceeding to checkout.`
+                  : 'Requested quantity exceeds available nursery inventory. Please reduce the quantity to proceed.'}
+              </p>
+            </div>
+          </div>
+          {hasOutOfStock && onRemoveOutOfStockItems && (
+            <button
+              onClick={onRemoveOutOfStockItems}
+              className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl shadow-xs transition-colors shrink-0 cursor-pointer self-stretch sm:self-auto text-center"
+            >
+              Remove Out of Stock Items
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Cart Items List */}
         <div className="lg:col-span-2 space-y-4">
@@ -134,43 +176,66 @@ export const CartPage: React.FC<CartPageProps> = ({
               const hasOnlyMettur = item.onlyMetturService === true || (item.product as any).onlyMetturService === true;
               const hasDiscount = item.product.mrp > item.product.sellingPrice;
               const discountPercent = hasDiscount ? Math.round(((item.product.mrp - item.product.sellingPrice) / item.product.mrp) * 100) : 0;
+              const isOutOfStock = (item.product.stock !== undefined && item.product.stock <= 0) || item.product.status === 'DISABLED';
+              const isExceeded = item.product.stock !== undefined && item.product.stock > 0 && item.quantity > item.product.stock;
 
               return (
-                <div key={item.product.id} className="p-4 sm:p-5 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                <div
+                  key={item.product.id}
+                  className={`p-4 sm:p-5 flex flex-col sm:flex-row gap-4 items-start sm:items-center transition-colors ${
+                    isOutOfStock ? 'bg-rose-50/40 border-l-4 border-l-rose-500' : isExceeded ? 'bg-amber-50/30' : ''
+                  }`}
+                >
                   <div className="relative shrink-0">
                     <img
                       src={item.product.images?.[0] || '/products/double-delight.jpeg'}
                       alt={item.product.name}
-                      className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-2xl border border-slate-200/80 bg-slate-50"
+                      className={`w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-2xl border border-slate-200/80 bg-slate-50 ${
+                        isOutOfStock ? 'grayscale-50 opacity-75' : ''
+                      }`}
                     />
-                    {isCombo && (
+                    {isOutOfStock ? (
+                      <span className="absolute -top-2 -left-2 bg-rose-600 text-white font-black text-[9px] px-2 py-0.5 rounded-full shadow-sm tracking-wider uppercase">
+                        OUT OF STOCK
+                      </span>
+                    ) : isCombo ? (
                       <span className="absolute -top-2 -left-2 bg-gradient-to-r from-amber-600 to-rose-600 text-white font-black text-[9px] px-2 py-0.5 rounded-full shadow-sm tracking-wider uppercase">
                         {item.comboBadge || 'COMBO'}
                       </span>
-                    )}
+                    ) : null}
                   </div>
 
                   <div className="flex-1 min-w-0 space-y-1.5 w-full">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-bold text-slate-900 text-sm sm:text-base">
+                      <h3 className={`font-bold text-sm sm:text-base ${isOutOfStock ? 'text-slate-500 line-through' : 'text-slate-900'}`}>
                         {item.product.name}
                       </h3>
-                      {hasFreeDelivery && (
+                      {isOutOfStock && (
+                        <span className="inline-flex items-center gap-1 bg-rose-100 text-rose-800 font-extrabold text-[10px] px-2 py-0.5 rounded-md border border-rose-300">
+                          Out of Stock
+                        </span>
+                      )}
+                      {isExceeded && (
+                        <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-900 font-extrabold text-[10px] px-2 py-0.5 rounded-md border border-amber-300">
+                          Only {item.product.stock} available
+                        </span>
+                      )}
+                      {!isOutOfStock && hasFreeDelivery && (
                         <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 font-extrabold text-[10px] px-2 py-0.5 rounded-md">
                           <Truck className="w-3 h-3 text-emerald-600" /> Free Delivery (TN)
                         </span>
                       )}
-                      {hasFreePacking && (
+                      {!isOutOfStock && hasFreePacking && (
                         <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-900 font-extrabold text-[10px] px-2 py-0.5 rounded-md border border-amber-300">
                           <ShieldCheck className="w-3 h-3 text-amber-700" /> Free Packing (₹0)
                         </span>
                       )}
-                      {hasOnlyMettur && (
+                      {!isOutOfStock && hasOnlyMettur && (
                         <span className="inline-flex items-center gap-1 bg-indigo-100 text-indigo-900 font-extrabold text-[10px] px-2 py-0.5 rounded-md border border-indigo-200">
                           <MapPin className="w-3 h-3 text-indigo-700" /> Only Mettur Parcel (MSSS)
                         </span>
                       )}
-                      {discountPercent > 0 && (
+                      {!isOutOfStock && discountPercent > 0 && (
                         <span className="bg-rose-50 text-rose-700 font-black text-[10px] px-1.5 py-0.5 rounded-md border border-rose-200">
                           {discountPercent}% OFF
                         </span>
@@ -180,6 +245,18 @@ export const CartPage: React.FC<CartPageProps> = ({
                     {item.product.tamilName && (
                       <p className="text-xs font-medium text-emerald-700 font-sans">
                         {item.product.tamilName}
+                      </p>
+                    )}
+
+                    {isOutOfStock && (
+                      <p className="text-xs font-extrabold text-rose-600 flex items-center gap-1">
+                        <span>⚠️ This plant is currently out of stock at nursery. Please remove it from your cart to proceed.</span>
+                      </p>
+                    )}
+
+                    {isExceeded && (
+                      <p className="text-xs font-extrabold text-amber-700 flex items-center gap-1">
+                        <span>⚠️ Nursery only has {item.product.stock} units available. Please reduce quantity to {item.product.stock}.</span>
                       </p>
                     )}
 
@@ -256,7 +333,8 @@ export const CartPage: React.FC<CartPageProps> = ({
                         </span>
                         <button
                           onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
-                          className="p-1.5 text-slate-600 hover:text-emerald-700 cursor-pointer"
+                          disabled={isOutOfStock || (item.product.stock !== undefined && item.quantity >= item.product.stock)}
+                          className="p-1.5 text-slate-600 hover:text-emerald-700 disabled:text-slate-300 disabled:cursor-not-allowed cursor-pointer"
                           aria-label="Increase quantity"
                         >
                           <Plus className="w-3.5 h-3.5" />
@@ -444,12 +522,32 @@ export const CartPage: React.FC<CartPageProps> = ({
               </div>
             </div>
 
+            {hasOutOfStock && (
+              <div className="bg-rose-50 border border-rose-200 rounded-2xl p-3.5 text-xs text-rose-800 font-bold flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                <p>
+                  Checkout is blocked because {outOfStockItems.length} item(s) in your cart are out of stock. Please remove them to proceed.
+                </p>
+              </div>
+            )}
+
             {/* Action Button */}
             <button
               onClick={onProceedToCheckout}
-              className="w-full py-4 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-sm rounded-2xl shadow-lg hover:shadow-emerald-700/25 transition-all flex items-center justify-center gap-2 cursor-pointer pt-3.5"
+              disabled={!canCheckout}
+              className={`w-full py-4 text-white font-extrabold text-sm rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 pt-3.5 ${
+                canCheckout
+                  ? 'bg-emerald-700 hover:bg-emerald-800 hover:shadow-emerald-700/25 cursor-pointer'
+                  : 'bg-slate-400 cursor-not-allowed opacity-80 shadow-none'
+              }`}
             >
-              <span>{t('Proceed to Checkout')} (₹{grandTotal})</span>
+              <span>
+                {hasOutOfStock
+                  ? 'Remove Out of Stock Items to Checkout'
+                  : hasQuantityExceeded
+                  ? 'Adjust Quantity to Checkout'
+                  : `${t('Proceed to Checkout')} (₹${grandTotal})`}
+              </span>
               <ArrowRight className="w-5 h-5" />
             </button>
           </div>

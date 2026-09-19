@@ -716,23 +716,30 @@ const AppContent: React.FC = () => {
     }
   }, [user]);
 
-  // Auto-sync cart items if product prices change in live catalog
+  // Auto-sync cart items if product prices, stock or availability change in live catalog
   useEffect(() => {
     if (products.length > 0 && cart.length > 0) {
       setCart((prevCart) => {
         let changed = false;
         const updated = prevCart.map((item) => {
-          const matched = products.find((p) => p.id === item.product.id);
-          if (matched && matched.sellingPrice !== item.product.sellingPrice) {
-            changed = true;
-            return {
-              ...item,
-              product: {
-                ...item.product,
-                sellingPrice: matched.sellingPrice,
-                mrp: matched.mrp || item.product.mrp
-              }
-            };
+          const matched = products.find((p) => p.id === item.product.id || (p.sku && p.sku === item.product.sku));
+          if (matched) {
+            const priceChanged = matched.sellingPrice !== item.product.sellingPrice || matched.mrp !== item.product.mrp;
+            const stockChanged = matched.stock !== item.product.stock;
+            const statusChanged = matched.status !== item.product.status;
+            if (priceChanged || stockChanged || statusChanged) {
+              changed = true;
+              return {
+                ...item,
+                product: {
+                  ...item.product,
+                  sellingPrice: matched.sellingPrice,
+                  mrp: matched.mrp || item.product.mrp,
+                  stock: matched.stock !== undefined ? matched.stock : 25,
+                  status: matched.status || 'ACTIVE'
+                }
+              };
+            }
           }
           return item;
         });
@@ -825,6 +832,10 @@ const AppContent: React.FC = () => {
 
   // Cart Operations
   const handleAddToCart = (product: Product, quantity = 1, meta?: any) => {
+    if (product.status === 'DISABLED' || (product.stock !== undefined && product.stock <= 0)) {
+      toast.error(`"${product.name}" is currently out of stock.`, 'Out of Stock');
+      return;
+    }
     try {
       sessionStorage.removeItem('vrg_checkout_step');
       localStorage.removeItem('vrg_checkout_step');
@@ -880,10 +891,19 @@ const AppContent: React.FC = () => {
   };
 
   const handleUpdateCartQty = (productId: string, newQty: number) => {
-    const clampedQty = Math.min(20, Math.max(0, newQty));
     setCart((prev) =>
       prev
-        .map((i) => (i.product.id === productId ? { ...i, quantity: clampedQty } : i))
+        .map((i) => {
+          if (i.product.id === productId) {
+            const availStock = i.product.stock !== undefined ? i.product.stock : 20;
+            if (newQty > availStock) {
+              toast.warning(`Only ${availStock} unit(s) available in stock.`, 'Stock Limit');
+            }
+            const clampedQty = Math.min(Math.max(1, availStock), Math.max(0, newQty));
+            return { ...i, quantity: clampedQty };
+          }
+          return i;
+        })
         .filter((i) => i.quantity > 0)
     );
   };
@@ -898,8 +918,22 @@ const AppContent: React.FC = () => {
     });
   };
 
+  const handleRemoveOutOfStockItems = () => {
+    setCart((prev) => {
+      const outCount = prev.filter(i => (i.product.stock !== undefined && i.product.stock <= 0) || i.product.status === 'DISABLED').length;
+      if (outCount > 0) {
+        toast.info(`Removed ${outCount} out-of-stock item(s) from cart`, 'Cart Updated');
+      }
+      return prev.filter(i => (i.product.stock === undefined || i.product.stock > 0) && i.product.status !== 'DISABLED');
+    });
+  };
+
   // Direct "Buy Now" flow
   const handleBuyNow = (product: Product, quantity = 1, meta?: any) => {
+    if (product.status === 'DISABLED' || (product.stock !== undefined && product.stock <= 0)) {
+      toast.error(`"${product.name}" is currently out of stock.`, 'Out of Stock');
+      return;
+    }
     try {
       sessionStorage.removeItem('vrg_checkout_step');
       localStorage.removeItem('vrg_checkout_step');
@@ -1533,7 +1567,18 @@ const AppContent: React.FC = () => {
             user={user}
             onUpdateQuantity={handleUpdateCartQty}
             onRemoveItem={handleRemoveFromCart}
+            onRemoveOutOfStockItems={handleRemoveOutOfStockItems}
             onProceedToCheckout={() => {
+              const hasOutOfStock = cart.some(i => (i.product.stock !== undefined && i.product.stock <= 0) || i.product.status === 'DISABLED');
+              if (hasOutOfStock) {
+                toast.error('Some items in your cart are currently out of stock. Please remove them to proceed.', 'Out of Stock');
+                return;
+              }
+              const hasExceeded = cart.some(i => i.product.stock !== undefined && i.quantity > i.product.stock);
+              if (hasExceeded) {
+                toast.error('Order quantity for some items exceeds available nursery stock. Please adjust quantities to proceed.', 'Stock Limit');
+                return;
+              }
               if (!user) {
                 alert('🔑 Login or Sign Up Required:\nPlease login to your account before placing an order.');
                 navigateTo('account');

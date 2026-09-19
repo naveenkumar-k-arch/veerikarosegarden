@@ -837,6 +837,13 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
       }
 
       if (matchedCombo) {
+        if (matchedCombo.active === false) {
+          return res.status(400).json({
+            success: false,
+            message: `Combo offer '${matchedCombo.title}' is currently unavailable.`
+          });
+        }
+
         const verifiedPrice = Math.max(0, Number(matchedCombo.comboPrice));
         const itemTotal = verifiedPrice * validQty;
         calculatedSubtotal += itemTotal;
@@ -869,6 +876,29 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
         return res.status(400).json({
           success: false,
           message: `Product '${item.name || item.productId}' is invalid or no longer available.`
+        });
+      }
+
+      if (dbProduct.status === 'DISABLED') {
+        return res.status(400).json({
+          success: false,
+          message: `Product '${dbProduct.name}' is currently unavailable. Please remove it from your cart to proceed.`
+        });
+      }
+
+      // Check live stock inventory - prevent ordering out of stock products
+      const currentStock = dbProduct.stock !== undefined ? Number(dbProduct.stock) : 25;
+      if (currentStock <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Sorry, '${dbProduct.name}' is currently out of stock. Please remove it from your cart to proceed.`
+        });
+      }
+
+      if (validQty > currentStock) {
+        return res.status(400).json({
+          success: false,
+          message: `Only ${currentStock} unit(s) of '${dbProduct.name}' are available in stock. Please adjust your cart quantity to proceed.`
         });
       }
 
@@ -1177,6 +1207,17 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
           requiresManualVerification: true
         })
       }).catch(() => {});
+    }
+
+    // Real-time stock decrement across memory and database store
+    for (const vItem of verifiedItems) {
+      if (!vItem.isCombo && vItem.productId) {
+        const p = allProducts.find(x => x.id === vItem.productId || x.sku === vItem.sku);
+        if (p && p.stock !== undefined) {
+          const newStock = Math.max(0, p.stock - vItem.quantity);
+          db.updateStock(vItem.productId, newStock).catch(() => {});
+        }
+      }
     }
 
     invalidateBootstrapCache();
