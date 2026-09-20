@@ -1270,10 +1270,15 @@ apiRouter.get('/orders', requireAuth, async (req: AuthenticatedRequest, res) => 
 });
 
 // Lightweight serializers for admin bootstrap listing — aggressively strip heavy fields to keep payload <500 KB
+function stripBase64(url: any): string {
+  if (typeof url === 'string' && url.startsWith('data:image/')) return '';
+  return url || '';
+}
+
 function sanitizeBootstrapProducts(prods: any[]): any[] {
   return prods.map(p => {
     const images = Array.isArray(p.images) && p.images.length > 0 ? p.images.filter(Boolean) : (p.image ? [p.image] : []);
-    const primaryImage = images[0] || p.image || '/products/double-delight.jpeg';
+    const primaryImage = stripBase64(images[0] || p.image) || '/products/double-delight.jpeg';
     return {
       id: p.id,
       name: p.name,
@@ -1289,9 +1294,7 @@ function sanitizeBootstrapProducts(prods: any[]): any[] {
       isActive: p.isActive,
       isFeatured: p.isFeatured,
       isNewArrival: p.isNewArrival,
-      images: images.length > 0 ? [primaryImage] : ['https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80'],
       image: primaryImage,
-      imageUrl: primaryImage,
       description: (p.description || '').slice(0, 120),
       createdAt: p.createdAt,
       updatedAt: p.updatedAt,
@@ -1324,7 +1327,7 @@ function sanitizeBootstrapOrders(ords: any[]): any[] {
 
   return sorted.map(o => {
     const hasProof = Boolean(o.paymentProofUrl);
-    // Slim down items to only what the admin listing/detail UI needs
+    // Slim down items — strip base64 image data (70 KB each!) and keep only essential fields
     const slimItems = Array.isArray(o.items) ? o.items.map((item: any) => ({
       id: item.id,
       productId: item.productId,
@@ -1332,7 +1335,7 @@ function sanitizeBootstrapOrders(ords: any[]): any[] {
       price: item.price,
       sellingPrice: item.sellingPrice,
       quantity: item.quantity,
-      image: item.image,
+      image: stripBase64(item.image),
     })) : o.items;
 
     return {
