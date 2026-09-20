@@ -1009,7 +1009,7 @@ const silentRefresh = async (): Promise<boolean> => {
 
     fetchData();
 
-    // Security Re-validation: Verify session token server-side on mount with auto-refresh support
+    // Non-blocking background session verification (delayed 1.5s to grant first paint instant network priority)
     const verifySession = async () => {
       try {
         let res = await fetch('/api/auth/me', { credentials: 'include' });
@@ -1034,7 +1034,9 @@ const silentRefresh = async (): Promise<boolean> => {
         // If backend auth check fails, fallback to standard error handling in authFetch
       }
     };
-    verifySession();
+    const sessionTimer = setTimeout(() => {
+      verifySession();
+    }, 1500);
 
     // Poll every 60 seconds for live order feed (bootstrap cache is 60s TTL)
     const ADMIN_POLL_INTERVAL_MS = 60_000; // 60 seconds — matches server bootstrap cache TTL
