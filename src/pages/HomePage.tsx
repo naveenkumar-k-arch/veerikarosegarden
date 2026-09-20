@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Product, Category, Banner, Review, Combo } from '../types';
 import { ProductCard, CompactProductCard, HorizontalScrollRow } from '../components/ProductCard';
 import { CombosSection } from '../components/CombosSection';
@@ -34,7 +34,7 @@ const TRUST_ITEMS = [
 
 
 const TESTIMONIALS = [
-  { name: 'Priya M.', location: 'Chennai', rating: 5, text: 'Received the most beautiful hybrid roses. The packaging was incredible â€” plants arrived perfectly healthy!' },
+  { name: 'Priya M.', location: 'Chennai', rating: 5, text: 'Received the most beautiful hybrid roses. The packaging was incredible — plants arrived perfectly healthy!' },
   { name: 'Rajesh K.', location: 'Coimbatore', rating: 5, text: 'Ordered 3 grafted mango saplings. Excellent quality and fast shipping. Will definitely order again.' },
   { name: 'Kavitha S.', location: 'Madurai', rating: 5, text: 'The care guide that came with my plants helped me a lot. My jasmine is blooming beautifully now!' },
 ];
@@ -48,16 +48,16 @@ export const HomePage: React.FC<HomePageProps> = ({
   const isTa = language === 'ta';
 
   const trustItems = isTa ? [
-    { icon: Truck, label: '7-à®¨à®¾à®³à¯ à®µà¯‡à®°à¯ à®ªà®¾à®¤à¯à®•à®¾à®ªà¯à®ªà¯', sub: 'à®‰à®¯à®¿à®°à¯à®Ÿà®©à¯ à®µà®¨à¯à®¤à¯ à®šà¯‡à®°à¯à®®à¯ à®‰à®¤à¯à®¤à®°à®µà®¾à®¤à®®à¯', color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe' },
-    { icon: ShieldCheck, label: 'à®ªà¯‹à®©à¯à®ªà¯‡ à®ªà®¾à®¤à¯à®•à®¾à®ªà¯à®ªà®¾à®© à®•à®Ÿà¯à®Ÿà®£à®®à¯', sub: '100% à®ªà®¾à®¤à¯à®•à®¾à®ªà¯à®ªà®¾à®© à®ªà®°à®¿à®µà®°à¯à®¤à¯à®¤à®©à¯ˆ', color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
-    { icon: Sprout, label: 'à®‡à®¯à®±à¯à®•à¯ˆ à®¨à®°à¯à®šà®°à®¿', sub: 'à®°à®šà®¾à®¯à®©à®®à®±à¯à®± à®‡à®¯à®±à¯à®•à¯ˆ à®µà®¿à®µà®šà®¾à®¯à®®à¯', color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
-    { icon: HeartHandshake, label: 'à®‡à®²à®µà®š à®¨à®¿à®ªà¯à®£à®°à¯ à®‰à®¤à®µà®¿', sub: 'à®…à®´à¯ˆà®ªà¯à®ªà¯ & à®µà®¾à®Ÿà¯à®¸à¯à®…à®ªà¯ à®‰à®¤à®µà®¿', color: '#e11d48', bg: '#fff1f2', border: '#fecdd3' },
+    { icon: Truck, label: '7-நாள் வேர் பாதுகாப்பு', sub: 'உயிருடன் வந்து சேரும் உத்தரவாதம்', color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe' },
+    { icon: ShieldCheck, label: 'போன்பே பாதுகாப்பான கட்டணம்', sub: '100% பாதுகாப்பான பரிவர்த்தனை', color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
+    { icon: Sprout, label: 'இயற்கை நர்சரி', sub: 'ரசாயனமற்ற இயற்கை விவசாயம்', color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
+    { icon: HeartHandshake, label: 'இலவச நிபுணர் உதவி', sub: 'அழைப்பு & வாட்ஸ்அப் உதவி', color: '#e11d48', bg: '#fff1f2', border: '#fecdd3' },
   ] : TRUST_ITEMS;
 
   const testimonialsList = isTa ? [
-    { name: 'à®ªà®¿à®°à®¿à®¯à®¾ à®Žà®®à¯.', location: 'à®šà¯†à®©à¯à®©à¯ˆ', rating: 5, text: 'à®®à®¿à®•à®µà¯à®®à¯ à®…à®´à®•à®¾à®© à®¹à¯ˆà®ªà¯à®°à®¿à®Ÿà¯ à®°à¯‹à®œà®¾à®•à¯à®•à®³à¯ à®•à®¿à®Ÿà¯ˆà®¤à¯à®¤à®©. à®ªà¯‡à®•à¯à®•à®¿à®™à¯ à®®à®¿à®• à®…à®±à¯à®ªà¯à®¤à®®à¯ â€” à®šà¯†à®Ÿà®¿à®•à®³à¯ à®†à®°à¯‹à®•à¯à®•à®¿à®¯à®®à®¾à®• à®µà®¨à¯à®¤à¯ à®šà¯‡à®°à¯à®¨à¯à®¤à®©!' },
-    { name: 'à®°à®¾à®œà¯‡à®·à¯ à®•à¯‡.', location: 'à®•à¯‹à®¯à®®à¯à®ªà¯à®¤à¯à®¤à¯‚à®°à¯', rating: 5, text: '3 à®’à®Ÿà¯à®Ÿà¯ à®®à®¾à®™à¯à®•à®©à¯à®±à¯à®•à®³à¯ à®µà®¾à®™à¯à®•à®¿à®©à¯‡à®©à¯. à®šà®¿à®±à®¨à¯à®¤ à®¤à®°à®®à¯ à®®à®±à¯à®±à¯à®®à¯ à®µà®¿à®°à¯ˆà®µà®¾à®© à®µà®¿à®¨à®¿à®¯à¯‹à®•à®®à¯. à®®à¯€à®£à¯à®Ÿà¯à®®à¯ à®¨à®¿à®šà¯à®šà®¯à®®à¯ à®µà®¾à®™à¯à®•à¯à®µà¯‡à®©à¯.' },
-    { name: 'à®•à®µà®¿à®¤à®¾ à®Žà®¸à¯.', location: 'à®®à®¤à¯à®°à¯ˆ', rating: 5, text: 'à®šà¯†à®Ÿà®¿à®•à®³à¯à®Ÿà®©à¯ à®µà®¨à¯à®¤ à®ªà®°à®¾à®®à®°à®¿à®ªà¯à®ªà¯ à®µà®´à®¿à®•à®¾à®Ÿà¯à®Ÿà®¿ à®®à®¿à®•à®µà¯à®®à¯ à®‰à®¤à®µà®¿à®¯à®¾à®• à®‡à®°à¯à®¨à¯à®¤à®¤à¯. à®Žà®©à®¤à¯ à®®à®²à¯à®²à®¿à®•à¯ˆ à®‡à®ªà¯à®ªà¯‹à®¤à¯ à®…à®±à¯à®ªà¯à®¤à®®à®¾à®• à®ªà¯‚à®¤à¯à®¤à¯à®•à¯ à®•à¯à®²à¯à®™à¯à®•à¯à®•à®¿à®±à®¤à¯!' },
+    { name: 'பிரியா எம்.', location: 'சென்னை', rating: 5, text: 'மிகவும் அழகான ஹைப்ரிட் ரோஜாக்கள் கிடைத்தன. பேக்கிங் மிக அற்புதம் — செடிகள் ஆரோக்கியமாக வந்து சேர்ந்தன!' },
+    { name: 'ராஜேஷ் கே.', location: 'கோயம்புத்தூர்', rating: 5, text: '3 ஒட்டு மாங்கன்றுகள் வாங்கினேன். சிறந்த தரம் மற்றும் விரைவான விநியோகம். மீண்டும் நிச்சயம் வாங்குவேன்.' },
+    { name: 'கவிதா எஸ்.', location: 'மதுரை', rating: 5, text: 'செடிகளுடன் வந்த பராமரிப்பு வழிகாட்டி மிகவும் உதவியாக இருந்தது. எனது மல்லிகை இப்போது அற்புதமாக பூத்துக் குலுங்குகிறது!' },
   ] : TESTIMONIALS;
 
   const [selectedReviewPhoto, setSelectedReviewPhoto] = useState<Review | null>(null);
@@ -91,7 +91,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               const resolvedImg = resolveComboImage(c);
               const isVin = c.id === 'combo-vinayagar-chaturthi-10-fruit-plants' ||
                 (c.id && c.id.toLowerCase().includes('vinayagar')) ||
-                (c.title && (c.title.includes('à®µà®¿à®¨à®¾à®¯à®•à®°à¯') || c.title.toLowerCase().includes('10 fruit')));
+                (c.title && (c.title.includes('விநாயகர்') || c.title.toLowerCase().includes('10 fruit')));
               if (isVin) {
                 const prods = (Array.isArray(c.products) && c.products.length >= 10) ? c.products : VINAYAGAR_10_FRUIT_PLANTS;
                 return {
@@ -162,7 +162,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   const approvedReviews = getLiveReviews().filter(r => r && (r.status === 'APPROVED' || !r.status));
 
-  // Helper: exclude combo/offer products from regular grids â€” they belong only in CombosSection / Combos category
+  // Helper: exclude combo/offer products from regular grids — they belong only in CombosSection / Combos category
   const isComboProduct = (p: Product) => {
     if (!p) return false;
     const catId = (p.categoryId || '').toLowerCase();
@@ -252,21 +252,21 @@ export const HomePage: React.FC<HomePageProps> = ({
       <section className="section-container" style={{ padding: '24px 24px 0' }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 18 }}>
           <div>
-            <span className="section-label">{isTa ? 'à®µà®•à¯ˆà®•à®³à¯' : 'Browse by Type'}</span>
+            <span className="section-label">{isTa ? 'வகைகள்' : 'Browse by Type'}</span>
             <div className="divider-green" />
             <h2 className="section-title" style={{ fontSize: 'clamp(20px, 3vw, 30px)', marginTop: 4 }}>
-              {isTa ? <>à®šà¯†à®Ÿà®¿ <em>à®µà®•à¯ˆà®•à®³à¯</em></> : <>Plant <em>Categories</em></>}
+              {isTa ? <>செடி <em>வகைகள்</em></> : <>Plant <em>Categories</em></>}
             </h2>
           </div>
           <button className="btn-outline-green" style={{ fontSize: 12, padding: '8px 16px' }} onClick={() => onNavigate('shop')}>
-            {isTa ? 'à®…à®©à¯ˆà®¤à¯à®¤à¯à®®à¯ à®ªà®¾à®°à¯à®•à¯à®•' : 'View All'} <ChevronRight style={{ width: 14, height: 14 }} />
+            {isTa ? 'அனைத்தும் பார்க்க' : 'View All'} <ChevronRight style={{ width: 14, height: 14 }} />
           </button>
         </div>
         {displayCategories.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '30px 24px', background: 'white', border: '2px dashed #bbf7d0', borderRadius: 20 }}>
             <Leaf style={{ width: 32, height: 32, color: 'var(--color-green)', margin: '0 auto 10px', opacity: 0.5 }} />
             <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-              {isTa ? 'à®µà®•à¯ˆà®•à®³à¯ à®Žà®¤à¯à®µà¯à®®à¯ à®‡à®²à¯à®²à¯ˆ.' : 'No categories yet. Add them in Admin Panel.'}
+              {isTa ? 'வகைகள் எதுவும் இல்லை.' : 'No categories yet. Add them in Admin Panel.'}
             </p>
           </div>
         ) : (
@@ -297,7 +297,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                       className="group-hover-scale"
                       onError={e => { (e.target as HTMLImageElement).src = '/products/double-delight.jpeg'; }} />
                     <span style={{ position: 'absolute', top: 6, right: 6, zIndex: 10, fontSize: 9, fontWeight: 800, background: 'linear-gradient(135deg,#e11d48,#be123c)', color: 'white', padding: '2px 7px', borderRadius: 999 }}>
-                      {maxDis}% {isTa ? 'à®¤à®³à¯à®³à¯à®ªà®Ÿà®¿' : 'OFF'}
+                      {maxDis}% {isTa ? 'தள்ளுபடி' : 'OFF'}
                     </span>
                   </div>
                   <div style={{ padding: '10px 12px 12px' }}>
@@ -306,14 +306,14 @@ export const HomePage: React.FC<HomePageProps> = ({
                         {isTa ? getCategoryName(cat) : cat.name}
                       </h3>
                       <span style={{ fontSize: 9, color: 'var(--color-green)', fontWeight: 700 }}>
-                        {plantCount} {isTa ? 'à®šà¯†à®Ÿà®¿à®•à®³à¯' : 'plants'}
+                        {plantCount} {isTa ? 'செடிகள்' : 'plants'}
                       </span>
                     </div>
                     <p style={{ fontFamily: 'var(--font-tamil)', fontSize: 10, color: 'var(--text-muted)', margin: '0 0 6px' }}>
-                      {isTa ? 'à®‰à®¯à®¿à®°à¯à®³à¯à®³ à®ªà®£à¯à®£à¯ˆ à®šà¯†à®Ÿà®¿à®•à®³à¯' : cat.tamilName}
+                      {isTa ? 'உயிருள்ள பண்ணை செடிகள்' : cat.tamilName}
                     </p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--color-green-dark)', fontSize: 11, fontWeight: 700 }}>
-                      {isTa ? 'à®µà®¾à®™à¯à®•à®µà¯à®®à¯' : 'Shop now'} <ArrowRight style={{ width: 10, height: 10 }} />
+                      {isTa ? 'வாங்கவும்' : 'Shop now'} <ArrowRight style={{ width: 10, height: 10 }} />
                     </div>
                   </div>
                 </div>
@@ -331,7 +331,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             onClick={() => onNavigate('shop')}
             style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)', color: 'white', border: 'none', borderRadius: 999, padding: '6px 14px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', boxShadow: '0 2px 6px rgba(22,163,74,0.3)' }}
           >
-            {isTa ? 'à®…à®©à¯ˆà®¤à¯à®¤à¯ à®šà¯†à®Ÿà®¿à®•à®³à¯' : 'All Products'}
+            {isTa ? 'அனைத்து செடிகள்' : 'All Products'}
           </button>
           {activeCategories.map(cat => (
             <button
@@ -339,7 +339,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               onClick={() => { onSelectCategory(cat.id); onNavigate('shop'); }}
               style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', borderRadius: 999, padding: '6px 14px', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}
             >
-              <span>ðŸŒ±</span> {isTa ? getCategoryName(cat) : cat.name}
+              <span>🌱</span> {isTa ? getCategoryName(cat) : cat.name}
             </button>
           ))}
         </div>
@@ -349,16 +349,16 @@ export const HomePage: React.FC<HomePageProps> = ({
           <div style={{ marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', marginBottom: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 16 }}>ðŸŒ±</span>
+                <span style={{ fontSize: 16 }}>🌱</span>
                 <h2 style={{ fontFamily: isTa ? 'var(--font-tamil)' : 'var(--font-display)', fontSize: 16, fontWeight: 800, color: '#1a2e1a', margin: 0 }}>
-                  {isTa ? 'à®…à®¤à®¿à®• à®µà®¿à®±à¯à®ªà®©à¯ˆ' : 'Best Sellers'}
+                  {isTa ? 'அதிக விற்பனை' : 'Best Sellers'}
                 </h2>
               </div>
               <button
                 onClick={() => onNavigate('shop')}
                 style={{ background: 'none', border: 'none', color: '#16a34a', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2 }}
               >
-                {isTa ? 'à®®à¯‡à®²à¯à®®à¯' : 'More'} <ChevronRight style={{ width: 14, height: 14 }} />
+                {isTa ? 'மேலும்' : 'More'} <ChevronRight style={{ width: 14, height: 14 }} />
               </button>
             </div>
             <HorizontalScrollRow>
@@ -379,16 +379,16 @@ export const HomePage: React.FC<HomePageProps> = ({
           <div style={{ marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', marginBottom: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 16 }}>ðŸŒ¿</span>
+                <span style={{ fontSize: 16 }}>🌿</span>
                 <h2 style={{ fontFamily: isTa ? 'var(--font-tamil)' : 'var(--font-display)', fontSize: 16, fontWeight: 800, color: '#1a2e1a', margin: 0 }}>
-                  {isTa ? 'à®ªà¯à®¤à®¿à®¯ à®µà®°à®µà¯à®•à®³à¯ & à®…à®©à¯ˆà®¤à¯à®¤à¯ à®šà¯†à®Ÿà®¿à®•à®³à¯' : 'Fresh Arrivals & All Plants'}
+                  {isTa ? 'புதிய வரவுகள் & அனைத்து செடிகள்' : 'Fresh Arrivals & All Plants'}
                 </h2>
               </div>
               <button
                 onClick={() => onNavigate('shop')}
                 style={{ background: 'none', border: 'none', color: '#16a34a', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2 }}
               >
-                {isTa ? `à®…à®©à¯ˆà®¤à¯à®¤à¯à®®à¯ (${regularProducts.length})` : `All (${regularProducts.length})`} <ChevronRight style={{ width: 14, height: 14 }} />
+                {isTa ? `அனைத்தும் (${regularProducts.length})` : `All (${regularProducts.length})`} <ChevronRight style={{ width: 14, height: 14 }} />
               </button>
             </div>
             <HorizontalScrollRow>
@@ -414,7 +414,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             <div key={cat.id} style={{ marginBottom: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', marginBottom: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 16 }}>ðŸŒ±</span>
+                  <span style={{ fontSize: 16 }}>🌱</span>
                   <h2 style={{ fontFamily: isTa ? 'var(--font-tamil)' : 'var(--font-display)', fontSize: 16, fontWeight: 800, color: '#1a2e1a', margin: 0 }}>
                     {isTa ? getCategoryName(cat) : cat.name}
                   </h2>
@@ -423,7 +423,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   onClick={() => { onSelectCategory(cat.id); onNavigate('shop'); }}
                   style={{ background: 'none', border: 'none', color: '#16a34a', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2 }}
                 >
-                  {isTa ? 'à®®à¯‡à®²à¯à®®à¯' : 'More'} <ChevronRight style={{ width: 14, height: 14 }} />
+                  {isTa ? 'மேலும்' : 'More'} <ChevronRight style={{ width: 14, height: 14 }} />
                 </button>
               </div>
 
@@ -446,14 +446,14 @@ export const HomePage: React.FC<HomePageProps> = ({
       <section className="section-container hidden sm:block" style={{ padding: '32px 24px 0' }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 18 }}>
           <div>
-            <span className="section-label">{isTa ? 'à®Žà®™à¯à®•à®³à¯ à®¤à¯Šà®•à¯à®ªà¯à®ªà¯' : 'Our Collection'}</span>
+            <span className="section-label">{isTa ? 'எங்கள் தொகுப்பு' : 'Our Collection'}</span>
             <div className="divider-green" />
             <h2 className="section-title" style={{ fontSize: 'clamp(20px, 3vw, 30px)', marginTop: 4 }}>
-              {isTa ? <>à®…à®©à¯ˆà®¤à¯à®¤à¯ <em>à®šà¯†à®Ÿà®¿à®•à®³à¯</em></> : <>All <em>Plants</em></>}
+              {isTa ? <>அனைத்து <em>செடிகள்</em></> : <>All <em>Plants</em></>}
             </h2>
           </div>
           <button className="btn-outline-green" style={{ fontSize: 12, padding: '8px 16px' }} onClick={() => onNavigate('shop')}>
-            {isTa ? 'à®®à¯à®´à¯ à®ªà®Ÿà¯à®Ÿà®¿à®¯à®²à¯' : 'Full Catalog'} <ChevronRight style={{ width: 14, height: 14 }} />
+            {isTa ? 'முழு பட்டியல்' : 'Full Catalog'} <ChevronRight style={{ width: 14, height: 14 }} />
           </button>
         </div>
         <div className="hp-product-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
@@ -464,7 +464,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         {regularProducts.length > 24 && (
           <div style={{ textAlign: 'center', marginTop: 24 }}>
             <button className="btn-green" onClick={() => onNavigate('shop')}>
-              {isTa ? `à®…à®©à¯ˆà®¤à¯à®¤à¯ ${regularProducts.length} à®šà¯†à®Ÿà®¿à®•à®³à¯ˆà®¯à¯à®®à¯ à®ªà®¾à®°à¯à®•à¯à®•` : `View All ${regularProducts.length} Plants`} <ArrowRight style={{ width: 15, height: 15 }} />
+              {isTa ? `அனைத்து ${regularProducts.length} செடிகளையும் பார்க்க` : `View All ${regularProducts.length} Plants`} <ArrowRight style={{ width: 15, height: 15 }} />
             </button>
           </div>
         )}
@@ -489,14 +489,14 @@ export const HomePage: React.FC<HomePageProps> = ({
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 28 }}>
             <div>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#fef3c7', color: '#b45309', padding: '4px 12px', borderRadius: 999, fontSize: 11, fontWeight: 800, border: '1px solid #fde68a', marginBottom: 8 }}>
-                <Camera style={{ width: 13, height: 13 }} /> {isTa ? 'à®µà®¾à®Ÿà®¿à®•à¯à®•à¯ˆà®¯à®¾à®³à®°à¯ à®šà¯†à®Ÿà®¿ à®ªà¯à®•à¯ˆà®ªà¯à®ªà®Ÿà®™à¯à®•à®³à¯' : 'VERIFIED BUYER PLANT PHOTOS'}
+                <Camera style={{ width: 13, height: 13 }} /> {isTa ? 'வாடிக்கையாளர் செடி புகைப்படங்கள்' : 'VERIFIED BUYER PLANT PHOTOS'}
               </div>
               <h2 className="section-title" style={{ fontSize: 'clamp(22px, 3.5vw, 36px)' }}>
-                {isTa ? <>à®µà®¾à®Ÿà®¿à®•à¯à®•à¯ˆà®¯à®¾à®³à®°à¯ à®ªà¯à®•à¯ˆà®ªà¯à®ªà®Ÿà®•à¯ <em>à®•à®°à¯à®¤à¯à®¤à¯à®•à®³à¯</em></> : <>Customer Photo <em>Reviews</em></>}
+                {isTa ? <>வாடிக்கையாளர் புகைப்படக் <em>கருத்துகள்</em></> : <>Customer Photo <em>Reviews</em></>}
               </h2>
               <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '4px 0 0', maxWidth: 500 }}>
                 {isTa
-                  ? 'à®µà®¾à®Ÿà®¿à®•à¯à®•à¯ˆà®¯à®¾à®³à®°à¯à®•à®³à¯ à®¤à®™à¯à®•à®³à¯ à®µà¯€à®Ÿà¯à®Ÿà¯ à®®à®±à¯à®±à¯à®®à¯ à®®à®¾à®Ÿà®¿à®¤à¯ à®¤à¯‹à®Ÿà¯à®Ÿà®¤à¯à®¤à®¿à®²à®¿à®°à¯à®¨à¯à®¤à¯ à®¨à¯‡à®°à®Ÿà®¿à®¯à®¾à®•à®ªà¯ à®ªà®•à®¿à®°à¯à®¨à¯à®¤ à®ªà¯à®•à¯ˆà®ªà¯à®ªà®Ÿà®™à¯à®•à®³à¯ & à®•à®°à¯à®¤à¯à®¤à¯à®•à®³à¯.'
+                  ? 'வாடிக்கையாளர்கள் தங்கள் வீட்டு மற்றும் மாடித் தோட்டத்திலிருந்து நேரடியாகப் பகிர்ந்த புகைப்படங்கள் & கருத்துகள்.'
                   : 'Real photos & feedback uploaded by plant lovers directly from their home & terrace gardens.'}
               </p>
             </div>
@@ -508,8 +508,8 @@ export const HomePage: React.FC<HomePageProps> = ({
                 ))}
               </div>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--text-dark)' }}>4.9 / 5.0 {isTa ? 'à®®à®¤à®¿à®ªà¯à®ªà¯€à®Ÿà¯' : 'Rating'}</div>
-                <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>500+ {isTa ? 'à®µà®¿à®¨à®¿à®¯à¯‹à®•à®¿à®•à¯à®•à®ªà¯à®ªà®Ÿà¯à®Ÿ à®šà¯†à®Ÿà®¿à®•à®³à¯' : 'Verified Sapling Deliveries'}</div>
+                <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--text-dark)' }}>4.9 / 5.0 {isTa ? 'மதிப்பீடு' : 'Rating'}</div>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>500+ {isTa ? 'விநியோகிக்கப்பட்ட செடிகள்' : 'Verified Sapling Deliveries'}</div>
               </div>
             </div>
           </div>
@@ -518,7 +518,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           {approvedReviews.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px 20px', background: 'white', borderRadius: 24, border: '2px dashed #bbf7d0' }}>
               <Camera style={{ width: 36, height: 36, color: 'var(--color-green)', margin: '0 auto 10px', opacity: 0.5 }} />
-              <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{isTa ? 'à®µà®¾à®Ÿà®¿à®•à¯à®•à¯ˆà®¯à®¾à®³à®°à¯ à®ªà¯à®•à¯ˆà®ªà¯à®ªà®Ÿà®™à¯à®•à®³à¯ à®‡à®©à¯à®©à¯à®®à¯ à®‡à®²à¯à®²à¯ˆ.' : 'No customer photo reviews yet. Add photos in Admin Panel!'}</p>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{isTa ? 'வாடிக்கையாளர் புகைப்படங்கள் இன்னும் இல்லை.' : 'No customer photo reviews yet. Add photos in Admin Panel!'}</p>
             </div>
           ) : (
             <div style={{
@@ -581,7 +581,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                           border: '1px solid rgba(255,255,255,0.9)',
                           boxShadow: '0 4px 14px rgba(0,0,0,0.1)'
                         }}>
-                          <Sparkles style={{ width: 12, height: 12, color: '#f59e0b' }} /> {isTa ? 'à®µà®¾à®Ÿà®¿à®•à¯à®•à¯ˆà®¯à®¾à®³à®°à¯ à®ªà¯à®•à¯ˆà®ªà¯à®ªà®Ÿà®®à¯' : 'Customer Photo'}
+                          <Sparkles style={{ width: 12, height: 12, color: '#f59e0b' }} /> {isTa ? 'வாடிக்கையாளர் புகைப்படம்' : 'Customer Photo'}
                         </div>
 
                         <div style={{
@@ -591,7 +591,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                           fontSize: 11, fontWeight: 700,
                           display: 'flex', alignItems: 'center', gap: 5
                         }}>
-                          <ZoomIn style={{ width: 13, height: 13 }} /> {isTa ? 'à®ªà¯†à®°à®¿à®¤à®¾à®•à¯à®• à®…à®´à¯à®¤à¯à®¤à®µà¯à®®à¯' : 'Click to Zoom'}
+                          <ZoomIn style={{ width: 13, height: 13 }} /> {isTa ? 'பெரிதாக்க அழுத்தவும்' : 'Click to Zoom'}
                         </div>
                       </div>
                     ) : (
@@ -601,7 +601,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                         </div>
                         <div>
                           <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-dark)' }}>{review.userName}</div>
-                          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{isTa && review.location === 'Tamil Nadu' ? 'à®¤à®®à®¿à®´à¯à®¨à®¾à®Ÿà¯' : review.location || (isTa ? 'à®¤à®®à®¿à®´à¯à®¨à®¾à®Ÿà¯' : 'Tamil Nadu')}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{isTa && review.location === 'Tamil Nadu' ? 'தமிழ்நாடு' : review.location || (isTa ? 'தமிழ்நாடு' : 'Tamil Nadu')}</div>
                         </div>
                       </div>
                     )}
@@ -618,14 +618,14 @@ export const HomePage: React.FC<HomePageProps> = ({
                           </div>
                           {review.isVerified && (
                             <span style={{ fontSize: 9, fontWeight: 800, color: '#15803d', background: '#dcfce7', padding: '2px 8px', borderRadius: 999, border: '1px solid #bbf7d0' }}>
-                              âœ“ {isTa ? 'à®‰à®±à¯à®¤à®¿à®ªà¯à®ªà®Ÿà¯à®¤à¯à®¤à®ªà¯à®ªà®Ÿà¯à®Ÿ à®µà®¾à®™à¯à®•à¯à®ªà®µà®°à¯' : 'Verified Buyer'}
+                              ✓ {isTa ? 'உறுதிப்படுத்தப்பட்ட வாங்குபவர்' : 'Verified Buyer'}
                             </span>
                           )}
                         </div>
 
                         {/* Plant Tag */}
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', padding: '3px 9px', borderRadius: 8, fontSize: 11, fontWeight: 700, marginBottom: 10 }}>
-                          <span>ðŸŒ±</span> {isTa ? (t(review.productName) || 'à®¨à®°à¯à®šà®°à®¿ à®šà¯†à®Ÿà®¿') : (review.productName || 'Nursery Sapling')}
+                          <span>🌱</span> {isTa ? (t(review.productName) || 'நர்சரி செடி') : (review.productName || 'Nursery Sapling')}
                         </div>
 
                         {review.title && (
@@ -642,7 +642,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                       {/* Footer Info */}
                       <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid #f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)' }}>
                         <span style={{ fontWeight: 700, color: 'var(--text-dark)' }}>{review.userName}</span>
-                        <span>{isTa ? (review.location === 'Tamil Nadu' ? 'à®¤à®®à®¿à®´à¯à®¨à®¾à®Ÿà¯' : review.location || 'à®ªà¯†à®©à¯à®©à®¾à®•à®°à®®à¯') : (review.location || 'Pennagaram')}</span>
+                        <span>{isTa ? (review.location === 'Tamil Nadu' ? 'தமிழ்நாடு' : review.location || 'பென்னாகரம்') : (review.location || 'Pennagaram')}</span>
                       </div>
                     </div>
                   </div>
@@ -669,11 +669,11 @@ export const HomePage: React.FC<HomePageProps> = ({
           <div className="hero-left" style={{ padding: '60px 0', display: 'flex', flexDirection: 'column' }}>
             <div className="animate-fade-up" style={{ marginBottom: 16 }}>
               <span className="section-label">
-                {isTa ? 'à®®à¯à®¤à®©à¯à®®à¯ˆ à®¤à®¾à®µà®° à®¨à®°à¯à®šà®°à®¿ Â· à®ªà¯†à®©à¯à®©à®¾à®•à®°à®®à¯, à®¤à®®à®¿à®´à¯à®¨à®¾à®Ÿà¯' : 'Premier Plant Nursery Â· Pennagaram, Tamil Nadu'}
+                {isTa ? 'முதன்மை தாவர நர்சரி · பென்னாகரம், தமிழ்நாடு' : 'Premier Plant Nursery · Pennagaram, Tamil Nadu'}
               </span>
             </div>
             <p className="animate-fade-up-1" style={{ fontFamily: 'var(--font-tamil)', fontSize: 15, color: 'var(--text-muted)', marginBottom: 14 }}>
-              à®µà¯€à®°à®¿à®•à®¾ à®°à¯‹à®œà®¾ à®•à®¾à®°à¯à®Ÿà®©à¯
+              வீரிகா ரோஜா கார்டன்
             </p>
             <h1 className="animate-fade-up-2" style={{
               fontFamily: isTa ? 'var(--font-tamil)' : 'var(--font-display)',
@@ -685,11 +685,11 @@ export const HomePage: React.FC<HomePageProps> = ({
             }}>
               {isTa ? (
                 <>
-                  à®†à®°à¯‹à®•à¯à®•à®¿à®¯à®®à®¾à®© à®°à¯‹à®œà®¾à®•à¯à®•à®³à¯ &<br />
-                  <em style={{ color: 'var(--color-rose)', fontStyle: 'italic' }}>à®…à®°à®¿à®¯ à®µà®•à¯ˆ à®šà¯†à®Ÿà®¿à®•à®³à¯</em>
+                  ஆரோக்கியமான ரோஜாக்கள் &<br />
+                  <em style={{ color: 'var(--color-rose)', fontStyle: 'italic' }}>அரிய வகை செடிகள்</em>
                   <br />
                   <span style={{ fontSize: '0.65em', color: 'var(--color-green-dark)', fontStyle: 'normal' }}>
-                    à®‰à®™à¯à®•à®³à¯ à®µà¯€à®Ÿà¯à®Ÿà¯ à®µà®¾à®šà®²à®¿à®²à¯ ðŸŒ¿
+                    உங்கள் வீட்டு வாசலில் 🌿
                   </span>
                 </>
               ) : (
@@ -698,30 +698,30 @@ export const HomePage: React.FC<HomePageProps> = ({
                   <em style={{ color: 'var(--color-rose)', fontStyle: 'italic' }}>Exotic Plants</em>
                   <br />
                   <span style={{ fontSize: '0.6em', color: 'var(--color-green-dark)', fontStyle: 'normal' }}>
-                    Delivered to Your Door ðŸŒ¿
+                    Delivered to Your Door 🌿
                   </span>
                 </>
               )}
             </h1>
             <p className="animate-fade-up-3" style={{ fontSize: 16, color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: 32, maxWidth: 480 }}>
               {isTa
-                ? 'à®ªà®¿à®°à¯€à®®à®¿à®¯à®®à¯ à®¹à¯ˆà®ªà¯à®°à®¿à®Ÿà¯ à®°à¯‹à®œà®¾à®•à¯à®•à®³à¯, à®’à®Ÿà¯à®Ÿà¯ à®ªà®´ à®®à®°à®™à¯à®•à®³à¯, à®®à®²à¯à®²à®¿à®•à¯ˆ & à®‡à®¯à®±à¯à®•à¯ˆ à®‰à®°à®™à¯à®•à®³à¯ â€” 7 à®¨à®¾à®³à¯ à®µà¯‡à®°à¯ à®ˆà®°à®ªà¯à®ªà®¤à®®à¯ à®ªà®¾à®¤à¯à®•à®¾à®ªà¯à®ªà¯à®Ÿà®©à¯ à®‡à®¨à¯à®¤à®¿à®¯à®¾ à®®à¯à®´à¯à®µà®¤à¯à®®à¯ à®ªà®¾à®¤à¯à®•à®¾à®ªà¯à®ªà®¾à®© à®Ÿà¯†à®²à®¿à®µà®°à®¿.'
-                : 'Premium hybrid roses, grafted fruit trees, jasmine & organic fertilizers â€” packed with 7-day root moisture protection for safe delivery across India.'}
+                ? 'பிரீமியம் ஹைப்ரிட் ரோஜாக்கள், ஒட்டு பழ மரங்கள், மல்லிகை & இயற்கை உரங்கள் — 7 நாள் வேர் ஈரப்பதம் பாதுகாப்புடன் இந்தியா முழுவதும் பாதுகாப்பான டெலிவரி.'
+                : 'Premium hybrid roses, grafted fruit trees, jasmine & organic fertilizers — packed with 7-day root moisture protection for safe delivery across India.'}
             </p>
             <div className="animate-fade-up-4" style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 40 }}>
               <button className="btn-green" onClick={() => onNavigate('shop')}>
-                {isTa ? 'à®…à®©à¯ˆà®¤à¯à®¤à¯ à®šà¯†à®Ÿà®¿à®•à®³à¯ˆà®¯à¯à®®à¯ à®ªà®¾à®°à¯à®•à¯à®•' : 'Explore All Plants'} <ArrowRight style={{ width: 16, height: 16 }} />
+                {isTa ? 'அனைத்து செடிகளையும் பார்க்க' : 'Explore All Plants'} <ArrowRight style={{ width: 16, height: 16 }} />
               </button>
               <a href="https://wa.me/919361540714?text=Hello%20Veerika%20Rose%20Garden" target="_blank" rel="noreferrer" className="btn-outline-green" style={{ textDecoration: 'none' }}>
-                <MessageSquare style={{ width: 15, height: 15 }} /> {isTa ? 'à®µà®¾à®Ÿà¯à®¸à¯à®…à®ªà¯ à®†à®°à¯à®Ÿà®°à¯' : 'WhatsApp Order'}
+                <MessageSquare style={{ width: 15, height: 15 }} /> {isTa ? 'வாட்ஸ்அப் ஆர்டர்' : 'WhatsApp Order'}
               </a>
             </div>
             {/* Stats */}
             <div className="animate-fade-up-4" style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
               {[
-                { val: '500+', lbl: isTa ? 'à®šà¯†à®Ÿà®¿ à®µà®•à¯ˆà®•à®³à¯' : 'Plant Varieties' },
-                { val: '4.9â˜…', lbl: isTa ? 'à®µà®¾à®Ÿà®¿à®•à¯à®•à¯ˆà®¯à®¾à®³à®°à¯ à®®à®¤à®¿à®ªà¯à®ªà¯€à®Ÿà¯' : 'Customer Rating' },
-                { val: '10K+', lbl: isTa ? 'à®†à®°à¯à®Ÿà®°à¯à®•à®³à¯ à®µà®¿à®¨à®¿à®¯à¯‹à®•à®®à¯' : 'Orders Delivered' }
+                { val: '500+', lbl: isTa ? 'செடி வகைகள்' : 'Plant Varieties' },
+                { val: '4.9★', lbl: isTa ? 'வாடிக்கையாளர் மதிப்பீடு' : 'Customer Rating' },
+                { val: '10K+', lbl: isTa ? 'ஆர்டர்கள் விநியோகம்' : 'Orders Delivered' }
               ].map(s => (
                 <div key={s.lbl}>
                   <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, color: 'var(--color-green-dark)' }}>{s.val}</div>
@@ -769,7 +769,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 transform: 'translateZ(40px)'
               }}>
                 <span style={{ fontFamily: isTa ? 'var(--font-tamil)' : 'var(--font-display)', fontSize: 13, fontWeight: 800, color: 'var(--color-green-dark)' }}>
-                  {isTa ? 'ðŸŒ¹ à®šà¯†à®°à®¾à®®à®¿à®•à¯ à®¤à¯Šà®Ÿà¯à®Ÿà®¿à®¯à®¿à®²à¯ à®Ÿà®šà¯à®šà¯ à®¹à¯ˆà®ªà¯à®°à®¿à®Ÿà¯ à®°à¯‹à®œà®¾' : 'ðŸŒ¹ Dutch Hybrid Rose in Ceramic 3D Pot'}
+                  {isTa ? '🌹 செராமிக் தொட்டியில் டச்சு ஹைப்ரிட் ரோஜா' : '🌹 Dutch Hybrid Rose in Ceramic 3D Pot'}
                 </span>
               </div>
             </div>
@@ -783,9 +783,9 @@ export const HomePage: React.FC<HomePageProps> = ({
               transform: 'perspective(800px) rotateY(-12deg) rotateX(8deg) translateZ(50px)',
             }}>
               <div style={{ fontSize: 10, color: 'var(--color-rose)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                {isTa ? 'à®†à®°à®®à¯à®ª à®µà®¿à®²à¯ˆ' : 'Starting at'}
+                {isTa ? 'ஆரம்ப விலை' : 'Starting at'}
               </div>
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, color: 'var(--text-dark)' }}>â‚¹99</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, color: 'var(--text-dark)' }}>₹99</div>
             </div>
 
             {/* 3D Floating review badge */}
@@ -801,7 +801,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 {[1,2,3,4,5].map(i => <Star key={i} style={{ width: 13, height: 13, color: '#f59e0b', fill: '#f59e0b' }} />)}
               </div>
               <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-dark)' }}>
-                {isTa ? '10,000+ à®µà®¾à®Ÿà®¿à®•à¯à®•à¯ˆà®¯à®¾à®³à®°à¯à®•à®³à¯' : '10K+ Happy Customers'}
+                {isTa ? '10,000+ வாடிக்கையாளர்கள்' : '10K+ Happy Customers'}
               </span>
             </div>
           </div>
@@ -839,14 +839,14 @@ export const HomePage: React.FC<HomePageProps> = ({
         <section className="section-container hidden sm:block" style={{ padding: '64px 24px 0' }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 28 }}>
             <div>
-              <span className="section-label">{isTa ? 'â˜… à®šà®¿à®±à®¨à¯à®¤ à®®à®¤à®¿à®ªà¯à®ªà¯€à®Ÿà¯' : 'â˜… Top Rated'}</span>
+              <span className="section-label">{isTa ? '★ சிறந்த மதிப்பீடு' : '★ Top Rated'}</span>
               <div className="divider-green" />
               <h2 className="section-title" style={{ fontSize: 'clamp(22px, 3.5vw, 36px)', marginTop: 4 }}>
-                {isTa ? <>à®…à®¤à®¿à®• <em>à®µà®¿à®±à¯à®ªà®©à¯ˆ</em></> : <>Best <em>Sellers</em></>}
+                {isTa ? <>அதிக <em>விற்பனை</em></> : <>Best <em>Sellers</em></>}
               </h2>
             </div>
             <button className="btn-outline-green" style={{ fontSize: 12, padding: '9px 18px' }} onClick={() => onNavigate('shop')}>
-              {isTa ? 'à®…à®©à¯ˆà®¤à¯à®¤à¯à®®à¯ à®ªà®¾à®°à¯à®•à¯à®•' : 'Explore All'} <ChevronRight style={{ width: 14, height: 14 }} />
+              {isTa ? 'அனைத்தும் பார்க்க' : 'Explore All'} <ChevronRight style={{ width: 14, height: 14 }} />
             </button>
           </div>
           <div className="hp-product-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 20 }}>
@@ -859,14 +859,14 @@ export const HomePage: React.FC<HomePageProps> = ({
       <section className="section-container hidden sm:block" style={{ padding: '64px 24px 0' }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 28 }}>
           <div>
-            <span className="section-label">{isTa ? 'à®¤à¯‡à®°à¯à®¨à¯à®¤à¯†à®Ÿà¯à®•à¯à®•à®ªà¯à®ªà®Ÿà¯à®Ÿ à®¤à¯Šà®•à¯à®ªà¯à®ªà¯' : 'Handpicked Selection'}</span>
+            <span className="section-label">{isTa ? 'தேர்ந்தெடுக்கப்பட்ட தொகுப்பு' : 'Handpicked Selection'}</span>
             <div className="divider-green" />
             <h2 className="section-title" style={{ fontSize: 'clamp(22px, 3.5vw, 36px)', marginTop: 4 }}>
-              {isTa ? <>à®šà®¿à®±à®ªà¯à®ªà¯ <em>à®µà®•à¯ˆà®•à®³à¯</em></> : <>Featured <em>Varieties</em></>}
+              {isTa ? <>சிறப்பு <em>வகைகள்</em></> : <>Featured <em>Varieties</em></>}
             </h2>
           </div>
           <button className="btn-outline-green" style={{ fontSize: 12, padding: '9px 18px' }} onClick={() => onNavigate('shop')}>
-            {isTa ? 'à®…à®©à¯ˆà®¤à¯à®¤à¯à®®à¯ à®ªà®¾à®°à¯à®•à¯à®•' : 'Explore All'} <ChevronRight style={{ width: 14, height: 14 }} />
+            {isTa ? 'அனைத்தும் பார்க்க' : 'Explore All'} <ChevronRight style={{ width: 14, height: 14 }} />
           </button>
         </div>
 
@@ -882,27 +882,27 @@ export const HomePage: React.FC<HomePageProps> = ({
         <section className="section-container" style={{ padding: '64px 24px 0' }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 28 }}>
             <div>
-              <span className="section-label">{isTa ? 'à®µà®•à¯ˆà®•à®³à¯' : 'Browse by Type'}</span>
+              <span className="section-label">{isTa ? 'வகைகள்' : 'Browse by Type'}</span>
               <div className="divider-green" />
               <h2 className="section-title" style={{ fontSize: 'clamp(22px, 3.5vw, 36px)', marginTop: 4 }}>
-                {isTa ? <>à®šà¯†à®Ÿà®¿ <em>à®µà®•à¯ˆà®•à®³à¯</em></> : <>Plant <em>Categories</em></>}
+                {isTa ? <>செடி <em>வகைகள்</em></> : <>Plant <em>Categories</em></>}
               </h2>
             </div>
             <button className="btn-outline-green" style={{ fontSize: 12, padding: '9px 18px' }} onClick={() => onNavigate('shop')}>
-              {isTa ? 'à®…à®©à¯ˆà®¤à¯à®¤à¯à®®à¯ à®ªà®¾à®°à¯à®•à¯à®•' : 'View All'} <ChevronRight style={{ width: 14, height: 14 }} />
+              {isTa ? 'அனைத்தும் பார்க்க' : 'View All'} <ChevronRight style={{ width: 14, height: 14 }} />
             </button>
           </div>
           {displayCategories.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '60px 24px', background: 'white', border: '2px dashed #bbf7d0', borderRadius: 20 }}>
               <Leaf style={{ width: 40, height: 40, color: 'var(--color-green)', margin: '0 auto 14px', opacity: 0.5 }} />
               <h3 style={{ fontFamily: 'var(--font-display)', color: 'var(--text-dark)', marginBottom: 8 }}>
-                {isTa ? 'à®µà®•à¯ˆà®•à®³à¯ à®Žà®¤à¯à®µà¯à®®à¯ à®‡à®²à¯à®²à¯ˆ' : 'No Categories Yet'}
+                {isTa ? 'வகைகள் எதுவும் இல்லை' : 'No Categories Yet'}
               </h3>
               <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 18 }}>
-                {isTa ? 'à®¨à®¿à®°à¯à®µà®¾à®• à®ªà¯‡à®©à®²à®¿à®²à¯ à®šà¯†à®Ÿà®¿ à®µà®•à¯ˆà®•à®³à¯ˆà®šà¯ à®šà¯‡à®°à¯à®•à¯à®•à®µà¯à®®à¯.' : 'Add plant categories in the Admin Panel.'}
+                {isTa ? 'நிர்வாக பேனலில் செடி வகைகளைச் சேர்க்கவும்.' : 'Add plant categories in the Admin Panel.'}
               </p>
               <button className="btn-green" style={{ fontSize: 11 }} onClick={() => onNavigate('admin')}>
-                {isTa ? 'à®¨à®¿à®°à¯à®µà®¾à®• à®ªà¯‡à®©à®²à¯' : 'Open Admin Panel'}
+                {isTa ? 'நிர்வாக பேனல்' : 'Open Admin Panel'}
               </button>
             </div>
           ) : (
@@ -951,7 +951,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                         style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s ease' }} className="group-hover-scale"
                         onError={e => { (e.target as HTMLImageElement).src = '/products/double-delight.jpeg'; }} />
                       
-                      {cat.isFeatured && <span className="badge-amber" style={{ position: 'absolute', top: 8, left: 8, fontSize: 9, zIndex: 10 }}>â˜… {isTa ? 'à®šà®¿à®±à®ªà¯à®ªà¯' : 'Featured'}</span>}
+                      {cat.isFeatured && <span className="badge-amber" style={{ position: 'absolute', top: 8, left: 8, fontSize: 9, zIndex: 10 }}>★ {isTa ? 'சிறப்பு' : 'Featured'}</span>}
                       
                       <span style={{
                         position: 'absolute', top: 8, right: 8, zIndex: 10, fontSize: 9, fontWeight: 800,
@@ -959,7 +959,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                         padding: '3px 8px', borderRadius: 999, boxShadow: '0 2px 8px rgba(225,29,72,0.4)',
                         letterSpacing: '0.02em', textTransform: 'uppercase'
                       }}>
-                        {isTa ? `${maxDis}% à®µà®°à¯ˆ à®¤à®³à¯à®³à¯à®ªà®Ÿà®¿` : `Up to ${maxDis}% OFF`}
+                        {isTa ? `${maxDis}% வரை தள்ளுபடி` : `Up to ${maxDis}% OFF`}
                       </span>
                     </div>
                     <div style={{ padding: '12px 14px 14px' }}>
@@ -968,18 +968,18 @@ export const HomePage: React.FC<HomePageProps> = ({
                           {isTa ? getCategoryName(cat) : cat.name}
                         </h3>
                         <span style={{ fontSize: 9, color: 'var(--color-green)', fontWeight: 700 }}>
-                          {plantCount} {isTa ? 'à®šà¯†à®Ÿà®¿à®•à®³à¯' : 'plants'}
+                          {plantCount} {isTa ? 'செடிகள்' : 'plants'}
                         </span>
                       </div>
                       <p style={{ fontFamily: 'var(--font-tamil)', fontSize: 11, color: 'var(--text-muted)', margin: '0 0 8px' }}>
-                        {isTa ? 'à®‰à®¯à®¿à®°à¯à®³à¯à®³ à®ªà®£à¯à®£à¯ˆ à®šà¯†à®Ÿà®¿à®•à®³à¯' : cat.tamilName}
+                        {isTa ? 'உயிருள்ள பண்ணை செடிகள்' : cat.tamilName}
                       </p>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--color-green-dark)', fontSize: 11, fontWeight: 700 }}>
-                          {isTa ? 'à®µà®¾à®™à¯à®•à®µà¯à®®à¯' : 'Shop now'} <ArrowRight style={{ width: 11, height: 11 }} />
+                          {isTa ? 'வாங்கவும்' : 'Shop now'} <ArrowRight style={{ width: 11, height: 11 }} />
                         </div>
                         <span style={{ fontSize: 10, fontWeight: 800, color: '#e11d48', background: '#fff1f2', padding: '2px 6px', borderRadius: 6, border: '1px solid #fecdd3' }}>
-                          {maxDis}% {isTa ? 'à®¤à®³à¯à®³à¯à®ªà®Ÿà®¿' : 'OFF'}
+                          {maxDis}% {isTa ? 'தள்ளுபடி' : 'OFF'}
                         </span>
                       </div>
                     </div>
@@ -994,10 +994,10 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* ===== TESTIMONIALS ===== */}
       <section className="section-container" style={{ padding: '72px 24px 0' }}>
         <div style={{ textAlign: 'center', marginBottom: 36 }}>
-          <span className="section-label">{isTa ? 'à®µà®¾à®Ÿà®¿à®•à¯à®•à¯ˆà®¯à®¾à®³à®°à¯ à®…à®©à¯à®ªà¯' : 'Customer Love'}</span>
+          <span className="section-label">{isTa ? 'வாடிக்கையாளர் அன்பு' : 'Customer Love'}</span>
           <div className="divider-green" style={{ margin: '12px auto' }} />
           <h2 className="section-title" style={{ fontSize: 'clamp(22px, 3.5vw, 36px)' }}>
-            {isTa ? <span>à®µà®¾à®Ÿà®¿à®•à¯à®•à¯ˆà®¯à®¾à®³à®°à¯à®•à®³à¯ <em>à®•à¯‚à®±à¯à®µà®¤à¯</em></span> : <>What <em>Customers Say</em></>}
+            {isTa ? <span>வாடிக்கையாளர்கள் <em>கூறுவது</em></span> : <>What <em>Customers Say</em></>}
           </h2>
         </div>
         <div className="hp-testimonial-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 18 }}>
@@ -1033,20 +1033,20 @@ export const HomePage: React.FC<HomePageProps> = ({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', padding: 'clamp(32px, 5vw, 56px)', gap: 32, flexWrap: 'wrap', position: 'relative', zIndex: 1 }}>
             <div>
               <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', color: '#bbf7d0', textTransform: 'uppercase' }}>
-                {isTa ? 'à®Žà®™à¯à®•à®³à¯ à®ªà®£à¯à®£à¯ˆà®¯à¯ˆà®ªà¯ à®ªà®¾à®°à¯à®µà¯ˆà®¯à®¿à®Ÿ' : 'Visit Our Farm'}
+                {isTa ? 'எங்கள் பண்ணையைப் பார்வையிட' : 'Visit Our Farm'}
               </span>
               <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(22px, 3.5vw, 38px)', color: 'white', margin: '8px 0 12px' }}>
                 {isTa ? (
-                  <>à®µà¯€à®°à®¿à®•à®¾ à®°à¯‹à®œà®¾ à®•à®¾à®°à¯à®Ÿà®©à¯à®•à¯à®•à¯ <em style={{ color: '#fde68a', fontStyle: 'italic' }}>à®µà®°à¯à®•à¯ˆ à®¤à®¾à®°à¯à®™à¯à®•à®³à¯</em></>
+                  <>வீரிகா ரோஜா கார்டனுக்கு <em style={{ color: '#fde68a', fontStyle: 'italic' }}>வருகை தாருங்கள்</em></>
                 ) : (
                   <>Come Visit <em style={{ color: '#fde68a', fontStyle: 'italic' }}>Veerika Rose Garden</em></>
                 )}
               </h2>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
                 {[
-                  { Icon: MapPin, text: isTa ? 'à®ªà¯†à®©à¯à®©à®¾à®•à®°à®®à¯, à®¤à®®à®¿à®´à¯à®¨à®¾à®Ÿà¯' : 'Pennagaram, Tamil Nadu' },
+                  { Icon: MapPin, text: isTa ? 'பென்னாகரம், தமிழ்நாடு' : 'Pennagaram, Tamil Nadu' },
                   { Icon: Phone, text: '+91 72008 26129', href: 'tel:+917200826129' },
-                  { Icon: MessageSquare, text: isTa ? 'à®µà®¾à®Ÿà¯à®¸à¯à®…à®ªà¯ à®šà¯†à®¯à¯à®¯à®µà¯à®®à¯' : 'WhatsApp Us', href: 'https://wa.me/919361540714' },
+                  { Icon: MessageSquare, text: isTa ? 'வாட்ஸ்அப் செய்யவும்' : 'WhatsApp Us', href: 'https://wa.me/919361540714' },
                 ].map(({ Icon, text, href }) => (
                   <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <Icon style={{ width: 15, height: 15, color: '#86efac', flexShrink: 0 }} />
@@ -1057,25 +1057,25 @@ export const HomePage: React.FC<HomePageProps> = ({
               </div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <button className="btn-white" style={{ fontSize: 12, padding: '10px 20px' }} onClick={() => onNavigate('shop')}>
-                  <Package style={{ width: 14, height: 14 }} /> {isTa ? 'à®šà¯†à®Ÿà®¿à®•à®³à¯ˆ à®µà®¾à®™à¯à®•' : 'Shop Plants'}
+                  <Package style={{ width: 14, height: 14 }} /> {isTa ? 'செடிகளை வாங்க' : 'Shop Plants'}
                 </button>
                 {onOpenExpertAdvice && (
                   <button onClick={onOpenExpertAdvice} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 20px', background: 'rgba(255,255,255,0.15)', color: 'white', border: '1.5px solid rgba(255,255,255,0.3)', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(8px)' }}>
-                    <Sparkles style={{ width: 14, height: 14 }} /> {isTa ? 'à®¤à®¾à®µà®° à®¨à®¿à®ªà¯à®£à®°à¯ AI' : 'Expert AI Chat'}
+                    <Sparkles style={{ width: 14, height: 14 }} /> {isTa ? 'தாவர நிபுணர் AI' : 'Expert AI Chat'}
                   </button>
                 )}
               </div>
             </div>
             <div style={{ display: 'none', flexDirection: 'column', alignItems: 'center', gap: 12 }} className="cta-right-show">
               <img src="/logo.webp" alt="Veerika" style={{ width: 120, height: 120, borderRadius: '50%', objectFit: 'cover', border: '4px solid rgba(255,255,255,0.3)', boxShadow: '0 8px 30px rgba(0,0,0,0.2)' }} className="animate-float" />
-              <span style={{ color: '#bbf7d0', fontSize: 12, fontFamily: 'var(--font-tamil)', textAlign: 'center' }}>à®µà¯€à®°à®¿à®•à®¾ à®°à¯‹à®œà®¾ à®•à®¾à®°à¯à®Ÿà®©à¯</span>
+              <span style={{ color: '#bbf7d0', fontSize: 12, fontFamily: 'var(--font-tamil)', textAlign: 'center' }}>வீரிகா ரோஜா கார்டன்</span>
             </div>
           </div>
           <style>{`@media (min-width: 640px) { .cta-right-show { display: flex !important; } }`}</style>
 
           {/* ===== GLOBAL MOBILE RESPONSIVE STYLES FOR HOMEPAGE ===== */}
           <style>{`
-            /* Mobile: â‰¤ 640px */
+            /* Mobile: ≤ 640px */
             @media (max-width: 640px) {
               .hp-trust-grid {
                 grid-template-columns: 1fr 1fr !important;
@@ -1109,7 +1109,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 text-align: center !important;
               }
             }
-            /* Tablet: 641px â€“ 900px */
+            /* Tablet: 641px – 900px */
             @media (min-width: 641px) and (max-width: 900px) {
               .hp-product-grid {
                 grid-template-columns: repeat(3, 1fr) !important;
@@ -1151,11 +1151,11 @@ export const HomePage: React.FC<HomePageProps> = ({
             <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e5f0e0', background: '#f8faf6' }}>
               <div>
                 <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 800, color: '#1a2e1a', margin: 0 }}>
-                  ðŸ“¸ {isTa ? 'à®µà®¾à®Ÿà®¿à®•à¯à®•à¯ˆà®¯à®¾à®³à®°à¯ à®¤à¯‹à®Ÿà¯à®Ÿ à®ªà¯à®•à¯ˆà®ªà¯à®ªà®Ÿà®®à¯' : 'Customer Garden Photo'}
+                  📸 {isTa ? 'வாடிக்கையாளர் தோட்ட புகைப்படம்' : 'Customer Garden Photo'}
                 </h3>
                 <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>
                   {isTa
-                    ? `à®ªà®¤à®¿à®µà¯‡à®±à¯à®±à®¿à®¯à®µà®°à¯ ${selectedReviewPhoto.userName} (${selectedReviewPhoto.location || 'à®¤à®®à®¿à®´à¯à®¨à®¾à®Ÿà¯'})`
+                    ? `பதிவேற்றியவர் ${selectedReviewPhoto.userName} (${selectedReviewPhoto.location || 'தமிழ்நாடு'})`
                     : `Uploaded by ${selectedReviewPhoto.userName} (${selectedReviewPhoto.location || 'Tamil Nadu'})`}
                 </p>
               </div>
@@ -1198,11 +1198,11 @@ export const HomePage: React.FC<HomePageProps> = ({
                   ))}
                 </div>
                 <span style={{ fontSize: 11, fontWeight: 800, color: '#15803d', background: '#dcfce7', padding: '3px 10px', borderRadius: 999, border: '1px solid #bbf7d0' }}>
-                  âœ“ {isTa ? 'à®‰à®±à¯à®¤à®¿à®ªà¯à®ªà®Ÿà¯à®¤à¯à®¤à®ªà¯à®ªà®Ÿà¯à®Ÿ à®µà®¾à®™à¯à®•à¯à®ªà®µà®°à¯' : 'Verified Buyer'}
+                  ✓ {isTa ? 'உறுதிப்படுத்தப்பட்ட வாங்குபவர்' : 'Verified Buyer'}
                 </span>
               </div>
               <div style={{ fontSize: 12, fontWeight: 800, color: '#15803d', marginBottom: 6 }}>
-                ðŸŒ± {isTa ? 'à®šà¯†à®Ÿà®¿' : 'Plant'}: {getProductName({ name: selectedReviewPhoto.productName || 'à®¨à®°à¯à®šà®°à®¿ à®šà¯†à®Ÿà®¿' })}
+                🌱 {isTa ? 'செடி' : 'Plant'}: {getProductName({ name: selectedReviewPhoto.productName || 'நர்சரி செடி' })}
               </div>
               {selectedReviewPhoto.title && (
                 <h4 style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 700, margin: '0 0 6px', color: '#1a2e1a' }}>
@@ -1219,4 +1219,3 @@ export const HomePage: React.FC<HomePageProps> = ({
     </div>
   );
 };
-

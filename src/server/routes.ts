@@ -508,7 +508,7 @@ apiRouter.post('/coupons/apply', async (req, res) => {
     if (cartAmount < coupon.minOrder) {
       return res.status(400).json({
         success: false,
-        message: `Minimum order amount of â‚¹${coupon.minOrder} required for coupon ${coupon.code}`
+        message: `Minimum order amount of ₹${coupon.minOrder} required for coupon ${coupon.code}`
       });
     }
 
@@ -526,7 +526,7 @@ apiRouter.post('/coupons/apply', async (req, res) => {
       success: true,
       code: coupon.code,
       discountAmount: Math.round(discountAmount),
-      message: `Coupon '${coupon.code}' applied successfully! ðŸŽ‰`
+      message: `Coupon '${coupon.code}' applied successfully! 🎉`
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'An internal error occurred. Please try again.' });
@@ -2624,10 +2624,10 @@ Also mention our phone hotline +91 72008 26129 at the end.`
 
   return res.json({
     success: true,
-    answer: `ðŸŒ¿ Veerika Rose Garden Care Advice:
-â€¢ Sunlight & Soil: Ensure 5-6 hours of full direct morning sunlight. Use equal parts soil, dried cow dung manure, and coco peat for best root aeration.
-â€¢ Organic Nutrition: Apply 2 tablespoons of organic Rose Mix Fertilizer or Neem Cake powder every 15 days around the root drip line.
-â€¢ Pruning: Prune dead stems 45-degrees above an outward facing bud node to trigger new flower shoots.
+    answer: `🌿 Veerika Rose Garden Care Advice:
+• Sunlight & Soil: Ensure 5-6 hours of full direct morning sunlight. Use equal parts soil, dried cow dung manure, and coco peat for best root aeration.
+• Organic Nutrition: Apply 2 tablespoons of organic Rose Mix Fertilizer or Neem Cake powder every 15 days around the root drip line.
+• Pruning: Prune dead stems 45-degrees above an outward facing bud node to trigger new flower shoots.
 
 Need personalized diagnosis? Call our nursery expert directly at +91 72008 26129!`
   });
