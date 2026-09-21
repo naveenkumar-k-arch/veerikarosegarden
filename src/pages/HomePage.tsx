@@ -172,7 +172,10 @@ export const HomePage: React.FC<HomePageProps> = ({
   const displayCategories = (activeCategories.filter(c => c && c.isFeatured).length > 0 ? activeCategories.filter(c => c && c.isFeatured) : activeCategories).slice(0, 8);
 
   const getCategoryProducts = (cat: Category) => {
-    const isComboCat = isComboCategory(cat.id) || isComboCategory(cat.slug) || isComboCategory(cat.name);
+    const cName = (cat.name || '').toLowerCase();
+    const cSlug = (cat.slug || '').toLowerCase();
+    const cId = (cat.id || '').toLowerCase();
+    const isComboCat = isComboCategory(cId) || isComboCategory(cSlug) || isComboCategory(cName);
 
     if (isComboCat) {
       if (combosList.length > 0) {
