@@ -25,12 +25,12 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://www.gstatic.com", "https://apis.google.com", "https://checkout.razorpay.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://www.gstatic.com", "https://apis.google.com", "https://checkout.razorpay.com", "https://pagead2.googlesyndication.com", "https://*.googlesyndication.com", "https://*.google.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "blob:", "https:", "http:", "https://*.razorpay.com"],
-      connectSrc: ["'self'", "https://*.firebaseapp.com", "https://*.googleapis.com", "https://api.qrserver.com", "https://*.neon.tech", "https://*.supabase.co", "https://*.supabase.in", "https://api.razorpay.com", "https://lumberjack.razorpay.com", "https://*.netlify.app"],
-      frameSrc: ["'self'", "https://api.razorpay.com", "https://checkout.razorpay.com"],
+      imgSrc: ["'self'", "data:", "blob:", "https:", "http:", "https://*.razorpay.com", "https://pagead2.googlesyndication.com", "https://*.googlesyndication.com", "https://*.google.com"],
+      connectSrc: ["'self'", "https://*.firebaseapp.com", "https://*.googleapis.com", "https://api.qrserver.com", "https://*.neon.tech", "https://*.supabase.co", "https://*.supabase.in", "https://api.razorpay.com", "https://lumberjack.razorpay.com", "https://*.netlify.app", "https://pagead2.googlesyndication.com", "https://*.googlesyndication.com", "https://*.google.com", "https://googleads.g.doubleclick.net"],
+      frameSrc: ["'self'", "https://api.razorpay.com", "https://checkout.razorpay.com", "https://googleads.g.doubleclick.net", "https://*.googlesyndication.com", "https://*.google.com"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: [],
     },
