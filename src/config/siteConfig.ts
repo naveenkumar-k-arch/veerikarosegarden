@@ -43,7 +43,7 @@ export interface MaintenanceConfig {
 
 export const SITE_CONFIG = {
   maintenance: {
-    enabled: true, // Store is currently under maintenance
+    enabled: false, // Set to false: Store is live in full production
     mode: 'full',  // 'full' or 'banner'
     title: 'We are Temporarily Updating Our Nursery System',
     titleTamil: 'தள மேம்பாட்டு பணிகள் நடைபெற்று வருகின்றன. விரைவில் செயல்படும்!',

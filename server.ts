@@ -92,11 +92,26 @@ async function startServer() {
     });
   });
 
-  // Dynamic robots.txt endpoint (Maintenance lockdown mode)
+  // Dynamic robots.txt endpoint
   app.get('/robots.txt', (req, res) => {
     res.type('text/plain');
     res.send(`User-agent: *
-Disallow: /
+Allow: /
+Disallow: /admin
+Disallow: /api/admin/
+Disallow: /api/cron/
+
+User-agent: Googlebot
+Allow: /
+Disallow: /admin
+Disallow: /api/admin/
+
+User-agent: Bingbot
+Allow: /
+Disallow: /admin
+Disallow: /api/admin/
+
+Sitemap: https://www.vrgnursery.in/sitemap.xml
 `);
   });
 
