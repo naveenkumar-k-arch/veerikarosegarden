@@ -518,14 +518,25 @@ class Store {
         };
       });
 
-      // Filter out explicitly deleted products
-      let finalProducts = results.filter(p => !deletedProductIds.has(p.id) && (!p.sku || !deletedProductIds.has(p.sku)));
+      const dummyComboIds = new Set([
+        'combo-1787635336437',
+        'combo-1787321846424',
+        'combo-1787577752349',
+        'combo-1786876625168',
+        'combo-1786878791522',
+        'combo-1786873534914',
+        'combo-1786968264680',
+        'combo-1787127554276'
+      ]);
+
+      // Filter out explicitly deleted products and dummy combo IDs
+      let finalProducts = results.filter(p => !deletedProductIds.has(p.id) && (!p.sku || !deletedProductIds.has(p.sku)) && !dummyComboIds.has(p.id));
 
       // If database returned 0 products (cold start / DB empty), fallback to DEFAULT_PRODUCTS / disk
       if (finalProducts.length === 0) {
         const diskList = loadDiskProducts();
         const baseList = diskList.length > 0 ? diskList : DEFAULT_PRODUCTS;
-        finalProducts = baseList.filter(p => !deletedProductIds.has(p.id) && (!p.sku || !deletedProductIds.has(p.sku)));
+        finalProducts = baseList.filter(p => !deletedProductIds.has(p.id) && (!p.sku || !deletedProductIds.has(p.sku)) && !dummyComboIds.has(p.id));
       } else {
         // Also merge any products that exist in disk store or DEFAULT_PRODUCTS but not in Prisma
         const dbIdSet = new Set(finalProducts.map(p => p.id));
@@ -533,7 +544,7 @@ class Store {
         const diskList = loadDiskProducts();
         const fallbackList = diskList.length > 0 ? diskList : DEFAULT_PRODUCTS;
         for (const extra of fallbackList) {
-          if (!deletedProductIds.has(extra.id) && (!extra.sku || !deletedProductIds.has(extra.sku))) {
+          if (!deletedProductIds.has(extra.id) && (!extra.sku || !deletedProductIds.has(extra.sku)) && !dummyComboIds.has(extra.id)) {
             if (!dbIdSet.has(extra.id) && (!extra.sku || !dbSkuSet.has(extra.sku))) {
               finalProducts.push(extra);
               dbIdSet.add(extra.id);
@@ -542,6 +553,29 @@ class Store {
           }
         }
       }
+
+      // STRICT COMBO CATEGORY ISOLATION:
+      // Any combo product in the catalog must ALWAYS have categoryId 'cat-combos'
+      // and categoryName 'Combos & Offers' to prevent showing in regular categories.
+      finalProducts = finalProducts.map(p => {
+        const idLower = (p.id || '').toLowerCase();
+        const isCombo = idLower.startsWith('combo-') || idLower.startsWith('vrg-combo-');
+        if (isCombo) {
+          const cleanTags = Array.isArray(p.tags)
+            ? p.tags.filter(t => t.toLowerCase() !== 'roses' && t.toLowerCase() !== 'rose varieties')
+            : [];
+          if (!cleanTags.some(t => t.toLowerCase() === 'combos & offers')) cleanTags.push('combos & offers');
+          if (!cleanTags.some(t => t.toLowerCase() === 'combo')) cleanTags.push('combo');
+
+          return {
+            ...p,
+            categoryId: 'cat-combos',
+            categoryName: 'Combos & Offers',
+            tags: cleanTags
+          };
+        }
+        return p;
+      });
 
       saveDiskProducts(finalProducts);
       this.productsCache = { data: finalProducts, expiresAt: Date.now() + 600000 };
