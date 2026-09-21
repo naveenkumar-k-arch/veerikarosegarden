@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { db } from './db.js';
+import { notifyOrderConfirmed } from './routes/whatsappRoutes.js';
 
 // ============================================================
 //  INTERFACES
@@ -266,6 +267,7 @@ export class PhonePeService {
         await db.updateOrderStatus(merchantTransactionId, order.orderStatus, undefined, undefined, 'SUCCESS');
       }
       providerRefId = refId;
+      notifyOrderConfirmed(order).catch(err => console.warn('[WhatsApp PhonePe CheckStatus Confirm Error]:', err?.message));
     } else if (apiPaymentState === 'FAILED' && order && order.paymentStatus === 'PENDING') {
       if (!ADVANCED_STAGES_PP.includes((order.orderStatus || '').toUpperCase())) {
         await db.updateOrderPayment(merchantTransactionId, 'FAILED');

@@ -6,8 +6,8 @@
     "englishName": "🌿 SWEET FRAGRANCE ORCHID ROSE SPECIAL OFFER",
     "tamilName": "🌿 Sweet fragrance • Beautiful blooms • Garden beauty 💕",
     "scientificName": "",
-    "categoryId": "cat-rose",
-    "categoryName": "Roses",
+    "categoryId": "cat-combos",
+    "categoryName": "Combos & Offers",
     "description": "🌿 SWEET FRAGRANCE ORCHID ROSE SPECIAL OFFER",
     "mrp": 220,
     "sellingPrice": 150,
@@ -35,7 +35,8 @@
     "bestSeller": false,
     "trending": true,
     "tags": [
-      "roses"
+      "combos & offers",
+      "combo"
     ],
     "status": "ACTIVE",
     "createdAt": "2026-09-01T09:24:14.207Z",
@@ -48,8 +49,8 @@
     "englishName": "Restock alert",
     "tamilName": "Perfume breeze",
     "scientificName": "",
-    "categoryId": "cat-rose",
-    "categoryName": "Roses",
+    "categoryId": "cat-combos",
+    "categoryName": "Combos & Offers",
     "description": "Restock alert",
     "mrp": 250,
     "sellingPrice": 150,
@@ -77,7 +78,8 @@
     "bestSeller": false,
     "trending": true,
     "tags": [
-      "roses"
+      "combos & offers",
+      "combo"
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-31T10:15:19.943Z",
@@ -90,8 +92,8 @@
     "englishName": "Sunday Special offer",
     "tamilName": "7days rose and button panner combo",
     "scientificName": "",
-    "categoryId": "cat-rose",
-    "categoryName": "Roses",
+    "categoryId": "cat-combos",
+    "categoryName": "Combos & Offers",
     "description": "Sunday Special offer",
     "mrp": 280,
     "sellingPrice": 200,
@@ -119,7 +121,8 @@
     "bestSeller": false,
     "trending": true,
     "tags": [
-      "roses"
+      "combos & offers",
+      "combo"
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-31T07:27:59.838Z",
@@ -132,8 +135,8 @@
     "englishName": "🌹 BEST ON SUNDAY – ROSE COMBO OFFER",
     "tamilName": "💛 Seven Days Rose + 💖 Paneer Butter Rose — 2 Beautiful Rose Varieties!",
     "scientificName": "",
-    "categoryId": "cat-rose",
-    "categoryName": "Roses",
+    "categoryId": "cat-combos",
+    "categoryName": "Combos & Offers",
     "description": "🌹 BEST ON SUNDAY – ROSE COMBO OFFER",
     "mrp": 300,
     "sellingPrice": 200,
@@ -161,7 +164,8 @@
     "bestSeller": false,
     "trending": true,
     "tags": [
-      "roses"
+      "combos & offers",
+      "combo"
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-31T05:57:27.467Z",
@@ -174,8 +178,8 @@
     "englishName": "🌱🍎 WATER APPLE – 3 VARIETY COMBO",
     "tamilName": "Green Water Apple 💚 | Red Water Apple ❤️ | White Water Apple 🤍 — 3 Varieties Combo!",
     "scientificName": "",
-    "categoryId": "cat-rose",
-    "categoryName": "Roses",
+    "categoryId": "cat-combos",
+    "categoryName": "Combos & Offers",
     "description": "🌱🍎 WATER APPLE – 3 VARIETY COMBO",
     "mrp": 450,
     "sellingPrice": 300,
@@ -203,7 +207,8 @@
     "bestSeller": false,
     "trending": true,
     "tags": [
-      "roses"
+      "combos & offers",
+      "combo"
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-31T04:00:48.890Z",
@@ -216,8 +221,8 @@
     "englishName": "Guva combo offer",
     "tamilName": "Taiwan pink guva & mini beetroot guva",
     "scientificName": "",
-    "categoryId": "cat-rose",
-    "categoryName": "Roses",
+    "categoryId": "cat-combos",
+    "categoryName": "Combos & Offers",
     "description": "Guva combo offer",
     "mrp": 200,
     "sellingPrice": 160,
@@ -245,7 +250,8 @@
     "bestSeller": false,
     "trending": true,
     "tags": [
-      "roses"
+      "combos & offers",
+      "combo"
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-30T15:30:08.655Z",
@@ -4722,48 +4728,6 @@
     "updatedAt": "2026-08-30T07:22:38.942Z"
   },
   {
-    "id": "combo-1786876625168",
-    "sku": "VRG-COMBO-",
-    "name": "Birthday Party Rose",
-    "englishName": "Birthday Party Rose",
-    "tamilName": "Birthday Party Rose",
-    "scientificName": "",
-    "categoryId": "cat-combos",
-    "categoryName": "Combos & Offers",
-    "description": "Birthday Party Rose",
-    "mrp": 600,
-    "sellingPrice": 450,
-    "discount": 25,
-    "image": "/products/vrg/birthday-party-bush-rose.webp",
-    "imageUrl": "/products/vrg/birthday-party-bush-rose.webp",
-    "images": [
-      "/products/vrg/birthday-party-bush-rose.webp"
-    ],
-    "rating": 4.8,
-    "reviewCount": 12,
-    "stock": 25,
-    "plantHeight": "1.5 - 2 Feet",
-    "potSize": "8 Inch Bag",
-    "sunlight": "Full Sun",
-    "waterRequirement": "Daily",
-    "floweringSeason": "All Year",
-    "careInstructions": {
-      "watering": "Daily",
-      "sunlight": "Full Sun",
-      "fertilizer": "Organic compost",
-      "soil": "Red soil"
-    },
-    "featured": false,
-    "bestSeller": false,
-    "trending": true,
-    "tags": [
-      "combos & offers"
-    ],
-    "status": "ACTIVE",
-    "createdAt": "2026-08-28T17:55:17.808Z",
-    "updatedAt": "2026-08-30T07:22:38.942Z"
-  },
-  {
     "id": "vrg-orchid-rose",
     "sku": "VRG-ROSE-120",
     "name": "Orchid Rose (Free shipping)",
@@ -4807,90 +4771,6 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-08-28T17:55:17.462Z",
-    "updatedAt": "2026-08-30T07:22:38.942Z"
-  },
-  {
-    "id": "combo-1786878791522",
-    "sku": "VRG-COMBO-",
-    "name": "Mysore malli or madars malli",
-    "englishName": "Mysore malli or madars malli",
-    "tamilName": "Premium Jasmine Plant - Full Soil",
-    "scientificName": "",
-    "categoryId": "cat-combos",
-    "categoryName": "Combos & Offers",
-    "description": "Mysore malli or madars malli",
-    "mrp": 600,
-    "sellingPrice": 450,
-    "discount": 25,
-    "image": "/products/vrg/mysuru-malli-madras-malli.webp",
-    "imageUrl": "/products/vrg/mysuru-malli-madras-malli.webp",
-    "images": [
-      "/products/vrg/mysuru-malli-madras-malli.webp"
-    ],
-    "rating": 4.8,
-    "reviewCount": 12,
-    "stock": 25,
-    "plantHeight": "1.5 - 2 Feet",
-    "potSize": "8 Inch Bag",
-    "sunlight": "Full Sun",
-    "waterRequirement": "Daily",
-    "floweringSeason": "All Year",
-    "careInstructions": {
-      "watering": "Daily",
-      "sunlight": "Full Sun",
-      "fertilizer": "Organic compost",
-      "soil": "Red soil"
-    },
-    "featured": false,
-    "bestSeller": false,
-    "trending": true,
-    "tags": [
-      "combos & offers"
-    ],
-    "status": "ACTIVE",
-    "createdAt": "2026-08-28T17:55:17.088Z",
-    "updatedAt": "2026-08-30T07:22:38.942Z"
-  },
-  {
-    "id": "combo-1786968264680",
-    "sku": "VRG-COMBO-",
-    "name": "Fairy rose",
-    "englishName": "Fairy rose",
-    "tamilName": "Premium Fairy Rose Plant | Beautiful Blooms | Healthy Live Plant",
-    "scientificName": "",
-    "categoryId": "cat-combos",
-    "categoryName": "Combos & Offers",
-    "description": "Fairy rose",
-    "mrp": 280,
-    "sellingPrice": 200,
-    "discount": 29,
-    "image": "/products/vrg/orchid-rose.webp",
-    "imageUrl": "/products/vrg/orchid-rose.webp",
-    "images": [
-      "/products/vrg/orchid-rose.webp"
-    ],
-    "rating": 4.8,
-    "reviewCount": 12,
-    "stock": 25,
-    "plantHeight": "1.5 - 2 Feet",
-    "potSize": "8 Inch Bag",
-    "sunlight": "Full Sun",
-    "waterRequirement": "Daily",
-    "floweringSeason": "All Year",
-    "careInstructions": {
-      "watering": "Daily",
-      "sunlight": "Full Sun",
-      "fertilizer": "Organic compost",
-      "soil": "Red soil"
-    },
-    "featured": false,
-    "bestSeller": false,
-    "trending": true,
-    "tags": [
-      "combos & offers"
-    ],
-    "status": "ACTIVE",
-    "createdAt": "2026-08-28T17:55:16.335Z",
     "updatedAt": "2026-08-30T07:22:38.942Z"
   },
   {

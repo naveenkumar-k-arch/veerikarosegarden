@@ -25,7 +25,10 @@ let currentStatus: WhatsAppSessionInfo = {
   status: 'DISCONNECTED'
 };
 
-const AUTH_DIR = path.join(os.tmpdir(), '.whatsapp_auth');
+const LOCAL_AUTH_DIR = path.resolve(process.cwd(), '.whatsapp_auth');
+const AUTH_DIR = fs.existsSync(LOCAL_AUTH_DIR) || !process.env.VERCEL
+  ? LOCAL_AUTH_DIR
+  : path.join(os.tmpdir(), '.whatsapp_auth');
 
 function ensureAuthDir() {
   try {

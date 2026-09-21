@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Package, ArrowLeft, RefreshCw, CheckCircle2, Printer, Truck, ExternalLink, XCircle, AlertCircle, ShoppingBag } from 'lucide-react';
 import { Order } from '../types';
 import { InvoicePrint } from '../components/InvoicePrint';
-import { getOrderStage, STAGE_CONFIG, isWhatsAppOrder } from '../utils/orderStages';
+import { getOrderStage, STAGE_CONFIG, isWhatsAppOrder, generateOrderWhatsAppMessage } from '../utils/orderStages';
 import { WhatsAppIcon } from '../components/WhatsAppIcon';
 
 
@@ -457,6 +457,41 @@ export const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ orderId, onBac
           </div>
         )}
       </div>
+
+      {/* WhatsApp Order Confirmation Banner */}
+      {!isCancelled && !isPendingOnline && (
+        <div className="bg-gradient-to-r from-emerald-950 via-emerald-900 to-teal-950 text-white p-5 rounded-3xl shadow-md border border-emerald-700/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-[#25D366] text-white flex items-center justify-center shadow-xs shrink-0 mt-0.5">
+              <WhatsAppIcon className="w-7 h-7 fill-white" />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-black tracking-tight text-white">
+                  WhatsApp Order Confirmation
+                </span>
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">
+                  ⚡ Auto-Dispatched
+                </span>
+              </div>
+              <p className="text-xs text-emerald-100/90 leading-relaxed">
+                Confirmation details dispatched to <b>+{order.customerPhone || (order.shippingAddress as any)?.phone || 'your mobile'}</b>. Please verify your address & plant plan.
+              </p>
+            </div>
+          </div>
+
+          <a
+            href={`https://api.whatsapp.com/send?phone=919361540714&text=${encodeURIComponent(generateOrderWhatsAppMessage(order, 'confirmed'))}`}
+            target="_blank"
+            rel="noreferrer"
+            className="w-full sm:w-auto px-4 py-2.5 bg-[#25D366] hover:bg-[#1EBE5D] text-white font-black text-xs rounded-xl shadow-xs flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 shrink-0"
+          >
+            <WhatsAppIcon className="w-4 h-4 fill-white" />
+            <span>Open in WhatsApp</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+        </div>
+      )}
 
       {/* Order Item Details Card */}
       <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4 text-xs">

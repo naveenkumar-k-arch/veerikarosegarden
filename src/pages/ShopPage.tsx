@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Product, Category, Combo } from '../types';
 import { ProductCard, CompactProductCard, HorizontalScrollRow } from '../components/ProductCard';
-import { comboToProduct, getCachedActiveCombos, VINAYAGAR_10_FRUIT_PLANTS, resolveComboImage } from '../utils/comboUtils';
+import { comboToProduct, getCachedActiveCombos, VINAYAGAR_10_FRUIT_PLANTS, resolveComboImage, isComboProduct, isComboCategory } from '../utils/comboUtils';
 import { Filter, SlidersHorizontal, Search, X, Check, ChevronRight, Sparkles } from 'lucide-react';
 
 interface ShopPageProps {
@@ -111,18 +111,39 @@ export const ShopPage: React.FC<ShopPageProps> = ({
   // Convert live combos to virtual products
   const comboProducts = useMemo(() => (combosList || []).filter(Boolean).map(comboToProduct), [combosList]);
 
-  // Combine regular catalog products and combo products
+  // Combine regular catalog products and combo products:
+  // Exclude any mislabeled or stale combo items from regular products,
+  // and append the authoritative live combo products
   const allShopProducts = useMemo(() => {
-    const safeProducts = (products || []).filter((p: Product) => p && p.id);
-    const existingIds = new Set(safeProducts.map(p => p.id));
-    const uniqueCombos = comboProducts.filter(cp => cp && cp.id && !existingIds.has(cp.id));
-    return [...safeProducts, ...uniqueCombos];
+    const safeRegularProducts = (products || []).filter((p: Product) => p && p.id && !isComboProduct(p));
+    return [...safeRegularProducts, ...comboProducts];
   }, [products, comboProducts]);
 
-  // Robust Category Matching Helper
+  // Robust Category Matching Helper:
+  // Combos are displayed ONLY in the combo category.
+  // Combos are NEVER displayed in regular categories (e.g. Rose, Fruit, Jasmine, etc.),
+  // even if they contain roses or mention roses in their title or tags.
   const isProductInCat = (p: Product, catTarget?: string): boolean => {
     if (!p) return false;
-    if (!catTarget || catTarget === 'all') return true;
+
+    const targetIsCombo = isComboCategory(catTarget);
+    const pIsCombo = isComboProduct(p);
+
+    // 1. If viewing the Combos & Offers category, return ONLY combo products
+    if (targetIsCombo) {
+      return pIsCombo;
+    }
+
+    // 2. If viewing ANY regular plant category (Rose, Fruit, Jasmine, Herbal, etc.):
+    // STRICT RULE: Combos MUST NEVER appear in regular plant categories!
+    if (pIsCombo) {
+      return false;
+    }
+
+    // 3. When viewing "All Categories" (no specific category selected)
+    if (!catTarget || catTarget === 'all') {
+      return true;
+    }
 
     const safeCategories = (categories || []).filter(Boolean);
     const matchCat = safeCategories.find(
@@ -142,37 +163,14 @@ export const ShopPage: React.FC<ShopPageProps> = ({
     const pCatName = (p.categoryName || '').toLowerCase();
     const pTags = Array.isArray(p.tags) ? p.tags.map(t => (t || '').toLowerCase()) : [];
     const pName = (p.name || '').toLowerCase();
-    const pId = (p.id || '').toLowerCase();
 
-    // 1. Combos & Offers Category Matching
-    if (
-      targetId === 'cat-combos' ||
-      targetId === 'combos' ||
-      targetSlug === 'combos' ||
-      targetName.includes('combo') ||
-      targetName.includes('offer') ||
-      targetName.includes('சேர்க்கை')
-    ) {
-      return (
-        pCatId === 'cat-combos' ||
-        pCatId === 'combos' ||
-        pCatName.includes('combo') ||
-        pCatName.includes('offer') ||
-        pTags.includes('combo') ||
-        pTags.includes('offer') ||
-        pTags.includes('combos') ||
-        pTags.includes('bundle') ||
-        pId.startsWith('combo-')
-      );
-    }
-
-    // 2. Direct ID or Slug match
+    // Direct ID or Slug match
     if (pCatId && (pCatId === targetId || pCatId === targetSlug)) return true;
     if (pCatName && (pCatName === targetName || pCatName === targetSlug)) return true;
     if (pCatId && (pCatId.includes(targetId) || targetId.includes(pCatId))) return true;
     if (pCatName && (pCatName.includes(targetName) || targetName.includes(pCatName))) return true;
 
-    // 3. Specific Category Mappings
+    // Specific Category Mappings for regular single plants
     if (targetId === 'cat-herbals' || targetSlug === 'herbals' || targetName.includes('herbal') || targetName.includes('மூலிகை')) {
       return pCatId === 'cat-herbals' || pCatName.includes('herbal') || pTags.includes('herbal') || pTags.includes('herbals') || pTags.includes('herbal plants') || pName.includes('panner leaf') || pName.includes('ranakalli') || pName.includes('rosemary') || pName.includes('miracle leaf');
     }
@@ -201,14 +199,20 @@ export const ShopPage: React.FC<ShopPageProps> = ({
       return pCatId === 'cat-rose' || pCatName.includes('rose') || pTags.includes('rose') || pTags.includes('roses') || pName.includes('rose');
     }
 
-    // 4. Fallback Substring match
+    // Fallback Substring match
     return pCatId === targetId || pCatName.includes(targetName) || targetName.includes(pCatName) || pTags.includes(targetName);
   };
 
   // Filter products
   let filtered = allShopProducts.filter((p) => {
     if (p.status === 'DISABLED') return false;
-    if (selectedCategory && !isProductInCat(p, selectedCategory)) return false;
+    if (selectedCategory) {
+      if (!isProductInCat(p, selectedCategory)) return false;
+    } else if (!searchQuery.trim()) {
+      // In default "All Categories" view (no search and no category selected):
+      // Only regular plants are displayed here, combos are featured exclusively in the "Combos & Offers" category
+      if (isComboProduct(p)) return false;
+    }
     if (p.sellingPrice > maxPrice) return false;
     if (inStockOnly && (p.stock !== undefined && p.stock <= 0)) return false;
 
@@ -350,7 +354,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
                 }`}
               >
                 <span>All Categories</span>
-                <span>({allShopProducts.filter(p => p.status !== 'DISABLED').length})</span>
+                <span>({allShopProducts.filter(p => p.status !== 'DISABLED' && !isComboProduct(p)).length})</span>
               </button>
 
               {categories.map((cat) => {

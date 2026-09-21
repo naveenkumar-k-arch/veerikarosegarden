@@ -124,17 +124,17 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
   const [desktopLabelOrders, setDesktopLabelOrders] = useState<Order[] | null>(null);
   const [showAdminMenuDrawer, setShowAdminMenuDrawer] = useState(false);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'categories' | 'orders' | 'inventory' | 'coupons' | 'banners' | 'reviews' | 'settings' | 'audit' | 'finances' | 'payment_logs'>('dashboard');
-  const [orderFilterStage, setOrderFilterStageState] = useState<'all' | 'week_based' | 'confirmed' | 'packing' | 'dispatched' | 'delivered' | 'holding'>(() => {
+  const [orderFilterStage, setOrderFilterStageState] = useState<'all' | 'week_based' | 'confirmed' | 'packing' | 'dispatched' | 'delivered' | 'holding' | 'unverified'>(() => {
     try {
       const saved = sessionStorage.getItem('vrg_admin_stage_filter');
-      if (saved && ['all', 'week_based', 'pending', 'confirmed', 'packing', 'dispatched', 'delivered', 'holding'].includes(saved)) {
+      if (saved && ['all', 'week_based', 'pending', 'confirmed', 'packing', 'dispatched', 'delivered', 'holding', 'unverified'].includes(saved)) {
         return (saved === 'pending' ? 'confirmed' : saved) as any;
       }
     } catch {}
     return 'all';
   });
 
-  const setOrderFilterStage = (stage: 'all' | 'week_based' | 'confirmed' | 'packing' | 'dispatched' | 'delivered' | 'holding') => {
+  const setOrderFilterStage = (stage: 'all' | 'week_based' | 'confirmed' | 'packing' | 'dispatched' | 'delivered' | 'holding' | 'unverified') => {
     setOrderFilterStageState(stage);
     try {
       sessionStorage.setItem('vrg_admin_stage_filter', stage);
@@ -1711,6 +1711,49 @@ const silentRefresh = async (): Promise<boolean> => {
         })
       });
     } catch {}
+  };
+
+  // Handle Manual Owner Order Verification & Approval
+  const handleToggleOwnerVerify = async (orderId: string, verified: boolean) => {
+    const verifiedAt = verified ? new Date().toISOString() : undefined;
+    setOrders(prev => {
+      const updatedOrdersList = prev.map(o => {
+        if (o.id === orderId || o.merchantTransactionId === orderId) {
+          return {
+            ...o,
+            ownerVerified: verified,
+            ownerVerifiedAt: verifiedAt,
+            updatedAt: new Date().toISOString()
+          };
+        }
+        return o;
+      });
+      const keysToSave = ['veerika_admin_orders', 'vrg_user_orders', 'veerika_customer_orders', 'vrg_orders', 'vrg_my_orders'];
+      keysToSave.forEach(key => {
+        try { localStorage.setItem(key, JSON.stringify(updatedOrdersList)); } catch {}
+      });
+      persistAdminCache(c => ({ ...c, orders: updatedOrdersList }));
+      return updatedOrdersList;
+    });
+
+    if (verified) {
+      toast.success(`Order #${orderId} verified & approved by nursery owner!`, 'Order Approved');
+    } else {
+      toast.warning(`Order #${orderId} marked as pending owner verification.`, 'Pending Review');
+    }
+
+    try {
+      await authFetch(`/api/admin/orders/${orderId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          ownerVerified: verified,
+          ownerVerifiedAt: verifiedAt
+        })
+      });
+      window.dispatchEvent(new CustomEvent('orderStatusUpdated', { detail: { orderId } }));
+    } catch (err) {
+      console.warn('Backend update ownerVerified error:', err);
+    }
   };
 
   // Send WhatsApp Customer Alert (Strict notification template)
@@ -4385,6 +4428,7 @@ const silentRefresh = async (): Promise<boolean> => {
             const dispatchedList = sortOrdersList(filteredBySource.filter(o => getOrderStage(o.orderStatus) === 'dispatched'));
             const deliveredList = sortOrdersList(filteredBySource.filter(o => getOrderStage(o.orderStatus) === 'delivered'));
             const holdingList = sortOrdersList(filteredBySource.filter(o => holdingOrderIds.includes(o.id) || (o as any).isHolding === true));
+            const unverifiedList = sortOrdersList(filteredBySource.filter(o => !o.ownerVerified && o.orderStatus !== 'DELIVERED' && o.orderStatus !== 'CANCELLED'));
 
             // ── Week-Based Grouping (Sunday to Saturday/Monday) ───────────────────
             interface WeekGroup {
@@ -4606,6 +4650,94 @@ const silentRefresh = async (): Promise<boolean> => {
                       <span className={`font-bold px-3 py-1 rounded-full text-xs ${isDelivered ? 'bg-emerald-700 text-white' : isDispatched ? 'bg-blue-600 text-white' : isPacking ? 'bg-purple-700 text-white' : 'bg-amber-600 text-white'}`}>
                         Status: {o.orderStatus}
                       </span>
+                    </div>
+                  </div>
+
+                  {/* Owner Manual Order Verification & WhatsApp Customer Response */}
+                  <div className={`p-3.5 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-xs transition-all ${
+                    o.ownerVerified
+                      ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
+                      : (o.customerAddressChangeRequested || (o.customerWhatsAppReply && o.customerWhatsAppReply.includes('NO')))
+                      ? 'bg-rose-50/90 border-rose-300 text-rose-950'
+                      : (o.customerAddressConfirmed || (o.customerWhatsAppReply && o.customerWhatsAppReply.includes('YES')))
+                      ? 'bg-amber-50/90 border-amber-300 text-amber-950'
+                      : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}>
+                    <div className="flex items-start gap-3">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm shrink-0 shadow-2xs ${
+                        o.ownerVerified
+                          ? 'bg-emerald-700 text-white'
+                          : (o.customerAddressChangeRequested || (o.customerWhatsAppReply && o.customerWhatsAppReply.includes('NO')))
+                          ? 'bg-rose-600 text-white'
+                          : (o.customerAddressConfirmed || (o.customerWhatsAppReply && o.customerWhatsAppReply.includes('YES')))
+                          ? 'bg-amber-600 text-white'
+                          : 'bg-slate-600 text-white'
+                      }`}>
+                        {o.ownerVerified ? '✅' : '👨‍🌾'}
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-extrabold uppercase tracking-wide text-xs">
+                            {o.ownerVerified ? '✅ Approved & Verified by Owner' : '⏳ Pending Owner Verification'}
+                          </span>
+                          {o.ownerVerified && o.ownerVerifiedAt && (
+                            <span className="text-[10px] text-emerald-800 font-bold bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-200">
+                              Verified: {new Date(o.ownerVerifiedAt).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}
+                            </span>
+                          )}
+                          {!o.ownerVerified && (
+                            <span className="text-[10px] text-amber-900 font-bold bg-amber-100 px-2 py-0.5 rounded-md border border-amber-300">
+                              Manual Owner Review Required
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Customer WhatsApp Status */}
+                        <div className="flex items-center gap-1.5 flex-wrap text-[11px]">
+                          <span className="text-slate-500 font-semibold">📲 WhatsApp Confirmation:</span>
+                          {o.customerWhatsAppReply ? (
+                            o.customerWhatsAppReply.includes('YES') ? (
+                              <span className="inline-flex items-center gap-1 text-emerald-800 font-extrabold bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-200">
+                                <span>💬 Customer Replied: "YES"</span>
+                                <span className="text-[10px] font-normal text-emerald-700">(Address & Plan Confirmed)</span>
+                              </span>
+                            ) : o.customerWhatsAppReply.includes('NO') ? (
+                              <span className="inline-flex items-center gap-1 text-rose-800 font-extrabold bg-rose-100 px-2 py-0.5 rounded-md border border-rose-200">
+                                <span>⚠️ Customer Replied: "NO"</span>
+                                <span className="text-[10px] font-normal text-rose-700">(Change Requested)</span>
+                              </span>
+                            ) : (
+                              <span className="text-indigo-800 font-bold bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200">
+                                💬 Customer: "{o.customerWhatsAppReply}"
+                              </span>
+                            )
+                          ) : (
+                            <span className="text-slate-500 italic">Dispatched to customer • Awaiting customer reply (YES/NO)</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Manual Owner Action Button */}
+                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                      {!o.ownerVerified ? (
+                        <button
+                          onClick={() => handleToggleOwnerVerify(o.id, true)}
+                          className="py-2 px-4 bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white font-extrabold text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
+                          title="Click to manually verify and approve order after reviewing address and customer reply"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Verify & Approve Order</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleToggleOwnerVerify(o.id, false)}
+                          className="py-1.5 px-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-[11px] rounded-xl cursor-pointer transition-colors"
+                          title="Undo owner approval"
+                        >
+                          <span>Undo Approval</span>
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -5188,6 +5320,24 @@ const silentRefresh = async (): Promise<boolean> => {
                       <span className="px-1.5 py-0.5 rounded-full bg-white/30 text-[10px] font-mono">{holdingList.length}</span>
                     </button>
                   )}
+
+                  <button
+                    onClick={() => setOrderFilterStage('unverified')}
+                    className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      orderFilterStage === 'unverified'
+                        ? 'bg-rose-700 text-white shadow-md'
+                        : unverifiedList.length > 0
+                        ? 'bg-rose-50 text-rose-900 hover:bg-rose-100 border border-rose-300'
+                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>👨‍🌾 Owner Review</span>
+                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono ${
+                      orderFilterStage === 'unverified' ? 'bg-white/20 text-white' : 'bg-rose-200 text-rose-900 font-black'
+                    }`}>
+                      {unverifiedList.length}
+                    </span>
+                  </button>
                 </div>
 
                 {/* Desktop Sort Controls Bar */}
@@ -5370,6 +5520,31 @@ const silentRefresh = async (): Promise<boolean> => {
                 {/* ── 4 CATEGORIZED SECTIONS DISPLAY (ALL / STAGE VIEWS) ──────────── */}
                 {orderFilterStage !== 'week_based' && orderFilterStage !== 'holding' && (
                   <div className="space-y-8">
+                    {/* SECTION: ORDERS AWAITING OWNER REVIEW */}
+                    {orderFilterStage === 'unverified' && (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between bg-rose-50 p-3.5 rounded-2xl border border-rose-300">
+                          <h4 className="font-black text-sm text-rose-950 flex items-center gap-2">
+                            <span className="text-base">👨‍🌾</span> ORDERS AWAITING OWNER MANUAL REVIEW ({unverifiedList.length})
+                          </h4>
+                          <span className="text-[11px] font-bold text-rose-800 bg-white/80 px-2.5 py-0.5 rounded-lg border border-rose-200">
+                            Review Address, Plan & WhatsApp Reply, then Click "Verify & Approve Order"
+                          </span>
+                        </div>
+                        {unverifiedList.length === 0 ? (
+                          <div className="p-8 bg-white rounded-2xl border border-dashed border-emerald-200 text-center space-y-2">
+                            <span className="text-3xl">🎉</span>
+                            <p className="text-xs font-bold text-emerald-800">All orders have been verified and approved by the owner!</p>
+                            <p className="text-[11px] text-slate-400">New customer orders will appear here automatically for manual verification.</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            {unverifiedList.map(renderOrderCard)}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {/* SECTION 1: ORDER CONFIRMED */}
                     {(orderFilterStage === 'all' || orderFilterStage === 'confirmed') && (
                       <div className="space-y-3">

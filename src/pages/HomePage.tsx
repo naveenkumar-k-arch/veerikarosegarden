@@ -4,7 +4,7 @@ import { ProductCard, CompactProductCard, HorizontalScrollRow } from '../compone
 import { CombosSection } from '../components/CombosSection';
 import { Card3D } from '../components/Card3D';
 import { INITIAL_REVIEWS } from '../data/reviewsData';
-import { comboToProduct, getCachedActiveCombos, VINAYAGAR_10_FRUIT_PLANTS, resolveComboImage } from '../utils/comboUtils';
+import { comboToProduct, getCachedActiveCombos, VINAYAGAR_10_FRUIT_PLANTS, resolveComboImage, isComboProduct, isComboCategory } from '../utils/comboUtils';
 import { useLanguage } from '../context/LanguageContext';
 import {
   ShieldCheck, Truck, Sprout, HeartHandshake, Star, ArrowRight,
@@ -162,23 +162,6 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   const approvedReviews = getLiveReviews().filter(r => r && (r.status === 'APPROVED' || !r.status));
 
-  // Helper: exclude combo/offer products from regular grids — they belong only in CombosSection / Combos category
-  const isComboProduct = (p: Product) => {
-    if (!p) return false;
-    const catId = (p.categoryId || '').toLowerCase();
-    const catName = (p.categoryName || '').toLowerCase();
-    const id = (p.id || '').toLowerCase();
-    return (
-      catId === 'cat-combos' ||
-      catId === 'combos' ||
-      catId === 'offers' ||
-      catName.includes('combo') ||
-      catName.includes('offer') ||
-      id.startsWith('combo-') ||
-      (Array.isArray(p.tags) && p.tags.some(t => t === 'combo' || t === 'offer' || t === 'bundle' || t === 'combos'))
-    );
-  };
-
   const safeProducts = Array.isArray(products) ? products.filter(Boolean) : [];
   const safeCategories = Array.isArray(categories) ? categories.filter(Boolean) : [];
 
@@ -189,10 +172,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   const displayCategories = (activeCategories.filter(c => c && c.isFeatured).length > 0 ? activeCategories.filter(c => c && c.isFeatured) : activeCategories).slice(0, 8);
 
   const getCategoryProducts = (cat: Category) => {
-    const cName = (cat.name || '').toLowerCase();
-    const cSlug = (cat.slug || '').toLowerCase();
-    const cId = (cat.id || '').toLowerCase();
-    const isComboCat = cId === 'cat-combos' || cId === 'combos' || cSlug === 'combos' || cName.includes('combo') || cName.includes('offer');
+    const isComboCat = isComboCategory(cat.id) || isComboCategory(cat.slug) || isComboCategory(cat.name);
 
     if (isComboCat) {
       if (combosList.length > 0) {

@@ -189,7 +189,7 @@ const AppContent: React.FC = () => {
   const [isExpertAdviceOpen, setIsExpertAdviceOpen] = useState<boolean>(false);
 
   // Data Collections State — Fast LocalStorage cache hydrate with background SWR sync
-  const CATALOG_SYNC_VERSION = 'vrg_cat_v2026_08_30_price_sync_v3';
+  const CATALOG_SYNC_VERSION = 'vrg_cat_v2026_09_21_combo_category_isolation_v1';
   const [products, setProducts] = useState<Product[]>(() => {
     try {
       if (typeof window !== 'undefined') {

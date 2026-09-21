@@ -138,6 +138,13 @@ export interface Order {
   courierBranch?: string;
   isLabelPrinted?: boolean;
   labelPrintedAt?: string;
+  customerAddressConfirmed?: boolean;
+  customerAddressConfirmedAt?: string;
+  customerAddressChangeRequested?: boolean;
+  customerWhatsAppReply?: string;
+  customerWhatsAppReplyAt?: string;
+  ownerVerified?: boolean;
+  ownerVerifiedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -238,6 +245,17 @@ export interface SiteSettings {
   phonepeSaltIndex: string;
   phonepeEnv: 'SANDBOX' | 'PRODUCTION';
   phonepeHostUrl?: string;
+  // WhatsApp Automation Settings
+  metaWaPhoneNumberId?: string;
+  metaWaAccessToken?: string;
+  metaWaBusinessAccountId?: string;
+  waAutoSendConfirmed?: boolean;
+  waAutoSendPacking?: boolean;
+  waAutoSendDispatched?: boolean;
+  waAutoSendDelivered?: boolean;
+  waProvider?: 'AUTO' | 'META_CLOUD' | 'LINKED_DEVICE';
+  metaWaTemplateName?: string;
+  metaWaVerifyToken?: string;
 }
 
 export interface FinancialEntry {

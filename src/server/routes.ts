@@ -3,7 +3,7 @@ import { db } from './db.js';
 import { PhonePeService } from './phonepe.js';
 import { RazorpayService } from './razorpay.js';
 import { authRouter } from './routes/authRoutes.js';
-import { whatsappRouter, triggerOrderStageWhatsApp } from './routes/whatsappRoutes.js';
+import { whatsappRouter, triggerOrderStageWhatsApp, notifyOrderConfirmed } from './routes/whatsappRoutes.js';
 import { getOrderStage, isValidAdminOrder } from '../utils/orderStages.js';
 import {
   parseAuthUser,
@@ -1221,6 +1221,11 @@ apiRouter.post('/orders', checkoutLimiter, validateBody(createOrderSchema), asyn
 
     invalidateBootstrapCache();
 
+    // Auto-trigger WhatsApp Order Confirmation for immediate orders (COD, QR_PAYMENT, UPI_DIRECT)
+    if (newOrder && newOrder.orderStatus === 'CONFIRMED') {
+      notifyOrderConfirmed(newOrder).catch(err => console.warn('[WhatsApp Auto-Confirm Order Error]:', err?.message));
+    }
+
     res.json({
       success: true,
       order: newOrder,
@@ -1578,6 +1583,9 @@ apiRouter.get('/orders/:id', async (req: AuthenticatedRequest, res) => {
             }).catch(() => {});
             if (updated) order = updated;
             invalidateBootstrapCache();
+            if (safeStatus === 'CONFIRMED' && order) {
+              notifyOrderConfirmed(order).catch(err => console.warn('[WhatsApp Auto-Confirm Error]:', err?.message));
+            }
           }
         }
       } catch (err) {
@@ -1686,6 +1694,9 @@ const handleCreateAdminOrderRoute = async (req: AuthenticatedRequest, res: expre
   try {
     const order = await db.createAdminOrder(req.body);
     invalidateBootstrapCache();
+    if (order && (order.orderStatus === 'CONFIRMED' || !order.orderStatus)) {
+      notifyOrderConfirmed(order).catch(err => console.warn('[WhatsApp Admin Order Confirm Error]:', err?.message));
+    }
     res.status(201).json({ success: true, order, message: 'WhatsApp / Offline order created successfully' });
   } catch (error: any) {
     console.error('Error creating admin order:', error);
@@ -1944,6 +1955,10 @@ apiRouter.post('/phonepe/simulate-callback', async (req: AuthenticatedRequest, r
     return res.status(404).json({ success: false, message: 'Order not found for transaction ID: ' + merchantTransactionId });
   }
 
+  if (status === 'SUCCESS' && updatedOrder) {
+    notifyOrderConfirmed(updatedOrder).catch(err => console.warn('[WhatsApp PhonePe Confirm Error]:', err?.message));
+  }
+
   await db.addPaymentLog({
     merchantTransactionId,
     orderId: updatedOrder.id,
@@ -2134,6 +2149,10 @@ const handleVerifyRazorpayPayment = async (req: AuthenticatedRequest, res: any) 
         payload: JSON.stringify({ razorpayOrderId, razorpayPaymentId })
       }).catch(() => {});
       invalidateBootstrapCache();
+      const confirmedOrder = updatedOrder || order;
+      if (confirmedOrder) {
+        notifyOrderConfirmed(confirmedOrder).catch(err => console.warn('[WhatsApp Razorpay Confirm Error]:', err?.message));
+      }
     }
 
     return res.json({
@@ -2197,6 +2216,10 @@ apiRouter.all('/razorpay/callback', async (req: express.Request, res: express.Re
         payload: JSON.stringify({ razorpayOrderId, razorpayPaymentId, via: 'callback' })
       }).catch(() => {});
       invalidateBootstrapCache();
+      const finalOrder = confirmedOrder || order;
+      if (finalOrder) {
+        notifyOrderConfirmed(finalOrder).catch(err => console.warn('[WhatsApp Razorpay Callback Error]:', err?.message));
+      }
 
       const html = `<!DOCTYPE html>
 <html>
@@ -2371,6 +2394,9 @@ apiRouter.post('/razorpay/webhook', async (req, res) => {
           payload: JSON.stringify(req.body)
         }).catch(() => {});
         console.log(`[Razorpay Webhook] Order ${orderId} status preserved as ${webhookStatus} (${event})`);
+        if (existingOrder) {
+          notifyOrderConfirmed({ ...existingOrder, orderStatus: webhookStatus }).catch(err => console.warn('[WhatsApp Razorpay Webhook Error]:', err?.message));
+        }
       }
     }
 

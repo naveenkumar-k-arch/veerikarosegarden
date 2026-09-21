@@ -718,3 +718,50 @@ export function getCartItemPlantCount(item: any): number {
 
   return 3 * qty; // Safe bundle fallback (never 1!)
 }
+
+/**
+ * Robust check to determine if an entity is a combo bundle product
+ */
+export const isComboProduct = (p: any): boolean => {
+  if (!p) return false;
+  const id = String(p.id || '').toLowerCase();
+  const sku = String(p.sku || '').toLowerCase();
+  const catId = String(p.categoryId || '').toLowerCase();
+  const catName = String(p.categoryName || '').toLowerCase();
+  const tags = Array.isArray(p.tags) ? p.tags.map((t: any) => String(t || '').toLowerCase()) : [];
+
+  return (
+    id.startsWith('combo-') ||
+    id.startsWith('vrg-combo-') ||
+    sku.startsWith('cmb-') ||
+    sku.startsWith('vrg-combo') ||
+    catId === 'cat-combos' ||
+    catId === 'combos' ||
+    catId === 'offers' ||
+    catName.includes('combo') ||
+    catName.includes('offer') ||
+    catName.includes('சேர்க்கை') ||
+    tags.includes('combo') ||
+    tags.includes('combos') ||
+    tags.includes('bundle') ||
+    tags.includes('combos & offers') ||
+    tags.includes('offers') ||
+    p.isCombo === true
+  );
+};
+
+/**
+ * Robust check to determine if a category target represents the Combos & Offers category
+ */
+export const isComboCategory = (catTarget?: string): boolean => {
+  if (!catTarget) return false;
+  const target = String(catTarget).toLowerCase().trim();
+  return (
+    target === 'cat-combos' ||
+    target === 'combos' ||
+    target === 'offers' ||
+    target.includes('combo') ||
+    target.includes('offer') ||
+    target.includes('சேர்க்கை')
+  );
+};

@@ -240,7 +240,17 @@ const DEFAULT_SETTINGS: SiteSettings = {
   phonepeMerchantId: process.env.PHONEPE_MERCHANT_ID || '',
   phonepeSaltKey: process.env.PHONEPE_SALT_KEY || '',
   phonepeSaltIndex: String(process.env.PHONEPE_SALT_INDEX || '1'),
-  phonepeEnv: (process.env.PHONEPE_ENV as 'SANDBOX' | 'PRODUCTION') || 'PRODUCTION'
+  phonepeEnv: (process.env.PHONEPE_ENV as 'SANDBOX' | 'PRODUCTION') || 'PRODUCTION',
+  metaWaPhoneNumberId: process.env.META_WA_PHONE_NUMBER_ID || '',
+  metaWaAccessToken: process.env.META_WA_ACCESS_TOKEN || '',
+  metaWaBusinessAccountId: process.env.META_WA_BUSINESS_ACCOUNT_ID || '',
+  waAutoSendConfirmed: true,
+  waAutoSendPacking: true,
+  waAutoSendDispatched: true,
+  waAutoSendDelivered: true,
+  waProvider: 'AUTO',
+  metaWaTemplateName: process.env.META_WA_TEMPLATE_NAME || 'order_confirmation',
+  metaWaVerifyToken: process.env.META_WA_VERIFY_TOKEN || 'vrg_meta_wa_secret_2026'
 };
 
 const DEFAULT_ORDERS: Order[] = loadDiskOrders();
@@ -273,6 +283,16 @@ interface CustomMetaSettings {
   qrInstructions?: string;
   razorpayKeyId?: string;
   razorpayKeySecret?: string;
+  metaWaPhoneNumberId?: string;
+  metaWaAccessToken?: string;
+  metaWaBusinessAccountId?: string;
+  waAutoSendConfirmed?: boolean;
+  waAutoSendPacking?: boolean;
+  waAutoSendDispatched?: boolean;
+  waAutoSendDelivered?: boolean;
+  waProvider?: 'AUTO' | 'META_CLOUD' | 'LINKED_DEVICE';
+  metaWaTemplateName?: string;
+  metaWaVerifyToken?: string;
 }
 
 function extractMetaFromWorkingHours(rawWorkingHours?: string): { workingHours: string; meta: CustomMetaSettings } {
@@ -2486,7 +2506,17 @@ class Store {
         upiName: meta.upiName ?? 'Veerika Rose Garden Nursery',
         qrCodeImageUrl: meta.qrCodeImageUrl ?? '/nursery-qr.svg',
         razorpayKeyId: (meta.razorpayKeyId && meta.razorpayKeyId.trim()) ? meta.razorpayKeyId.trim() : ((s as any).razorpayKeyId || process.env.RAZORPAY_KEY_ID || DEFAULT_SETTINGS.razorpayKeyId || ''),
-        razorpayKeySecret: (meta.razorpayKeySecret && meta.razorpayKeySecret.trim()) ? meta.razorpayKeySecret.trim() : ((s as any).razorpayKeySecret || process.env.RAZORPAY_KEY_SECRET || DEFAULT_SETTINGS.razorpayKeySecret || '')
+        razorpayKeySecret: (meta.razorpayKeySecret && meta.razorpayKeySecret.trim()) ? meta.razorpayKeySecret.trim() : ((s as any).razorpayKeySecret || process.env.RAZORPAY_KEY_SECRET || DEFAULT_SETTINGS.razorpayKeySecret || ''),
+        metaWaPhoneNumberId: meta.metaWaPhoneNumberId !== undefined ? meta.metaWaPhoneNumberId : (process.env.META_WA_PHONE_NUMBER_ID || DEFAULT_SETTINGS.metaWaPhoneNumberId || ''),
+        metaWaAccessToken: meta.metaWaAccessToken !== undefined ? meta.metaWaAccessToken : (process.env.META_WA_ACCESS_TOKEN || DEFAULT_SETTINGS.metaWaAccessToken || ''),
+        metaWaBusinessAccountId: meta.metaWaBusinessAccountId !== undefined ? meta.metaWaBusinessAccountId : (process.env.META_WA_BUSINESS_ACCOUNT_ID || DEFAULT_SETTINGS.metaWaBusinessAccountId || ''),
+        waAutoSendConfirmed: meta.waAutoSendConfirmed !== undefined ? meta.waAutoSendConfirmed : (DEFAULT_SETTINGS.waAutoSendConfirmed ?? true),
+        waAutoSendPacking: meta.waAutoSendPacking !== undefined ? meta.waAutoSendPacking : (DEFAULT_SETTINGS.waAutoSendPacking ?? true),
+        waAutoSendDispatched: meta.waAutoSendDispatched !== undefined ? meta.waAutoSendDispatched : (DEFAULT_SETTINGS.waAutoSendDispatched ?? true),
+        waAutoSendDelivered: meta.waAutoSendDelivered !== undefined ? meta.waAutoSendDelivered : (DEFAULT_SETTINGS.waAutoSendDelivered ?? true),
+        waProvider: meta.waProvider || DEFAULT_SETTINGS.waProvider || 'AUTO',
+        metaWaTemplateName: meta.metaWaTemplateName || DEFAULT_SETTINGS.metaWaTemplateName || 'order_confirmation',
+        metaWaVerifyToken: meta.metaWaVerifyToken || DEFAULT_SETTINGS.metaWaVerifyToken || 'vrg_meta_wa_secret_2026'
       };
 
       (globalThis as any)._globalMemorySettings = merged;
@@ -2527,7 +2557,17 @@ class Store {
           qrCodeImageUrl: merged.qrCodeImageUrl,
           qrInstructions: merged.qrInstructions,
           razorpayKeyId: merged.razorpayKeyId,
-          razorpayKeySecret: merged.razorpayKeySecret
+          razorpayKeySecret: merged.razorpayKeySecret,
+          metaWaPhoneNumberId: merged.metaWaPhoneNumberId,
+          metaWaAccessToken: merged.metaWaAccessToken,
+          metaWaBusinessAccountId: merged.metaWaBusinessAccountId,
+          waAutoSendConfirmed: merged.waAutoSendConfirmed,
+          waAutoSendPacking: merged.waAutoSendPacking,
+          waAutoSendDispatched: merged.waAutoSendDispatched,
+          waAutoSendDelivered: merged.waAutoSendDelivered,
+          waProvider: merged.waProvider,
+          metaWaTemplateName: merged.metaWaTemplateName,
+          metaWaVerifyToken: merged.metaWaVerifyToken
         };
 
         const packedWorkingHours = packMetaIntoWorkingHours(merged.workingHours, metaToStore);
@@ -2918,6 +2958,14 @@ class Store {
             let unpackedIsWhatsApp = false;
             let unpackedOrderNote = '';
 
+            let unpackedCustomerAddressConfirmed: boolean | undefined = undefined;
+            let unpackedCustomerAddressConfirmedAt: string | undefined = undefined;
+            let unpackedCustomerAddressChangeRequested: boolean | undefined = undefined;
+            let unpackedCustomerWhatsAppReply: string | undefined = undefined;
+            let unpackedCustomerWhatsAppReplyAt: string | undefined = undefined;
+            let unpackedOwnerVerified: boolean | undefined = undefined;
+            let unpackedOwnerVerifiedAt: string | undefined = undefined;
+
             if (notesStr.startsWith('{') && notesStr.endsWith('}')) {
               try {
                 const pNotes = JSON.parse(notesStr);
@@ -2937,6 +2985,13 @@ class Store {
                 if (pNotes.courierName) parsedCourierFromNotes = pNotes.courierName;
                 if (pNotes.courierDistrict) unpackedCourierDistrict = pNotes.courierDistrict;
                 if (pNotes.courierBranch) unpackedCourierBranch = pNotes.courierBranch;
+                if (pNotes.customerAddressConfirmed !== undefined) unpackedCustomerAddressConfirmed = pNotes.customerAddressConfirmed;
+                if (pNotes.customerAddressConfirmedAt) unpackedCustomerAddressConfirmedAt = pNotes.customerAddressConfirmedAt;
+                if (pNotes.customerAddressChangeRequested !== undefined) unpackedCustomerAddressChangeRequested = pNotes.customerAddressChangeRequested;
+                if (pNotes.customerWhatsAppReply) unpackedCustomerWhatsAppReply = pNotes.customerWhatsAppReply;
+                if (pNotes.customerWhatsAppReplyAt) unpackedCustomerWhatsAppReplyAt = pNotes.customerWhatsAppReplyAt;
+                if (pNotes.ownerVerified !== undefined) unpackedOwnerVerified = pNotes.ownerVerified;
+                if (pNotes.ownerVerifiedAt) unpackedOwnerVerifiedAt = pNotes.ownerVerifiedAt;
                 if (pNotes.itemsSnapshot && Array.isArray(pNotes.itemsSnapshot) && pNotes.itemsSnapshot.length > 0) {
                   unpackedItemsSnapshot = pNotes.itemsSnapshot;
                 }
@@ -3056,6 +3111,13 @@ class Store {
               packingCharge: unpackedPackingCharge || 0,
               courierDistrict: unpackedCourierDistrict,
               courierBranch: unpackedCourierBranch,
+              customerAddressConfirmed: unpackedCustomerAddressConfirmed,
+              customerAddressConfirmedAt: unpackedCustomerAddressConfirmedAt,
+              customerAddressChangeRequested: unpackedCustomerAddressChangeRequested,
+              customerWhatsAppReply: unpackedCustomerWhatsAppReply,
+              customerWhatsAppReplyAt: unpackedCustomerWhatsAppReplyAt,
+              ownerVerified: unpackedOwnerVerified,
+              ownerVerifiedAt: unpackedOwnerVerifiedAt,
               createdAt: o.createdAt.toISOString(),
               updatedAt: o.updatedAt.toISOString()
             };
@@ -3826,6 +3888,13 @@ class Store {
       packingCharge: updates.packingCharge !== undefined ? updates.packingCharge : existing.packingCharge,
       isLabelPrinted: updates.isLabelPrinted !== undefined ? Boolean(updates.isLabelPrinted) : existing.isLabelPrinted,
       labelPrintedAt: updates.labelPrintedAt !== undefined ? updates.labelPrintedAt : existing.labelPrintedAt,
+      customerAddressConfirmed: updates.customerAddressConfirmed !== undefined ? Boolean(updates.customerAddressConfirmed) : existing.customerAddressConfirmed,
+      customerAddressConfirmedAt: updates.customerAddressConfirmedAt !== undefined ? updates.customerAddressConfirmedAt : existing.customerAddressConfirmedAt,
+      customerAddressChangeRequested: updates.customerAddressChangeRequested !== undefined ? Boolean(updates.customerAddressChangeRequested) : existing.customerAddressChangeRequested,
+      customerWhatsAppReply: updates.customerWhatsAppReply !== undefined ? updates.customerWhatsAppReply : existing.customerWhatsAppReply,
+      customerWhatsAppReplyAt: updates.customerWhatsAppReplyAt !== undefined ? updates.customerWhatsAppReplyAt : existing.customerWhatsAppReplyAt,
+      ownerVerified: updates.ownerVerified !== undefined ? Boolean(updates.ownerVerified) : existing.ownerVerified,
+      ownerVerifiedAt: updates.ownerVerifiedAt !== undefined ? updates.ownerVerifiedAt : existing.ownerVerifiedAt,
       updatedAt: new Date().toISOString()
     };
 
@@ -3866,7 +3935,14 @@ class Store {
             courierName: updatedOrder.courierName || null,
             courierDistrict: updatedOrder.courierDistrict || null,
             courierBranch: updatedOrder.courierBranch || null,
-            itemsSnapshot: updatedItems
+            itemsSnapshot: updatedItems,
+            customerAddressConfirmed: updatedOrder.customerAddressConfirmed,
+            customerAddressConfirmedAt: updatedOrder.customerAddressConfirmedAt,
+            customerAddressChangeRequested: updatedOrder.customerAddressChangeRequested,
+            customerWhatsAppReply: updatedOrder.customerWhatsAppReply,
+            customerWhatsAppReplyAt: updatedOrder.customerWhatsAppReplyAt,
+            ownerVerified: updatedOrder.ownerVerified,
+            ownerVerifiedAt: updatedOrder.ownerVerifiedAt
           });
 
           await prisma.order.updateMany({
