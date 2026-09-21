@@ -112,27 +112,33 @@ async function sendViaMetaCloudApi(
     const url = `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`;
 
     // 1. Try Meta Template Message if templateName is available
-    const templateName = templatePayloadDetails?.templateName || cfg.metaWaTemplateName;
+    const templateName = templatePayloadDetails?.templateName || (templatePayloadDetails?.params?.length ? cfg.metaWaTemplateName : undefined);
     const params = templatePayloadDetails?.params;
 
-    if (templateName && params && params.length > 0) {
+    if (templateName) {
       try {
-        const templatePayload = {
+        const components: any[] = [];
+        if (params && params.length > 0) {
+          components.push({
+            type: 'body',
+            parameters: params.map(val => ({ type: 'text', text: String(val || '') }))
+          });
+        }
+
+        const templatePayload: any = {
           messaging_product: 'whatsapp',
           recipient_type: 'individual',
           to: to,
           type: 'template',
           template: {
             name: templateName,
-            language: { code: templatePayloadDetails?.templateLanguage || 'en' },
-            components: [
-              {
-                type: 'body',
-                parameters: params.map(val => ({ type: 'text', text: String(val || '') }))
-              }
-            ]
+            language: { code: templatePayloadDetails?.templateLanguage || 'en_US' }
           }
         };
+
+        if (components.length > 0) {
+          templatePayload.template.components = components;
+        }
 
         const resp = await fetch(url, {
           method: 'POST',
@@ -223,7 +229,12 @@ async function sendUnifiedWhatsApp(
   messageText: string,
   orderId?: string,
   stage: string = 'custom',
-  orderObj?: any
+  orderObj?: any,
+  customTemplatePayload?: {
+    templateName?: string;
+    templateLanguage?: string;
+    params?: string[];
+  }
 ): Promise<{
   success: boolean;
   provider: string;
@@ -246,13 +257,12 @@ async function sendUnifiedWhatsApp(
   const isMetaConfigured = Boolean(cfg.metaPhoneNumberId && cfg.metaAccessToken);
   const isDeviceConnected = sessionInfo.status === 'CONNECTED';
 
-  // Prepare template parameters if order object exists
-  const templateParams = orderObj ? extractOrderTemplateParams(orderObj) : undefined;
-  const templatePayloadDetails = templateParams ? {
+  // Prepare template parameters
+  const templatePayloadDetails = customTemplatePayload || (orderObj ? {
     templateName: cfg.metaWaTemplateName || 'order_confirmation',
     templateLanguage: 'en',
-    params: templateParams
-  } : undefined;
+    params: extractOrderTemplateParams(orderObj)
+  } : undefined);
 
   // Dispatch Strategy
   if (cfg.provider === 'META_CLOUD') {
@@ -403,6 +413,27 @@ whatsappRouter.post('/webhook', async (req: Request, res: Response) => {
     const changes = entry?.changes?.[0];
     const value = changes?.value;
     const messages = value?.messages;
+    const statuses = value?.statuses;
+
+    // Process delivery receipts & status callbacks from Meta
+    if (statuses && Array.isArray(statuses)) {
+      for (const st of statuses) {
+        const msgId = st.id;
+        const status = st.status; // 'sent' | 'delivered' | 'read' | 'failed'
+        const errObj = st.errors?.[0];
+        const errorMsg = errObj ? `(#${errObj.code}) ${errObj.title || ''}: ${errObj.message || ''}`.trim() : undefined;
+
+        console.log(`[Meta WhatsApp Delivery Receipt] ID: ${msgId} -> ${String(status).toUpperCase()}${errorMsg ? ` [Error: ${errorMsg}]` : ''}`);
+
+        const matchingLog = logs.find(l => l.messageId === msgId);
+        if (matchingLog) {
+          matchingLog.status = status === 'failed' ? 'FAILED' : 'SUCCESS';
+          if (errorMsg) {
+            matchingLog.error = errorMsg;
+          }
+        }
+      }
+    }
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return;
@@ -577,18 +608,25 @@ whatsappRouter.post('/settings', async (req: Request, res: Response) => {
  */
 whatsappRouter.post('/send', async (req: Request, res: Response) => {
   try {
-    const { phone, message, orderId, stage = 'custom', templateName, params } = req.body;
+    const { phone, message, orderId, stage = 'custom', templateName, templateLanguage, params } = req.body;
     if (!phone || !message) {
       return res.status(400).json({ success: false, error: 'Recipient phone and message are required' });
     }
 
     const cfg = await getEffectiveConfig();
+    const customTemplate = templateName ? {
+      templateName,
+      templateLanguage: templateLanguage || 'en_US',
+      params: Array.isArray(params) ? params : undefined
+    } : undefined;
+
     const result = await sendUnifiedWhatsApp(
       phone,
       message,
       orderId,
       stage,
-      params ? { items: [{ name: params[3] }], customerName: params[0], id: params[1], shippingAddress: { fullAddressString: params[2] } } : undefined
+      params && !templateName ? { items: [{ name: params[3] }], customerName: params[0], id: params[1], shippingAddress: { fullAddressString: params[2] } } : undefined,
+      customTemplate
     );
 
     res.json({
