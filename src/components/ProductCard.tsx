@@ -35,7 +35,7 @@ export const CompactProductCard: React.FC<CompactProductCardProps> = ({
     ? Math.round(((product.mrp - product.sellingPrice) / product.mrp) * 100) 
     : 0;
 
-  const defaultImg = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=400&q=80';
+  const defaultImg = '/products/vrg/7-days-red-rose.webp';
   const rawImg = (Array.isArray(product.images) && product.images[0]) || (product as any).imageUrl || (product as any).image;
   const webpImg = rawImg && typeof rawImg === 'string' && (rawImg.startsWith('/products/') || rawImg.startsWith('/categories/'))
     ? rawImg.replace(/\.(png|jpg|jpeg)$/i, '.webp')
@@ -312,7 +312,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     ? Math.round(((product.mrp - product.sellingPrice) / product.mrp) * 100) 
     : 0;
 
-  const defaultImg = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80';
+  const defaultImg = '/products/vrg/7-days-red-rose.webp';
   const rawImg = (Array.isArray(product.images) && product.images[0]) || (product as any).imageUrl || (product as any).image;
   const webpImg = rawImg && typeof rawImg === 'string' && (rawImg.startsWith('/products/') || rawImg.startsWith('/categories/'))
     ? rawImg.replace(/\.(png|jpg|jpeg)$/i, '.webp')

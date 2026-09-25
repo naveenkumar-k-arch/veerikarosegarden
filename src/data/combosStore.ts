@@ -569,7 +569,7 @@ export const diskCombosData = [
     "originalPrice": 400.0,
     "comboPrice": 200.0,
     "discountPercent": 50,
-    "imageUrl": "/products/vrg/pacha-mullai.webp",
+    "imageUrl": "/products/vrg/combo-malli-4-variety.webp",
     "active": true,
     "order": 10,
     "freeDelivery": true,
@@ -584,9 +584,9 @@ export const diskCombosData = [
         "englishName": "Pacha Mullai (Green Bud Jasmine)",
         "tamilName": "பச்சை முல்லை",
         "images": [
-          "/products/vrg/pacha-mullai.webp"
+          "/products/vrg/pachai-mullai-jasmine.webp"
         ],
-        "image": "/products/vrg/pacha-mullai.webp",
+        "image": "/products/vrg/pachai-mullai-jasmine.webp",
         "sellingPrice": 60,
         "mrp": 100
       },
@@ -597,9 +597,9 @@ export const diskCombosData = [
         "englishName": "Jathu Malli (Jaathi Malli Jasmine)",
         "tamilName": "ஜாதி மல்லி",
         "images": [
-          "/products/vrg/jathu-malli.webp"
+          "/products/vrg/jadhi-malli-spanish-jasmine.webp"
         ],
-        "image": "/products/vrg/jathu-malli.webp",
+        "image": "/products/vrg/jadhi-malli-spanish-jasmine.webp",
         "sellingPrice": 60,
         "mrp": 100
       },
@@ -610,9 +610,9 @@ export const diskCombosData = [
         "englishName": "Colour Kakatan (Coloured Jasmine)",
         "tamilName": "கலர் காகிதன்",
         "images": [
-          "/products/vrg/colour-kakatan.webp"
+          "/products/vrg/colour-kakatan-pink-star.webp"
         ],
-        "image": "/products/vrg/colour-kakatan.webp",
+        "image": "/products/vrg/colour-kakatan-pink-star.webp",
         "sellingPrice": 60,
         "mrp": 100
       },
@@ -623,9 +623,9 @@ export const diskCombosData = [
         "englishName": "Pavallamalli (Coral Jasmine / Night Jasmine)",
         "tamilName": "பவளமல்லி",
         "images": [
-          "/products/vrg/pavallamalli.webp"
+          "/products/vrg/pavazha-malli-coral-jasmine.webp"
         ],
-        "image": "/products/vrg/pavallamalli.webp",
+        "image": "/products/vrg/pavazha-malli-coral-jasmine.webp",
         "sellingPrice": 60,
         "mrp": 100
       }

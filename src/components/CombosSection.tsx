@@ -286,7 +286,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                           {combo.products.slice(0, 4).map((p, idx) => (
                             <img
                               key={p.id || idx}
-                              src={p.images?.[0] || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80'}
+                              src={p.images?.[0] || '/products/vrg/7-days-red-rose.webp'}
                               alt={p.name}
                               className="w-full h-full object-cover"
                             />
@@ -586,7 +586,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                           </span>
                         )}
                         <img
-                          src={p.images?.[0] || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=200&q=80'}
+                          src={p.images?.[0] || '/products/vrg/7-days-red-rose.webp'}
                           alt={p.name}
                           className="w-14 h-14 rounded-xl object-cover border border-slate-200 shrink-0 group-hover:scale-105 transition-transform"
                         />

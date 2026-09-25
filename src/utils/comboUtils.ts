@@ -524,8 +524,8 @@ export const resolveComboImage = (combo: any): string => {
   if (title.includes('apple red') || title.includes('calcutta')) {
     return '/products/vrg/apple-red-rose.png';
   }
-  if (title.includes('mysore malli') || title.includes('malli')) {
-    return '/products/vrg/7-days-red-rose.png';
+  if (title.includes('mysore malli') || title.includes('malli') || title.includes('மல்லி') || title.includes('jasmine')) {
+    return '/products/vrg/combo-malli-4-variety.webp';
   }
   if (title.includes('birthday party')) {
     return '/products/vrg/pink-fairy-polyantha-rose.png';
