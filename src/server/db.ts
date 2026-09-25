@@ -2953,7 +2953,8 @@ class Store {
     if (prisma) {
       try {
         const ORDER_QUERY_TAKE_USER  = 200; // per-customer history cap
-        const ORDER_QUERY_TAKE_ADMIN = take ? Math.min(take, 500) : 500; // admin/bootstrap cap
+        // FIX: Raised from 500→2000 to prevent cutoff when order volume grows past 500
+        const ORDER_QUERY_TAKE_ADMIN = take ? Math.min(take, 2000) : 2000; // admin/bootstrap cap
         const items = await prisma.order.findMany({
           where: userId ? { userId } : {},
           include: { items: true },
@@ -3220,16 +3221,21 @@ class Store {
       }
     });
 
-    // 3. Fallback diskOrders & fsOrders ONLY when DB has 0 orders, or for unique non-colliding legacy orders
-    if (dbOrders.length === 0) {
-      [...diskOrders, ...fsOrders, ...defOrders].forEach(o => {
-        if (o && o.id && !deletedOrderIds.has(o.id) && !deletedOrderIds.has(o.merchantTransactionId || '')) {
-          if (!uniqueMap.has(o.id)) {
-            uniqueMap.set(o.id, o);
-          }
+    // 3. FIX: ALWAYS merge disk/memory/Firestore orders as supplemental sources.
+    //    This catches orders that were saved in-memory or to disk during Prisma errors
+    //    (previously these were lost if dbOrders.length > 0, causing missing recent orders).
+    const supplementalSources = dbOrders.length === 0
+      ? [...diskOrders, ...fsOrders, ...defOrders]  // Full fallback when DB is empty
+      : [...diskOrders, ...fsOrders];                // Supplemental merge when DB has data
+
+    supplementalSources.forEach(o => {
+      if (o && o.id && !deletedOrderIds.has(o.id) && !deletedOrderIds.has(o.merchantTransactionId || '')) {
+        if (!uniqueMap.has(o.id)) {
+          // Only add orders NOT already in DB result (preserves DB as authoritative source)
+          uniqueMap.set(o.id, o);
         }
-      });
-    }
+      }
+    });
 
     const result = Array.from(uniqueMap.values()).filter(o => {
       if (!o || !o.id || deletedOrderIds.has(o.id) || deletedOrderIds.has(o.merchantTransactionId || '') || deletedOrderIds.has(o.orderNumber || '')) {
@@ -3238,7 +3244,8 @@ class Store {
       return isValidAdminOrder(o);
     });
     if (!userId && !take && !skip) {
-      this.ordersCache = { data: result, expiresAt: Date.now() + 60000 };
+      // FIX: Reduced TTL from 60s to 30s to ensure admin panel sees fresh orders faster
+      this.ordersCache = { data: result, expiresAt: Date.now() + 30000 };
     }
     return take ? result.slice(0, take) : result;
   }
