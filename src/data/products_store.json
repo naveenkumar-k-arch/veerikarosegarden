@@ -1,5 +1,51 @@
 [
   {
+    "id": "combo-miniature-pearl-orange-button-panneer",
+    "sku": "CMB-MINI-PEARL-BTN",
+    "name": "🌹✨ MINIATURE COMBO – JUST ₹220/-! ✨🌹",
+    "englishName": "Miniature Combo – Pearl Orange Rose + Button Panneer Rose (Light Pink)",
+    "tamilName": "மினியேச்சர் கொம்போ – பேர்ல் ஆரஞ்சு ரோஜா + பட்டன் பன்னீர் ரோஜா",
+    "scientificName": "",
+    "categoryId": "cat-combos",
+    "categoryName": "Combos & Offers",
+    "description": "🌹✨ MINIATURE COMBO! 🧡 Pearl Orange Rose + 💗 Button Panneer Rose (Light Pink) — 2 beautiful miniature rose plants for just ₹220! 🌸 Beautiful Blooms • 🌿 Easy Maintenance • 🪴 Perfect for Home Garden. LIMITED STOCK!",
+    "mrp": 300,
+    "sellingPrice": 220,
+    "discount": 27,
+    "image": "/products/vrg/combo-miniature-pearl-orange-button-panneer.jpg",
+    "imageUrl": "/products/vrg/combo-miniature-pearl-orange-button-panneer.jpg",
+    "images": [
+      "/products/vrg/combo-miniature-pearl-orange-button-panneer.jpg"
+    ],
+    "rating": 4.9,
+    "reviewCount": 0,
+    "stock": 99,
+    "plantHeight": "1 - 1.5 Feet",
+    "potSize": "6 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Daily",
+      "sunlight": "Full Sun",
+      "fertilizer": "Organic compost",
+      "soil": "Red soil"
+    },
+    "featured": true,
+    "bestSeller": false,
+    "trending": true,
+    "tags": [
+      "combos & offers",
+      "combo",
+      "miniature rose",
+      "rose",
+      "limited stock"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-09-25T14:02:28.749Z",
+    "updatedAt": "2026-09-25T14:02:28.749Z"
+  },
+  {
     "id": "combo-orchid-rose-sweet-fragrance",
     "sku": "CMB-ORCHID-R",
     "name": "🌿 SWEET FRAGRANCE ORCHID ROSE SPECIAL OFFER",

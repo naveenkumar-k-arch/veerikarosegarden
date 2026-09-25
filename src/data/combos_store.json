@@ -630,5 +630,53 @@
         "mrp": 100
       }
     ]
+  },
+  {
+    "id": "combo-miniature-pearl-orange-button-panneer",
+    "title": "🌹✨ MINIATURE COMBO – JUST ₹220/-! ✨🌹",
+    "subtitle": "🧡 Pearl Orange Rose + 💗 Button Panneer Rose – Light Pink",
+    "badge": "2-IN-1 MINIATURE SPECIAL",
+    "productIds": [
+      "vrg-pearl-orange-miniature-rose",
+      "vrg-button-panneer-rose-light-pink"
+    ],
+    "originalPrice": 300.0,
+    "comboPrice": 220.0,
+    "discountPercent": 27,
+    "imageUrl": "/products/vrg/combo-miniature-pearl-orange-button-panneer.jpg",
+    "active": true,
+    "order": 11,
+    "freeDelivery": true,
+    "freePacking": true,
+    "description": "🌹✨ MINIATURE COMBO! 🧡 Pearl Orange Rose + 💗 Button Panneer Rose (Light Pink) — 2 beautiful miniature rose plants for just ₹220! 🌸 Beautiful Blooms • 🌿 Easy Maintenance • 🪴 Perfect for Home Garden. LIMITED STOCK!",
+    "reelUrl": "https://www.instagram.com/reel/DdseKcLznyH/",
+    "products": [
+      {
+        "id": "vrg-pearl-orange-miniature-rose",
+        "sku": "VRG-MINI-061",
+        "name": "Pearl Orange Miniature Rose",
+        "englishName": "Pearl Orange Miniature Rose",
+        "tamilName": "பேர்ல் ஆரஞ்சு மினியேச்சர் ரோஜா",
+        "images": [
+          "/products/vrg/pearl-orange-miniature-rose.webp"
+        ],
+        "image": "/products/vrg/pearl-orange-miniature-rose.webp",
+        "sellingPrice": 110,
+        "mrp": 150
+      },
+      {
+        "id": "vrg-button-panneer-rose-light-pink",
+        "sku": "VRG-MINI-062",
+        "name": "Button Panneer Rose (Light Pink)",
+        "englishName": "Button Panneer Rose (Light Pink)",
+        "tamilName": "பட்டன் பன்னீர் ரோஜா (இளஞ்சிவப்பு)",
+        "images": [
+          "/products/vrg/button-pink-rose.webp"
+        ],
+        "image": "/products/vrg/button-pink-rose.webp",
+        "sellingPrice": 110,
+        "mrp": 150
+      }
+    ]
   }
 ]
