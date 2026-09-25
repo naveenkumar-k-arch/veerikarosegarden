@@ -506,5 +506,129 @@
         "mrp": 120
       }
     ]
+  },
+  {
+    "id": "combo-pink-rose-thanjavur-fairy",
+    "title": "🌸💗 PINK COMBO – JUST ₹229/-! 💗🌸",
+    "subtitle": "🌹 Thanjavur Panneer Rose + 🌷 Fairy Rose — Fragrant Daily Blooming Roses!",
+    "badge": "2-IN-1 PINK SPECIAL",
+    "productIds": [
+      "vrg-thanjavur-panneer-rose",
+      "vrg-pink-fairy-polyantha-rose"
+    ],
+    "originalPrice": 350.0,
+    "comboPrice": 229.0,
+    "discountPercent": 35,
+    "imageUrl": "/products/vrg/pink-fairy-polyantha-rose.png",
+    "active": true,
+    "order": 9,
+    "freeDelivery": true,
+    "freePacking": true,
+    "description": "🌸💗 PINK COMBO! 🌹 Thanjavur Panneer Rose + 🌷 Fairy Rose — நல்ல fragrance, daily regular blooms, low maintenance. 2 Rose Plants for just ₹229 with FREE SHIPPING!",
+    "reelUrl": "https://www.instagram.com/reel/Ddf4akiRRoD/",
+    "products": [
+      {
+        "id": "vrg-thanjavur-panneer-rose",
+        "sku": "VRG-ROSE-121",
+        "name": "Thanjavur Panneer Rose",
+        "englishName": "Thanjavur Panneer Rose",
+        "tamilName": "தஞ்சாவூர் பன்னீர் ரோஜா",
+        "images": [
+          "/products/vrg/naatu-paneer-rose.webp"
+        ],
+        "image": "/products/vrg/naatu-paneer-rose.webp",
+        "sellingPrice": 120,
+        "mrp": 180
+      },
+      {
+        "id": "vrg-pink-fairy-polyantha-rose",
+        "sku": "VRG-RARE-072",
+        "name": "Pink Fairy Rose (Polyantha)",
+        "englishName": "Pink Fairy Rose (Polyantha)",
+        "tamilName": "பிங்க் ஃபேரி ரோஜா",
+        "images": [
+          "/products/vrg/pink-fairy-polyantha-rose.webp"
+        ],
+        "image": "/products/vrg/pink-fairy-polyantha-rose.webp",
+        "sellingPrice": 110,
+        "mrp": 150
+      }
+    ]
+  },
+  {
+    "id": "combo-malli-4-variety",
+    "title": "🌸✨ MALLI COMBO OFFER – 4 BEAUTIFUL VARIETIES! ✨🌸",
+    "subtitle": "💚 Pacha Mullai + 🤍 Jathu Malli + 🌺 Colour Kakatan + 🌼 Pavallamalli — 4 Fragrant Jasmine Plants!",
+    "badge": "4-IN-1 MALLI COMBO",
+    "productIds": [
+      "vrg-pacha-mullai",
+      "vrg-jathu-malli",
+      "vrg-colour-kakatan",
+      "vrg-pavallamalli"
+    ],
+    "originalPrice": 400.0,
+    "comboPrice": 200.0,
+    "discountPercent": 50,
+    "imageUrl": "/products/vrg/pacha-mullai.webp",
+    "active": true,
+    "order": 10,
+    "freeDelivery": true,
+    "freePacking": true,
+    "description": "🌸✨ MALLI COMBO OFFER! உங்கள் வீட்டுத் தோட்டத்தில் மணம் வீசும் மல்லிகை செடிகள்! 💚 Pacha Mullai + 🤍 Jathu Malli + 🌺 Colour Kakatan + 🌼 Pavallamalli — 4 Plants for just ₹200 with FREE SHIPPING!",
+    "reelUrl": "https://www.instagram.com/reel/DdbUChhTnDY/",
+    "products": [
+      {
+        "id": "vrg-pacha-mullai",
+        "sku": "VRG-JASMN-001",
+        "name": "Pacha Mullai (Green Bud Jasmine)",
+        "englishName": "Pacha Mullai (Green Bud Jasmine)",
+        "tamilName": "பச்சை முல்லை",
+        "images": [
+          "/products/vrg/pacha-mullai.webp"
+        ],
+        "image": "/products/vrg/pacha-mullai.webp",
+        "sellingPrice": 60,
+        "mrp": 100
+      },
+      {
+        "id": "vrg-jathu-malli",
+        "sku": "VRG-JASMN-002",
+        "name": "Jathu Malli (Jaathi Malli Jasmine)",
+        "englishName": "Jathu Malli (Jaathi Malli Jasmine)",
+        "tamilName": "ஜாதி மல்லி",
+        "images": [
+          "/products/vrg/jathu-malli.webp"
+        ],
+        "image": "/products/vrg/jathu-malli.webp",
+        "sellingPrice": 60,
+        "mrp": 100
+      },
+      {
+        "id": "vrg-colour-kakatan",
+        "sku": "VRG-JASMN-003",
+        "name": "Colour Kakatan (Coloured Jasmine)",
+        "englishName": "Colour Kakatan (Coloured Jasmine)",
+        "tamilName": "கலர் காகிதன்",
+        "images": [
+          "/products/vrg/colour-kakatan.webp"
+        ],
+        "image": "/products/vrg/colour-kakatan.webp",
+        "sellingPrice": 60,
+        "mrp": 100
+      },
+      {
+        "id": "vrg-pavallamalli",
+        "sku": "VRG-JASMN-004",
+        "name": "Pavallamalli (Coral Jasmine / Night Jasmine)",
+        "englishName": "Pavallamalli (Coral Jasmine / Night Jasmine)",
+        "tamilName": "பவளமல்லி",
+        "images": [
+          "/products/vrg/pavallamalli.webp"
+        ],
+        "image": "/products/vrg/pavallamalli.webp",
+        "sellingPrice": 60,
+        "mrp": 100
+      }
+    ]
   }
 ]
