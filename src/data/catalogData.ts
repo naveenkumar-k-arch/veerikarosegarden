@@ -2493,14 +2493,15 @@ export const INITIAL_PRODUCTS: Product[] = [
     "mrp": 60,
     "sellingPrice": 30,
     "discount": 50,
-    "stock": 0,
+    "stock": 25,
     "rating": 5,
     "reviewCount": 18,
     "images": [
+      "/products/vrg/marikolunthu-davana.webp",
       "/products/vrg/marikolunthu-davana.png"
     ],
-    "image": "/products/vrg/marikolunthu-davana.png",
-    "imageUrl": "/products/vrg/marikolunthu-davana.png",
+    "image": "/products/vrg/marikolunthu-davana.webp",
+    "imageUrl": "/products/vrg/marikolunthu-davana.webp",
     "plantHeight": "1-2 Feet",
     "potSize": "8 Inch Bag",
     "sunlight": "Full Sun",
@@ -2522,6 +2523,52 @@ export const INITIAL_PRODUCTS: Product[] = [
     "status": "ACTIVE",
     "createdAt": "2026-08-16T12:00:00.000Z",
     "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-marugu-plant",
+    "sku": "VRG-HERB-058",
+    "name": "Marugu (Sweet Marjoram / Origanum majorana)",
+    "englishName": "Marugu Plant (Sweet Marjoram)",
+    "tamilName": "மருகு செடி (Marugu)",
+    "scientificName": "Origanum majorana",
+    "categoryId": "cat-herbals",
+    "categoryName": "Herbal Plants",
+    "description": "Traditional divine sweet-scented Marugu (Sweet Marjoram) herb plant. Known for its soothing sacred fragrance, widely paired with Marikozhunthu for temple garlands, pooja, and aromatic herbal gardens.",
+    "mrp": 60,
+    "sellingPrice": 30,
+    "discount": 50,
+    "stock": 25,
+    "rating": 5,
+    "reviewCount": 16,
+    "images": [
+      "/products/vrg/marugu-plant.webp",
+      "/products/vrg/marugu-plant.jpg"
+    ],
+    "image": "/products/vrg/marugu-plant.webp",
+    "imageUrl": "/products/vrg/marugu-plant.webp",
+    "plantHeight": "0.5 - 1.5 Feet",
+    "potSize": "6 Inch Bag",
+    "sunlight": "Requires 4-6 hours direct sunlight.",
+    "waterRequirement": "Water daily in the morning, avoid over-soaking soil.",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "herbal plants",
+      "marugu plant (sweet marjoram)",
+      "origanum majorana",
+      "marugu"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-09-27T14:30:00.000Z",
+    "updatedAt": "2026-09-27T14:30:00.000Z"
   },
   {
     "id": "vrg-raja-malli-10-layer-jasmine",

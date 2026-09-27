@@ -1,24 +1,74 @@
 [
   {
+    "id": "combo-green-marikozhunthu-marugu",
+    "sku": "CMB-GREEN-MK-MRG",
+    "name": "🌿💚 GREEN COMBO – JUST ₹100/-! 💚🌿",
+    "englishName": "Green Combo – Marikozhunthu (Davana) + Marugu (Sweet Marjoram)",
+    "tamilName": "கிரீன் காம்போ – மரிக்கொழுந்து + மருகு",
+    "scientificName": "",
+    "categoryId": "cat-combos",
+    "categoryName": "Combos & Offers",
+    "description": "🌿💚 GREEN COMBO! 🌱 மரிக்கொழுந்து (Marikozhunthu) + 🌿 மருகு (Marugu) — 2 traditional aromatic sacred herbal plants for just ₹100! 🚚 FREE SHIPPING! 🔥 Limited Stock Only! Fresh live saplings directly from Veerika Rose Garden.",
+    "mrp": 160,
+    "sellingPrice": 100,
+    "discount": 38,
+    "image": "/products/vrg/combo-green-marikozhunthu-marugu.webp",
+    "imageUrl": "/products/vrg/combo-green-marikozhunthu-marugu.webp",
+    "images": [
+      "/products/vrg/combo-green-marikozhunthu-marugu.webp",
+      "/products/vrg/combo-green-marikozhunthu-marugu.jpg"
+    ],
+    "rating": 5.0,
+    "reviewCount": 12,
+    "stock": 50,
+    "plantHeight": "1 - 2 Feet",
+    "potSize": "6-8 Inch Bag",
+    "sunlight": "Requires 4-6 hours direct sunlight.",
+    "waterRequirement": "Water daily in the morning.",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Organic compost every 15 days.",
+      "soil": "Well-draining red soil."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "combos & offers",
+      "combo",
+      "green combo",
+      "marikozhunthu",
+      "marugu",
+      "free shipping",
+      "limited stock"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-09-27T14:30:00.000Z",
+    "updatedAt": "2026-09-27T14:30:00.000Z"
+  },
+  {
     "id": "combo-miniature-pearl-orange-button-panneer",
     "sku": "CMB-MINI-PEARL-BTN",
     "name": "🌹✨ MINIATURE COMBO – JUST ₹220/-! ✨🌹",
     "englishName": "Miniature Combo – Pearl Orange Rose + Button Panneer Rose (Light Pink)",
-    "tamilName": "மினியேச்சர் கொம்போ – பேர்ல் ஆரஞ்சு ரோஜா + பட்டன் பன்னீர் ரோஜா",
+    "tamilName": "மினியேச்சர் காம்போ – பேர்ல் ஆரஞ்சு ரோஜா + பட்டன் பன்னீர் ரோஜா",
     "scientificName": "",
     "categoryId": "cat-combos",
     "categoryName": "Combos & Offers",
-    "description": "🌹✨ MINIATURE COMBO! 🧡 Pearl Orange Rose + 💗 Button Panneer Rose (Light Pink) — 2 beautiful miniature rose plants for just ₹220! 🌸 Beautiful Blooms • 🌿 Easy Maintenance • 🪴 Perfect for Home Garden. LIMITED STOCK!",
+    "description": "🌹✨ MINIATURE COMBO! 🧡 Pearl Orange Rose + 💗 Button Panneer Rose (Light Pink) — 2 beautiful miniature rose plants for just ₹220! 🌸 Beautiful Blooms • 🌿 Easy Maintenance • 🪴 Perfect for Home Garden. LIMITED STOCK! Fresh live grafted saplings directly from Veerika Rose Garden.",
     "mrp": 300,
     "sellingPrice": 220,
     "discount": 27,
-    "image": "/products/vrg/combo-miniature-pearl-orange-button-panneer.jpg",
-    "imageUrl": "/products/vrg/combo-miniature-pearl-orange-button-panneer.jpg",
+    "image": "/products/vrg/combo-miniature-pearl-orange-button-panneer.webp",
+    "imageUrl": "/products/vrg/combo-miniature-pearl-orange-button-panneer.webp",
     "images": [
+      "/products/vrg/combo-miniature-pearl-orange-button-panneer.webp",
       "/products/vrg/combo-miniature-pearl-orange-button-panneer.jpg"
     ],
     "rating": 4.9,
-    "reviewCount": 0,
+    "reviewCount": 8,
     "stock": 99,
     "plantHeight": "1 - 1.5 Feet",
     "potSize": "6 Inch Bag",
@@ -32,7 +82,7 @@
       "soil": "Red soil"
     },
     "featured": true,
-    "bestSeller": false,
+    "bestSeller": true,
     "trending": true,
     "tags": [
       "combos & offers",
@@ -43,7 +93,7 @@
     ],
     "status": "ACTIVE",
     "createdAt": "2026-09-25T14:02:28.749Z",
-    "updatedAt": "2026-09-25T14:02:28.749Z"
+    "updatedAt": "2026-09-27T14:30:00.000Z"
   },
   {
     "id": "combo-orchid-rose-sweet-fragrance",
@@ -5073,5 +5123,51 @@
     "status": "ACTIVE",
     "createdAt": "2026-08-16T12:00:00.000Z",
     "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-marugu-plant",
+    "sku": "VRG-HERB-058",
+    "name": "Marugu (Sweet Marjoram / Origanum majorana)",
+    "englishName": "Marugu Plant (Sweet Marjoram)",
+    "tamilName": "மருகு செடி (Marugu)",
+    "scientificName": "Origanum majorana",
+    "categoryId": "cat-herbals",
+    "categoryName": "Herbal Plants",
+    "description": "Traditional divine sweet-scented Marugu (Sweet Marjoram) herb plant. Known for its soothing sacred fragrance, widely paired with Marikozhunthu for temple garlands, pooja, and aromatic herbal gardens.",
+    "mrp": 60,
+    "sellingPrice": 30,
+    "discount": 50,
+    "image": "/products/vrg/marugu-plant.webp",
+    "imageUrl": "/products/vrg/marugu-plant.webp",
+    "images": [
+      "/products/vrg/marugu-plant.webp",
+      "/products/vrg/marugu-plant.jpg"
+    ],
+    "rating": 5,
+    "reviewCount": 16,
+    "stock": 25,
+    "plantHeight": "0.5 - 1.5 Feet",
+    "potSize": "6 Inch Bag",
+    "sunlight": "Requires 4-6 hours direct sunlight.",
+    "waterRequirement": "Water daily in the morning, avoid over-soaking soil.",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "herbal plants",
+      "marugu plant (sweet marjoram)",
+      "origanum majorana",
+      "marugu"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-09-27T14:30:00.000Z",
+    "updatedAt": "2026-09-27T14:30:00.000Z"
   }
 ]

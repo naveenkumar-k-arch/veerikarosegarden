@@ -2057,8 +2057,9 @@ class Store {
 
     return rawCombos.map(c => {
       const pIds: string[] = Array.isArray(c.productIds) ? c.productIds : [];
-      const matchedProds = pIds.map(pid => {
-        if (!pid) return null;
+      const matchedProds = pIds.map(rawPid => {
+        if (!rawPid) return null;
+        const pid = rawPid === 'vrg-button-panneer-rose-light-pink' ? 'vrg-button-pink-rose' : rawPid;
         const p = prodMap.get(pid) || prodMap.get(pid.toLowerCase());
         if (p) return p;
         return allProducts.find(item => item.id === pid || item.id.toLowerCase() === pid.toLowerCase() || item.sku === pid) || null;

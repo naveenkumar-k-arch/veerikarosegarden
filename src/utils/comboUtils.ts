@@ -497,6 +497,12 @@ export const resolveComboImage = (combo: any): string => {
   }
   // Title / ID heuristics matching actual images in /products/vrg/
   const title = (combo?.title || combo?.name || combo?.id || '').toLowerCase();
+  if (title.includes('green combo') || title.includes('green') || title.includes('marikozhunthu') || title.includes('marugu') || title.includes('மரிக்கொழுந்து') || title.includes('மருகு')) {
+    return '/products/vrg/combo-green-marikozhunthu-marugu.webp';
+  }
+  if (title.includes('miniature') || title.includes('pearl orange') || title.includes('button panneer')) {
+    return '/products/vrg/combo-miniature-pearl-orange-button-panneer.webp';
+  }
   if (title.includes('vinayagar') || title.includes('10 fruit') || title.includes('விநாயகர்')) {
     return '/products/vrg/combo-vinayagar-chaturthi-10-fruit-plants.jpg';
   }

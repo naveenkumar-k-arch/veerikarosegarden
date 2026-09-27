@@ -1,5 +1,100 @@
 export const diskCombosData = [
   {
+    "id": "combo-green-marikozhunthu-marugu",
+    "title": "🌿💚 GREEN COMBO – JUST ₹100/-! 💚🌿",
+    "subtitle": "🌱 மரிக்கொழுந்து (Marikozhunthu) + 🌿 மருகு (Marugu)",
+    "badge": "2-IN-1 HERBAL SPECIAL",
+    "productIds": [
+      "vrg-marikolunthu-davana",
+      "vrg-marugu-plant"
+    ],
+    "originalPrice": 160.0,
+    "comboPrice": 100.0,
+    "discountPercent": 38,
+    "imageUrl": "/products/vrg/combo-green-marikozhunthu-marugu.webp",
+    "active": true,
+    "order": 0,
+    "freeDelivery": true,
+    "freePacking": true,
+    "description": "🌿💚 GREEN COMBO! 🌱 மரிக்கொழுந்து (Marikozhunthu) + 🌿 மருகு (Marugu) — 2 traditional aromatic sacred herbal plants for just ₹100! 🚚 FREE SHIPPING! 🔥 Limited Stock Only! Fresh live saplings directly from Veerika Rose Garden.",
+    "products": [
+      {
+        "id": "vrg-marikolunthu-davana",
+        "sku": "VRG-HERB-057",
+        "name": "Marikolunthu (Davana / Artemisia)",
+        "englishName": "Marikolunthu (Davana / Artemisia)",
+        "tamilName": "மரிக்கொழுந்து செடி",
+        "images": [
+          "/products/vrg/marikolunthu-davana.webp"
+        ],
+        "image": "/products/vrg/marikolunthu-davana.webp",
+        "sellingPrice": 50,
+        "mrp": 80
+      },
+      {
+        "id": "vrg-marugu-plant",
+        "sku": "VRG-HERB-058",
+        "name": "Marugu (Sweet Marjoram)",
+        "englishName": "Marugu Plant (Sweet Marjoram)",
+        "tamilName": "மருகு செடி (Marugu)",
+        "images": [
+          "/products/vrg/marugu-plant.webp"
+        ],
+        "image": "/products/vrg/marugu-plant.webp",
+        "sellingPrice": 50,
+        "mrp": 80
+      }
+    ]
+  },
+  {
+    "id": "combo-miniature-pearl-orange-button-panneer",
+    "title": "🌹✨ MINIATURE COMBO – JUST ₹220/-! ✨🌹",
+    "subtitle": "🧡 Pearl Orange Rose + 💗 Button Panneer Rose – Light Pink",
+    "badge": "2-IN-1 MINIATURE SPECIAL",
+    "productIds": [
+      "vrg-pearl-orange-miniature-rose",
+      "vrg-button-pink-rose"
+    ],
+    "originalPrice": 300.0,
+    "comboPrice": 220.0,
+    "discountPercent": 27,
+    "imageUrl": "/products/vrg/combo-miniature-pearl-orange-button-panneer.webp",
+    "active": true,
+    "order": 1,
+    "freeDelivery": true,
+    "freePacking": true,
+    "description": "🌹✨ MINIATURE COMBO! 🧡 Pearl Orange Rose + 💗 Button Panneer Rose (Light Pink) — 2 beautiful miniature rose plants for just ₹220! 🌸 Beautiful Blooms • 🌿 Easy Maintenance • 🪴 Perfect for Home Garden. LIMITED STOCK! Fresh live grafted saplings directly from Veerika Rose Garden.",
+    "reelUrl": "https://www.instagram.com/reel/DdseKcLznyH/",
+    "products": [
+      {
+        "id": "vrg-pearl-orange-miniature-rose",
+        "sku": "VRG-MINI-067",
+        "name": "Pearl Orange Miniature Rose",
+        "englishName": "Pearl Orange Miniature Rose",
+        "tamilName": "முத்து ஆரஞ்சு மினியேச்சர் ரோஜா",
+        "images": [
+          "/products/vrg/pearl-orange-miniature-rose.webp"
+        ],
+        "image": "/products/vrg/pearl-orange-miniature-rose.webp",
+        "sellingPrice": 110,
+        "mrp": 150
+      },
+      {
+        "id": "vrg-button-pink-rose",
+        "sku": "VRG-ROSE-091",
+        "name": "Button Panneer Rose (Light Pink)",
+        "englishName": "Button Panneer Rose (Light Pink)",
+        "tamilName": "பட்டன் பன்னீர் ரோஜா (இளஞ்சிவப்பு)",
+        "images": [
+          "/products/vrg/button-pink-rose.webp"
+        ],
+        "image": "/products/vrg/button-pink-rose.webp",
+        "sellingPrice": 110,
+        "mrp": 150
+      }
+    ]
+  },
+  {
     "id": "combo-1788265545799",
     "title": "Mini beetroot guva",
     "subtitle": "Mini beetroot guva plant",
@@ -12,7 +107,7 @@ export const diskCombosData = [
     "discountPercent": 29,
     "imageUrl": "/products/vrg/combo-mini-beetroot-guva.jpg",
     "active": true,
-    "order": 0,
+    "order": 2,
     "freeDelivery": true,
     "freePacking": true,
     "description": "Mini beetroot guva special plant offer! Fresh live grafted sapling directly from Veerika Rose Garden with free delivery.",
@@ -46,7 +141,7 @@ export const diskCombosData = [
     "discountPercent": 20,
     "imageUrl": "/products/vrg/combo-guva-combo-offer.jpg",
     "active": true,
-    "order": 1,
+    "order": 3,
     "freeDelivery": true,
     "freePacking": true,
     "description": "Taiwan pink guva + Mini beetroot guva 2-in-1 combo package! Sweet delicious healthy grafted saplings with free delivery.",
@@ -92,7 +187,7 @@ export const diskCombosData = [
     "discountPercent": 40,
     "imageUrl": "/products/vrg/combo-restock-alert.jpg",
     "active": true,
-    "order": 2,
+    "order": 4,
     "freeDelivery": true,
     "freePacking": true,
     "description": "Perfume breeze light pink rose plant restocked! Highly fragrant blooming rose sapling directly from farm.",
@@ -126,7 +221,7 @@ export const diskCombosData = [
     "discountPercent": 29,
     "imageUrl": "/products/vrg/7-days-red-rose.png",
     "active": true,
-    "order": 3,
+    "order": 5,
     "freeDelivery": true,
     "freePacking": true,
     "description": "7 Days Red Rose + Button Pink Rose 2-in-1 Special Offer! Continuous bloomer garden roses with free delivery.",
@@ -181,7 +276,7 @@ export const diskCombosData = [
     "discountPercent": 45,
     "imageUrl": "/products/vrg/combo-vinayagar-chaturthi-10-fruit-plants.jpg",
     "active": true,
-    "order": 4,
+    "order": 6,
     "freeDelivery": true,
     "freePacking": true,
     "onlyMetturService": true,
@@ -334,7 +429,7 @@ export const diskCombosData = [
     "discountPercent": 33,
     "imageUrl": "/products/vrg/red-water-apple-plant.png",
     "active": true,
-    "order": 5,
+    "order": 7,
     "freeDelivery": true,
     "freePacking": true,
     "description": "Green Water Apple 💚 | Red Water Apple ❤️ | White Water Apple 🤍 — மூணு varieties-யும் ஒரே combo-வில்!",
@@ -394,7 +489,7 @@ export const diskCombosData = [
     "discountPercent": 29,
     "imageUrl": "/products/vrg/pink-fairy-polyantha-rose.png",
     "active": true,
-    "order": 6,
+    "order": 8,
     "freeDelivery": true,
     "freePacking": true,
     "description": "💖 Baby Pink Fairy Rose + 💖 Dark Pink Fairy Rose — 2 Beautiful Varieties – 1 Special Combo!",
@@ -440,7 +535,7 @@ export const diskCombosData = [
     "discountPercent": 32,
     "imageUrl": "/products/vrg/orchid-rose.png",
     "active": true,
-    "order": 7,
+    "order": 9,
     "freeDelivery": true,
     "freePacking": true,
     "description": "🌿 Sweet fragrance • Beautiful blooms • Garden beauty 💕",
@@ -474,7 +569,7 @@ export const diskCombosData = [
     "discountPercent": 33,
     "imageUrl": "/products/vrg/7-days-red-rose.png",
     "active": true,
-    "order": 8,
+    "order": 10,
     "freeDelivery": true,
     "freePacking": true,
     "description": "💛 Seven Days Rose + 💖 Paneer Butter Rose — 2 Beautiful Rose Varieties!",
@@ -521,7 +616,7 @@ export const diskCombosData = [
     "discountPercent": 35,
     "imageUrl": "/products/vrg/pink-fairy-polyantha-rose.png",
     "active": true,
-    "order": 9,
+    "order": 11,
     "freeDelivery": true,
     "freePacking": true,
     "description": "🌸💗 PINK COMBO! 🌹 Thanjavur Panneer Rose + 🌷 Fairy Rose — நல்ல fragrance, daily regular blooms, low maintenance. 2 Rose Plants for just ₹229 with FREE SHIPPING!",
@@ -571,7 +666,7 @@ export const diskCombosData = [
     "discountPercent": 50,
     "imageUrl": "/products/vrg/combo-malli-4-variety.webp",
     "active": true,
-    "order": 10,
+    "order": 12,
     "freeDelivery": true,
     "freePacking": true,
     "description": "🌸✨ MALLI COMBO OFFER! உங்கள் வீட்டுத் தோட்டத்தில் மணம் வீசும் மல்லிகை செடிகள்! 💚 Pacha Mullai + 🤍 Jathu Malli + 🌺 Colour Kakatan + 🌼 Pavallamalli — 4 Plants for just ₹200 with FREE SHIPPING!",
@@ -628,55 +723,6 @@ export const diskCombosData = [
         "image": "/products/vrg/pavazha-malli-coral-jasmine.webp",
         "sellingPrice": 60,
         "mrp": 100
-      }
-    ]
-  }
-  ,
-  {
-    "id": "combo-miniature-pearl-orange-button-panneer",
-    "title": "🌹✨ MINIATURE COMBO – JUST ₹220/-! ✨🌹",
-    "subtitle": "🧡 Pearl Orange Rose + 💗 Button Panneer Rose – Light Pink",
-    "badge": "2-IN-1 MINIATURE SPECIAL",
-    "productIds": [
-      "vrg-pearl-orange-miniature-rose",
-      "vrg-button-panneer-rose-light-pink"
-    ],
-    "originalPrice": 300.0,
-    "comboPrice": 220.0,
-    "discountPercent": 27,
-    "imageUrl": "/products/vrg/combo-miniature-pearl-orange-button-panneer.jpg",
-    "active": true,
-    "order": 11,
-    "freeDelivery": true,
-    "freePacking": true,
-    "description": "🌹✨ MINIATURE COMBO! 🧡 Pearl Orange Rose + 💗 Button Panneer Rose (Light Pink) — 2 beautiful miniature rose plants for just ₹220! 🌸 Beautiful Blooms • 🌿 Easy Maintenance • 🪴 Perfect for Home Garden. LIMITED STOCK!",
-    "reelUrl": "https://www.instagram.com/reel/DdseKcLznyH/",
-    "products": [
-      {
-        "id": "vrg-pearl-orange-miniature-rose",
-        "sku": "VRG-MINI-061",
-        "name": "Pearl Orange Miniature Rose",
-        "englishName": "Pearl Orange Miniature Rose",
-        "tamilName": "பேர்ல் ஆரஞ்சு மினியேச்சர் ரோஜா",
-        "images": [
-          "/products/vrg/pearl-orange-miniature-rose.webp"
-        ],
-        "image": "/products/vrg/pearl-orange-miniature-rose.webp",
-        "sellingPrice": 110,
-        "mrp": 150
-      },
-      {
-        "id": "vrg-button-panneer-rose-light-pink",
-        "sku": "VRG-MINI-062",
-        "name": "Button Panneer Rose (Light Pink)",
-        "englishName": "Button Panneer Rose (Light Pink)",
-        "tamilName": "பட்டன் பன்னீர் ரோஜா (இளஞ்சிவப்பு)",
-        "images": [
-          "/products/vrg/button-pink-rose.webp"
-        ],
-        "image": "/products/vrg/button-pink-rose.webp",
-        "sellingPrice": 110,
-        "mrp": 150
       }
     ]
   }

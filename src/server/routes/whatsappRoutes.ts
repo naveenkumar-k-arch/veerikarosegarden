@@ -31,7 +31,7 @@ let memoryConfig: WhatsAppConfig = {
   metaAccessToken: process.env.META_WA_ACCESS_TOKEN || '',
   metaBusinessAccountId: process.env.META_WA_BUSINESS_ACCOUNT_ID || '',
   metaWaTemplateName: process.env.META_WA_TEMPLATE_NAME || 'order_confirmation',
-  metaWaVerifyToken: process.env.META_WA_VERIFY_TOKEN || 'vrg_meta_wa_secret_2026',
+  metaWaVerifyToken: process.env.META_WA_VERIFY_TOKEN || 'vrg_whatsapp_webhook_prod_secret_2026',
   autoSendConfirmed: true,
   autoSendPacking: true,
   autoSendDispatched: true,
@@ -55,7 +55,7 @@ async function getEffectiveConfig(): Promise<WhatsAppConfig> {
       metaAccessToken: s.metaWaAccessToken || memoryConfig.metaAccessToken || process.env.META_WA_ACCESS_TOKEN || '',
       metaBusinessAccountId: s.metaWaBusinessAccountId || memoryConfig.metaBusinessAccountId || process.env.META_WA_BUSINESS_ACCOUNT_ID || '',
       metaWaTemplateName: s.metaWaTemplateName || memoryConfig.metaWaTemplateName || process.env.META_WA_TEMPLATE_NAME || 'order_confirmation',
-      metaWaVerifyToken: s.metaWaVerifyToken || memoryConfig.metaWaVerifyToken || process.env.META_WA_VERIFY_TOKEN || 'vrg_meta_wa_secret_2026',
+      metaWaVerifyToken: s.metaWaVerifyToken || memoryConfig.metaWaVerifyToken || process.env.META_WA_VERIFY_TOKEN || 'vrg_whatsapp_webhook_prod_secret_2026',
       autoSendConfirmed: s.waAutoSendConfirmed !== undefined ? s.waAutoSendConfirmed : memoryConfig.autoSendConfirmed,
       autoSendPacking: s.waAutoSendPacking !== undefined ? s.waAutoSendPacking : memoryConfig.autoSendPacking,
       autoSendDispatched: s.waAutoSendDispatched !== undefined ? s.waAutoSendDispatched : memoryConfig.autoSendDispatched,
@@ -109,7 +109,7 @@ async function sendViaMetaCloudApi(
 
     const cleanPhone = recipientPhone.replace(/[^0-9]/g, '');
     const to = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
-    const url = `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`;
+    const url = `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`;
 
     // 1. Try Meta Template Message if templateName is available
     const templateName = templatePayloadDetails?.templateName || (templatePayloadDetails?.params?.length ? cfg.metaWaTemplateName : undefined);
@@ -363,7 +363,7 @@ whatsappRouter.get('/status', async (_req: Request, res: Response) => {
       deviceStatus: session.status,
       metaPhoneNumberId: cfg.metaPhoneNumberId ? '••••••••' + cfg.metaPhoneNumberId.slice(-4) : '',
       metaWaTemplateName: cfg.metaWaTemplateName || 'order_confirmation',
-      metaWaVerifyToken: cfg.metaWaVerifyToken || 'vrg_meta_wa_secret_2026',
+      metaWaVerifyToken: cfg.metaWaVerifyToken ? '••••••••' : '(not set)',
       hasAccessToken: Boolean(cfg.metaAccessToken),
       autoSendConfirmed: cfg.autoSendConfirmed,
       autoSendPacking: cfg.autoSendPacking,
