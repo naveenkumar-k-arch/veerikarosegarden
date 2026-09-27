@@ -1999,8 +1999,17 @@ class Store {
       }
     }
 
+    const diskCombos = loadDiskCombos();
     if (dbCombos.length === 0) {
-      dbCombos = loadDiskCombos();
+      dbCombos = diskCombos;
+    } else {
+      const dbComboIdSet = new Set(dbCombos.map((c: any) => c.id?.toLowerCase()));
+      for (const diskC of diskCombos) {
+        if (diskC && diskC.id && !dbComboIdSet.has(diskC.id.toLowerCase())) {
+          dbCombos.push(diskC);
+          dbComboIdSet.add(diskC.id.toLowerCase());
+        }
+      }
     }
 
     // Filter out dummy/deleted combos — ALWAYS check dummyIds FIRST, regardless of other fields
