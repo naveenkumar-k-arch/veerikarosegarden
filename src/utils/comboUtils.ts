@@ -536,6 +536,9 @@ export const resolveComboImage = (combo: any): string => {
   if (title.includes('birthday party')) {
     return '/products/vrg/pink-fairy-polyantha-rose.png';
   }
+  if (title.includes('kolkata') || title.includes('mirabl') || title.includes('yellow & pink') || title.includes('yellow and pink')) {
+    return '/products/vrg/combo-kolkata-yellow-mirabl-pink-rose.jpg';
+  }
   return '/products/vrg/combo-mini-beetroot-guva.jpg';
 };
 

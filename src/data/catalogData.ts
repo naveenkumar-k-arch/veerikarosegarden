@@ -4719,5 +4719,95 @@ export const INITIAL_PRODUCTS: Product[] = [
     "status": "ACTIVE",
     "createdAt": "2026-08-16T12:00:00.000Z",
     "updatedAt": "2026-08-16T12:00:00.000Z"
+  },
+  {
+    "id": "vrg-kolkata-yellow-rose",
+    "sku": "VRG-ROSE-106",
+    "name": "Kolkata Rose (Yellow)",
+    "englishName": "Kolkata Rose (Yellow)",
+    "tamilName": "கல்கத்தா மஞ்சள் ரோஜா",
+    "scientificName": "",
+    "categoryId": "cat-rose",
+    "categoryName": "Rose Varieties",
+    "description": "Bright cheerful yellow Kolkata Rose – a premium garden rose with lush multi-petal blooms and mild sweet fragrance. Excellent bloomer that yields vibrant sunshine-yellow flowers throughout the year.",
+    "mrp": 140,
+    "sellingPrice": 110,
+    "discount": 21,
+    "stock": 30,
+    "rating": 4.9,
+    "reviewCount": 14,
+    "images": [
+      "/products/vrg/7-days-yellow-rose.png"
+    ],
+    "image": "/products/vrg/7-days-yellow-rose.png",
+    "imageUrl": "/products/vrg/7-days-yellow-rose.png",
+    "plantHeight": "2-3 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "rose varieties",
+      "kolkata rose",
+      "yellow rose",
+      "monday special"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-10-05T15:00:00.000Z",
+    "updatedAt": "2026-10-05T15:00:00.000Z"
+  },
+  {
+    "id": "vrg-mirabl-pink-rose",
+    "sku": "VRG-ROSE-107",
+    "name": "Mirabl Pink Rose",
+    "englishName": "Mirabl Pink Rose",
+    "tamilName": "மிராப்ல் இளஞ்சிவப்பு ரோஜா",
+    "scientificName": "",
+    "categoryId": "cat-rose",
+    "categoryName": "Rose Varieties",
+    "description": "Gorgeous Mirabl Pink Rose – a premium live rose plant featuring stunning soft-pink full-petaled blooms with a delightful fragrance. Dense lush foliage and long continuous blooming season make it a perfect garden centerpiece.",
+    "mrp": 140,
+    "sellingPrice": 110,
+    "discount": 21,
+    "stock": 30,
+    "rating": 4.9,
+    "reviewCount": 16,
+    "images": [
+      "/products/vrg/pink-fairy-polyantha-rose.png"
+    ],
+    "image": "/products/vrg/pink-fairy-polyantha-rose.png",
+    "imageUrl": "/products/vrg/pink-fairy-polyantha-rose.png",
+    "plantHeight": "2-3 Feet",
+    "potSize": "8 Inch Bag",
+    "sunlight": "Full Sun",
+    "waterRequirement": "Daily",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, avoid over-soaking soil.",
+      "sunlight": "Requires 4-6 hours direct sunlight.",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15 days.",
+      "soil": "Well-draining red soil mixed with 30% coco peat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "rose varieties",
+      "mirabl rose",
+      "pink rose",
+      "monday special"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-10-05T15:00:00.000Z",
+    "updatedAt": "2026-10-05T15:00:00.000Z"
   }
 ];

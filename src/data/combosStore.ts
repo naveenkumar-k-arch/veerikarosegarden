@@ -1,4 +1,4 @@
-export const diskCombosData = [
+﻿export const diskCombosData = [
   {
     "id": "combo-green-marikozhunthu-marugu",
     "title": "🌿💚 GREEN COMBO – JUST ₹100/-! 💚🌿",
@@ -723,6 +723,54 @@ export const diskCombosData = [
         "image": "/products/vrg/pavazha-malli-coral-jasmine.webp",
         "sellingPrice": 60,
         "mrp": 100
+      }
+    ]
+  },
+  {
+    "id": "combo-kolkata-yellow-mirabl-pink-rose",
+    "title": "YELLOW AND PINK ROSE COMBO - JUST Rs.220/-!",
+    "subtitle": "Kolkata Rose - Yellow + Mirabl Pink Rose - Pink",
+    "badge": "2-IN-1 ROSE SPECIAL",
+    "productIds": [
+      "vrg-kolkata-yellow-rose",
+      "vrg-mirabl-pink-rose"
+    ],
+    "originalPrice": 280.0,
+    "comboPrice": 220.0,
+    "discountPercent": 21,
+    "imageUrl": "/products/vrg/combo-kolkata-yellow-mirabl-pink-rose.jpg",
+    "active": true,
+    "order": 0,
+    "freeDelivery": true,
+    "freePacking": true,
+    "description": "YELLOW AND PINK ROSE COMBO! Kolkata Rose (Yellow) + Mirabl Pink Rose (Pink) - 2 Beautiful Rose Plants for just Rs.220! Premium Live Plants. Shipping Available. Monday Special! LIMITED STOCK! Call: 72008 26129 | 93615 40714",
+    "reelUrl": "https://www.instagram.com/reel/DeHVvpcTzaH/",
+    "products": [
+      {
+        "id": "vrg-kolkata-yellow-rose",
+        "sku": "VRG-ROSE-106",
+        "name": "Kolkata Rose (Yellow)",
+        "englishName": "Kolkata Rose (Yellow)",
+        "tamilName": "Kolkata Yellow Rose",
+        "images": [
+          "/products/vrg/7-days-yellow-rose.webp"
+        ],
+        "image": "/products/vrg/7-days-yellow-rose.webp",
+        "sellingPrice": 110,
+        "mrp": 140
+      },
+      {
+        "id": "vrg-mirabl-pink-rose",
+        "sku": "VRG-ROSE-107",
+        "name": "Mirabl Pink Rose",
+        "englishName": "Mirabl Pink Rose",
+        "tamilName": "Mirabl Pink Rose",
+        "images": [
+          "/products/vrg/pink-fairy-polyantha-rose.webp"
+        ],
+        "image": "/products/vrg/pink-fairy-polyantha-rose.webp",
+        "sellingPrice": 110,
+        "mrp": 140
       }
     ]
   }
