@@ -128,9 +128,11 @@ function saveDiskFinances(finances: FinancialEntry[]) {
   safeWriteDiskJson(FINANCES_STORE_FILE, finances);
 }
 
+import diskCombosData from '../data/combosStore.js';
+
 const COMBOS_STORE_FILE = path.resolve(process.cwd(), 'src/data/combos_store.json');
 
-const DEFAULT_COMBOS_SEED: Combo[] = [];
+const DEFAULT_COMBOS_SEED: Combo[] = (diskCombosData as any[]) || [];
 
 const DELETED_COMBOS_STORE_FILE = path.resolve(process.cwd(), 'src/data/deleted_combos.json');
 
@@ -190,16 +192,27 @@ function saveDiskProducts(products: Product[]) {
 }
 
 function loadDiskCombos(): Combo[] {
+  let list: Combo[] = [];
   try {
     if (fs.existsSync(COMBOS_STORE_FILE)) {
       const data = fs.readFileSync(COMBOS_STORE_FILE, 'utf-8');
       const parsed = JSON.parse(data);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) list = parsed;
     }
   } catch (err) {
     console.error('Error reading combos_store.json:', err);
   }
-  return DEFAULT_COMBOS_SEED;
+  if (list.length === 0) {
+    list = (diskCombosData as any[]) || [];
+  }
+  const existingMap = new Set(list.map(c => c.id?.toLowerCase()));
+  for (const diskC of ((diskCombosData as any[]) || [])) {
+    if (diskC && diskC.id && !existingMap.has(diskC.id.toLowerCase())) {
+      list.push(diskC);
+      existingMap.add(diskC.id.toLowerCase());
+    }
+  }
+  return list;
 }
 
 function saveDiskCombos(combos: Combo[]) {
@@ -542,13 +555,15 @@ class Store {
         const dbIdSet = new Set(finalProducts.map(p => p.id));
         const dbSkuSet = new Set(finalProducts.map(p => p.sku).filter(Boolean));
         const diskList = loadDiskProducts();
-        const fallbackList = diskList.length > 0 ? diskList : DEFAULT_PRODUCTS;
-        for (const extra of fallbackList) {
-          if (!deletedProductIds.has(extra.id) && (!extra.sku || !deletedProductIds.has(extra.sku)) && !dummyComboIds.has(extra.id)) {
-            if (!dbIdSet.has(extra.id) && (!extra.sku || !dbSkuSet.has(extra.sku))) {
-              finalProducts.push(extra);
-              dbIdSet.add(extra.id);
-              if (extra.sku) dbSkuSet.add(extra.sku);
+        const sources = [diskList, DEFAULT_PRODUCTS];
+        for (const source of sources) {
+          for (const extra of source) {
+            if (!deletedProductIds.has(extra.id) && (!extra.sku || !deletedProductIds.has(extra.sku)) && !dummyComboIds.has(extra.id)) {
+              if (!dbIdSet.has(extra.id) && (!extra.sku || !dbSkuSet.has(extra.sku))) {
+                finalProducts.push(extra);
+                dbIdSet.add(extra.id);
+                if (extra.sku) dbSkuSet.add(extra.sku);
+              }
             }
           }
         }

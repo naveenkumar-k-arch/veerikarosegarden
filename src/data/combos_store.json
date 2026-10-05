@@ -8,8 +8,8 @@
       "vrg-marikolunthu-davana",
       "vrg-marugu-plant"
     ],
-    "originalPrice": 160.0,
-    "comboPrice": 100.0,
+    "originalPrice": 160,
+    "comboPrice": 100,
     "discountPercent": 38,
     "imageUrl": "/products/vrg/combo-green-marikozhunthu-marugu.webp",
     "active": true,
@@ -55,8 +55,8 @@
       "vrg-pearl-orange-miniature-rose",
       "vrg-button-pink-rose"
     ],
-    "originalPrice": 300.0,
-    "comboPrice": 220.0,
+    "originalPrice": 300,
+    "comboPrice": 220,
     "discountPercent": 27,
     "imageUrl": "/products/vrg/combo-miniature-pearl-orange-button-panneer.webp",
     "active": true,
@@ -102,8 +102,8 @@
     "productIds": [
       "prod-1787052694949"
     ],
-    "originalPrice": 140.0,
-    "comboPrice": 100.0,
+    "originalPrice": 140,
+    "comboPrice": 100,
     "discountPercent": 29,
     "imageUrl": "/products/vrg/combo-mini-beetroot-guva.jpg",
     "active": true,
@@ -136,8 +136,8 @@
       "prod-1788102269524",
       "prod-1787052694949"
     ],
-    "originalPrice": 200.0,
-    "comboPrice": 160.0,
+    "originalPrice": 200,
+    "comboPrice": 160,
     "discountPercent": 20,
     "imageUrl": "/products/vrg/combo-guva-combo-offer.jpg",
     "active": true,
@@ -182,8 +182,8 @@
     "productIds": [
       "prod-1788101848479"
     ],
-    "originalPrice": 250.0,
-    "comboPrice": 150.0,
+    "originalPrice": 250,
+    "comboPrice": 150,
     "discountPercent": 40,
     "imageUrl": "/products/vrg/combo-restock-alert.jpg",
     "active": true,
@@ -216,8 +216,8 @@
       "vrg-7-days-red-rose",
       "vrg-button-pink-rose"
     ],
-    "originalPrice": 280.0,
-    "comboPrice": 200.0,
+    "originalPrice": 280,
+    "comboPrice": 200,
     "discountPercent": 29,
     "imageUrl": "/products/vrg/7-days-red-rose.png",
     "active": true,
@@ -271,8 +271,8 @@
       "vrg-peanut-butter-fruit-plant",
       "vrg-pomelo-bubly-mass"
     ],
-    "originalPrice": 1800.0,
-    "comboPrice": 999.0,
+    "originalPrice": 1800,
+    "comboPrice": 999,
     "discountPercent": 45,
     "imageUrl": "/products/vrg/combo-vinayagar-chaturthi-10-fruit-plants.jpg",
     "active": true,
@@ -424,8 +424,8 @@
       "vrg-red-water-apple-plant",
       "vrg-white-water-apple-plant"
     ],
-    "originalPrice": 450.0,
-    "comboPrice": 300.0,
+    "originalPrice": 450,
+    "comboPrice": 300,
     "discountPercent": 33,
     "imageUrl": "/products/vrg/red-water-apple-plant.png",
     "active": true,
@@ -484,8 +484,8 @@
       "vrg-pink-fairy-polyantha-rose",
       "vrg-margo-koster-pink-rose"
     ],
-    "originalPrice": 350.0,
-    "comboPrice": 250.0,
+    "originalPrice": 350,
+    "comboPrice": 250,
     "discountPercent": 29,
     "imageUrl": "/products/vrg/pink-fairy-polyantha-rose.png",
     "active": true,
@@ -530,8 +530,8 @@
     "productIds": [
       "vrg-orchid-rose"
     ],
-    "originalPrice": 220.0,
-    "comboPrice": 150.0,
+    "originalPrice": 220,
+    "comboPrice": 150,
     "discountPercent": 32,
     "imageUrl": "/products/vrg/orchid-rose.png",
     "active": true,
@@ -564,8 +564,8 @@
       "vrg-7-days-red-rose",
       "vrg-naatu-paneer-rose"
     ],
-    "originalPrice": 300.0,
-    "comboPrice": 200.0,
+    "originalPrice": 300,
+    "comboPrice": 200,
     "discountPercent": 33,
     "imageUrl": "/products/vrg/7-days-red-rose.png",
     "active": true,
@@ -611,8 +611,8 @@
       "vrg-thanjavur-panneer-rose",
       "vrg-pink-fairy-polyantha-rose"
     ],
-    "originalPrice": 350.0,
-    "comboPrice": 229.0,
+    "originalPrice": 350,
+    "comboPrice": 229,
     "discountPercent": 35,
     "imageUrl": "/products/vrg/pink-fairy-polyantha-rose.png",
     "active": true,
@@ -661,8 +661,8 @@
       "vrg-colour-kakatan",
       "vrg-pavallamalli"
     ],
-    "originalPrice": 400.0,
-    "comboPrice": 200.0,
+    "originalPrice": 400,
+    "comboPrice": 200,
     "discountPercent": 50,
     "imageUrl": "/products/vrg/combo-malli-4-variety.webp",
     "active": true,
@@ -723,6 +723,54 @@
         "image": "/products/vrg/pavazha-malli-coral-jasmine.webp",
         "sellingPrice": 60,
         "mrp": 100
+      }
+    ]
+  },
+  {
+    "id": "combo-kolkata-yellow-mirabl-pink-rose",
+    "title": "YELLOW AND PINK ROSE COMBO - JUST Rs.220/-!",
+    "subtitle": "Kolkata Rose - Yellow + Mirabl Pink Rose - Pink",
+    "badge": "2-IN-1 ROSE SPECIAL",
+    "productIds": [
+      "vrg-kolkata-yellow-rose",
+      "vrg-mirabl-pink-rose"
+    ],
+    "originalPrice": 280,
+    "comboPrice": 220,
+    "discountPercent": 21,
+    "imageUrl": "/products/vrg/combo-kolkata-yellow-mirabl-pink-rose.jpg",
+    "active": true,
+    "order": 0,
+    "freeDelivery": true,
+    "freePacking": true,
+    "description": "YELLOW AND PINK ROSE COMBO! Kolkata Rose (Yellow) + Mirabl Pink Rose (Pink) - 2 Beautiful Rose Plants for just Rs.220! Premium Live Plants. Shipping Available. Monday Special! LIMITED STOCK! Call: 72008 26129 | 93615 40714",
+    "reelUrl": "https://www.instagram.com/reel/DeHVvpcTzaH/",
+    "products": [
+      {
+        "id": "vrg-kolkata-yellow-rose",
+        "sku": "VRG-ROSE-106",
+        "name": "Kolkata Rose (Yellow)",
+        "englishName": "Kolkata Rose (Yellow)",
+        "tamilName": "கல்கத்தா மஞ்சள் ரோஜா",
+        "images": [
+          "/products/vrg/7-days-yellow-rose.webp"
+        ],
+        "image": "/products/vrg/7-days-yellow-rose.webp",
+        "sellingPrice": 110,
+        "mrp": 140
+      },
+      {
+        "id": "vrg-mirabl-pink-rose",
+        "sku": "VRG-ROSE-107",
+        "name": "Mirabl Pink Rose",
+        "englishName": "Mirabl Pink Rose",
+        "tamilName": "மிராப்ல் இளஞ்சிவப்பு ரோஜா",
+        "images": [
+          "/products/vrg/pink-fairy-polyantha-rose.webp"
+        ],
+        "image": "/products/vrg/pink-fairy-polyantha-rose.webp",
+        "sellingPrice": 110,
+        "mrp": 140
       }
     ]
   }
