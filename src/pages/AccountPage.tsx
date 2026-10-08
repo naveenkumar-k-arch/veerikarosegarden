@@ -408,7 +408,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
               }`}
             >
               <span>📱 Mobile OTP</span>
-              <span className="text-[9px] px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded-full font-bold">Fast</span>
+              <span className="text-[9px] px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded-full font-bold">Primary</span>
             </button>
             <button
               onClick={() => switchMode('LOGIN')}
@@ -443,20 +443,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                 <span>{successMsg}</span>
               </div>
             )}
-
-            {/* Google Quick Sign-In Option on Top */}
-            <div className="space-y-2">
-              <GoogleAuthButton
-                onSuccess={(userData) => {
-                  onLogin(userData);
-                }}
-              />
-              <div className="relative flex py-2 items-center">
-                <div className="flex-grow border-t border-slate-200"></div>
-                <span className="flex-shrink mx-3 text-[11px] text-slate-400 font-semibold uppercase">Or continue with</span>
-                <div className="flex-grow border-t border-slate-200"></div>
-              </div>
-            </div>
 
             {/* FORM MODE: PASSWORD LOGIN */}
             {authMode === 'LOGIN' && (
@@ -739,6 +725,24 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                     </button>
                   </form>
                 )}
+              </div>
+            )}
+
+            {/* Secondary Sign-In Option: Google */}
+            {authMode !== 'FORGOT' && (
+              <div className="pt-2 space-y-3">
+                <div className="relative flex py-1 items-center">
+                  <div className="flex-grow border-t border-slate-200"></div>
+                  <span className="flex-shrink mx-3 text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
+                    Or sign in with Google (Secondary)
+                  </span>
+                  <div className="flex-grow border-t border-slate-200"></div>
+                </div>
+                <GoogleAuthButton
+                  onSuccess={(userData) => {
+                    onLogin(userData);
+                  }}
+                />
               </div>
             )}
 
