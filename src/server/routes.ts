@@ -1282,27 +1282,21 @@ function stripBase64(url: any): string {
 
 function sanitizeBootstrapProducts(prods: any[]): any[] {
   return prods.map(p => {
-    const images = Array.isArray(p.images) && p.images.length > 0 ? p.images.filter(Boolean) : (p.image ? [p.image] : []);
-    const primaryImage = stripBase64(images[0] || p.image) || '/products/double-delight.jpeg';
+    const rawImages = Array.isArray(p.images) && p.images.length > 0 ? p.images.filter(Boolean) : (p.image ? [p.image] : []);
+    const images = rawImages.map((img: string) => stripBase64(img));
+    const primaryImage = images[0] || stripBase64(p.image) || '/products/double-delight.jpeg';
     return {
-      id: p.id,
-      name: p.name,
-      tamilName: p.tamilName,
-      slug: p.slug,
-      price: p.price,
-      originalPrice: p.originalPrice,
-      sellingPrice: p.sellingPrice,
-      costPrice: p.costPrice,
-      stock: p.stock,
-      category: p.category,
-      categoryId: p.categoryId,
-      isActive: p.isActive,
-      isFeatured: p.isFeatured,
-      isNewArrival: p.isNewArrival,
+      ...p,
+      sku: p.sku || `VRG-${(p.id || '').slice(-6).toUpperCase()}`,
+      categoryName: p.categoryName || p.category || 'Roses',
+      mrp: p.mrp || p.originalPrice || p.price || 0,
+      sellingPrice: p.sellingPrice || p.price || 0,
+      price: p.price || p.sellingPrice || 0,
+      originalPrice: p.originalPrice || p.mrp || 0,
       image: primaryImage,
-      description: (p.description || '').slice(0, 120),
-      createdAt: p.createdAt,
-      updatedAt: p.updatedAt,
+      images: images.length > 0 ? images : [primaryImage],
+      status: p.status || (p.isActive !== false ? 'ACTIVE' : 'INACTIVE'),
+      description: p.description || '',
     };
   });
 }

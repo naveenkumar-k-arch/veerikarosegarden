@@ -675,7 +675,9 @@ const AppContent: React.FC = () => {
 
         try {
           const idToken = await fbUser.getIdToken();
-          const res = await fetch('/api/auth/google', {
+          const isPhoneAuth = fbUser.providerData.some(p => p.providerId === 'phone') || (!fbUser.email && !!fbUser.phoneNumber);
+          const endpoint = isPhoneAuth ? '/api/auth/firebase-phone' : '/api/auth/google';
+          const res = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
@@ -1632,6 +1634,11 @@ const AppContent: React.FC = () => {
             onLogin={(userData) => {
               setUser(userData);
               localStorage.setItem('vrg_user', JSON.stringify(userData));
+              const returnTo = sessionStorage.getItem('vrg_return_to');
+              if (returnTo) {
+                sessionStorage.removeItem('vrg_return_to');
+                navigateTo(returnTo);
+              }
             }}
             onLogout={async () => {
               try {

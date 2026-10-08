@@ -861,6 +861,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     if (isPlacingOrderRef.current || loading) return;
 
     if (!user) {
+      sessionStorage.setItem('vrg_return_to', 'checkout');
       if (onNavigateToAccount) onNavigateToAccount();
       return;
     }
@@ -1199,7 +1200,15 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 font-semibold">
                   🔒 Login required to checkout.{' '}
                   {onNavigateToAccount && (
-                    <button onClick={onNavigateToAccount} className="underline font-bold cursor-pointer">Login / Sign Up →</button>
+                    <button
+                      onClick={() => {
+                        sessionStorage.setItem('vrg_return_to', 'checkout');
+                        onNavigateToAccount();
+                      }}
+                      className="underline font-bold cursor-pointer"
+                    >
+                      Login / Sign Up →
+                    </button>
                   )}
                 </div>
               )}

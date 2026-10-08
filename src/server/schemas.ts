@@ -99,7 +99,7 @@ export const productSchema = z.object({
   bestSeller: z.boolean().optional().default(false),
   trending: z.boolean().optional().default(false),
   tags: z.array(z.string()).optional().default([]),
-  status: z.enum(['ACTIVE', 'INACTIVE', 'ARCHIVED']).optional().default('ACTIVE')
+  status: z.enum(['ACTIVE', 'DISABLED', 'INACTIVE', 'ARCHIVED']).optional().default('ACTIVE')
 });
 
 export const updateProductSchema = z.object({
@@ -137,7 +137,7 @@ export const updateProductSchema = z.object({
   bestSeller: z.boolean().optional().nullable(),
   trending: z.boolean().optional().nullable(),
   tags: z.array(z.string()).optional().nullable(),
-  status: z.enum(['ACTIVE', 'INACTIVE', 'ARCHIVED']).optional().nullable()
+  status: z.enum(['ACTIVE', 'DISABLED', 'INACTIVE', 'ARCHIVED']).optional().nullable()
 }).passthrough();
 
 export const reviewSchema = z.object({

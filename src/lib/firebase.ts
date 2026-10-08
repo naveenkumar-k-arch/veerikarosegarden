@@ -3,6 +3,9 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithPhoneNumber,
+  RecaptchaVerifier,
+  ConfirmationResult,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
@@ -35,9 +38,11 @@ export const googleProvider = new GoogleAuthProvider();
 
 export {
   signInWithPopup,
+  signInWithPhoneNumber,
+  RecaptchaVerifier,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
   onAuthStateChanged
 };
-export type { FirebaseUser };
+export type { FirebaseUser, ConfirmationResult };

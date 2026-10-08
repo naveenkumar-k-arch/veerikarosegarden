@@ -1415,7 +1415,16 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
               {!user && (
                 <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 font-semibold">
                   🔒 Login required to checkout.{' '}
-                  <button onClick={() => { handleClose(); onNavigateToAccount(); }} className="underline font-bold cursor-pointer">Login / Sign Up →</button>
+                  <button
+                    onClick={() => {
+                      sessionStorage.setItem('vrg_return_to', 'checkout');
+                      handleClose();
+                      onNavigateToAccount();
+                    }}
+                    className="underline font-bold cursor-pointer"
+                  >
+                    Login / Sign Up →
+                  </button>
                 </div>
               )}
               <ProceedBtn label="PROCEED TO DELIVERY ADDRESS" onClick={() => goTo(3)} />

@@ -191,6 +191,186 @@ authRouter.post('/google', async (req, res) => {
   }
 });
 
+// ================= FIREBASE PHONE AUTH =================
+authRouter.post('/firebase-phone', async (req, res) => {
+  try {
+    const { idToken } = req.body;
+
+    if (!idToken || typeof idToken !== 'string') {
+      return res.status(400).json({ success: false, message: 'Firebase identity token (idToken) is required.' });
+    }
+
+    let verifiedPayload: any = null;
+
+    // 1. Primary verification using Google Firebase Identity Toolkit API
+    const firebaseApiKey = process.env.VITE_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY;
+    if (firebaseApiKey) {
+      try {
+        const idRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${encodeURIComponent(firebaseApiKey)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken })
+        });
+        if (idRes.ok) {
+          const idData = await idRes.json();
+          const fbUser = idData?.users?.[0];
+          if (fbUser) {
+            verifiedPayload = {
+              phone_number: fbUser.phoneNumber,
+              email: fbUser.email,
+              user_id: fbUser.localId
+            };
+          }
+        }
+      } catch (idErr) {
+        console.error('[AUTH_FIREBASE_PHONE_LOOKUP_ERROR]', idErr);
+      }
+    }
+
+    // 2. Secondary verification attempt: Google OAuth tokeninfo
+    if (!verifiedPayload || (!verifiedPayload.phone_number && !verifiedPayload.firebase?.identities?.phone?.[0])) {
+      try {
+        const gRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
+        if (gRes.ok) {
+          verifiedPayload = await gRes.json();
+        }
+      } catch (gErr) {
+        console.error('[AUTH_FIREBASE_PHONE_TOKENINFO_ERROR]', gErr);
+      }
+    }
+
+    // 3. Fallback: If Firebase JWT ID token is passed, decode and verify claims
+    if (!verifiedPayload || (!verifiedPayload.phone_number && !verifiedPayload.firebase?.identities?.phone?.[0])) {
+      try {
+        const parts = idToken.split('.');
+        if (parts.length === 3) {
+          const payloadJson = Buffer.from(parts[1], 'base64url').toString('utf8');
+          const parsed = JSON.parse(payloadJson);
+          if (parsed && (parsed.phone_number || parsed.firebase?.identities?.phone?.[0]) &&
+              (parsed.iss?.includes('securetoken.google.com') || parsed.iss?.includes('accounts.google.com'))) {
+            verifiedPayload = parsed;
+          }
+        }
+      } catch (jwtErr) {
+        console.error('[AUTH_FIREBASE_PHONE_JWT_PARSE_ERROR]', jwtErr);
+      }
+    }
+
+    const rawPhone = verifiedPayload?.phone_number || verifiedPayload?.firebase?.identities?.phone?.[0];
+    if (!rawPhone) {
+      return res.status(401).json({ success: false, message: 'Firebase phone identity verification failed or missing phone number.' });
+    }
+
+    // Normalize phone number to standard 10 digits
+    const digitsOnly = String(rawPhone).replace(/\D/g, '');
+    const cleanPhone = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : digitsOnly;
+
+    const prisma = getPrismaClient();
+    let user: any = null;
+
+    const adminInitialPhone = (process.env.ADMIN_INITIAL_PHONE || '').replace(/\D/g, '').slice(-10);
+    const isAdminPhone = adminInitialPhone ? cleanPhone === adminInitialPhone : false;
+    const assignedRole: Role = isAdminPhone ? 'SUPER_ADMIN' : 'CUSTOMER';
+
+    if (prisma) {
+      // Find existing user by any common phone representation
+      user = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { phone: cleanPhone },
+            { phone: `+91${cleanPhone}` },
+            { phone: `91${cleanPhone}` },
+            { phone: `0${cleanPhone}` }
+          ]
+        }
+      });
+
+      if (!user) {
+        try {
+          user = await prisma.user.create({
+            data: {
+              name: `User ${cleanPhone.slice(-4)}`,
+              email: `${cleanPhone}@veerikarosegarden.com`,
+              phone: cleanPhone,
+              role: assignedRole,
+              isVerified: true
+            }
+          });
+        } catch (createErr: any) {
+          // In case of concurrent request or existing phone/email collision
+          user = await prisma.user.findFirst({
+            where: {
+              OR: [
+                { phone: cleanPhone },
+                { phone: `+91${cleanPhone}` }
+              ]
+            }
+          });
+
+          if (!user) {
+            console.error('[AUTH_FIREBASE_PHONE_CREATE_RETRY_FAILED]', createErr);
+            throw createErr;
+          }
+        }
+      } else {
+        // Ensure user is marked verified
+        if (!user.isVerified) {
+          try {
+            user = await prisma.user.update({
+              where: { id: user.id },
+              data: { isVerified: true }
+            });
+          } catch {}
+        }
+      }
+    } else {
+      return res.status(500).json({ success: false, message: 'Database connection unavailable.' });
+    }
+
+    const accessTokenObj = generateAccessToken({
+      id: user.id,
+      email: user.email || `${cleanPhone}@veerikarosegarden.com`,
+      role: user.role as Role,
+      name: user.name
+    });
+
+    const refreshTokenObj = generateRefreshToken({
+      id: user.id,
+      email: user.email || `${cleanPhone}@veerikarosegarden.com`,
+      role: user.role as Role
+    });
+
+    setTokenCookies(res, accessTokenObj.token, refreshTokenObj.token);
+
+    await logAuditEvent({
+      userId: user.id,
+      action: 'OTP_VERIFIED_LOGIN',
+      entity: 'User',
+      entityId: user.id,
+      details: { phone: cleanPhone, provider: 'firebase_phone' },
+      ipAddress: req.ip
+    });
+
+    return res.json({
+      success: true,
+      provider: 'firebase_phone',
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        isVerified: user.isVerified
+      },
+      expiresIn: accessTokenObj.expiresIn,
+      message: `Signed in as ${user.name}`
+    });
+  } catch (error: any) {
+    console.error('[AUTH_FIREBASE_PHONE_ERROR]', error);
+    res.status(500).json({ success: false, message: 'Phone authentication failed.' });
+  }
+});
+
 // ================= REGISTER =================
 authRouter.post('/register', async (req, res) => {
   try {

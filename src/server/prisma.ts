@@ -8,12 +8,27 @@ declare global {
   var __prismaNeonReadGlobal: PrismaClient | undefined;
 }
 
+function getPrimaryDatabaseUrl(): string | null {
+  const dbUrl = (process.env.DATABASE_URL || '').trim();
+  const neonUrl = (process.env.NEON_DATABASE_URL || '').trim();
+
+  // If DATABASE_URL is pointing to dead/inactive Supabase instance, failover directly to active NEON
+  if (dbUrl.includes('supabase.com') && neonUrl) {
+    return neonUrl;
+  }
+
+  if (dbUrl) return dbUrl;
+  if (neonUrl) return neonUrl;
+  return null;
+}
+
 /**
- * Returns a lazy-initialized Prisma Client instance for the Primary Database (Supabase).
+ * Returns a lazy-initialized Prisma Client instance for the Primary Database.
+ * Automatically falls back to NEON_DATABASE_URL if DATABASE_URL is pointing to dead Supabase or missing.
  */
 export function getPrismaClient(): PrismaClient | null {
-  const dbUrl = process.env.DATABASE_URL;
-  if (!dbUrl || dbUrl.trim() === '') {
+  const dbUrl = getPrimaryDatabaseUrl();
+  if (!dbUrl) {
     return null;
   }
 
@@ -39,10 +54,10 @@ export function getPrismaClient(): PrismaClient | null {
       });
 
       global.__prismaGlobal.$connect().catch((err) => {
-        console.warn('Prisma Supabase eager connect notice:', err);
+        console.warn('Prisma eager connect notice:', err);
       });
     } catch (err) {
-      console.error('Failed to initialize Prisma Client (Supabase):', err);
+      console.error('Failed to initialize Prisma Client:', err);
       return null;
     }
   }
@@ -52,11 +67,14 @@ export function getPrismaClient(): PrismaClient | null {
 
 /**
  * Returns a lazy-initialized Prisma Client instance for the High-Egress Read Database (Neon).
- * Falls back to getPrismaClient() if NEON_DATABASE_URL is not set.
+ * If primary and read database URLs are identical, reuses the primary client to save serverless connections.
  */
 export function getReadPrismaClient(): PrismaClient | null {
-  const neonUrl = process.env.NEON_DATABASE_URL;
-  if (!neonUrl || neonUrl.trim() === '') {
+  const neonUrl = (process.env.NEON_DATABASE_URL || '').trim();
+  const primaryUrl = getPrimaryDatabaseUrl();
+
+  // If read URL is identical to resolved primary URL, reuse primary client
+  if (!neonUrl || (primaryUrl && neonUrl === primaryUrl)) {
     return getPrismaClient();
   }
 
@@ -79,7 +97,7 @@ export function getReadPrismaClient(): PrismaClient | null {
         console.warn('Prisma Neon eager connect notice:', err);
       });
     } catch (err) {
-      console.warn('Failed to initialize Neon Prisma Client, using Primary Supabase:', err);
+      console.warn('Failed to initialize Neon Prisma Client, using Primary client:', err);
       return getPrismaClient();
     }
   }

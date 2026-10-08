@@ -4,6 +4,7 @@ import { User as UserIcon, Package, Heart, LogOut, Phone, Mail, Lock, KeyRound, 
 import { GoogleAuthButton } from '../components/GoogleAuthButton';
 import { getOrderStage, STAGE_CONFIG, isWhatsAppOrder } from '../utils/orderStages';
 import { WhatsAppIcon } from '../components/WhatsAppIcon';
+import { auth, RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from '../lib/firebase';
 
 
 interface AccountPageProps {
@@ -29,8 +30,8 @@ export const AccountPage: React.FC<AccountPageProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<string>(initialTab);
 
-  // Authentication Form States
-  const [authMode, setAuthMode] = useState<'LOGIN' | 'REGISTER' | 'OTP' | 'FORGOT'>('LOGIN');
+  // Authentication Form States — default to Phone OTP for fast mobile checkout
+  const [authMode, setAuthMode] = useState<'LOGIN' | 'REGISTER' | 'OTP' | 'FORGOT'>('OTP');
   
   // Login State
   const [identifier, setIdentifier] = useState('');
@@ -42,11 +43,13 @@ export const AccountPage: React.FC<AccountPageProps> = ({
   const [regPhone, setRegPhone] = useState('');
   const [regPassword, setRegPassword] = useState('');
 
-  // OTP State
+  // Firebase Phone OTP State
   const [otpPhone, setOtpPhone] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [otpSent, setOtpSent] = useState(false);
-
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const [resendCountdown, setResendCountdown] = useState<number>(0);
+  const recaptchaVerifierRef = React.useRef<RecaptchaVerifier | null>(null);
 
   // Forgot Password State
   const [forgotEmail, setForgotEmail] = useState('');
@@ -59,6 +62,61 @@ export const AccountPage: React.FC<AccountPageProps> = ({
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  // Resend Countdown Timer
+  React.useEffect(() => {
+    if (resendCountdown <= 0) return;
+    const interval = setInterval(() => {
+      setResendCountdown((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [resendCountdown]);
+
+  // Clean up reCAPTCHA verifier on unmount
+  React.useEffect(() => {
+    return () => {
+      if (recaptchaVerifierRef.current) {
+        try {
+          recaptchaVerifierRef.current.clear();
+        } catch {}
+        recaptchaVerifierRef.current = null;
+      }
+    };
+  }, []);
+
+  const clearRecaptcha = () => {
+    if (recaptchaVerifierRef.current) {
+      try {
+        recaptchaVerifierRef.current.clear();
+      } catch {}
+      recaptchaVerifierRef.current = null;
+    }
+    const container = document.getElementById('recaptcha-container');
+    if (container) {
+      container.innerHTML = '';
+    }
+  };
+
+  const getOrCreateRecaptcha = () => {
+    if (recaptchaVerifierRef.current) {
+      return recaptchaVerifierRef.current;
+    }
+    const container = document.getElementById('recaptcha-container');
+    if (!container) return null;
+    container.innerHTML = '';
+
+    const verifier = new RecaptchaVerifier(auth, container, {
+      size: 'invisible',
+      callback: () => {
+        // reCAPTCHA solved
+      },
+      'expired-callback': () => {
+        clearRecaptcha();
+      }
+    });
+    recaptchaVerifierRef.current = verifier;
+    return verifier;
+  };
 
   // Check for reset token in URL parameters or hash link on mount
   React.useEffect(() => {
@@ -81,6 +139,12 @@ export const AccountPage: React.FC<AccountPageProps> = ({
     setAuthMode(mode);
     setErrorMsg('');
     setSuccessMsg('');
+    if (mode !== 'OTP') {
+      clearRecaptcha();
+      setConfirmationResult(null);
+      setOtpSent(false);
+      setOtpCode('');
+    }
   };
 
   // Handler: Login with Password
@@ -159,10 +223,11 @@ export const AccountPage: React.FC<AccountPageProps> = ({
     }
   };
 
-  // Handler: Send Phone OTP
-  const handleSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!otpPhone.trim()) {
+  // Handler: Send Phone OTP via Firebase
+  const handleSendOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const cleanPhone = otpPhone.replace(/\D/g, '').slice(-10);
+    if (cleanPhone.length !== 10) {
       setErrorMsg('Please enter a valid 10-digit mobile number.');
       return;
     }
@@ -172,52 +237,99 @@ export const AccountPage: React.FC<AccountPageProps> = ({
     setSuccessMsg('');
 
     try {
-      const res = await fetch('/api/auth/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ phone: otpPhone.trim() })
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        setOtpSent(true);
-        setSuccessMsg(data.message || `OTP sent to +91 ${otpPhone.trim()}. Please enter the 6-digit code received.`);
-      } else {
-        setErrorMsg(data.message || 'Failed to send OTP.');
+      const appVerifier = getOrCreateRecaptcha();
+      if (!appVerifier) {
+        throw new Error('reCAPTCHA container could not be initialized. Please refresh.');
       }
-    } catch (err) {
-      setErrorMsg('Error requesting OTP.');
+
+      const formattedPhone = `+91${cleanPhone}`;
+      const confirmation = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
+      setConfirmationResult(confirmation);
+      setOtpSent(true);
+      setResendCountdown(60);
+      setSuccessMsg(`SMS OTP sent to +91 ${cleanPhone}. Please enter the 6-digit code received.`);
+    } catch (err: any) {
+      console.error('[FIREBASE_PHONE_AUTH_SEND_ERROR]', err);
+      clearRecaptcha();
+
+      if (err?.code === 'auth/invalid-phone-number') {
+        setErrorMsg('Invalid mobile number format. Please enter a valid 10-digit Indian number.');
+      } else if (err?.code === 'auth/too-many-requests') {
+        setErrorMsg('Too many OTP attempts. Please wait a few minutes before trying again.');
+      } else if (err?.code === 'auth/quota-exceeded') {
+        setErrorMsg('Daily SMS limit reached. Please contact nursery support or sign in with Google.');
+      } else if (err?.code === 'auth/captcha-check-failed') {
+        setErrorMsg('reCAPTCHA check failed. Please refresh the page and try again.');
+      } else if (err?.code === 'auth/app-not-authorized') {
+        setErrorMsg(`Domain (${window.location.hostname}) not authorized in Firebase Console -> Auth -> Settings.`);
+      } else {
+        setErrorMsg(err?.message || 'Failed to send OTP code. Please check your network connection.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // Handler: Verify OTP
+  // Handler: Verify Firebase Phone OTP
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanCode = otpCode.trim();
+    if (cleanCode.length !== 6) {
+      setErrorMsg('Please enter the full 6-digit OTP code.');
+      return;
+    }
+
+    if (!confirmationResult) {
+      setErrorMsg('OTP session expired. Please request a new OTP code.');
+      return;
+    }
+
     setLoading(true);
     setErrorMsg('');
+    setSuccessMsg('');
 
     try {
-      const res = await fetch('/api/auth/verify-otp', {
+      // 1. Confirm code with Firebase client
+      const credential = await confirmationResult.confirm(cleanCode);
+      const idToken = await credential.user.getIdToken();
+
+      // 2. Exchange with VRG Express Backend for HttpOnly session cookies
+      const res = await fetch('/api/auth/firebase-phone', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ phone: otpPhone.trim(), code: otpCode.trim() })
+        body: JSON.stringify({ idToken })
       });
 
       const data = await res.json();
       if (data.success && data.user) {
+        setSuccessMsg('Phone verified successfully! Signing you in...');
         onLogin(data.user);
       } else {
-        setErrorMsg(data.message || 'Invalid or expired OTP code.');
+        setErrorMsg(data.message || 'Failed to sync phone account with server.');
       }
-    } catch (err) {
-      setErrorMsg('Failed to verify OTP.');
+    } catch (err: any) {
+      console.error('[FIREBASE_PHONE_AUTH_VERIFY_ERROR]', err);
+      if (err?.code === 'auth/invalid-verification-code') {
+        setErrorMsg('Incorrect OTP code. Please check your SMS and enter the 6-digit code.');
+      } else if (err?.code === 'auth/code-expired') {
+        setErrorMsg('This OTP code has expired. Please click Resend OTP.');
+      } else {
+        setErrorMsg(err?.message || 'Failed to verify OTP code. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handler: Change Phone Number
+  const handleChangePhone = () => {
+    setOtpSent(false);
+    setOtpCode('');
+    setErrorMsg('');
+    setSuccessMsg('');
+    setConfirmationResult(null);
+    clearRecaptcha();
   };
 
   // Handler: Request Password Reset
@@ -290,20 +402,21 @@ export const AccountPage: React.FC<AccountPageProps> = ({
           {/* Mode Tabs */}
           <div className="flex border-b border-slate-200 text-xs font-bold bg-slate-50">
             <button
+              onClick={() => switchMode('OTP')}
+              className={`flex-1 py-3 text-center transition-colors border-b-2 flex items-center justify-center gap-1.5 ${
+                authMode === 'OTP' ? 'border-emerald-700 text-emerald-800 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <span>📱 Mobile OTP</span>
+              <span className="text-[9px] px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded-full font-bold">Fast</span>
+            </button>
+            <button
               onClick={() => switchMode('LOGIN')}
               className={`flex-1 py-3 text-center transition-colors border-b-2 ${
                 authMode === 'LOGIN' ? 'border-emerald-700 text-emerald-800 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'
               }`}
             >
               Password
-            </button>
-            <button
-              onClick={() => switchMode('OTP')}
-              className={`flex-1 py-3 text-center transition-colors border-b-2 ${
-                authMode === 'OTP' ? 'border-emerald-700 text-emerald-800 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              Phone OTP
             </button>
             <button
               onClick={() => switchMode('REGISTER')}
@@ -409,35 +522,45 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                         <input
                           type="tel"
                           required
+                          maxLength={10}
                           placeholder="e.g. 9876543210"
                           value={otpPhone}
-                          onChange={(e) => setOtpPhone(e.target.value.replace(/\D/g, ''))}
+                          onChange={(e) => setOtpPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                           className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white"
                         />
                         <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                       </div>
+                      <p className="text-[11px] text-slate-500 mt-1">
+                        A 6-digit verification code will be sent to your mobile via SMS.
+                      </p>
                     </div>
 
                     <button
                       type="submit"
-                      disabled={loading || otpPhone.length < 10}
+                      disabled={loading || otpPhone.replace(/\D/g, '').length < 10}
                       className="w-full py-3 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
                     >
-                      {loading ? 'Sending OTP...' : 'Send OTP Code'}
+                      {loading ? 'Sending OTP via SMS...' : 'Send OTP via SMS'}
                     </button>
                   </form>
                 ) : (
                   <form onSubmit={handleVerifyOtp} className="space-y-4">
                     <div>
-                      <label className="text-xs font-bold text-slate-700 block mb-1">Enter 6-Digit OTP Code:</label>
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="text-xs font-bold text-slate-700 block">Enter 6-Digit OTP Code:</label>
+                        <span className="text-[11px] font-semibold text-emerald-700">
+                          +91 {otpPhone.replace(/\D/g, '').slice(-10)}
+                        </span>
+                      </div>
                       <div className="relative">
                         <input
                           type="text"
                           required
+                          autoFocus
                           maxLength={6}
                           placeholder="123456"
                           value={otpCode}
-                          onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                          onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                           className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-center text-sm font-mono font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-600"
                         />
                         <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
@@ -447,19 +570,28 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                     <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={() => setOtpSent(false)}
-                        className="w-1/3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors"
+                        onClick={handleChangePhone}
+                        className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer"
                       >
                         Change Phone
                       </button>
                       <button
-                        type="submit"
-                        disabled={loading || otpCode.length < 6}
-                        className="w-2/3 py-2.5 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl transition-colors"
+                        type="button"
+                        disabled={loading || resendCountdown > 0}
+                        onClick={() => handleSendOtp()}
+                        className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer"
                       >
-                        {loading ? 'Verifying...' : 'Verify & Sign In'}
+                        {resendCountdown > 0 ? `Resend (${resendCountdown}s)` : 'Resend OTP'}
                       </button>
                     </div>
+
+                    <button
+                      type="submit"
+                      disabled={loading || otpCode.trim().length < 6}
+                      className="w-full py-3 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                    >
+                      {loading ? 'Verifying...' : 'Verify & Sign In'}
+                    </button>
                   </form>
                 )}
               </div>
@@ -605,6 +737,9 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                 )}
               </div>
             )}
+
+            {/* Invisible reCAPTCHA container for Firebase Phone Auth — permanent across tab switches */}
+            <div id="recaptcha-container"></div>
           </div>
         </div>
       </div>

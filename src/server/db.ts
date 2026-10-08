@@ -487,10 +487,11 @@ class Store {
         const allImages = (p.images && p.images.length > 0 ? p.images : [primaryImage]).map(img => (img.startsWith('/products/') || img.startsWith('/categories/')) ? img.replace(/\.(png|jpg|jpeg)$/i, '.webp') : img);
         const diskItem = diskMap.get(p.id) || (p.sku ? diskMap.get(p.sku) : undefined);
         const defItem = defMap.get(p.id) || (p.sku ? defMap.get(p.sku) : undefined);
-        const resolvedStock = (diskItem?.stock === 0 || defItem?.stock === 0)
+        const hasDbInventory = p.inventory?.quantity !== undefined && p.inventory?.quantity !== null;
+        const resolvedStock = p.inStock === false
           ? 0
-          : ((p.inventory?.quantity !== undefined && p.inventory?.quantity !== null)
-            ? p.inventory.quantity
+          : (hasDbInventory
+            ? p.inventory!.quantity
             : (diskItem?.stock !== undefined ? diskItem.stock : (defItem?.stock !== undefined ? defItem.stock : 25)));
 
         return {
@@ -812,10 +813,13 @@ class Store {
         newProd.updatedAt = created.updatedAt.toISOString();
       } catch (err: any) {
         console.error('Prisma addProduct error:', err);
-        // If duplicate SKU collision, retry with guaranteed unique timestamp SKU
-        if (err?.code === 'P2002' || (err?.message && err.message.includes('sku'))) {
+        // Handle duplicate SKU collision (P2002) and/or foreign key category failure (P2003)
+        const isSkuErr = err?.code === 'P2002' || (err?.message && err.message.includes('sku'));
+        const isFkErr = err?.code === 'P2003' || (err?.message && (err.message.includes('categoryId') || err.message.includes('Foreign key')));
+        if (isSkuErr || isFkErr) {
           try {
-            const fallbackSku = `VRG-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 1000)}`;
+            const fallbackSku = isSkuErr ? `VRG-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 1000)}` : sku;
+            const fallbackCatId = isFkErr ? null : validCategoryId;
             newProd.sku = fallbackSku;
             const retryCreated = await prisma.product.create({
               data: {
@@ -825,7 +829,7 @@ class Store {
                 nameTamil: product.tamilName || product.name,
                 scientificName: product.scientificName || '',
                 category: product.categoryName || 'Roses',
-                categoryId: validCategoryId,
+                categoryId: fallbackCatId,
                 description: product.description || '',
                 price: Number(product.sellingPrice) || 0,
                 originalPrice: Number(product.mrp) || Number(product.sellingPrice) || 0,
@@ -944,6 +948,9 @@ class Store {
           validCategoryId = existingDbProd?.categoryId || 'cat-rose';
         }
 
+        const fallbackCatalogProd = DEFAULT_PRODUCTS.find(p => p.id === cleanId || p.sku === cleanId || p.id === targetDbId)
+          || loadDiskProducts().find(p => p.id === cleanId || p.sku === cleanId || p.id === targetDbId);
+
         const p = await prisma.product.upsert({
           where: { id: targetDbId },
           update: {
@@ -967,25 +974,25 @@ class Store {
           },
           create: {
             id: targetDbId,
-            sku: updates.sku || existingDbProd?.sku || `VRG-${targetDbId.slice(-6).toUpperCase()}`,
-            name: updates.name || 'Rose Plant',
-            nameTamil: updates.tamilName || updates.name || 'ரோஜா செடி',
-            scientificName: updates.scientificName || '',
-            category: updates.categoryName || 'Rose Varieties',
-            categoryId: validCategoryId || 'cat-rose',
-            description: updates.description || '',
-            price: effectiveSellingPrice || 199,
-            originalPrice: effectiveMrp || effectiveSellingPrice || 249,
-            image: cleanImages?.[0] || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80',
-            images: cleanImages || [],
-            isFeatured: Boolean(updates.featured),
-            isBestSeller: Boolean(updates.bestSeller),
-            potSize: updates.potSize || '8 Inch Bag',
-            inStock: updates.stock !== undefined ? Number(updates.stock) > 0 : true,
-            careWatering: updates.careInstructions?.watering || 'Water daily in the morning.',
-            careSunlight: updates.careInstructions?.sunlight || 'Requires 5 hours direct sunlight.',
-            careFertilizer: updates.careInstructions?.fertilizer || 'Apply vermicompost every 15 days.',
-            careSoil: updates.careInstructions?.soil || 'Red soil mixed with coco peat.'
+            sku: updates.sku || existingDbProd?.sku || fallbackCatalogProd?.sku || `VRG-${targetDbId.slice(-6).toUpperCase()}`,
+            name: updates.name || existingDbProd?.name || fallbackCatalogProd?.name || 'Rose Plant',
+            nameTamil: updates.tamilName || updates.name || existingDbProd?.nameTamil || fallbackCatalogProd?.tamilName || fallbackCatalogProd?.name || 'ரோஜா செடி',
+            scientificName: updates.scientificName || existingDbProd?.scientificName || fallbackCatalogProd?.scientificName || '',
+            category: updates.categoryName || existingDbProd?.category || fallbackCatalogProd?.categoryName || 'Rose Varieties',
+            categoryId: validCategoryId || existingDbProd?.categoryId || fallbackCatalogProd?.categoryId || 'cat-rose',
+            description: updates.description || existingDbProd?.description || fallbackCatalogProd?.description || '',
+            price: effectiveSellingPrice || existingDbProd?.price || fallbackCatalogProd?.sellingPrice || 199,
+            originalPrice: effectiveMrp || effectiveSellingPrice || existingDbProd?.originalPrice || fallbackCatalogProd?.mrp || 249,
+            image: cleanImages?.[0] || existingDbProd?.image || fallbackCatalogProd?.images?.[0] || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80',
+            images: cleanImages || (existingDbProd?.images?.length ? existingDbProd.images : fallbackCatalogProd?.images) || [],
+            isFeatured: updates.featured !== undefined ? Boolean(updates.featured) : Boolean(existingDbProd?.isFeatured ?? fallbackCatalogProd?.featured),
+            isBestSeller: updates.bestSeller !== undefined ? Boolean(updates.bestSeller) : Boolean(existingDbProd?.isBestSeller ?? fallbackCatalogProd?.bestSeller),
+            potSize: updates.potSize || existingDbProd?.potSize || fallbackCatalogProd?.potSize || '8 Inch Bag',
+            inStock: updates.stock !== undefined ? Number(updates.stock) > 0 : (existingDbProd?.inStock ?? (fallbackCatalogProd?.stock !== undefined ? fallbackCatalogProd.stock > 0 : true)),
+            careWatering: updates.careInstructions?.watering || existingDbProd?.careWatering || fallbackCatalogProd?.careInstructions?.watering || 'Water daily in the morning.',
+            careSunlight: updates.careInstructions?.sunlight || existingDbProd?.careSunlight || fallbackCatalogProd?.careInstructions?.sunlight || 'Requires 5 hours direct sunlight.',
+            careFertilizer: updates.careInstructions?.fertilizer || existingDbProd?.careFertilizer || fallbackCatalogProd?.careInstructions?.fertilizer || 'Apply vermicompost every 15 days.',
+            careSoil: updates.careInstructions?.soil || existingDbProd?.careSoil || fallbackCatalogProd?.careInstructions?.soil || 'Red soil mixed with coco peat.'
           },
           include: { categoryRel: true, inventory: true }
         });
@@ -1049,6 +1056,8 @@ class Store {
         DEFAULT_PRODUCTS.unshift(finalUpdatedProduct);
       }
     } else {
+      const fallbackCatalogProd = DEFAULT_PRODUCTS.find(p => p.id === cleanId || p.sku === cleanId || p.id === targetDbId)
+        || loadDiskProducts().find(p => p.id === cleanId || p.sku === cleanId || p.id === targetDbId);
       const defIndex = DEFAULT_PRODUCTS.findIndex(p => p.id === cleanId || p.sku === cleanId || p.id === targetDbId);
       if (defIndex !== -1) {
         DEFAULT_PRODUCTS[defIndex] = {
@@ -1060,34 +1069,34 @@ class Store {
       } else {
         const updatedItem: Product = {
           id: cleanId,
-          sku: updates.sku || `VRG-${cleanId.slice(-6).toUpperCase()}`,
-          name: updates.name || 'Plant',
-          englishName: updates.englishName || updates.name || 'Plant',
-          tamilName: updates.tamilName || updates.name || '',
-          scientificName: updates.scientificName || '',
-          categoryName: updates.categoryName || 'Roses',
-          categoryId: updates.categoryId === 'cat-roses' ? 'cat-rose' : (updates.categoryId || 'cat-rose'),
-          description: updates.description || '',
-          mrp: effectiveMrp || effectiveSellingPrice || 199,
-          sellingPrice: effectiveSellingPrice || 199,
-          discount: calculatedDiscount || 0,
-          stock: Number(updates.stock) >= 0 ? Number(updates.stock) : 25,
-          rating: 5,
-          reviewCount: 0,
-          images: cleanImages || updates.images || [],
-          featured: Boolean(updates.featured),
-          bestSeller: Boolean(updates.bestSeller),
-          trending: Boolean(updates.trending),
-          tags: updates.tags || [],
-          status: updates.status || 'ACTIVE',
-          careInstructions: updates.careInstructions || {
+          sku: updates.sku || fallbackCatalogProd?.sku || `VRG-${cleanId.slice(-6).toUpperCase()}`,
+          name: updates.name || fallbackCatalogProd?.name || 'Plant',
+          englishName: updates.englishName || updates.name || fallbackCatalogProd?.englishName || fallbackCatalogProd?.name || 'Plant',
+          tamilName: updates.tamilName || updates.name || fallbackCatalogProd?.tamilName || '',
+          scientificName: updates.scientificName || fallbackCatalogProd?.scientificName || '',
+          categoryName: updates.categoryName || fallbackCatalogProd?.categoryName || 'Roses',
+          categoryId: updates.categoryId === 'cat-roses' ? 'cat-rose' : (updates.categoryId || fallbackCatalogProd?.categoryId || 'cat-rose'),
+          description: updates.description || fallbackCatalogProd?.description || '',
+          mrp: effectiveMrp || effectiveSellingPrice || fallbackCatalogProd?.mrp || 199,
+          sellingPrice: effectiveSellingPrice || fallbackCatalogProd?.sellingPrice || 199,
+          discount: calculatedDiscount || fallbackCatalogProd?.discount || 0,
+          stock: Number(updates.stock) >= 0 ? Number(updates.stock) : (fallbackCatalogProd?.stock ?? 25),
+          rating: fallbackCatalogProd?.rating || 5,
+          reviewCount: fallbackCatalogProd?.reviewCount || 0,
+          images: cleanImages || updates.images || fallbackCatalogProd?.images || [],
+          featured: updates.featured !== undefined ? Boolean(updates.featured) : Boolean(fallbackCatalogProd?.featured),
+          bestSeller: updates.bestSeller !== undefined ? Boolean(updates.bestSeller) : Boolean(fallbackCatalogProd?.bestSeller),
+          trending: updates.trending !== undefined ? Boolean(updates.trending) : Boolean(fallbackCatalogProd?.trending ?? true),
+          tags: updates.tags || fallbackCatalogProd?.tags || [],
+          status: updates.status || fallbackCatalogProd?.status || 'ACTIVE',
+          careInstructions: updates.careInstructions || fallbackCatalogProd?.careInstructions || {
             watering: 'Water daily in the morning.',
             sunlight: 'Requires 5 hours direct sunlight.',
             fertilizer: 'Apply vermicompost every 15 days.',
             soil: 'Red soil mixed with coco peat.'
           },
-          plantHeight: updates.plantHeight || '1-2 Feet',
-          potSize: updates.potSize || '8 Inch Bag',
+          plantHeight: updates.plantHeight || fallbackCatalogProd?.plantHeight || '1-2 Feet',
+          potSize: updates.potSize || fallbackCatalogProd?.potSize || '8 Inch Bag',
           sunlight: updates.sunlight || 'Full Sun',
           waterRequirement: updates.waterRequirement || 'Daily',
           floweringSeason: updates.floweringSeason || 'All Year',
