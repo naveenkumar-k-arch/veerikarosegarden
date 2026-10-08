@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User, Order, Product } from '../types';
-import { User as UserIcon, Package, Heart, LogOut, Phone, Mail, Lock, KeyRound, Sparkles, ChevronRight, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { User as UserIcon, Package, Heart, LogOut, Phone, KeyRound, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { GoogleAuthButton } from '../components/GoogleAuthButton';
 import { getOrderStage, STAGE_CONFIG, isWhatsAppOrder } from '../utils/orderStages';
 import { WhatsAppIcon } from '../components/WhatsAppIcon';
@@ -30,19 +30,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<string>(initialTab);
 
-  // Authentication Form States — default to Phone OTP for fast mobile checkout
-  const [authMode, setAuthMode] = useState<'LOGIN' | 'REGISTER' | 'OTP' | 'FORGOT'>('OTP');
-  
-  // Login State
-  const [identifier, setIdentifier] = useState('');
-  const [password, setPassword] = useState('');
-  
-  // Register State
-  const [regName, setRegName] = useState('');
-  const [regEmail, setRegEmail] = useState('');
-  const [regPhone, setRegPhone] = useState('');
-  const [regPassword, setRegPassword] = useState('');
-
   // Firebase Phone OTP State
   const [otpPhone, setOtpPhone] = useState('');
   const [otpCode, setOtpCode] = useState('');
@@ -50,13 +37,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [resendCountdown, setResendCountdown] = useState<number>(0);
   const recaptchaVerifierRef = React.useRef<RecaptchaVerifier | null>(null);
-
-  // Forgot Password State
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [resetToken, setResetToken] = useState('');
-
-  const [newPassword, setNewPassword] = useState('');
-  const [resetStep, setResetStep] = useState<1 | 2>(1);
 
   // Feedback State
   const [loading, setLoading] = useState(false);
@@ -116,111 +96,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({
     });
     recaptchaVerifierRef.current = verifier;
     return verifier;
-  };
-
-  // Check for reset token in URL parameters or hash link on mount
-  React.useEffect(() => {
-    try {
-      const hash = window.location.hash || '';
-      const search = window.location.search || '';
-      const params = new URLSearchParams(hash.includes('?') ? hash.split('?')[1] : search);
-      const tokenFromUrl = params.get('token') || params.get('resetToken');
-      if (tokenFromUrl) {
-        setResetToken(tokenFromUrl);
-        setAuthMode('FORGOT');
-        setResetStep(2);
-        setSuccessMsg('Reset code detected from link. Enter your new password below.');
-      }
-    } catch {}
-  }, []);
-
-  // Clear messages on mode switch
-  const switchMode = (mode: 'LOGIN' | 'REGISTER' | 'OTP' | 'FORGOT') => {
-    setAuthMode(mode);
-    setErrorMsg('');
-    setSuccessMsg('');
-    if (mode !== 'OTP') {
-      clearRecaptcha();
-      setConfirmationResult(null);
-      setOtpSent(false);
-      setOtpCode('');
-    }
-  };
-
-  // Handler: Login with Password
-  const handlePasswordLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setErrorMsg('');
-
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ identifier, password })
-      });
-
-      const data = await res.json();
-      if (data.success && data.user) {
-        onLogin(data.user);
-      } else {
-        setErrorMsg(data.message || 'Invalid email/phone or password.');
-      }
-    } catch (err: any) {
-      setErrorMsg('Authentication error. Please check your network connection.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Handler: Register New Account
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setErrorMsg('');
-    setSuccessMsg('');
-
-    try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          name: regName,
-          email: regEmail,
-          phone: regPhone,
-          password: regPassword
-        })
-      });
-
-      const data = await res.json();
-      if (data.success && data.user) {
-        setSuccessMsg(data.message || 'Account created! Signing you in...');
-        setTimeout(async () => {
-          // Auto login
-          const loginRes = await fetch('/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ identifier: regEmail || regPhone, password: regPassword })
-          });
-          const loginData = await loginRes.json();
-          if (loginData.success && loginData.user) {
-            onLogin(loginData.user);
-          }
-        }, 1000);
-      } else {
-        const errorDetails = data.errors && Array.isArray(data.errors) && data.errors.length > 0
-          ? `: ${data.errors.join(' ')}`
-          : '';
-        setErrorMsg((data.message || 'Registration failed.') + errorDetails);
-      }
-    } catch (err: any) {
-      setErrorMsg('Registration error. Please try again.');
-    } finally {
-      setLoading(false);
-    }
   };
 
   // Handler: Send Phone OTP via Firebase
@@ -332,60 +207,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({
     clearRecaptcha();
   };
 
-  // Handler: Request Password Reset
-  const handleForgotPass = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setErrorMsg('');
-
-    try {
-      const res = await fetch('/api/auth/forgot-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: forgotEmail })
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        setResetStep(2);
-        setSuccessMsg('If your email is registered, a password reset code has been sent. Check your inbox.');
-      } else {
-        setErrorMsg(data.message || 'Error processing request.');
-      }
-    } catch (err) {
-      setErrorMsg('Network error requesting password reset.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Handler: Reset Password
-  const handleResetPass = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setErrorMsg('');
-
-    try {
-      const res = await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: resetToken, newPassword })
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        setSuccessMsg('Password updated successfully! Please sign in with your new password.');
-        setTimeout(() => switchMode('LOGIN'), 1500);
-      } else {
-        setErrorMsg(data.message || 'Failed to reset password.');
-      }
-    } catch (err) {
-      setErrorMsg('Error resetting password.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   if (!user) {
     return (
       <div className="max-w-md mx-auto py-12 px-4">
@@ -396,36 +217,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
               <UserIcon className="w-7 h-7 text-emerald-300" />
             </div>
             <h2 className="text-xl font-bold tracking-tight">Veerika Rose Garden</h2>
-            <p className="text-xs text-emerald-200">Sign in or create an account to manage nursery orders & wishlist</p>
-          </div>
-
-          {/* Mode Tabs */}
-          <div className="flex border-b border-slate-200 text-xs font-bold bg-slate-50">
-            <button
-              onClick={() => switchMode('OTP')}
-              className={`flex-1 py-3 text-center transition-colors border-b-2 flex items-center justify-center gap-1.5 ${
-                authMode === 'OTP' ? 'border-emerald-700 text-emerald-800 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              <span>📱 Mobile OTP</span>
-              <span className="text-[9px] px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded-full font-bold">Primary</span>
-            </button>
-            <button
-              onClick={() => switchMode('LOGIN')}
-              className={`flex-1 py-3 text-center transition-colors border-b-2 ${
-                authMode === 'LOGIN' ? 'border-emerald-700 text-emerald-800 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              Password
-            </button>
-            <button
-              onClick={() => switchMode('REGISTER')}
-              className={`flex-1 py-3 text-center transition-colors border-b-2 ${
-                authMode === 'REGISTER' ? 'border-emerald-700 text-emerald-800 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              Register
-            </button>
+            <p className="text-xs text-emerald-200">Sign in with Mobile OTP or Google to manage orders & wishlist</p>
           </div>
 
           <div className="p-6 space-y-5">
@@ -444,309 +236,111 @@ export const AccountPage: React.FC<AccountPageProps> = ({
               </div>
             )}
 
-            {/* FORM MODE: PASSWORD LOGIN */}
-            {authMode === 'LOGIN' && (
-              <form onSubmit={handlePasswordLogin} className="space-y-4">
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Email or Mobile Number:</label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. name@email.com or 9876543210"
-                      value={identifier}
-                      onChange={(e) => setIdentifier(e.target.value)}
-                      className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white"
-                    />
-                    <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="text-xs font-bold text-slate-700">Password:</label>
-                    <button
-                      type="button"
-                      onClick={() => switchMode('FORGOT')}
-                      className="text-[11px] text-emerald-700 hover:underline font-bold"
-                    >
-                      Forgot?
-                    </button>
-                  </div>
-                  <div className="relative">
-                    <input
-                      type="password"
-                      required
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white"
-                    />
-                    <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-2"
-                >
-                  {loading ? 'Authenticating...' : 'Sign In with Password'}
-                </button>
-
-              </form>
-            )}
-
-            {/* FORM MODE: PHONE OTP LOGIN */}
-            {authMode === 'OTP' && (
-              <div className="space-y-4">
-                {!otpSent ? (
-                  <form onSubmit={handleSendOtp} className="space-y-4">
-                    <div>
-                      <label className="text-xs font-bold text-slate-700 block mb-1">Mobile Number (+91):</label>
-                      <div className="relative">
-                        <input
-                          type="tel"
-                          required
-                          maxLength={10}
-                          placeholder="e.g. 9876543210"
-                          value={otpPhone}
-                          onChange={(e) => setOtpPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                          className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white"
-                        />
-                        <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                      </div>
-                      <p className="text-[11px] text-slate-500 mt-1">
-                        A 6-digit verification code will be sent to your mobile via SMS.
-                      </p>
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={loading || otpPhone.replace(/\D/g, '').length < 10}
-                      className="w-full py-3 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
-                    >
-                      {loading ? 'Sending OTP via SMS...' : 'Send OTP via SMS'}
-                    </button>
-                  </form>
-                ) : (
-                  <form onSubmit={handleVerifyOtp} className="space-y-4">
-                    <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <label className="text-xs font-bold text-slate-700 block">Enter 6-Digit OTP Code:</label>
-                        <span className="text-[11px] font-semibold text-emerald-700">
-                          +91 {otpPhone.replace(/\D/g, '').slice(-10)}
-                        </span>
-                      </div>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          required
-                          autoFocus
-                          maxLength={6}
-                          placeholder="123456"
-                          value={otpCode}
-                          onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                          className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-center text-sm font-mono font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                        />
-                        <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={handleChangePhone}
-                        className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer"
-                      >
-                        Change Phone
-                      </button>
-                      <button
-                        type="button"
-                        disabled={loading || resendCountdown > 0}
-                        onClick={() => handleSendOtp()}
-                        className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer"
-                      >
-                        {resendCountdown > 0 ? `Resend (${resendCountdown}s)` : 'Resend OTP'}
-                      </button>
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={loading || otpCode.trim().length < 6}
-                      className="w-full py-3 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer"
-                    >
-                      {loading ? 'Verifying...' : 'Verify & Sign In'}
-                    </button>
-
-                    <p className="text-[10px] text-slate-400 text-center leading-normal">
-                      Didn't receive SMS? Cellular SMS in India can be delayed by carrier DND filters. You can use your Firebase test code (e.g. 123456) or sign in with <strong>Google</strong> above.
-                    </p>
-                  </form>
-                )}
-              </div>
-            )}
-
-            {/* FORM MODE: REGISTER */}
-            {authMode === 'REGISTER' && (
-              <form onSubmit={handleRegister} className="space-y-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Full Name:</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Kavitha Selvan"
-                    value={regName}
-                    onChange={(e) => setRegName(e.target.value)}
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Mobile Number:</label>
-                  <input
-                    type="tel"
-                    required
-                    placeholder="e.g. 9876543210"
-                    value={regPhone}
-                    onChange={(e) => setRegPhone(e.target.value.replace(/\D/g, ''))}
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Email Address:</label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="e.g. customer@gmail.com"
-                    value={regEmail}
-                    onChange={(e) => setRegEmail(e.target.value)}
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Create Password:</label>
-                  <input
-                    type="password"
-                    required
-                    minLength={8}
-                    placeholder="Min 8 chars, 1 uppercase, 1 symbol, 1 number"
-                    value={regPassword}
-                    onChange={(e) => setRegPassword(e.target.value)}
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                  />
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    Password requirements: 8+ chars, uppercase, lowercase, number, symbol (!@#$)
-                  </p>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3 mt-2 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
-                >
-                  {loading ? 'Creating Account...' : 'Create Nursery Account'}
-                </button>
-              </form>
-            )}
-
-            {/* FORM MODE: FORGOT PASSWORD */}
-            {authMode === 'FORGOT' && (
-              <div className="space-y-4">
-                {resetStep === 1 ? (
-                  <form onSubmit={handleForgotPass} className="space-y-3">
-                    <div>
-                      <label className="text-xs font-bold text-slate-700 block mb-1">Registered Email Address:</label>
+            {/* PRIMARY: MOBILE OTP LOGIN */}
+            <div className="space-y-4">
+              {!otpSent ? (
+                <form onSubmit={handleSendOtp} className="space-y-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">Mobile Number (+91):</label>
+                    <div className="relative">
                       <input
-                        type="email"
+                        type="tel"
                         required
-                        placeholder="name@gmail.com"
-                        value={forgotEmail}
-                        onChange={(e) => setForgotEmail(e.target.value)}
-                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                        maxLength={10}
+                        placeholder="e.g. 9876543210"
+                        value={otpPhone}
+                        onChange={(e) => setOtpPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                        className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white"
                       />
+                      <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                     </div>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      A 6-digit verification code will be sent to your mobile via SMS.
+                    </p>
+                  </div>
 
-                    <div className="flex gap-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={() => switchMode('LOGIN')}
-                        className="w-1/3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl"
-                      >
-                        Back
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-2/3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl"
-                      >
-                        {loading ? 'Processing...' : 'Get Reset Token'}
-                      </button>
+                  <button
+                    type="submit"
+                    disabled={loading || otpPhone.replace(/\D/g, '').length < 10}
+                    className="w-full py-3 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
+                  >
+                    {loading ? 'Sending OTP via SMS...' : 'Send OTP via SMS'}
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={handleVerifyOtp} className="space-y-4">
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-xs font-bold text-slate-700 block">Enter 6-Digit OTP Code:</label>
+                      <span className="text-[11px] font-semibold text-emerald-700">
+                        +91 {otpPhone.replace(/\D/g, '').slice(-10)}
+                      </span>
                     </div>
-                  </form>
-                ) : (
-                  <form onSubmit={handleResetPass} className="space-y-3">
-                    <div>
-                      <label className="text-xs font-bold text-slate-700 block mb-1">Reset Code / Token:</label>
+                    <div className="relative">
                       <input
                         type="text"
                         required
-                        placeholder="Paste 64-char reset token or click reset link from email"
-                        value={resetToken}
-                        onChange={(e) => setResetToken(e.target.value)}
-                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono font-bold focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                        autoFocus
+                        maxLength={6}
+                        placeholder="123456"
+                        value={otpCode}
+                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-center text-sm font-mono font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-600"
                       />
-                      <p className="text-[10px] text-slate-500 mt-1">
-                        Enter the reset code sent to your registered email address or click your reset link.
-                      </p>
+                      <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                     </div>
+                  </div>
 
-                    <div>
-                      <label className="text-xs font-bold text-slate-700 block mb-1">New Password:</label>
-                      <input
-                        type="password"
-                        required
-                        minLength={8}
-                        placeholder="Enter new strong password"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                      />
-                    </div>
-
+                  <div className="flex gap-2">
                     <button
-                      type="submit"
-                      disabled={loading}
-                      className="w-full py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl"
+                      type="button"
+                      onClick={handleChangePhone}
+                      className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer"
                     >
-                      {loading ? 'Updating Password...' : 'Reset Password'}
+                      Change Phone
                     </button>
-                  </form>
-                )}
-              </div>
-            )}
+                    <button
+                      type="button"
+                      disabled={loading || resendCountdown > 0}
+                      onClick={() => handleSendOtp()}
+                      className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                    >
+                      {resendCountdown > 0 ? `Resend (${resendCountdown}s)` : 'Resend OTP'}
+                    </button>
+                  </div>
 
-            {/* Secondary Sign-In Option: Google */}
-            {authMode !== 'FORGOT' && (
-              <div className="pt-2 space-y-3">
-                <div className="relative flex py-1 items-center">
-                  <div className="flex-grow border-t border-slate-200"></div>
-                  <span className="flex-shrink mx-3 text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
-                    Or sign in with Google (Secondary)
-                  </span>
-                  <div className="flex-grow border-t border-slate-200"></div>
-                </div>
-                <GoogleAuthButton
-                  onSuccess={(userData) => {
-                    onLogin(userData);
-                  }}
-                />
-              </div>
-            )}
+                  <button
+                    type="submit"
+                    disabled={loading || otpCode.trim().length < 6}
+                    className="w-full py-3 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                  >
+                    {loading ? 'Verifying...' : 'Verify & Sign In'}
+                  </button>
 
-            {/* Invisible reCAPTCHA container for Firebase Phone Auth — permanent across tab switches */}
+                  <p className="text-[10px] text-slate-400 text-center leading-normal">
+                    Didn't receive SMS? Cellular SMS in India can be delayed by carrier DND filters. You can use your Firebase test code (e.g. 123456) or sign in with <strong>Google</strong> below.
+                  </p>
+                </form>
+              )}
+            </div>
+
+            {/* SECONDARY: SIGN IN WITH GOOGLE */}
+            <div className="pt-2 space-y-3">
+              <div className="relative flex py-1 items-center">
+                <div className="flex-grow border-t border-slate-200"></div>
+                <span className="flex-shrink mx-3 text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
+                  Or continue with Google
+                </span>
+                <div className="flex-grow border-t border-slate-200"></div>
+              </div>
+              <GoogleAuthButton
+                onSuccess={(userData) => {
+                  onLogin(userData);
+                }}
+              />
+            </div>
+
+            {/* Invisible reCAPTCHA container for Firebase Phone Auth */}
             <div id="recaptcha-container"></div>
           </div>
         </div>
