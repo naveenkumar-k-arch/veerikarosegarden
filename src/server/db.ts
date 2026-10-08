@@ -487,9 +487,11 @@ class Store {
         const allImages = (p.images && p.images.length > 0 ? p.images : [primaryImage]).map(img => (img.startsWith('/products/') || img.startsWith('/categories/')) ? img.replace(/\.(png|jpg|jpeg)$/i, '.webp') : img);
         const diskItem = diskMap.get(p.id) || (p.sku ? diskMap.get(p.sku) : undefined);
         const defItem = defMap.get(p.id) || (p.sku ? defMap.get(p.sku) : undefined);
-        const resolvedStock = (p.inventory?.quantity !== undefined && p.inventory?.quantity !== null)
-          ? p.inventory.quantity
-          : (diskItem?.stock !== undefined ? diskItem.stock : (defItem?.stock !== undefined ? defItem.stock : 25));
+        const resolvedStock = (diskItem?.stock === 0 || defItem?.stock === 0)
+          ? 0
+          : ((p.inventory?.quantity !== undefined && p.inventory?.quantity !== null)
+            ? p.inventory.quantity
+            : (diskItem?.stock !== undefined ? diskItem.stock : (defItem?.stock !== undefined ? defItem.stock : 25)));
 
         return {
           id: p.id,
@@ -686,7 +688,14 @@ class Store {
             images: allImages,
             rating: p.rating,
             reviewCount: p.reviewsCount,
-            stock: p.inventory?.quantity ?? 50,
+            stock: (() => {
+              const diskList = loadDiskProducts();
+              const diskItem = diskList.find(d => d.id === p.id || (p.sku && d.sku === p.sku));
+              const defItem = DEFAULT_PRODUCTS.find(d => d.id === p.id || (p.sku && d.sku === p.sku));
+              return (diskItem?.stock === 0 || defItem?.stock === 0)
+                ? 0
+                : (p.inventory?.quantity ?? diskItem?.stock ?? defItem?.stock ?? 50);
+            })(),
             plantHeight: '1.5 - 2 Feet',
             potSize: p.potSize || '6 inch Grow Bag',
             sunlight: 'Full Sun' as const,

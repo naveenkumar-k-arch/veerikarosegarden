@@ -171,7 +171,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "mrp": 160,
     "sellingPrice": 120,
     "discount": 25,
-    "stock": 14,
+    "stock": 0,
     "rating": 5,
     "reviewCount": 18,
     "images": [
@@ -257,7 +257,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "mrp": 160,
     "sellingPrice": 120,
     "discount": 25,
-    "stock": 8,
+    "stock": 0,
     "rating": 4.8,
     "reviewCount": 6,
     "images": [
@@ -2626,7 +2626,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "mrp": 160,
     "sellingPrice": 120,
     "discount": 25,
-    "stock": 48,
+    "stock": 0,
     "rating": 5,
     "reviewCount": 18,
     "images": [

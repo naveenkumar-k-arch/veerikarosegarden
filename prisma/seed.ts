@@ -115,7 +115,7 @@ const PRODUCTS = [
     "mrp": 190,
     "sellingPrice": 140,
     "discount": 26,
-    "stock": 14,
+    "stock": 0,
     "rating": 5.0,
     "reviewCount": 18,
     "images": [
@@ -201,7 +201,7 @@ const PRODUCTS = [
     "mrp": 160,
     "sellingPrice": 120,
     "discount": 25,
-    "stock": 8,
+    "stock": 0,
     "rating": 4.8,
     "reviewCount": 6,
     "images": [
@@ -244,7 +244,7 @@ const PRODUCTS = [
     "mrp": 190,
     "sellingPrice": 140,
     "discount": 26,
-    "stock": 6,
+    "stock": 0,
     "rating": 4.8,
     "reviewCount": 6,
     "images": [
@@ -1233,7 +1233,7 @@ const PRODUCTS = [
     "mrp": 190,
     "sellingPrice": 140,
     "discount": 26,
-    "stock": 27,
+    "stock": 0,
     "rating": 5.0,
     "reviewCount": 18,
     "images": [
@@ -2523,7 +2523,7 @@ const PRODUCTS = [
     "mrp": 160,
     "sellingPrice": 120,
     "discount": 25,
-    "stock": 48,
+    "stock": 0,
     "rating": 5.0,
     "reviewCount": 18,
     "images": [
@@ -3297,7 +3297,7 @@ const PRODUCTS = [
     "mrp": 170,
     "sellingPrice": 120,
     "discount": 29,
-    "stock": 25,
+    "stock": 0,
     "rating": 5.0,
     "reviewCount": 18,
     "images": [
@@ -3598,7 +3598,7 @@ const PRODUCTS = [
     "mrp": 170,
     "sellingPrice": 120,
     "discount": 29,
-    "stock": 25,
+    "stock": 0,
     "rating": 5.0,
     "reviewCount": 18,
     "images": [
