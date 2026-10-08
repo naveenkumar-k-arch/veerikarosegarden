@@ -592,6 +592,10 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                     >
                       {loading ? 'Verifying...' : 'Verify & Sign In'}
                     </button>
+
+                    <p className="text-[10px] text-slate-400 text-center leading-normal">
+                      Didn't receive SMS? Cellular SMS in India can be delayed by carrier DND filters. You can use your Firebase test code (e.g. 123456) or sign in with <strong>Google</strong> above.
+                    </p>
                   </form>
                 )}
               </div>
