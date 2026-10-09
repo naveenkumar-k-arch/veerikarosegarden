@@ -976,6 +976,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         setPlacedOrderId(res.orderId || null);
         try {
           if (res.orderId) sessionStorage.setItem('vrg_placed_order_id', res.orderId);
+          localStorage.removeItem('vrg_cart');
+          localStorage.setItem('vrg_cart', '[]');
+          window.dispatchEvent(new Event('vrg_cart_updated'));
         } catch {}
         goTo(7);
       } else {

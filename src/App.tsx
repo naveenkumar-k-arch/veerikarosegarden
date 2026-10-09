@@ -585,6 +585,36 @@ const AppContent: React.FC = () => {
       }
     };
 
+    const handleCartSync = () => {
+      try {
+        const saved = localStorage.getItem('vrg_cart');
+        if (!saved || saved === '[]') {
+          setCart([]);
+          return;
+        }
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setCart(parsed);
+        } else {
+          setCart([]);
+        }
+      } catch {
+        setCart([]);
+      }
+    };
+
+    const handleStorageEvent = (e: StorageEvent) => {
+      if (e.key === 'vrg_cart') {
+        handleCartSync();
+      }
+      handleProductSync(e);
+    };
+
+    const handleFocusSync = () => {
+      handleCartSync();
+      handleProductSync();
+    };
+
     window.addEventListener('orderStatusUpdated', handleSync);
     window.addEventListener('vrg_order_deleted', handleOrderDeleted);
     window.addEventListener('vrg_orders_sync', handleOrderDeleted);
@@ -592,8 +622,9 @@ const AppContent: React.FC = () => {
     window.addEventListener('vrg_categories_updated', handleProductSync);
     window.addEventListener('vrg_combos_updated', handleProductSync);
     window.addEventListener('vrg_reviews_updated', handleSyncReviews);
-    window.addEventListener('storage', handleProductSync);
-    window.addEventListener('focus', handleProductSync);
+    window.addEventListener('vrg_cart_updated', handleCartSync);
+    window.addEventListener('storage', handleStorageEvent as EventListener);
+    window.addEventListener('focus', handleFocusSync);
 
     // Reconcile pending Razorpay mobile payments when returning from UPI app (GPay / PhonePe)
     const checkPendingRazorpayPayment = async () => {
@@ -701,15 +732,12 @@ const AppContent: React.FC = () => {
       window.removeEventListener('vrg_categories_updated', handleProductSync);
       window.removeEventListener('vrg_combos_updated', handleProductSync);
       window.removeEventListener('vrg_reviews_updated', handleSyncReviews);
-      window.removeEventListener('storage', handleProductSync);
-      window.removeEventListener('focus', handleProductSync);
+      window.removeEventListener('vrg_cart_updated', handleCartSync);
+      window.removeEventListener('storage', handleStorageEvent as EventListener);
+      window.removeEventListener('focus', handleFocusSync);
       unsubscribe();
     };
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem('vrg_cart', JSON.stringify(cart));
-  }, [cart]);
 
   // Preload AdminPage chunk in background when admin session is detected to eliminate lazy-load chunk download latency
   useEffect(() => {
@@ -1136,9 +1164,12 @@ const AppContent: React.FC = () => {
       sessionStorage.removeItem('vrg_pending_upi_payment');
       localStorage.removeItem('vrg_pending_upi_payment');
       localStorage.removeItem('vrg_pending_razorpay_order');
+      localStorage.removeItem('vrg_cart');
+      localStorage.setItem('vrg_cart', '[]');
     } catch {}
 
     window.dispatchEvent(new Event('orderStatusUpdated'));
+    window.dispatchEvent(new Event('vrg_cart_updated'));
     fetchUserOrders();
 
     setCart([]);
@@ -1810,32 +1841,37 @@ const AppContent: React.FC = () => {
         )}
       </React.Suspense>
 
-      {/* Floating Sticky Cart Button */}
-      <button
-        onClick={() => {
-          navigateTo('checkout');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-        className="fixed bottom-6 left-6 z-40 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white px-4 py-3 rounded-full shadow-2xl transition-all duration-200 items-center gap-2.5 border-2 border-emerald-500/40 cursor-pointer hidden sm:flex"
-        title="Open Shopping Cart Page"
-        aria-label="Open Shopping Cart Page"
-      >
-        <div className="relative flex items-center justify-center">
-          <ShoppingBag className="w-5 h-5 text-emerald-400" />
-          {cartPlantCount > 0 && (
+      {/* Floating Sticky Cart Button — Visible ONLY on customer store browsing pages when cart has items */}
+      {currentPage !== 'admin' &&
+        currentPage !== 'checkout' &&
+        currentPage !== 'order-status' &&
+        currentPage !== 'login' &&
+        currentPage !== 'register' &&
+        !isMobileCheckoutOpen &&
+        !isCartOpen &&
+        cartPlantCount > 0 && (
+        <button
+          onClick={() => {
+            navigateTo('checkout');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className="fixed bottom-6 left-6 z-40 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white px-4 py-3 rounded-full shadow-2xl transition-all duration-200 items-center gap-2.5 border-2 border-emerald-500/40 cursor-pointer hidden sm:flex"
+          title="Open Shopping Cart Page"
+          aria-label="Open Shopping Cart Page"
+        >
+          <div className="relative flex items-center justify-center">
+            <ShoppingBag className="w-5 h-5 text-emerald-400" />
             <span className="absolute -top-2.5 -right-2.5 bg-rose-500 text-white text-[10px] font-black min-w-[20px] h-5 px-1 rounded-full flex items-center justify-center border-2 border-slate-900 shadow-md">
               {cartPlantCount}
             </span>
-          )}
-        </div>
-        <span className="text-xs font-bold tracking-wide">
-          {cartPlantCount > 0
-            ? (language === 'ta'
-                ? `கூடை (${cartPlantCount} செடிகள்)`
-                : `Cart (${cartPlantCount} ${cartPlantCount === 1 ? 'Plant' : 'Plants'})`)
-            : (language === 'ta' ? 'கூடை' : 'Cart')}
-        </span>
-      </button>
+          </div>
+          <span className="text-xs font-bold tracking-wide">
+            {language === 'ta'
+              ? `கூடை (${cartPlantCount} செடிகள்)`
+              : `Cart (${cartPlantCount} ${cartPlantCount === 1 ? 'Plant' : 'Plants'})`}
+          </span>
+        </button>
+      )}
 
       {/* Floating WhatsApp Button — Visible ONLY on Main Home Page, positioned cleanly above bottom navigation on mobile */}
       {currentPage === 'home' && !isMobileCheckoutOpen && !isCartOpen && (
