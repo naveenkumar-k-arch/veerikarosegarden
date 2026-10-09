@@ -135,6 +135,8 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
       comboTitle: combo.title,
       comboBadge: combo.badge || 'COMBO OFFER',
       freeDelivery: combo.freeDelivery === true,
+      fullSoil: combo.fullSoil === true || (combo.badge && combo.badge.includes('FULL SOIL')) || (combo.title && combo.title.toLowerCase().includes('full soil')),
+      courierPartner: combo.courierPartner || 'PROFESSIONAL_COURIER',
       comboProducts
     });
 
@@ -212,7 +214,7 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-            {combos.slice(0, 2).map((combo) => {
+            {combos.slice(0, 3).map((combo) => {
               const discount = combo.discountPercent || (combo.originalPrice > 0 ? Math.round(((combo.originalPrice - combo.comboPrice) / combo.originalPrice) * 100) : 0);
               const savings = combo.originalPrice > combo.comboPrice ? combo.originalPrice - combo.comboPrice : 0;
               const isJustAdded = addedComboId === combo.id;
@@ -240,6 +242,11 @@ export const CombosSection: React.FC<CombosSectionProps> = ({ onAddToCart, onSel
                       {combo.freeDelivery && (
                         <span className="bg-emerald-600 text-white font-black text-[10px] sm:text-[11px] px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full shadow-md flex items-center gap-1">
                           <Truck className="w-3 h-3" /> {isTa ? 'இலவச டெலிவரி' : 'FREE SHIPPING'}
+                        </span>
+                      )}
+                      {(combo.fullSoil || (combo.badge && combo.badge.includes('FULL SOIL')) || (combo.title && combo.title.toLowerCase().includes('full soil'))) && (
+                        <span className="bg-gradient-to-r from-amber-600 to-emerald-700 text-white font-black text-[10px] sm:text-[11px] px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full shadow-md flex items-center gap-1">
+                          🌱 {isTa ? 'முழு மண் செடி' : 'FULL SOIL'}
                         </span>
                       )}
                     </div>

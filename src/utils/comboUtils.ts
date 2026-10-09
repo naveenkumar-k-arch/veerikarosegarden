@@ -477,6 +477,8 @@ export const comboToProduct = (combo: Combo): Product => {
     freeDelivery: combo.freeDelivery === true,
     freePacking: combo.freePacking === true || isVinayagar,
     onlyMetturService: combo.onlyMetturService === true || isVinayagar,
+    fullSoil: combo.fullSoil === true || (combo.badge && combo.badge.includes('FULL SOIL')) || (combo.title && combo.title.toLowerCase().includes('full soil')),
+    courierPartner: combo.courierPartner || 'PROFESSIONAL_COURIER',
     isCombo: true,
     comboProducts: comboProducts
   } as any;
@@ -497,6 +499,9 @@ export const resolveComboImage = (combo: any): string => {
   }
   // Title / ID heuristics matching actual images in /products/vrg/
   const title = (combo?.title || combo?.name || combo?.id || '').toLowerCase();
+  if (title.includes('sangu') || title.includes('pavazha') || title.includes('pavalla') || title.includes('சங்கு') || title.includes('பவள')) {
+    return '/products/vrg/combo-blue-sangu-poo-pavazhamalli.webp';
+  }
   if (title.includes('green combo') || title.includes('green') || title.includes('marikozhunthu') || title.includes('marugu') || title.includes('மரிக்கொழுந்து') || title.includes('மருகு')) {
     return '/products/vrg/combo-green-marikozhunthu-marugu.webp';
   }
@@ -576,6 +581,20 @@ export const getCachedActiveCombos = (): Combo[] => {
         imageUrl: c.imageUrl || existing.imageUrl,
         products: (c.products && c.products.length > 0) ? c.products : (existing.products || [])
       });
+    }
+  });
+
+  // Explicitly ensure Blue Sangu Poo + Pavazhamalli combo is active with full soil & free delivery
+  map.forEach((c) => {
+    if (c.id === 'combo-blue-sangu-poo-pavazhamalli' || (c.id && c.id.includes('sangu') && c.id.includes('pavazha'))) {
+      c.order = 0;
+      c.active = true;
+      c.freeDelivery = true;
+      c.freePacking = true;
+      c.fullSoil = true;
+      c.courierPartner = 'PROFESSIONAL_COURIER';
+      c.badge = '2-IN-1 FULL SOIL SPECIAL';
+      c.imageUrl = '/products/vrg/combo-blue-sangu-poo-pavazhamalli.webp';
     }
   });
 

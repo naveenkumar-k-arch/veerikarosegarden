@@ -342,6 +342,16 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       return;
     }
     const inTNState = isTamilNadu(address.state);
+    const hasFullSoilCombo = items.some(i =>
+      (i as any).fullSoil === true ||
+      (i.product as any)?.fullSoil === true ||
+      (i.comboTitle && i.comboTitle.toLowerCase().includes('full soil')) ||
+      (i.comboId && i.comboId.toLowerCase().includes('sangu') && i.comboId.toLowerCase().includes('pavazha'))
+    );
+    if (hasFullSoilCombo && inTNState) {
+      if (courierPartner !== 'PROFESSIONAL_COURIER') setCourierPartner('PROFESSIONAL_COURIER');
+      if (deliveryOption === 'REDUCED_SOIL') setDeliveryOption('FULL_SOIL_6INCH');
+    }
     const isFullSoil = deliveryOption === 'FULL_SOIL_6INCH' || deliveryOption === 'FULL_SOIL_8INCH' || deliveryOption === 'FULL_SOIL';
     if (isFullSoil && (!inTNState || totalPlantCount > 5)) {
       setDeliveryOption('REDUCED_SOIL');

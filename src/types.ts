@@ -71,6 +71,8 @@ export interface CartItem {
   freeDelivery?: boolean;
   freePacking?: boolean;
   onlyMetturService?: boolean;
+  fullSoil?: boolean;
+  courierPartner?: string;
   comboProducts?: Product[];
 }
 
@@ -288,6 +290,8 @@ export interface Combo {
   freeDelivery?: boolean;
   freePacking?: boolean;
   onlyMetturService?: boolean;
+  fullSoil?: boolean;
+  courierPartner?: string;
   description?: string;
   createdAt?: string;
   updatedAt?: string;

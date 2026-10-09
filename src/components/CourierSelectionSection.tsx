@@ -285,21 +285,26 @@ export const CourierSelectionSection: React.FC<CourierSelectionSectionProps> = (
                             {!isFullSoilAllowed && (
                               <span className="text-[8px] bg-rose-100 text-rose-800 font-bold px-1.5 py-0.5 rounded">Tamil Nadu Only</span>
                             )}
+                            {hasFreeDelivery && (
+                              <span className="text-[8px] bg-emerald-100 text-emerald-800 font-black px-1.5 py-0.5 rounded border border-emerald-300">FREE WITH COMBO</span>
+                            )}
                           </p>
                           <p className="text-[10px] font-bold text-emerald-800">
                             {!isFullSoilAllowed
                               ? '🚫 Full Soil is available only within Tamil Nadu due to transit weight limits.'
                               : totalPlantCount > 5
                               ? `⚠️ Maximum 5 plants for Full Soil (you have ${totalPlantCount})`
+                              : hasFreeDelivery
+                              ? '🎉 Free Full Soil delivery included with your special combo offer!'
                               : `Rate: ₹140 × ${totalPlantCount} plant${totalPlantCount > 1 ? 's' : ''} = ₹${fullSoil6InchCharge}`}
                           </p>
                         </div>
                       </div>
                       <div className="text-right shrink-0">
                         <span className="text-xs font-black text-emerald-900 block">
-                          {!isFullSoilAllowed ? 'N/A' : `₹${fullSoil6InchCharge}`}
+                          {!isFullSoilAllowed ? 'N/A' : (hasFreeDelivery ? '₹0 (FREE)' : `₹${fullSoil6InchCharge}`)}
                         </span>
-                        <span className="text-[9px] text-slate-400 font-medium">{isFullSoilAllowed ? '₹140/plant' : 'Not Available'}</span>
+                        <span className="text-[9px] text-slate-400 font-medium">{isFullSoilAllowed ? (hasFreeDelivery ? 'Combo Included' : '₹140/plant') : 'Not Available'}</span>
                       </div>
                     </div>
 
