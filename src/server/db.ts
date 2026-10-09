@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { Product, Category, Order, Coupon, Banner, Review, SiteSettings, PaymentLog, OrderItemSnapshot, PaymentMethod, FinancialEntry, Combo } from '../types.js';
-import { isValidAdminOrder } from '../utils/orderStages.js';
+import { isValidAdminOrder, isWhatsAppOrder } from '../utils/orderStages.js';
 
 import { getPrismaClient, getReadPrismaClient, executeInTransaction } from './prisma.js';
 import { firestoreSaveOrder, firestoreGetAllOrders, firestoreUpdateOrder, firestoreDeleteOrder } from './firestore.js';
@@ -3059,6 +3059,8 @@ class Store {
             let unpackedSource = 'WEBSITE';
             let unpackedIsWhatsApp = false;
             let unpackedOrderNote = '';
+            let unpackedPaymentMethod: string | undefined = undefined;
+            let unpackedEntryMode: string | undefined = undefined;
 
             let unpackedCustomerAddressConfirmed: boolean | undefined = undefined;
             let unpackedCustomerAddressConfirmedAt: string | undefined = undefined;
@@ -3074,10 +3076,12 @@ class Store {
                 if (pNotes.proof) unpackedProofUrl = pNotes.proof;
                 if (pNotes.paymentProofUrl) unpackedProofUrl = pNotes.paymentProofUrl;
                 if (pNotes.orderImageUrl) unpackedProofUrl = pNotes.orderImageUrl;
-                if (pNotes.uploadedByImage) unpackedUploadedByImage = true;
-                if (pNotes.entryMode === 'image') unpackedUploadedByImage = true;
-                if (pNotes.source) unpackedSource = pNotes.source;
-                if (pNotes.isWhatsApp !== undefined) unpackedIsWhatsApp = pNotes.isWhatsApp;
+                if (pNotes.uploadedByImage !== undefined) unpackedUploadedByImage = Boolean(pNotes.uploadedByImage);
+                if (pNotes.entryMode) unpackedEntryMode = pNotes.entryMode;
+                if (pNotes.entryMode === 'image' || pNotes.entryMode === 'ai_image') unpackedUploadedByImage = true;
+                if (pNotes.source) unpackedSource = String(pNotes.source).toUpperCase();
+                if (pNotes.isWhatsApp !== undefined) unpackedIsWhatsApp = Boolean(pNotes.isWhatsApp);
+                if (pNotes.paymentMethod) unpackedPaymentMethod = String(pNotes.paymentMethod).toUpperCase();
                 if (pNotes.note) unpackedOrderNote = pNotes.note;
                 if (pNotes.txnId) unpackedTxnId = pNotes.txnId;
                 if (pNotes.packingOption) unpackedPackingOption = pNotes.packingOption;
@@ -3106,6 +3110,42 @@ class Store {
             } else if (notesStr.includes('|||TXNID|||')) {
               const txnMatch = notesStr.split('|||TXNID|||')[1];
               if (txnMatch) unpackedTxnId = txnMatch.trim();
+            }
+
+            // Comprehensive detection of WhatsApp & Offline orders
+            const rawIdUpper = String(o.id || o.orderNumber || '').toUpperCase();
+            const rawTxnUpper = String(unpackedTxnId || o.merchantTransactionId || '').toUpperCase();
+            const rawNotesLower = notesStr.toLowerCase();
+            const rawPmUpper = String((o as any).paymentMethod || '').toUpperCase();
+
+            const isGatewayOnline = 
+              rawPmUpper === 'RAZORPAY' ||
+              rawTxnUpper.startsWith('PAY_') ||
+              rawTxnUpper.startsWith('ORDER_') ||
+              rawNotesLower.includes('rzp') ||
+              rawNotesLower.includes('pay_') ||
+              rawNotesLower.includes('order_');
+
+            if (
+              unpackedIsWhatsApp ||
+              unpackedSource === 'WHATSAPP' ||
+              rawPmUpper === 'WHATSAPP' ||
+              rawPmUpper === 'OFFLINE' ||
+              rawPmUpper === 'MANUAL' ||
+              rawIdUpper.startsWith('VRG-WA') ||
+              rawIdUpper.startsWith('WA-') ||
+              rawIdUpper.includes('-WA-') ||
+              rawIdUpper.includes('-WA') ||
+              rawTxnUpper.startsWith('WA_') ||
+              rawTxnUpper.startsWith('VRG-WA') ||
+              rawNotesLower.includes('whatsapp') ||
+              rawNotesLower.includes('offline order') ||
+              rawNotesLower.includes('whatsapp chat') ||
+              (!isGatewayOnline && (rawPmUpper === 'UPI' || rawPmUpper === 'QR_PAYMENT' || !rawPmUpper) && !notesStr.includes('"source":"WEBSITE"'))
+            ) {
+              unpackedIsWhatsApp = true;
+              unpackedSource = 'WHATSAPP';
+              if (!unpackedPaymentMethod || unpackedPaymentMethod === 'UPI' || unpackedPaymentMethod === 'QR_PAYMENT') unpackedPaymentMethod = 'WHATSAPP';
             }
 
             const itemsSnapshot: OrderItemSnapshot[] = (unpackedItemsSnapshot && unpackedItemsSnapshot.length > 0)
@@ -3195,13 +3235,16 @@ class Store {
                 ? 'COD'
                 : (o as any).paymentMethod === 'PHONEPE'
                 ? 'PHONEPE'
-                : 'QR_PAYMENT') as PaymentMethod,
+                : (unpackedIsWhatsApp || unpackedPaymentMethod === 'WHATSAPP' ? 'WHATSAPP' : 'QR_PAYMENT')) as PaymentMethod,
               paymentProofUrl: unpackedProofUrl,
               orderImageUrl: unpackedProofUrl,
               uploadedByImage: isImgUpload,
-              entryMode: isImgUpload ? 'image' : (unpackedIsWhatsApp ? 'manual' : undefined),
+              entryMode: isImgUpload ? 'image' : (unpackedEntryMode || (unpackedIsWhatsApp ? 'manual' : undefined)),
               source: unpackedSource,
+              orderSource: unpackedSource,
+              channel: unpackedIsWhatsApp ? 'WHATSAPP' : undefined,
               isWhatsApp: unpackedIsWhatsApp,
+              isOffline: unpackedIsWhatsApp,
               notes: unpackedOrderNote || notesStr,
               transactionId: unpackedTxnId || o.merchantTransactionId || '',
               merchantTransactionId: o.merchantTransactionId || '',
@@ -3275,12 +3318,21 @@ class Store {
           if (incomingTime >= existingTime) {
             uniqueMap.set(o.id, {
               ...existing,
+              ...o,
               orderStatus: o.orderStatus || existing.orderStatus,
               paymentStatus: (o.paymentStatus === 'SUCCESS' || existing.paymentStatus === 'SUCCESS') ? 'SUCCESS' : (o.paymentStatus || existing.paymentStatus),
               trackingNumber: o.trackingNumber || existing.trackingNumber,
               courierName: o.courierName || existing.courierName,
               paymentProofUrl: o.paymentProofUrl || existing.paymentProofUrl,
               deliveryNotes: o.deliveryNotes || (existing as any).deliveryNotes,
+              isWhatsApp: o.isWhatsApp ?? existing.isWhatsApp,
+              source: o.source ?? existing.source,
+              orderSource: o.orderSource ?? existing.orderSource,
+              channel: o.channel ?? existing.channel,
+              paymentMethod: o.paymentMethod ?? existing.paymentMethod,
+              uploadedByImage: o.uploadedByImage ?? existing.uploadedByImage,
+              entryMode: o.entryMode ?? existing.entryMode,
+              orderImageUrl: o.orderImageUrl ?? existing.orderImageUrl,
               updatedAt: o.updatedAt || existing.updatedAt
             });
           }
@@ -3300,6 +3352,24 @@ class Store {
         if (!uniqueMap.has(o.id)) {
           // Only add orders NOT already in DB result (preserves DB as authoritative source)
           uniqueMap.set(o.id, o);
+        } else {
+          // If already in uniqueMap, check if supplemental source has WhatsApp data that was lost
+          const existing = uniqueMap.get(o.id)!;
+          if (isWhatsAppOrder(o) && !existing.isWhatsApp) {
+            uniqueMap.set(o.id, {
+              ...existing,
+              isWhatsApp: true,
+              isOffline: true,
+              source: 'WHATSAPP',
+              orderSource: 'WHATSAPP',
+              channel: 'WHATSAPP',
+              paymentMethod: (existing.paymentMethod === 'QR_PAYMENT' || !existing.paymentMethod) ? 'WHATSAPP' : existing.paymentMethod,
+              entryMode: o.entryMode || existing.entryMode || 'manual',
+              uploadedByImage: o.uploadedByImage || existing.uploadedByImage,
+              orderImageUrl: o.orderImageUrl || existing.orderImageUrl,
+              paymentProofUrl: o.paymentProofUrl || existing.paymentProofUrl
+            });
+          }
         }
       }
     });
@@ -3812,9 +3882,11 @@ class Store {
       }
     }
 
-    const id = data.id || `ORD-${nextIndex}`;
+    const isWA = data.isWhatsApp !== false && (data.source !== 'WEBSITE');
+    const defaultPrefix = isWA ? 'VRG-WA-' : 'ORD-';
+    const id = data.id || `${defaultPrefix}${nextIndex}`;
     const orderNumber = data.orderNumber || id;
-    const merchantTransactionId = data.merchantTransactionId || `WA_${Date.now()}`;
+    const merchantTransactionId = data.merchantTransactionId || (isWA ? `WA_${Date.now()}` : `ORD_${Date.now()}`);
 
     const addrObj = typeof data.shippingAddress === 'object' && data.shippingAddress !== null
       ? data.shippingAddress
@@ -3841,7 +3913,7 @@ class Store {
       id,
       orderNumber,
       merchantTransactionId,
-      customerName: data.customerName || addrObj.fullName || 'WhatsApp Customer',
+      customerName: data.customerName || addrObj.fullName || (isWA ? 'WhatsApp Customer' : 'Customer'),
       customerPhone: data.customerPhone || addrObj.phone || '',
       customerEmail: data.customerEmail || '',
       shippingAddress: addrObj,
@@ -3852,15 +3924,17 @@ class Store {
       grandTotal,
       paymentStatus: data.paymentStatus || 'SUCCESS',
       orderStatus: data.orderStatus || 'CONFIRMED',
-      paymentMethod: data.paymentMethod || 'WHATSAPP',
-      notes: data.notes || '',
+      paymentMethod: (data.paymentMethod || (isWA ? 'WHATSAPP' : 'UPI')) as PaymentMethod,
+      notes: data.notes || (isWA ? 'WhatsApp Order' : ''),
       trackingNumber: data.trackingNumber || '',
       courierName: data.courierName || '',
-      source: data.source || 'WHATSAPP',
-      isWhatsApp: data.isWhatsApp !== false,
-      channel: data.channel || 'WHATSAPP',
+      source: isWA ? 'WHATSAPP' : (data.source || 'MANUAL'),
+      orderSource: isWA ? 'WHATSAPP' : (data.orderSource || data.source || 'MANUAL'),
+      isWhatsApp: isWA,
+      isOffline: isWA || data.isOffline === true,
+      channel: isWA ? 'WHATSAPP' : data.channel,
       uploadedByImage: Boolean(data.uploadedByImage || data.entryMode === 'image' || data.entryMode === 'ai_image' || data.orderImageUrl || (data.notes && data.notes.toLowerCase().includes('scanned from image'))),
-      entryMode: data.entryMode || (data.uploadedByImage ? 'image' : 'manual'),
+      entryMode: data.entryMode || (data.uploadedByImage ? 'image' : (isWA ? 'manual' : 'manual')),
       paymentProofUrl: data.paymentProofUrl || data.orderImageUrl || '',
       orderImageUrl: data.orderImageUrl || data.paymentProofUrl || '',
       createdAt: data.createdAt || new Date().toISOString(),
@@ -3896,11 +3970,14 @@ class Store {
             paymentStatus: order.paymentStatus === 'SUCCESS' ? 'SUCCESS' : 'PENDING',
             paymentMethod: (order.paymentMethod === 'COD' ? 'COD' : order.paymentMethod === 'PHONEPE' ? 'PHONEPE' : 'UPI') as any,
             notes: JSON.stringify({
-              note: order.notes || '',
-              source: 'whatsapp',
-              isWhatsApp: true,
+              note: order.notes || (isWA ? 'WhatsApp Order' : ''),
+              source: order.source || (isWA ? 'WHATSAPP' : 'MANUAL'),
+              orderSource: order.orderSource || (isWA ? 'WHATSAPP' : 'MANUAL'),
+              isWhatsApp: isWA,
+              channel: order.channel || (isWA ? 'WHATSAPP' : undefined),
+              paymentMethod: order.paymentMethod || (isWA ? 'WHATSAPP' : undefined),
               uploadedByImage: Boolean(order.uploadedByImage),
-              entryMode: order.entryMode || 'manual',
+              entryMode: order.entryMode || (isWA ? 'manual' : undefined),
               paymentProofUrl: order.paymentProofUrl || '',
               orderImageUrl: order.orderImageUrl || '',
               itemsSnapshot: items
@@ -4033,9 +4110,28 @@ class Store {
             ]
           };
 
+          const isWAOrder = Boolean(
+            updatedOrder.isWhatsApp ||
+            updatedOrder.source === 'WHATSAPP' ||
+            updatedOrder.orderSource === 'WHATSAPP' ||
+            updatedOrder.channel === 'WHATSAPP' ||
+            updatedOrder.paymentMethod === 'WHATSAPP' ||
+            String(updatedOrder.id || '').toUpperCase().startsWith('VRG-WA') ||
+            String(updatedOrder.id || '').toUpperCase().startsWith('WA-')
+          );
+
           const notesPayload = JSON.stringify({
+            note: updatedOrder.notes || '',
+            source: isWAOrder ? 'WHATSAPP' : (updatedOrder.source || 'WEBSITE'),
+            orderSource: isWAOrder ? 'WHATSAPP' : (updatedOrder.orderSource || updatedOrder.source || 'WEBSITE'),
+            isWhatsApp: isWAOrder,
+            channel: isWAOrder ? 'WHATSAPP' : undefined,
+            paymentMethod: updatedOrder.paymentMethod,
+            uploadedByImage: Boolean(updatedOrder.uploadedByImage),
+            entryMode: updatedOrder.entryMode || (updatedOrder.uploadedByImage ? 'image' : (isWAOrder ? 'manual' : undefined)),
             proof: updatedOrder.paymentProofUrl || null,
             txnId: updatedOrder.transactionId || null,
+            orderImageUrl: updatedOrder.orderImageUrl || null,
             packingOption: updatedOrder.packingOption || 'STANDARD',
             packingCharge: updatedOrder.packingCharge || 0,
             potOption: updatedOrder.potOption || null,

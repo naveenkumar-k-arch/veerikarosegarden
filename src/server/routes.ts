@@ -4,7 +4,7 @@ import { PhonePeService } from './phonepe.js';
 import { RazorpayService } from './razorpay.js';
 import { authRouter } from './routes/authRoutes.js';
 import { whatsappRouter, triggerOrderStageWhatsApp, notifyOrderConfirmed } from './routes/whatsappRoutes.js';
-import { getOrderStage, isValidAdminOrder } from '../utils/orderStages.js';
+import { getOrderStage, isValidAdminOrder, isWhatsAppOrder, isUploadedByImage } from '../utils/orderStages.js';
 import {
   parseAuthUser,
   requireAuth,
@@ -1326,6 +1326,8 @@ function sanitizeBootstrapOrders(ords: any[]): any[] {
 
   return sorted.map(o => {
     const hasProof = Boolean(o.paymentProofUrl);
+    const isWA = isWhatsAppOrder(o);
+    const isImg = isUploadedByImage(o);
     // Slim down items — strip base64 image data (70 KB each!) and keep only essential fields
     const slimItems = Array.isArray(o.items) ? o.items.map((item: any) => ({
       id: item.id,
@@ -1337,9 +1339,11 @@ function sanitizeBootstrapOrders(ords: any[]): any[] {
       image: stripBase64(item.image),
     })) : o.items;
 
+    const sourceVal = isWA ? 'WHATSAPP' : (o.source || o.orderSource || 'WEBSITE');
+
     return {
       id: o.id,
-      orderNumber: o.orderNumber,
+      orderNumber: o.orderNumber || o.id,
       merchantTransactionId: o.merchantTransactionId,
       customerName: o.customerName,
       customerEmail: o.customerEmail,
@@ -1355,7 +1359,7 @@ function sanitizeBootstrapOrders(ords: any[]): any[] {
       discount: o.discount,
       couponCode: o.couponCode,
       grandTotal: o.grandTotal,
-      paymentMethod: o.paymentMethod,
+      paymentMethod: isWA && (!o.paymentMethod || o.paymentMethod === 'QR_PAYMENT' || o.paymentMethod === 'UPI') ? 'WHATSAPP' : o.paymentMethod,
       paymentStatus: o.paymentStatus,
       orderStatus: o.orderStatus,
       status: o.status,
@@ -1363,7 +1367,28 @@ function sanitizeBootstrapOrders(ords: any[]): any[] {
       courierName: o.courierName,
       trackingNumber: o.trackingNumber,
       estimatedDelivery: o.estimatedDelivery,
-      orderSource: o.orderSource,
+      orderSource: sourceVal,
+      source: sourceVal,
+      channel: isWA ? 'WHATSAPP' : o.channel,
+      isWhatsApp: isWA,
+      isOffline: Boolean(o.isOffline || isWA),
+      notes: typeof o.notes === 'string' ? (o.notes.length > 500 ? o.notes.slice(0, 500) : o.notes) : (isWA ? 'WhatsApp Order' : ''),
+      uploadedByImage: isImg,
+      entryMode: o.entryMode || (isImg ? 'image' : (isWA ? 'manual' : undefined)),
+      orderImageUrl: o.orderImageUrl,
+      potOption: o.potOption,
+      potCharge: o.potCharge,
+      packingOption: o.packingOption,
+      packingCharge: o.packingCharge,
+      courierDistrict: o.courierDistrict,
+      courierBranch: o.courierBranch,
+      customerAddressConfirmed: o.customerAddressConfirmed,
+      customerAddressConfirmedAt: o.customerAddressConfirmedAt,
+      customerAddressChangeRequested: o.customerAddressChangeRequested,
+      customerWhatsAppReply: o.customerWhatsAppReply,
+      customerWhatsAppReplyAt: o.customerWhatsAppReplyAt,
+      ownerVerified: o.ownerVerified,
+      ownerVerifiedAt: o.ownerVerifiedAt,
       userId: o.userId,
       createdAt: o.createdAt,
       updatedAt: o.updatedAt,

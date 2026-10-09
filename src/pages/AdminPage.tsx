@@ -2142,6 +2142,7 @@ const silentRefresh = async (): Promise<boolean> => {
       customerPhone: whatsAppOrderForm.customerPhone.trim(),
       customerEmail: whatsAppOrderForm.customerEmail.trim(),
       source: 'WHATSAPP',
+      orderSource: 'WHATSAPP',
       isWhatsApp: true,
       channel: 'WHATSAPP',
       uploadedByImage: isFromImage,
@@ -2168,7 +2169,7 @@ const silentRefresh = async (): Promise<boolean> => {
       paymentMethod: whatsAppOrderForm.paymentMethod || 'WHATSAPP',
       paymentStatus: whatsAppOrderForm.paymentStatus || 'SUCCESS',
       orderStatus: whatsAppOrderForm.orderStatus || 'CONFIRMED',
-      notes: whatsAppOrderForm.notes || (isFromImage ? 'Uploaded by Image (AI Extracted)' : ''),
+      notes: whatsAppOrderForm.notes || (isFromImage ? 'Uploaded by Image (AI Extracted)' : 'WhatsApp Order'),
       trackingNumber: whatsAppOrderForm.trackingNumber || '',
       courierName: whatsAppOrderForm.courierName || 'Professional Courier – Reduced Soil'
     };

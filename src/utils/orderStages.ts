@@ -352,9 +352,18 @@ export function isWhatsAppOrder(o: any): boolean {
   if (!o) return false;
   const pm = (o.paymentMethod || '').toString().toUpperCase();
   const id = (o.id || o.orderNumber || '').toString().toUpperCase();
-  const txnId = (o.merchantTransactionId || '').toString().toUpperCase();
+  const txnId = (o.merchantTransactionId || o.transactionId || '').toString().toUpperCase();
   const notes = (o.notes || '').toString().toLowerCase();
   const source = (o.source || o.orderSource || o.channel || '').toString().toUpperCase();
+  const entryMode = (o.entryMode || '').toString().toLowerCase();
+
+  const isGatewayOnline =
+    pm === 'RAZORPAY' ||
+    txnId.startsWith('PAY_') ||
+    txnId.startsWith('ORDER_') ||
+    notes.includes('rzp') ||
+    notes.includes('pay_') ||
+    notes.includes('order_');
 
   return (
     pm === 'WHATSAPP' ||
@@ -364,14 +373,21 @@ export function isWhatsAppOrder(o: any): boolean {
     source === 'OFFLINE' ||
     source === 'MANUAL' ||
     o.isWhatsApp === true ||
+    o.isWhatsApp === 'true' ||
     o.isOffline === true ||
+    o.isOffline === 'true' ||
     id.startsWith('VRG-WA') ||
     id.startsWith('WA-') ||
+    id.includes('-WA-') ||
+    id.includes('-WA') ||
     txnId.startsWith('WA_') ||
     txnId.startsWith('VRG-WA') ||
+    entryMode === 'whatsapp' ||
+    entryMode === 'manual_whatsapp' ||
     notes.includes('whatsapp') ||
     notes.includes('offline order') ||
-    notes.includes('whatsapp chat')
+    notes.includes('whatsapp chat') ||
+    (!isGatewayOnline && (pm === 'UPI' || pm === 'QR_PAYMENT' || !pm) && !notes.includes('"source":"website"'))
   );
 }
 
