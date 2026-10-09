@@ -400,55 +400,21 @@ export function isUploadedByImage(o: any): boolean {
 export function isValidAdminOrder(o: any): boolean {
   if (!o || !o.id) return false;
 
-  const oStatus = (o.orderStatus || o.status || '').toString().toUpperCase().trim();
-  const pStatus = (o.paymentStatus || '').toString().toUpperCase().trim();
-  const pMethod = (o.paymentMethod || '').toString().toUpperCase().trim();
-  const hasProof = Boolean(o.paymentProofUrl || o.hasPaymentProof);
+  // 1. Filter out synthetic automated test probe records
+  const idStr = String(o.id || o.orderNumber || '');
+  if (idStr.startsWith('ORD-TEST-')) return false;
 
-  // 1. Never show cancelled, failed, or refunded orders in active admin feeds
-  if (oStatus === 'CANCELLED' || pStatus === 'FAILED' || pStatus === 'CANCELLED' || oStatus === 'REFUNDED' || oStatus === 'FAILED') {
+  // 2. Discard empty ghost entries without customer, items, or payment
+  const total = Number(o.grandTotal ?? o.totalAmount ?? 0);
+  const hasItems = Array.isArray(o.items) && o.items.length > 0;
+  const hasCustomer = Boolean(o.customerPhone || o.customerName);
+  const hasPayment = Boolean(o.paymentStatus === 'SUCCESS' || o.merchantTransactionId || o.paymentProofUrl);
+
+  if (!hasCustomer && !hasItems && !hasPayment && total <= 0) {
     return false;
   }
 
-  // 2. WhatsApp / Offline orders created by nursery admin are always valid
-  if (isWhatsAppOrder(o)) {
-    return true;
-  }
-
-  // 3. Orders with payment proof uploaded (e.g. manual QR / UPI payment slips) are valid
-  if (hasProof) {
-    return true;
-  }
-
-  // 4. Verified paid orders are valid
-  if (pStatus === 'SUCCESS' || pStatus === 'PAID' || pStatus === 'APPROVED') {
-    return true;
-  }
-
-  // 5. COD orders are only valid if confirmed (not pending unconfirmed checkout)
-  if (pMethod === 'COD') {
-    if (oStatus === 'PENDING' || oStatus === 'PAYMENT_PENDING' || oStatus === 'PAYMENT_INITIATED' || oStatus === 'UNPAID') {
-      return false;
-    }
-    return true;
-  }
-
-  // 6. Online gateways (Razorpay, PhonePe, UPI) without SUCCESS or proof are pending/unpaid -> STRICTLY HIDE
-  const isOnlineGateway = pMethod === 'RAZORPAY' || pMethod === 'PHONEPE' || pMethod === 'CARD' || pMethod === 'UPI' || pMethod === 'QR_PAYMENT' || pMethod === 'UPI_DIRECT' || pMethod === 'ONLINE';
-  if (isOnlineGateway && pStatus !== 'SUCCESS' && !hasProof) {
-    return false;
-  }
-
-  // 7. General catch-all: any order still in PENDING status without verified payment is hidden
-  if (pStatus === 'PENDING' || pStatus === 'INITIATED' || pStatus === 'UNPAID' || oStatus === 'PENDING' || oStatus === 'PAYMENT_PENDING' || oStatus === 'PAYMENT_INITIATED') {
-    return false;
-  }
-
-  // 8. Strict catch-all: if payment is not verified SUCCESS and method is not COD and no screenshot proof -> STRICTLY HIDE
-  if (pStatus !== 'SUCCESS' && pMethod !== 'COD' && !hasProof) {
-    return false;
-  }
-
+  // All genuine customer orders (including DELIVERED, PACKING, DISPATCHED, CONFIRMED, CANCELLED, etc.) are valid
   return true;
 }
 

@@ -13,7 +13,12 @@ function getPrimaryDatabaseUrl(): string | null {
   const neonUrl = (process.env.NEON_DATABASE_URL || '').trim();
 
   // If DATABASE_URL is pointing to dead/inactive Supabase instance, failover directly to active NEON
-  if (dbUrl.includes('supabase.com') && neonUrl) {
+  if ((dbUrl.includes('supabase.co') || dbUrl.includes('supabase.com')) && neonUrl) {
+    return neonUrl;
+  }
+
+  // If neonUrl is provided and valid, and dbUrl is missing or points to supabase
+  if (neonUrl && (!dbUrl || dbUrl.includes('supabase'))) {
     return neonUrl;
   }
 

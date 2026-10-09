@@ -784,9 +784,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
             }
           } catch {}
 
-          // User truly cancelled / dismissed before completing payment
+          // Modal closed or customer switched apps for UPI verification
           try { localStorage.removeItem('vrg_pending_razorpay_order'); } catch {}
-          await cancelPendingOrder('Customer dismissed Razorpay payment window');
+          // Do NOT aggressively cancel order — switching to GPay/PhonePe triggers ondismiss on mobile!
           isPlacingOrderRef.current = false;
           setLoading(false);
           setOrderError('Payment was not completed. Your items are safe in cart — click Confirm & Place Order to try again.');

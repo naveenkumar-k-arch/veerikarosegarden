@@ -2834,7 +2834,13 @@ class Store {
       nextIndex = (this.memoryOrders.length > 0 ? this.memoryOrders.length + 1000 : Date.now() % 100000);
     }
 
-    const id = `ORD-${nextIndex}`;
+    let id = `ORD-${nextIndex}`;
+    if (prisma) {
+      const existingId = await prisma.order.findUnique({ where: { id }, select: { id: true } }).catch(() => null);
+      if (existingId) {
+        id = `ORD-${Date.now().toString().slice(-5)}${Math.floor(10 + Math.random() * 90)}`;
+      }
+    }
     const order: Order = {
       ...orderData,
       id,
@@ -2998,8 +3004,26 @@ class Store {
         const ORDER_QUERY_TAKE_USER  = 200; // per-customer history cap
         // FIX: Raised from 500→2000 to prevent cutoff when order volume grows past 500
         const ORDER_QUERY_TAKE_ADMIN = take ? Math.min(take, 2000) : 2000; // admin/bootstrap cap
+        let userWhere: any = {};
+        if (userId) {
+          const userRec = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { phone: true, email: true }
+          }).catch(() => null);
+          const cleanPhone = (userRec?.phone || '').replace(/\D/g, '').slice(-10);
+          const cleanEmail = (userRec?.email || '').trim().toLowerCase();
+
+          userWhere = {
+            OR: [
+              { userId },
+              ...(cleanPhone ? [{ customerPhone: { contains: cleanPhone } }] : []),
+              ...(cleanEmail ? [{ customerEmail: { equals: cleanEmail, mode: 'insensitive' as any } }] : [])
+            ]
+          };
+        }
+
         const items = await prisma.order.findMany({
-          where: userId ? { userId } : {},
+          where: userId ? userWhere : {},
           include: { items: true },
           orderBy: { createdAt: 'desc' },
           take: userId ? ORDER_QUERY_TAKE_USER : ORDER_QUERY_TAKE_ADMIN,

@@ -811,7 +811,7 @@ export const MobileCheckoutFlow: React.FC<MobileCheckoutFlowProps> = ({
           } catch {}
 
           try { localStorage.removeItem('vrg_pending_razorpay_order'); } catch {}
-          await cancelPendingOrder('Customer dismissed Razorpay payment window');
+          // Do NOT aggressively cancel order — switching to GPay/PhonePe triggers ondismiss on mobile!
           isPaymentInProgressRef.current = false;
           isPlacingOrderRef.current = false;
           setLoading(false);

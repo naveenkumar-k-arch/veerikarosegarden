@@ -1248,7 +1248,7 @@ apiRouter.get('/orders', requireAuth, async (req: AuthenticatedRequest, res) => 
       return res.status(401).json({ success: false, message: 'Authentication required. Please sign in to view orders.' });
     }
 
-    let orders = (await db.getOrders()).filter(isValidAdminOrder);
+    let orders = await db.getOrders();
     const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN';
 
     if (!isAdmin) {

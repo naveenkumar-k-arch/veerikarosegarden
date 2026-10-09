@@ -248,7 +248,13 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
     let deletedOrderSet = new Set<string>();
     try {
       const d = localStorage.getItem('vrg_deleted_orders');
-      if (d) deletedOrderSet = new Set(JSON.parse(d));
+      if (d) {
+        const parsed = JSON.parse(d);
+        deletedOrderSet = new Set(Array.isArray(parsed) ? parsed.filter((id: string) => id && id.startsWith('ORD-TEST-')) : []);
+        if (Array.isArray(parsed) && parsed.length !== deletedOrderSet.size) {
+          localStorage.setItem('vrg_deleted_orders', JSON.stringify(Array.from(deletedOrderSet)));
+        }
+      }
     } catch {}
     const list = Array.isArray(initialCache?.orders) ? initialCache.orders : [];
     return list
