@@ -113,6 +113,7 @@ export interface Order {
   items: OrderItemSnapshot[];
   subtotal: number;
   shippingCharge: number;
+  shippingFee?: number;
   discount: number;
   couponCode?: string;
   grandTotal: number;
@@ -128,7 +129,10 @@ export interface Order {
   deliveryNotes?: string;
   notes?: string;
   source?: string;
+  orderSource?: string;
+  channel?: string;
   isWhatsApp?: boolean;
+  isOffline?: boolean;
   uploadedByImage?: boolean;
   entryMode?: 'manual' | 'ai_image' | 'image' | string;
   orderImageUrl?: string;

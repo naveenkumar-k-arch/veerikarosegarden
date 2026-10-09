@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User, Order, Product } from '../types';
-import { User as UserIcon, Package, Heart, LogOut, Phone, KeyRound, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { User as UserIcon, Package, Heart, LogOut, Phone, KeyRound, AlertCircle, CheckCircle2, ChevronRight } from 'lucide-react';
 import { GoogleAuthButton } from '../components/GoogleAuthButton';
 import { getOrderStage, STAGE_CONFIG, isWhatsAppOrder } from '../utils/orderStages';
 import { WhatsAppIcon } from '../components/WhatsAppIcon';

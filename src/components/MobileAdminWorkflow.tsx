@@ -3242,7 +3242,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                   ? 'bg-amber-100 text-amber-900 border-amber-300'
                   : 'bg-emerald-100 text-emerald-900 border-emerald-300'
               }`}>
-                {selectedOrder.orderStatus === 'PAYMENT_PENDING' || selectedOrder.orderStatus === 'PENDING'
+                {(selectedOrder.orderStatus as any) === 'PAYMENT_PENDING' || selectedOrder.orderStatus === 'PENDING'
                   ? '⚠️ PAYMENT PENDING'
                   : (selectedOrder.orderStatus || 'CONFIRMED')}
               </span>
