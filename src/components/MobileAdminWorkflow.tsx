@@ -3229,8 +3229,22 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                   </span>
                 )}
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-900 border border-emerald-200">
-                {selectedOrder.orderStatus || 'CONFIRMED'}
+              <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-md border ${
+                (selectedOrder.orderStatus || '').toUpperCase() === 'PENDING' || (selectedOrder.orderStatus || '').toUpperCase() === 'PAYMENT_PENDING'
+                  ? 'bg-amber-100 text-amber-900 border-amber-400'
+                  : (selectedOrder.orderStatus || '').toUpperCase() === 'CANCELLED'
+                  ? 'bg-rose-100 text-rose-900 border-rose-300'
+                  : (selectedOrder.orderStatus || '').toUpperCase() === 'DELIVERED'
+                  ? 'bg-purple-100 text-purple-900 border-purple-300'
+                  : (selectedOrder.orderStatus || '').toUpperCase() === 'DISPATCHED'
+                  ? 'bg-blue-100 text-blue-900 border-blue-300'
+                  : (selectedOrder.orderStatus || '').toUpperCase() === 'PACKING'
+                  ? 'bg-amber-100 text-amber-900 border-amber-300'
+                  : 'bg-emerald-100 text-emerald-900 border-emerald-300'
+              }`}>
+                {selectedOrder.orderStatus === 'PAYMENT_PENDING' || selectedOrder.orderStatus === 'PENDING'
+                  ? '⚠️ PAYMENT PENDING'
+                  : (selectedOrder.orderStatus || 'CONFIRMED')}
               </span>
             </div>
 
@@ -3292,7 +3306,9 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                   <div className="text-right">
                     <span className="text-[10px] font-extrabold uppercase text-slate-500 tracking-wider block">Delivery Fee</span>
                     <p className="text-xs font-black text-emerald-800 mt-0.5">
-                      {selectedOrder.shippingCharge === 0 ? 'FREE' : `₹${selectedOrder.shippingCharge}`}
+                      {((selectedOrder.shippingCharge ?? selectedOrder.shippingFee ?? (selectedOrder as any).deliveryFee ?? 0) === 0)
+                        ? 'FREE'
+                        : `₹${selectedOrder.shippingCharge ?? selectedOrder.shippingFee ?? (selectedOrder as any).deliveryFee ?? 0}`}
                     </p>
                   </div>
                 </div>
