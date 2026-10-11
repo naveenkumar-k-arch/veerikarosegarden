@@ -452,7 +452,7 @@
   },
   {
     "id": "ORD-8969",
-    "customerName": "ÐR RAMESH CHUNDOLLY ",
+    "customerName": "R RAMESH CHUNDOLLY",
     "customerPhone": "9447131245",
     "customerEmail": "drrameshc@gmail.com",
     "shippingAddress": {
@@ -1057,14 +1057,16 @@
     "customerPhone": "7418283898",
     "customerEmail": "suganyasankar548s@gmail.com",
     "shippingAddress": {
-      "fullName": "Suganya S",
+      "fullName": "Suganya Sankar",
       "phone": "7418283898",
-      "houseNo": "",
-      "street": "Customer Shipping Address",
-      "villageTown": "",
-      "district": "",
+      "houseNo": "11, 12",
+      "street": "11 12 Palamaner Road, Sengundram village",
+      "villageTown": "Gudiyatham Taluk / Vellore District",
+      "district": "Vellore",
       "state": "Tamil Nadu",
-      "pincode": ""
+      "pincode": "632601",
+      "landmark": "Near milk booth",
+      "fullAddress": "11, 12, 11 12 Palamaner Road, Sengundram village, Near milk booth, Gudiyatham Taluk / Vellore District, Tamil Nadu - 632601"
     },
     "items": [
       {

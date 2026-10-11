@@ -142,8 +142,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToStore, adminUser, 
   };
 
   // Version-controlled persistent cache keys to purge stale order snapshots
-  const ADMIN_CACHE_KEY_SESSION = 'vrg_admin_session_cache_v5';
-  const ADMIN_CACHE_KEY_LOCAL = 'vrg_admin_persisted_cache_v5';
+  const ADMIN_CACHE_KEY_SESSION = 'vrg_admin_session_cache_v6';
+  const ADMIN_CACHE_KEY_LOCAL = 'vrg_admin_persisted_cache_v6';
 
   // Multi-tiered persistent cache for instant (0ms) Stale-While-Revalidate UI hydration
   const getAdminSessionCache = (): any => {

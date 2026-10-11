@@ -1328,16 +1328,22 @@ function sanitizeBootstrapOrders(ords: any[]): any[] {
     const hasProof = Boolean(o.paymentProofUrl);
     const isWA = isWhatsAppOrder(o);
     const isImg = isUploadedByImage(o);
-    // Slim down items — strip base64 image data (70 KB each!) and keep only essential fields
-    const slimItems = Array.isArray(o.items) ? o.items.map((item: any) => ({
-      id: item.id,
-      productId: item.productId,
-      name: item.name,
-      price: item.price,
-      sellingPrice: item.sellingPrice,
-      quantity: item.quantity,
-      image: stripBase64(item.image),
-    })) : o.items;
+    // Slim down items — strip base64 image data (70 KB each!) and normalize any placeholder names
+    const slimItems = Array.isArray(o.items) ? o.items.map((item: any) => {
+      let cleanName = item.name || '';
+      if (!cleanName || /live\s+nursery\s+plants/i.test(cleanName) || /live\s+plants\s*&\s*saplings/i.test(cleanName)) {
+        cleanName = 'Exotic Rose & Plant Sapling';
+      }
+      return {
+        id: item.id,
+        productId: item.productId,
+        name: cleanName,
+        price: item.price,
+        sellingPrice: item.sellingPrice,
+        quantity: item.quantity,
+        image: stripBase64(item.image),
+      };
+    }) : o.items;
 
     const sourceVal = isWA ? 'WHATSAPP' : (o.source || o.orderSource || 'WEBSITE');
 

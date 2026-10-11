@@ -101,7 +101,15 @@ export function cleanPlantLabelName(rawName: string | null | undefined, fallback
   // 1. Remove "Scientific Name: ..." or "Botanical Name: ..."
   name = name.replace(/(scientific|botanical)\s*name\s*[:\-]?\s*[^,;()]+/gi, '');
 
-  // 2. Sanitize with standard PDF sanitizer (handles emojis, Unicode, HTML entities)
+  // 2. Filter out generic placeholder product names
+  if (
+    /live\s+nursery\s+plants/i.test(name) ||
+    /live\s+plants\s*&\s*saplings/i.test(name)
+  ) {
+    return 'Exotic Rose & Plant Sapling';
+  }
+
+  // 3. Sanitize with standard PDF sanitizer (handles emojis, Unicode, HTML entities)
   const sanitized = sanitizePdfText(name, fallback);
   return sanitized;
 }

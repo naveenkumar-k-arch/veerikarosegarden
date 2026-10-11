@@ -4225,7 +4225,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
                   <h3 className="text-xs font-black text-slate-900 truncate">
-                    Select Orders (Max 4 per sheet)
+                    Select Orders (3 per sheet)
                   </h3>
                   <p className="text-[10px] text-slate-500 font-medium">
                     {notPrintedOrders.length} unprinted ready • {printedOrders.length} printed moved down
@@ -4248,24 +4248,24 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                   type="button"
                   onClick={() => {
                     const pool = notPrintedOrders.length > 0 ? notPrintedOrders : displayedLabelOrders;
-                    const targetIds = pool.slice(0, 4).map(o => o.id);
+                    const targetIds = pool.slice(0, 3).map(o => o.id);
                     setSelectedLabelOrderIds(targetIds);
                   }}
                   className="px-2 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 rounded-xl text-[11px] font-extrabold cursor-pointer transition-colors text-center truncate active:scale-95"
                 >
-                  Select 4 (1 Sheet)
+                  Select 3 (1 Sheet)
                 </button>
 
                 <button
                   type="button"
                   onClick={() => {
                     const pool = notPrintedOrders.length > 0 ? notPrintedOrders : displayedLabelOrders;
-                    const targetIds = pool.slice(0, 8).map(o => o.id);
+                    const targetIds = pool.slice(0, 6).map(o => o.id);
                     setSelectedLabelOrderIds(targetIds);
                   }}
                   className="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 rounded-xl text-[11px] font-extrabold cursor-pointer transition-colors text-center truncate active:scale-95"
                 >
-                  Select 8 (2 Sheets)
+                  Select 6 (2 Sheets)
                 </button>
 
                 <button
@@ -4522,13 +4522,13 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    const targetIds = relevantOrders.slice(0, 4).map(o => o.id);
+                                    const targetIds = relevantOrders.slice(0, 3).map(o => o.id);
                                     setSelectedLabelOrderIds(prev => Array.from(new Set([...prev, ...targetIds])));
                                   }}
                                   className="flex-1 py-1.5 px-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 font-extrabold text-[11px] rounded-xl border border-indigo-200 cursor-pointer transition-all active:scale-95 text-center truncate shadow-2xs"
-                                  title="Select up to 4 orders in this week for 1 label sheet"
+                                  title="Select up to 3 orders in this week for 1 label sheet"
                                 >
-                                  + Select 4
+                                  + Select 3
                                 </button>
 
                                 <button
