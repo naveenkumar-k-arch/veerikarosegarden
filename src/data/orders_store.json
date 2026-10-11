@@ -69,24 +69,24 @@
     },
     "items": [
       {
-        "productId": "prod-live-plants",
-        "sku": "VRG-LIVE-PLA",
+        "productId": "vrg-double-delight",
+        "sku": "VRG-DOUBLE-DELIGHT",
         "name": "Double Delight Hybrid Rose (Bushes)",
         "tamilName": "Double Delight Hybrid Rose (Bushes)",
         "price": 350,
         "mrp": 350,
         "quantity": 1,
-        "image": "/products/double-delight.jpeg"
+        "image": "/products/double-delight.webp"
       },
       {
-        "productId": "prod-live-plants",
-        "sku": "VRG-LIVE-PLA",
+        "productId": "vrg-kashmiri-scented-rose",
+        "sku": "VRG-KASHMIRI-ROSE",
         "name": "Kashmiri Fragrant Button Rose",
         "tamilName": "Kashmiri Fragrant Button Rose",
         "price": 400,
         "mrp": 400,
         "quantity": 1,
-        "image": "/products/double-delight.jpeg"
+        "image": "/products/vrg/kashmiri-scented-rose.webp"
       }
     ],
     "subtotal": 750,
@@ -130,14 +130,14 @@
     },
     "items": [
       {
-        "productId": "prod-live-plants",
-        "sku": "VRG-LIVE-PLA",
+        "productId": "combo-taj-mahal-bangalore-red",
+        "sku": "CMB-TAJ-MAHAL-RED",
         "name": "Taj Mahal Rose & Bangalore Red Rose Combo",
         "tamilName": "Taj Mahal Rose & Bangalore Red Rose Combo",
         "price": 1200,
         "mrp": 1200,
         "quantity": 1,
-        "image": "/products/double-delight.jpeg"
+        "image": "/products/double-delight.webp"
       }
     ],
     "subtotal": 1200,
@@ -468,11 +468,12 @@
     "items": [
       {
         "productId": "prod-live-plants",
-        "name": "Live Nursery Plants & Saplings",
+        "name": "Exotic Live Plants & Rose Combo",
         "price": 399,
         "quantity": 1,
         "totalPrice": 399,
-        "image": "/products/double-delight.jpeg"
+        "image": "/products/double-delight.jpeg",
+        "tamilName": "Exotic Live Plants & Rose Combo"
       }
     ],
     "subtotal": 399,
@@ -517,11 +518,12 @@
     "items": [
       {
         "productId": "prod-live-plants",
-        "name": "Live Nursery Plants & Saplings",
+        "name": "WATER APPLE - 3 VARIETY COMBO",
         "price": 300,
         "quantity": 1,
         "totalPrice": 300,
-        "image": "/products/double-delight.jpeg"
+        "image": "/products/double-delight.jpeg",
+        "tamilName": "WATER APPLE - 3 VARIETY COMBO"
       }
     ],
     "subtotal": 300,
@@ -566,11 +568,12 @@
     "items": [
       {
         "productId": "prod-live-plants",
-        "name": "Live Nursery Plants & Saplings",
+        "name": "Naatu Rose (Country Paneer Rose)",
         "price": 170,
         "quantity": 1,
         "totalPrice": 170,
-        "image": "/products/double-delight.jpeg"
+        "image": "/products/double-delight.jpeg",
+        "tamilName": "Naatu Rose (Country Paneer Rose)"
       }
     ],
     "subtotal": 170,
@@ -616,11 +619,12 @@
     "items": [
       {
         "productId": "prod-live-plants",
-        "name": "Live Nursery Plants & Saplings",
+        "name": "PKM 1 Lemon & Fruit Plants Combo",
         "price": 539,
         "quantity": 1,
         "totalPrice": 539,
-        "image": "/products/double-delight.jpeg"
+        "image": "/products/double-delight.jpeg",
+        "tamilName": "PKM 1 Lemon & Fruit Plants Combo"
       }
     ],
     "subtotal": 539,
@@ -665,11 +669,12 @@
     "items": [
       {
         "productId": "prod-live-plants",
-        "name": "Live Nursery Plants & Saplings",
+        "name": "Kashmiri Rose & Panneer Rose Combo",
         "price": 250,
         "quantity": 1,
         "totalPrice": 250,
-        "image": "/products/double-delight.jpeg"
+        "image": "/products/double-delight.jpeg",
+        "tamilName": "Kashmiri Rose & Panneer Rose Combo"
       }
     ],
     "subtotal": 250,
@@ -714,11 +719,12 @@
     "items": [
       {
         "productId": "prod-live-plants",
-        "name": "Live Nursery Plants & Saplings",
+        "name": "Double Delight Rose & Kashmiri Fragrant Rose",
         "price": 280,
         "quantity": 1,
         "totalPrice": 280,
-        "image": "/products/double-delight.jpeg"
+        "image": "/products/double-delight.jpeg",
+        "tamilName": "Double Delight Rose & Kashmiri Fragrant Rose"
       }
     ],
     "subtotal": 280,
@@ -763,11 +769,12 @@
     "items": [
       {
         "productId": "prod-live-plants",
-        "name": "Live Nursery Plants & Saplings",
+        "name": "7 Days Everblooming Red Rose",
         "price": 159,
         "quantity": 1,
         "totalPrice": 159,
-        "image": "/products/double-delight.jpeg"
+        "image": "/products/double-delight.jpeg",
+        "tamilName": "7 Days Everblooming Red Rose"
       }
     ],
     "subtotal": 159,
@@ -812,11 +819,12 @@
     "items": [
       {
         "productId": "prod-live-plants",
-        "name": "Live Nursery Plants & Saplings",
+        "name": "Blue Sangu Poo + Pavazhamalli Combo",
         "price": 100,
         "quantity": 1,
         "totalPrice": 100,
-        "image": "/products/double-delight.jpeg"
+        "image": "/products/double-delight.jpeg",
+        "tamilName": "Blue Sangu Poo + Pavazhamalli Combo"
       }
     ],
     "subtotal": 100,
@@ -861,11 +869,12 @@
     "items": [
       {
         "productId": "prod-live-plants",
-        "name": "Live Nursery Plants & Saplings",
+        "name": "Hybrid Rose Collection (Bushes)",
         "price": 628,
         "quantity": 1,
         "totalPrice": 628,
-        "image": "/products/double-delight.jpeg"
+        "image": "/products/double-delight.jpeg",
+        "tamilName": "Hybrid Rose Collection (Bushes)"
       }
     ],
     "subtotal": 628,
@@ -910,11 +919,12 @@
     "items": [
       {
         "productId": "prod-live-plants",
-        "name": "Live Nursery Plants & Saplings",
+        "name": "WATER APPLE - 3 VARIETY COMBO",
         "price": 360,
         "quantity": 1,
         "totalPrice": 360,
-        "image": "/products/double-delight.jpeg"
+        "image": "/products/double-delight.jpeg",
+        "tamilName": "WATER APPLE - 3 VARIETY COMBO"
       }
     ],
     "subtotal": 360,
@@ -959,11 +969,12 @@
     "items": [
       {
         "productId": "prod-live-plants",
-        "name": "Live Nursery Plants & Saplings",
+        "name": "Premium Hybrid Rose & Fruit Collection",
         "price": 1097,
         "quantity": 1,
         "totalPrice": 1097,
-        "image": "/products/double-delight.jpeg"
+        "image": "/products/double-delight.jpeg",
+        "tamilName": "Premium Hybrid Rose & Fruit Collection"
       }
     ],
     "subtotal": 1097,
@@ -1008,11 +1019,12 @@
     "items": [
       {
         "productId": "prod-live-plants",
-        "name": "Live Nursery Plants & Saplings",
+        "name": "Abracadabra (Tiger Rose)",
         "price": 140,
         "quantity": 1,
         "totalPrice": 140,
-        "image": "/products/double-delight.jpeg"
+        "image": "/products/double-delight.jpeg",
+        "tamilName": "Abracadabra (Tiger Rose)"
       }
     ],
     "subtotal": 140,
@@ -1057,11 +1069,12 @@
     "items": [
       {
         "productId": "prod-live-plants",
-        "name": "Live Nursery Plants & Saplings",
+        "name": "Water Apple Combo & Rare Wax Apple Collection",
         "price": 764,
         "quantity": 1,
         "totalPrice": 764,
-        "image": "/products/double-delight.jpeg"
+        "image": "/products/double-delight.jpeg",
+        "tamilName": "Water Apple Combo & Rare Wax Apple Collection"
       }
     ],
     "subtotal": 764,

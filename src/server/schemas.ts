@@ -67,9 +67,10 @@ export const productSchema = z.object({
   categoryId: z.string().optional().default('cat-rose'),
   categoryName: z.string().optional().default('Roses'),
   // Description is optional — admin can leave blank, defaults to plant name
-  description: z.string().optional().default(''),
+  price: z.coerce.number().min(0).optional(),
+  originalPrice: z.coerce.number().min(0).optional(),
   mrp: z.coerce.number().min(0).optional().default(0),
-  sellingPrice: z.coerce.number().min(0, 'Selling price must be >= 0'),
+  sellingPrice: z.coerce.number().min(0).optional().default(0),
   discount: z.coerce.number().min(0).max(100).optional().default(0),
   stock: z.coerce.number().int().min(0).optional().default(25),
   plantHeight: z.string().optional().default('1–2 Feet'),

@@ -147,34 +147,36 @@ export const diskCombosData = [
   },
   {
     "id": "combo-1788265545799",
-    "title": "Mini beetroot guva",
-    "subtitle": "Mini beetroot guva plant",
-    "badge": "1-IN-1 SPECIAL",
+    "title": "Mini Beetroot Guava",
+    "subtitle": "Rare Dwarf Variety · Full Soil Live Plant",
+    "badge": "AYUDHA POOJA SPECIAL",
     "productIds": [
       "prod-1787052694949"
     ],
-    "originalPrice": 140,
-    "comboPrice": 100,
-    "discountPercent": 29,
-    "imageUrl": "/products/vrg/combo-mini-beetroot-guva.jpg",
+    "originalPrice": 160,
+    "comboPrice": 120,
+    "discountPercent": 25,
+    "imageUrl": "/products/vrg/combo-mini-beetroot-guva.webp",
     "active": true,
-    "order": 3,
+    "order": 1,
     "freeDelivery": true,
     "freePacking": true,
-    "description": "Mini beetroot guva special plant offer! Fresh live grafted sapling directly from Veerika Rose Garden with free delivery.",
+    "description": "Ayudha Pooja Festival Special Offer! Mini Beetroot Guava rare dwarf variety live plant with full soil root ball. Beautiful red foliage, sweet and tasty guava. Limited stock & limited courier time only with free shipping!",
     "products": [
       {
         "id": "prod-1787052694949",
         "sku": "VRG-PROD-1",
-        "name": "Mini beetroot guva",
-        "englishName": "Mini beetroot guva",
-        "tamilName": "சிறிய பீட்ரூட் கொய்யா",
+        "name": "Mini Beetroot Guava",
+        "englishName": "Mini Beetroot Guava",
+        "tamilName": "மினி பீட்ரூட் கொய்யா (Mini Beetroot Guava)",
         "images": [
-          "/products/vrg/mini-beetroot-guva.webp"
+          "/products/vrg/mini-beetroot-guava-offer.webp",
+          "/products/vrg/mini-beetroot-guva.webp",
+          "/products/vrg/mini-beetroot-guava-plant.webp"
         ],
-        "image": "/products/vrg/mini-beetroot-guva.webp",
-        "sellingPrice": 100,
-        "mrp": 140
+        "image": "/products/vrg/mini-beetroot-guava-offer.webp",
+        "sellingPrice": 120,
+        "mrp": 160
       }
     ]
   },

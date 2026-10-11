@@ -826,7 +826,46 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
     if (modalName === 'product') {
       setShowProductModal(true);
-      if (extra?.product !== undefined) setEditingProduct(extra.product);
+      setProductModalError(null);
+      setMobileProdUrlInput('');
+      if (extra?.product) {
+        setEditingProduct(extra.product);
+        const p = extra.product;
+        const plantImages = Array.isArray(p.images) && p.images.length > 0
+          ? p.images.filter(Boolean)
+          : ((p as any).imageUrl || (p as any).image ? [String((p as any).imageUrl || (p as any).image)] : ['https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80']);
+        setProductForm({
+          name: p.name || '',
+          tamilName: p.tamilName || '',
+          categoryId: p.categoryId || categories[0]?.id || 'cat-rose',
+          categoryName: p.categoryName || categories.find(c => c.id === p.categoryId)?.name || 'Roses',
+          mrp: p.mrp || p.sellingPrice || 299,
+          sellingPrice: p.sellingPrice || 199,
+          stock: p.stock ?? 25,
+          plantHeight: p.plantHeight || '1-2 Feet',
+          potSize: p.potSize || '8 Inch Bag',
+          sunlight: p.sunlight || 'Full Sun',
+          images: plantImages,
+          description: p.description || ''
+        });
+      } else {
+        setEditingProduct(null);
+        const activeCat = (productCategoryFilter !== 'ALL' ? categories.find(c => c.id === productCategoryFilter || c.name === productCategoryFilter) : null) || categories[0];
+        setProductForm({
+          name: '',
+          tamilName: '',
+          categoryId: activeCat?.id || 'cat-rose',
+          categoryName: activeCat?.name || 'Roses',
+          mrp: 299,
+          sellingPrice: 199,
+          stock: 25,
+          plantHeight: '1-2 Feet',
+          potSize: '8 Inch Bag',
+          sunlight: 'Full Sun',
+          images: ['https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80'],
+          description: ''
+        });
+      }
     } else if (modalName === 'category') {
       setShowCategoryModal(true);
       if (extra?.category !== undefined) setEditingCategory(extra.category);
@@ -848,14 +887,18 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
         });
       } else {
         setEditingCombo(null);
+        const sampleProds = products.slice(0, 3);
+        const calcMrp = sampleProds.reduce((sum, p) => sum + Number(p.mrp || p.sellingPrice || 0), 0) || 599;
+        const calcCombo = Math.max(99, Math.round(calcMrp * 0.75)) || 399;
+        const sampleNames = sampleProds.map(p => p.name).join(' + ');
         setComboForm({
           title: '',
-          subtitle: '',
-          badge: '3-IN-1 SPECIAL',
-          productIds: [],
-          originalPrice: 0,
-          comboPrice: 0,
-          imageUrl: '',
+          subtitle: sampleNames,
+          badge: `${sampleProds.length > 0 ? sampleProds.length : 3}-IN-1 SPECIAL`,
+          productIds: sampleProds.map(p => p.id),
+          originalPrice: calcMrp,
+          comboPrice: calcCombo,
+          imageUrl: sampleProds[0]?.images?.[0] || '',
           active: true,
           freeDelivery: true
         });
@@ -1742,48 +1785,59 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-800 pb-20">
       
-      {/* Top Mobile Unified Header — Redesigned */}
-      <header className="bg-white border-b border-slate-200/90 px-4 py-3 sticky top-0 z-30 flex items-center justify-between shadow-2xs">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigateScreen('menu_drawer')}
-            className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-700 hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
-            aria-label="Open mobile navigation menu"
-            title="Open Menu"
-          >
-            <Menu className="w-5 h-5 text-slate-800" />
-          </button>
-          <div>
-            <h1 className="text-base font-extrabold text-slate-900 leading-tight">
-              Welcome, {adminUser?.name?.split(' ')[0] || 'Admin'} 👋
-            </h1>
-            <p className="text-[11px] text-slate-500 font-medium leading-tight">
-              Here's what's happening in your nursery today
-            </p>
+      {/* Top Unified Header — Responsive across mobile, tablet, desktop */}
+      <header className="bg-white border-b border-slate-200/90 px-4 sm:px-6 lg:px-8 py-3 sticky top-0 z-30 shadow-2xs">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigateScreen('menu_drawer')}
+              className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-700 hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
+              aria-label="Open mobile navigation menu"
+              title="Open Menu"
+            >
+              <Menu className="w-5 h-5 text-slate-800" />
+            </button>
+            <div>
+              <h1 className="text-base sm:text-lg font-extrabold text-slate-900 leading-tight">
+                Welcome, {adminUser?.name?.split(' ')[0] || 'Admin'} 👋
+              </h1>
+              <p className="text-[11px] sm:text-xs text-slate-500 font-medium leading-tight">
+                Veerika Rose Garden Nursery Management Panel
+              </p>
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigateScreen('orders_list', null, false, 'confirmed')}
-            className="relative w-9 h-9 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition-all cursor-pointer active:scale-95"
-            aria-label="Notifications"
-          >
-            <Bell className="w-[18px] h-[18px] text-slate-700" />
-            {stats.confirmedCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full bg-emerald-600 text-white text-[9px] font-bold flex items-center justify-center px-1">
-                {stats.confirmedCount}
-              </span>
-            )}
-          </button>
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-600 to-emerald-800 flex items-center justify-center text-white text-xs font-black shadow-sm shrink-0">
-            {(adminUser?.name || 'A').charAt(0).toUpperCase()}
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              onClick={onBackToStore}
+              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs rounded-xl border border-emerald-200 transition-colors cursor-pointer"
+              title="Exit Admin to Store"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>Exit to Store</span>
+            </button>
+            <button
+              onClick={() => navigateScreen('orders_list', null, false, 'confirmed')}
+              className="relative w-9 h-9 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition-all cursor-pointer active:scale-95"
+              aria-label="Notifications"
+            >
+              <Bell className="w-[18px] h-[18px] text-slate-700" />
+              {stats.confirmedCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full bg-emerald-600 text-white text-[9px] font-bold flex items-center justify-center px-1">
+                  {stats.confirmedCount}
+                </span>
+              )}
+            </button>
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-600 to-emerald-800 flex items-center justify-center text-white text-xs font-black shadow-sm shrink-0">
+              {(adminUser?.name || 'A').charAt(0).toUpperCase()}
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Main Mobile App Container */}
-      <main className="flex-1 max-w-lg w-full mx-auto px-4 py-4 space-y-4">
+      {/* Main Responsive App Container */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-5">
         
         {/* ========================================================= */}
         {/* 1. DASHBOARD SCREEN                                        */}
@@ -1922,8 +1976,9 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             </div>
 
             {/* ─── 2. Quick Action Buttons ─── */}
-            <div className="bg-white rounded-3xl p-3.5 border border-slate-100 shadow-xs">
-              <div className="flex items-start justify-around">
+            <div className="bg-white rounded-3xl p-3.5 sm:p-4 border border-slate-100 shadow-xs">
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5 sm:gap-3">
+                {/* 1. WhatsApp Order */}
                 <button
                   type="button"
                   onClick={() => navigateScreen('orders_list', null, false, 'all', 'whatsapp')}
@@ -1937,8 +1992,63 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                       </span>
                     )}
                   </div>
-                  <span className="text-[10px] font-bold text-slate-700 text-center leading-tight">WhatsApp<br/>Order</span>
+                  <span className="text-[10px] sm:text-[11px] font-bold text-slate-700 text-center leading-tight">WhatsApp<br/>Order</span>
                 </button>
+
+                {/* 2. Website Order */}
+                <button
+                  type="button"
+                  onClick={() => navigateScreen('orders_list', null, false, 'all', 'website')}
+                  className="admin-quick-action-btn flex flex-col items-center gap-1.5 cursor-pointer group"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center group-hover:bg-blue-100 group-active:scale-95 transition-all shadow-2xs relative">
+                    <Globe className="w-5 h-5 text-blue-600 shrink-0" />
+                    {stats.websiteOrdersCount > 0 && (
+                      <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center px-1 shadow-xs">
+                        {stats.websiteOrdersCount}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] sm:text-[11px] font-bold text-slate-700 text-center leading-tight">Website<br/>Order</span>
+                </button>
+
+                {/* 3. Add Plant (Direct Modal Trigger) */}
+                <button
+                  type="button"
+                  onClick={() => openAdminModal('product', { product: null })}
+                  className="admin-quick-action-btn flex flex-col items-center gap-1.5 cursor-pointer group"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center group-hover:bg-emerald-100 group-active:scale-95 transition-all shadow-2xs">
+                    <Sprout className="w-5 h-5 text-emerald-700" />
+                  </div>
+                  <span className="text-[10px] sm:text-[11px] font-bold text-slate-700 text-center leading-tight">Add<br/>Plant</span>
+                </button>
+
+                {/* 4. Add Combo (Direct Modal Trigger) */}
+                <button
+                  type="button"
+                  onClick={() => openAdminModal('combo', { combo: null })}
+                  className="admin-quick-action-btn flex flex-col items-center gap-1.5 cursor-pointer group"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center group-hover:bg-amber-100 group-active:scale-95 transition-all shadow-2xs">
+                    <Sparkles className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <span className="text-[10px] sm:text-[11px] font-bold text-slate-700 text-center leading-tight">Add<br/>Combo</span>
+                </button>
+
+                {/* 5. Add Category */}
+                <button
+                  type="button"
+                  onClick={() => openAdminModal('category', { category: null })}
+                  className="admin-quick-action-btn flex flex-col items-center gap-1.5 cursor-pointer group"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center group-hover:bg-purple-100 group-active:scale-95 transition-all shadow-2xs">
+                    <FolderTree className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <span className="text-[10px] sm:text-[11px] font-bold text-slate-700 text-center leading-tight">Add<br/>Category</span>
+                </button>
+
+                {/* 6. Auto WA QR Link */}
                 <button
                   type="button"
                   onClick={() => navigateScreen('whatsapp_automation')}
@@ -1947,34 +2057,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                   <div className="w-12 h-12 rounded-2xl bg-[#E7FFDB] border border-emerald-200 flex items-center justify-center group-hover:bg-emerald-100 group-active:scale-95 transition-all shadow-2xs text-[#25D366]">
                     <QrCode className="w-5 h-5 text-emerald-800" />
                   </div>
-                  <span className="text-[10px] font-bold text-emerald-950 text-center leading-tight">Auto WA<br/>QR Link</span>
-                </button>
-                <button
-                  onClick={() => navigateScreen('products')}
-                  className="admin-quick-action-btn flex flex-col items-center gap-1.5 cursor-pointer group"
-                >
-                  <div className="w-12 h-12 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center group-hover:bg-orange-100 group-active:scale-95 transition-all shadow-2xs">
-                    <Box className="w-5 h-5 text-orange-600" />
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-700 text-center leading-tight">Add<br/>Plant</span>
-                </button>
-                <button
-                  onClick={() => navigateScreen('categories')}
-                  className="admin-quick-action-btn flex flex-col items-center gap-1.5 cursor-pointer group"
-                >
-                  <div className="w-12 h-12 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center group-hover:bg-purple-100 group-active:scale-95 transition-all shadow-2xs">
-                    <Tag className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-700 text-center leading-tight">Add<br/>Category</span>
-                </button>
-                <button
-                  onClick={() => navigateScreen('finances')}
-                  className="admin-quick-action-btn flex flex-col items-center gap-1.5 cursor-pointer group"
-                >
-                  <div className="w-12 h-12 rounded-2xl bg-teal-50 border border-teal-100 flex items-center justify-center group-hover:bg-teal-100 group-active:scale-95 transition-all shadow-2xs">
-                    <BarChart3 className="w-5 h-5 text-teal-600" />
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-700 text-center leading-tight">Sales<br/>Report</span>
+                  <span className="text-[10px] sm:text-[11px] font-bold text-emerald-950 text-center leading-tight">Auto WA<br/>QR Link</span>
                 </button>
               </div>
             </div>
@@ -2008,25 +2091,25 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               <div className="flex items-center justify-between px-1">
                 <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">ORDER STATUSES</h3>
                 <button
-                  onClick={() => navigateScreen('orders_list', null, false, 'all')}
+                  onClick={() => navigateScreen('orders_list', null, false, 'all', 'all')}
                   className="text-xs font-bold text-emerald-700 hover:text-emerald-900 cursor-pointer flex items-center gap-0.5"
                 >
                   <span>View All</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
                 {/* Order Confirmed */}
                 <button
-                  onClick={() => navigateScreen('orders_list', null, false, 'confirmed')}
-                  className="admin-status-card bg-white p-3 rounded-2xl border border-slate-100 shadow-xs hover:border-emerald-300 text-left transition-all active:scale-[0.97] cursor-pointer flex flex-col justify-between relative overflow-hidden"
+                  onClick={() => navigateScreen('orders_list', null, false, 'confirmed', 'all')}
+                  className="admin-status-card bg-white p-3 sm:p-4 rounded-2xl border border-slate-100 shadow-xs hover:border-emerald-300 text-left transition-all active:scale-[0.97] cursor-pointer flex flex-col justify-between relative overflow-hidden"
                 >
                   <div>
                     <div className="w-7 h-7 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 mb-2">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                     </div>
                     <span className="text-2xl font-black text-slate-900 block leading-tight">{stats.confirmedCount}</span>
-                    <span className="text-[11px] font-bold text-slate-800 block mt-1 leading-tight">Order Confirmed</span>
+                    <span className="text-[11px] sm:text-xs font-bold text-slate-800 block mt-1 leading-tight">Order Confirmed</span>
                     <span className="text-[9px] text-slate-400 font-medium block mt-0.5">Ready for packing</span>
                   </div>
                   <div className="w-full h-1 bg-emerald-500 rounded-full mt-2.5" />
@@ -2034,15 +2117,15 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
                 {/* Nursery Packing */}
                 <button
-                  onClick={() => navigateScreen('orders_list', null, false, 'packing')}
-                  className="admin-status-card bg-white p-3 rounded-2xl border border-slate-100 shadow-xs hover:border-orange-300 text-left transition-all active:scale-[0.97] cursor-pointer flex flex-col justify-between relative overflow-hidden"
+                  onClick={() => navigateScreen('orders_list', null, false, 'packing', 'all')}
+                  className="admin-status-card bg-white p-3 sm:p-4 rounded-2xl border border-slate-100 shadow-xs hover:border-orange-300 text-left transition-all active:scale-[0.97] cursor-pointer flex flex-col justify-between relative overflow-hidden"
                 >
                   <div>
                     <div className="w-7 h-7 rounded-full bg-orange-50 flex items-center justify-center text-orange-600 mb-2">
                       <Box className="w-4 h-4 text-orange-500" />
                     </div>
                     <span className="text-2xl font-black text-slate-900 block leading-tight">{stats.packingCount}</span>
-                    <span className="text-[11px] font-bold text-slate-800 block mt-1 leading-tight">Nursery Packing</span>
+                    <span className="text-[11px] sm:text-xs font-bold text-slate-800 block mt-1 leading-tight">Nursery Packing</span>
                     <span className="text-[9px] text-slate-400 font-medium block mt-0.5">In packaging</span>
                   </div>
                   <div className="w-full h-1 bg-orange-500 rounded-full mt-2.5" />
@@ -2050,15 +2133,15 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
                 {/* Courier Dispatched */}
                 <button
-                  onClick={() => navigateScreen('orders_list', null, false, 'dispatched')}
-                  className="admin-status-card bg-white p-3 rounded-2xl border border-slate-100 shadow-xs hover:border-blue-300 text-left transition-all active:scale-[0.97] cursor-pointer flex flex-col justify-between relative overflow-hidden"
+                  onClick={() => navigateScreen('orders_list', null, false, 'dispatched', 'all')}
+                  className="admin-status-card bg-white p-3 sm:p-4 rounded-2xl border border-slate-100 shadow-xs hover:border-blue-300 text-left transition-all active:scale-[0.97] cursor-pointer flex flex-col justify-between relative overflow-hidden"
                 >
                   <div>
                     <div className="w-7 h-7 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 mb-2">
                       <Truck className="w-4 h-4 text-blue-600" />
                     </div>
                     <span className="text-2xl font-black text-slate-900 block leading-tight">{stats.dispatchedCount}</span>
-                    <span className="text-[11px] font-bold text-slate-800 block mt-1 leading-tight">Courier Dispatched</span>
+                    <span className="text-[11px] sm:text-xs font-bold text-slate-800 block mt-1 leading-tight">Courier Dispatched</span>
                     <span className="text-[9px] text-slate-400 font-medium block mt-0.5">With tracking link</span>
                   </div>
                   <div className="w-full h-1 bg-blue-500 rounded-full mt-2.5" />
@@ -2066,15 +2149,15 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
                 {/* Delivered */}
                 <button
-                  onClick={() => navigateScreen('orders_list', null, false, 'delivered')}
-                  className="admin-status-card bg-white p-3 rounded-2xl border border-slate-100 shadow-xs hover:border-purple-300 text-left transition-all active:scale-[0.97] cursor-pointer flex flex-col justify-between relative overflow-hidden"
+                  onClick={() => navigateScreen('orders_list', null, false, 'delivered', 'all')}
+                  className="admin-status-card bg-white p-3 sm:p-4 rounded-2xl border border-slate-100 shadow-xs hover:border-purple-300 text-left transition-all active:scale-[0.97] cursor-pointer flex flex-col justify-between relative overflow-hidden"
                 >
                   <div>
                     <div className="w-7 h-7 rounded-full bg-purple-50 flex items-center justify-center text-purple-600 mb-2">
                       <CheckCheck className="w-4 h-4 text-purple-600" />
                     </div>
                     <span className="text-2xl font-black text-slate-900 block leading-tight">{stats.deliveredCount}</span>
-                    <span className="text-[11px] font-bold text-slate-800 block mt-1 leading-tight">Delivered</span>
+                    <span className="text-[11px] sm:text-xs font-bold text-slate-800 block mt-1 leading-tight">Delivered</span>
                     <span className="text-[9px] text-slate-400 font-medium block mt-0.5">Completed orders</span>
                   </div>
                   <div className="w-full h-1 bg-purple-500 rounded-full mt-2.5" />
@@ -2085,10 +2168,10 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             {/* ─── 4. Quick Overview Section ─── */}
             <div className="bg-white rounded-3xl p-4 border border-slate-100 shadow-xs space-y-3">
               <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider px-0.5">QUICK OVERVIEW</h3>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3">
                 <button
                   onClick={() => navigateScreen('products')}
-                  className="flex flex-col items-center text-center p-2 rounded-2xl hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
+                  className="flex flex-col items-center text-center p-2 rounded-2xl hover:bg-slate-50 active:scale-95 transition-all cursor-pointer border border-slate-100"
                 >
                   <div className="w-9 h-9 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 mb-1.5">
                     <Sprout className="w-4 h-4 text-emerald-600" />
@@ -2098,8 +2181,19 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                   <span className="text-[9px] font-bold text-emerald-600 mt-0.5">Live</span>
                 </button>
                 <button
+                  onClick={() => navigateScreen('combos')}
+                  className="flex flex-col items-center text-center p-2 rounded-2xl hover:bg-slate-50 active:scale-95 transition-all cursor-pointer border border-slate-100"
+                >
+                  <div className="w-9 h-9 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 mb-1.5">
+                    <Sparkles className="w-4 h-4 text-amber-600" />
+                  </div>
+                  <span className="text-base font-black text-slate-900 block leading-tight">{combos.length}</span>
+                  <span className="text-[10px] font-medium text-slate-500 block leading-tight mt-0.5">Plant Combos</span>
+                  <span className="text-[9px] font-bold text-amber-600 mt-0.5">Special</span>
+                </button>
+                <button
                   onClick={() => navigateScreen('categories')}
-                  className="flex flex-col items-center text-center p-2 rounded-2xl hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
+                  className="flex flex-col items-center text-center p-2 rounded-2xl hover:bg-slate-50 active:scale-95 transition-all cursor-pointer border border-slate-100"
                 >
                   <div className="w-9 h-9 rounded-full bg-orange-50 flex items-center justify-center text-orange-600 mb-1.5">
                     <FolderTree className="w-4 h-4 text-orange-600" />
@@ -2110,25 +2204,25 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                 </button>
                 <button
                   onClick={() => navigateScreen('reviews')}
-                  className="flex flex-col items-center text-center p-2 rounded-2xl hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
+                  className="flex flex-col items-center text-center p-2 rounded-2xl hover:bg-slate-50 active:scale-95 transition-all cursor-pointer border border-slate-100"
                 >
                   <div className="w-9 h-9 rounded-full bg-purple-50 flex items-center justify-center text-purple-600 mb-1.5">
                     <Star className="w-4 h-4 text-purple-600" />
                   </div>
                   <span className="text-base font-black text-slate-900 block leading-tight">{reviews.length}</span>
                   <span className="text-[10px] font-medium text-slate-500 block leading-tight mt-0.5">Reviews</span>
-                  <span className="text-[9px] font-bold text-purple-600 mt-0.5">New</span>
+                  <span className="text-[9px] font-bold text-purple-600 mt-0.5">Customer</span>
                 </button>
                 <button
                   onClick={() => navigateScreen('customers')}
-                  className="flex flex-col items-center text-center p-2 rounded-2xl hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
+                  className="flex flex-col items-center text-center p-2 rounded-2xl hover:bg-slate-50 active:scale-95 transition-all cursor-pointer border border-slate-100 col-span-2 sm:col-span-1"
                 >
                   <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 mb-1.5">
                     <Users className="w-4 h-4 text-blue-600" />
                   </div>
                   <span className="text-base font-black text-slate-900 block leading-tight">{stats.periodCustomers}</span>
                   <span className="text-[10px] font-medium text-slate-500 block leading-tight mt-0.5">Customers</span>
-                  <span className="text-[9px] font-bold text-blue-600 mt-0.5">This Month</span>
+                  <span className="text-[9px] font-bold text-blue-600 mt-0.5">Verified</span>
                 </button>
               </div>
             </div>
@@ -2138,7 +2232,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               <div className="flex items-center justify-between px-1">
                 <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">RECENT ORDERS</h3>
                 <button
-                  onClick={() => navigateScreen('orders_list', null, false, 'all')}
+                  onClick={() => navigateScreen('orders_list', null, false, 'all', 'all')}
                   className="text-[11px] font-bold text-emerald-800 hover:text-emerald-950 flex items-center gap-1 cursor-pointer transition-colors"
                 >
                   <span>Filter & Search</span>
@@ -2259,7 +2353,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               {/* View All Orders link */}
               {orders.length > 0 && (
                 <button
-                  onClick={() => navigateScreen('orders_list', null, false, 'all')}
+                  onClick={() => navigateScreen('orders_list', null, false, 'all', 'all')}
                   className="w-full text-center text-xs font-bold text-emerald-700 hover:text-emerald-900 py-2 cursor-pointer transition-colors flex items-center justify-center gap-1"
                 >
                   <span>View All Orders</span>
@@ -2365,7 +2459,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                All ({orders.length})
+                All ({stats.totalCount})
               </button>
               <button
                 type="button"
@@ -2404,6 +2498,23 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                   type="button"
                   onClick={() => setOrderSourceFilter('all')}
                   className="text-[11px] text-emerald-800 hover:text-emerald-950 underline font-black cursor-pointer bg-white px-2 py-0.5 rounded-lg border border-emerald-200"
+                >
+                  Show All
+                </button>
+              </div>
+            )}
+
+            {/* Active Website Filter Notification Banner */}
+            {orderSourceFilter === 'website' && (
+              <div className="bg-blue-50 border border-blue-200 text-blue-950 px-3.5 py-2.5 rounded-2xl flex items-center justify-between text-xs font-bold shadow-2xs">
+                <span className="flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-blue-600 shrink-0" />
+                  <span>Showing Website orders ({filteredOrders.length} orders)</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setOrderSourceFilter('all')}
+                  className="text-[11px] text-blue-800 hover:text-blue-950 underline font-black cursor-pointer bg-white px-2 py-0.5 rounded-lg border border-blue-200"
                 >
                   Show All
                 </button>
@@ -3110,7 +3221,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
                           {/* Accordion Body */}
                           {expanded && (
-                            <div className="p-3 bg-slate-50/50 space-y-2.5 animate-in fade-in duration-150">
+                            <div className="p-3 bg-slate-50/50 space-y-3 animate-in fade-in duration-150">
                               {hasDelayedAlert && (
                                 <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-950 text-xs font-semibold flex items-center justify-between gap-2">
                                   <span>
@@ -3119,7 +3230,9 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                                 </div>
                               )}
 
-                              {group.orders.map(order => renderMobileOrderCard(order))}
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                {group.orders.map(order => renderMobileOrderCard(order))}
+                              </div>
                             </div>
                           )}
                         </div>
@@ -3138,7 +3251,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
 
               {/* 2. Normal Feed / Holding Stage Filter Mode */}
               return (
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   {orderStageFilter === 'holding' && (
                     <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-amber-950 text-xs font-semibold flex items-center justify-between">
                       <span>⏸️ Showing all orders currently <strong>ON HOLD</strong> across all weekly batches.</span>
@@ -3146,7 +3259,9 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                     </div>
                   )}
 
-                  {filteredOrders.map(order => renderMobileOrderCard(order))}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {filteredOrders.map(order => renderMobileOrderCard(order))}
+                  </div>
 
                   {filteredOrders.length === 0 && (
                     <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 space-y-3">
@@ -4817,7 +4932,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
             </div>
 
             {/* Products List Cards */}
-            <div className="space-y-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
               {filteredProducts.map(p => (
                 <div key={p.id} className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
                   <img
@@ -4926,7 +5041,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               </button>
             </div>
 
-            <div className="space-y-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {categories.map(c => {
                 const prodCount = products.filter(p => p.categoryId === c.id).length;
                 return (
@@ -4993,18 +5108,6 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               </div>
               <button
                 onClick={() => {
-                  setEditingCombo(null);
-                  setComboForm({
-                    title: '',
-                    subtitle: '',
-                    badge: '3-IN-1 COMBO',
-                    productIds: products.slice(0, 3).map(p => p.id),
-                    originalPrice: 599,
-                    comboPrice: 399,
-                    imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80',
-                    active: true,
-                    freeDelivery: true
-                  });
                   openAdminModal('combo', { combo: null });
                 }}
                 className="px-3 py-1.5 bg-[#14532d] hover:bg-[#0f3d21] text-white font-bold text-xs rounded-xl flex items-center gap-1 shadow-xs cursor-pointer"
@@ -5014,7 +5117,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
               </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
               {combos.map(combo => {
                 const discount = combo.originalPrice > combo.comboPrice
                   ? Math.round(((combo.originalPrice - combo.comboPrice) / combo.originalPrice) * 100)
@@ -6280,7 +6383,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
       {/* ========================================================= */}
       {showProductModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden border border-slate-200 max-h-[92vh] sm:max-h-[90vh] flex flex-col">
+          <div className="bg-white w-full max-w-lg sm:max-w-xl md:max-w-2xl rounded-3xl shadow-2xl overflow-hidden border border-slate-200 max-h-[92vh] sm:max-h-[90vh] flex flex-col">
             <div className="p-4 border-b border-slate-100 flex items-center justify-between shrink-0">
               <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-1.5">
                 <Sprout className="w-4 h-4 text-emerald-700" />
@@ -6776,8 +6879,8 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
       {/* ADD/EDIT COMBO MODAL                                       */}
       {/* ========================================================= */}
       {showComboModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden border border-slate-200 max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white w-full max-w-lg sm:max-w-xl md:max-w-2xl rounded-3xl shadow-2xl overflow-hidden border border-slate-200 max-h-[92vh] sm:max-h-[90vh] flex flex-col">
             <div className="p-4 border-b border-slate-100 flex items-center justify-between">
               <h3 className="font-extrabold text-sm text-slate-900">
                 {editingCombo ? 'Edit Plant Combo' : 'Create 3-in-1 Combo Offer'}
@@ -6814,7 +6917,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                   : Math.max(99, Math.round(origPrice * 0.75));
 
                 const comboPayload = {
-                  id: editingCombo?.id,
+                  id: editingCombo?.id || ('combo-' + Date.now()),
                   title: trimmedTitle,
                   subtitle: autoSubtitle,
                   badge: comboForm.badge.trim() || `${comboForm.productIds.length}-IN-1 SPECIAL`,
@@ -6908,7 +7011,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
                   />
                 </div>
 
-                <div className="max-h-56 overflow-y-auto space-y-1.5 p-2 bg-slate-50 rounded-xl border border-slate-200">
+                <div className="max-h-64 sm:max-h-72 overflow-y-auto space-y-1.5 p-2 bg-slate-50 rounded-xl border border-slate-200">
                   {products
                     .filter(p => {
                       if (!comboPlantSearch.trim()) return true;
@@ -7823,7 +7926,7 @@ export const MobileAdminWorkflow: React.FC<MobileAdminWorkflowProps> = ({
       {/* ========================================================= */}
       {/* 19. BOTTOM NAVIGATION BAR                                  */}
       {/* ========================================================= */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-4 py-2 flex items-center justify-around shadow-lg max-w-lg mx-auto">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t sm:border border-slate-200/90 px-4 py-2 flex items-center justify-around shadow-lg max-w-lg sm:max-w-xl mx-auto sm:rounded-full sm:mb-3 sm:shadow-xl">
         <button
           onClick={() => navigateScreen('dashboard')}
           className={`flex flex-col items-center gap-0.5 transition-colors cursor-pointer min-w-[48px] ${

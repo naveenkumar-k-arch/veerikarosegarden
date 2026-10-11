@@ -113,6 +113,60 @@ export const INITIAL_CATEGORIES: Category[] = [
 
 export const INITIAL_PRODUCTS: Product[] = [
   {
+    "id": "prod-1787052694949",
+    "sku": "VRG-PROD-1",
+    "name": "Mini Beetroot Guava",
+    "englishName": "Mini Beetroot Guava",
+    "tamilName": "மினி பீட்ரூட் கொய்யா (Mini Beetroot Guava)",
+    "scientificName": "Psidium guajava 'Mini Beetroot'",
+    "categoryId": "cat-fruits",
+    "categoryName": "Fruit Plants",
+    "description": "Ayudha Pooja Special Offer! Mini Beetroot Guava (Rare Dwarf Variety Guava) live plant. Features stunning deep-red/burgundy foliage and yields sweet, delicious, pinkish-red fleshed guavas. Delivered as a full-soil healthy live plant ready for home gardening and terrace pots. Festival Special Offer — Limited Stock & Limited Courier Time Only with Free Shipping!",
+    "mrp": 160,
+    "sellingPrice": 120,
+    "discount": 25,
+    "image": "/products/vrg/mini-beetroot-guava-offer.webp",
+    "imageUrl": "/products/vrg/mini-beetroot-guava-offer.webp",
+    "images": [
+      "/products/vrg/mini-beetroot-guava-offer.webp",
+      "/products/vrg/mini-beetroot-guva.webp",
+      "/products/vrg/mini-beetroot-guava-plant.webp",
+      "/products/vrg/mini-beetroot-guava-fruit.webp",
+      "/products/vrg/combo-mini-beetroot-guva.webp"
+    ],
+    "rating": 4.9,
+    "reviewCount": 24,
+    "stock": 50,
+    "plantHeight": "1.5 - 2 Feet (Rare Dwarf Variety)",
+    "potSize": "8 Inch Bag (Full Soil Live Plant)",
+    "sunlight": "Requires 5-6 hours direct sunlight.",
+    "waterRequirement": "Water daily or when topsoil feels dry.",
+    "floweringSeason": "All Year",
+    "careInstructions": {
+      "watering": "Water daily in the morning, ensure good drainage.",
+      "sunlight": "Full direct sunlight (5-6 hours daily for best foliage color & fruiting).",
+      "fertilizer": "Apply organic vermicompost / neem cake every 15-20 days.",
+      "soil": "Rich red garden soil mixed with 30% organic compost and cocopeat."
+    },
+    "featured": true,
+    "bestSeller": true,
+    "trending": true,
+    "tags": [
+      "fruit plants",
+      "guava",
+      "mini beetroot guava",
+      "beetroot guava",
+      "dwarf guava",
+      "rare variety",
+      "live plants",
+      "ayudha pooja special",
+      "free shipping"
+    ],
+    "status": "ACTIVE",
+    "createdAt": "2026-08-28T17:55:15.496Z",
+    "updatedAt": "2026-10-10T21:00:00.000Z"
+  },
+  {
     "id": "vrg-single-orange-rose",
     "sku": "VRG-ROSE-121",
     "name": "Single Orange Rose",

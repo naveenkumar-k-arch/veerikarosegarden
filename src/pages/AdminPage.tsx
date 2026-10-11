@@ -2988,29 +2988,6 @@ const silentRefresh = async (): Promise<boolean> => {
   if (adminLayoutMode === 'mobile_workflow') {
     return (
       <div className="relative min-h-screen bg-slate-50">
-        {/* Switcher bar on top for desktop view testing */}
-        <div className="hidden lg:flex items-center justify-between bg-slate-900 text-white px-6 py-2.5 text-xs shadow-md">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="font-bold">📱 VRG Nursery Mobile Redesign Mode (12-Step Order Workflow)</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setAdminLayoutMode('desktop_full')}
-              className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
-            >
-              <Monitor className="w-4 h-4 text-slate-400" />
-              <span>Switch to Desktop View</span>
-            </button>
-            <button
-              onClick={onBackToStore}
-              className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl transition-colors cursor-pointer"
-            >
-              Exit to Store
-            </button>
-          </div>
-        </div>
-
         <MobileAdminWorkflow
           orders={orders}
           products={products}
@@ -3168,7 +3145,7 @@ const silentRefresh = async (): Promise<boolean> => {
             })
               .then(async r => {
                 const data = await r.json().catch(() => null);
-                if (data?.success && data?.product) {
+                if (r.ok && data?.success && data?.product) {
                   const serverProd = data.product;
                   if (tempId !== serverProd.id) {
                     clearPendingProductFromSession(tempId);
@@ -3192,6 +3169,9 @@ const silentRefresh = async (): Promise<boolean> => {
                   try {
                     window.dispatchEvent(new CustomEvent('vrg_products_updated', { detail: nextList }));
                   } catch {}
+                } else if (data && !data.success) {
+                  console.warn('Background product save error:', data);
+                  toast.error(data.message || 'Failed to save plant to server', 'Save Error');
                 }
               })
               .catch(e => {
@@ -3387,7 +3367,7 @@ const silentRefresh = async (): Promise<boolean> => {
             try {
               const res = await authFetch(url, { method, body: JSON.stringify(comboData) });
               const data = await res.json().catch(() => null);
-              if (data && data.success && data.combo) {
+              if (res.ok && data && data.success && data.combo) {
                 // Clear from deleted set just in case
                 try {
                   const deleted = JSON.parse(localStorage.getItem('vrg_deleted_combos') || '[]');
@@ -3406,10 +3386,14 @@ const silentRefresh = async (): Promise<boolean> => {
                   } catch {}
                   return next;
                 });
+              } else if (data && !data.success) {
+                console.warn('Backend combo save error:', data);
+                toast.error(data.message || 'Failed to save combo package to server', 'Save Notice');
               }
               window.dispatchEvent(new CustomEvent('vrg_combos_updated'));
             } catch (e: any) {
               console.error('Error in onSaveCombo:', e);
+              toast.error(e?.message || 'Error saving combo package', 'Combo Error');
               throw e;
             }
           }}
